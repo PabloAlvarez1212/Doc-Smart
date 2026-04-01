@@ -1,0 +1,28 @@
+.containerMain{
+    background-color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+}
+
+.logo{
+    display: flex;
+    align-items: center;
+}
+.btns{
+    padding: 20px;
+    content: center;
+}
+
+div.btns button{
+    background-color: var(--color-dark);
+    margin: 10px;
+    padding: 12px;
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+    color: var(--color-white);
+}   
