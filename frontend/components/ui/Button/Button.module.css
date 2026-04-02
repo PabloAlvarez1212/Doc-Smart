@@ -1,0 +1,76 @@
+/*!Estilo base del boton*/
+.btn {
+    border-radius: 10px;
+    cursor: pointer;
+    padding: 15px;
+    border: none;
+    display: inline-flex; /*Ocupa el ancho de su contenido*/
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    font-size: 1.5rem;
+
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    opacity: 80%;
+
+}
+
+/*!Variantes*/
+.primary {
+    background-color: var(--color-dark);
+    color: white;
+}
+
+.warning {
+    background: #EF9F27;
+    color: #412402;
+}
+
+.danger {
+    background: #A32D2D;
+    color: #FCEBEB;
+}
+
+.secundary {
+    background: #FFFFFF;
+    color: #000000;
+}
+
+/*!Tamaño*/
+
+.sm {
+    font-size: 1.1rem;
+}
+.lg{
+    font-size: 2rem;
+}
+/*Diseño de carga*/
+.loading {
+    color: transparent;
+    /* esconde el texto */
+    position: relative;
+    /* para posicionar el spinner adentro */
+}
+
+.loading::after {
+    /* crea el spinner con CSS puro */
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    /* lo hace círculo */
+    animation: spin 0.6s linear infinite;
+    /* lo hace girar */
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

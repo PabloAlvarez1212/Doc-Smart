@@ -1,10 +1,9 @@
 import styles from './Features.module.css';
 import Cards from '../../../../components/ui/Cards';
-import Image from 'next/image';
 export default function Features() {
     return (
         <div>
-            <h2>Funcionalidades principales</h2>
+            <h2 className={styles.title}>Funcionalidades principales</h2>
             <div className={styles.cardContainer}>
                 <div className={styles.cards}>
                     <Cards
