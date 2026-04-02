@@ -1,5 +1,5 @@
 import Styles from "./Footer.module.css"
-
+import Button from "../../../../components/ui/Button/Button"
 export default function Footer(){
     return(
         <div className={Styles.container}>
@@ -9,9 +9,7 @@ export default function Footer(){
             <div className={Styles.footerText}>
                 <p>Únete a miles de profesionales y pacientes que confían en DocSmart</p>
             </div>
-            <button className={Styles.footerBtn}>
-                Acceder a la plataforma
-            </button>
+            <Button variant="secundary">Acceder a la plataforma</Button>
 
         </div>
 
