@@ -1,0 +1,35 @@
+.mainLogin{
+    display: flex;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+}
+.container{
+    background-color: white;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    width: 50%;
+    height: 80%;
+    border-radius: 5%;
+    padding: 4rem;
+    gap: 4rem;
+    margin:auto 0;
+}
+.logo{
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+.logo h1{
+    font-size: 3rem;
+}
+.logo span{
+    color: var(--color-dark);
+}
+.container h2{
+    font-size: 2rem;
+}
+.form{
+    width: 100%;
+}
