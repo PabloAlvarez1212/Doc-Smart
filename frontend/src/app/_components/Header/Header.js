@@ -1,7 +1,14 @@
+'use client';
 import styles from './Header.module.css';
 import Image from 'next/image';
 import Button from '../../../../components/ui/Button/Button';
+import { useRouter } from 'next/navigation';
+
 export default function Header(){
+    const router = useRouter();
+    const handleClick = () => {
+        router.push('/login');
+    }
     return (
         <div className={styles.containerMain}>
             <div className={styles.logo}>
@@ -14,7 +21,7 @@ export default function Header(){
                 <h2><span>Doc</span>Smart</h2>
             </div>
             <div className={styles.btns}>
-                <Button size='sm'>Iniciar sesión</Button>
+                <Button size='sm' onClick={handleClick}>Iniciar sesión</Button>
                 <Button size='sm'>Registrase</Button>
             </div>
         </div>
