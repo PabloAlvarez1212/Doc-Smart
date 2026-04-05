@@ -5,6 +5,20 @@
   background: transparent;
   padding: 8px 0;
   text-align: center;
-  margin: 20rem;
   font-size: 1.6rem;
+}
+.container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.eyeButton {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: #888;
 }

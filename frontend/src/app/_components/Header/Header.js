@@ -8,8 +8,12 @@ import { useRouter } from 'next/navigation';
 export default function Header() {
     const router = useRouter();
 
+    const handleLoginClick = () => {
+        router.push('/login');
+    };
+
     const handleRegisterClick = () => {
-        router.push("/register");
+        router.push('/register');
     };
 
     return (
@@ -25,7 +29,7 @@ export default function Header() {
             </div>
 
             <div className={styles.btns}>
-                <Button size='sm'>
+                <Button size='sm' onClick={handleLoginClick}>
                     Iniciar sesión
                 </Button>
 
