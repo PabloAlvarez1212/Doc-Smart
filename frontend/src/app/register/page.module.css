@@ -1,0 +1,6 @@
+.tittle{
+    font-size: 3rem;
+    margin: 20px;
+    font-family: 'Courier New', Courier, monospace;
+    color: var(--color-dark);
+}
