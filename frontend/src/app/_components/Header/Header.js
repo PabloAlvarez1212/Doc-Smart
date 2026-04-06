@@ -13,7 +13,7 @@ export default function Header() {
     };
 
     const handleRegisterClick = () => {
-        router.push('/register');
+        router.push('/rol');
     };
 
     return (
