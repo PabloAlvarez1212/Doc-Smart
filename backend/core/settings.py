@@ -26,7 +26,9 @@ SECRET_KEY = 'django-insecure-ml!j604gh^qj+m3-8mzldo)1+q^96*fapti*2p%+*r_y!&n0k2
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # Application definition
 
@@ -79,8 +81,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
 
