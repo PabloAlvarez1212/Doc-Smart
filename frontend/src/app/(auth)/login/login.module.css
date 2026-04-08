@@ -10,10 +10,10 @@
     align-items: center;
     flex-direction: column;
     width: 50%;
-    height: 80%;
+    height: auto;
     border-radius: 5%;
     padding: 4rem;
-    gap: 4rem;
+    gap: 3rem;
     margin:auto 0;
 }
 .logo{
@@ -32,4 +32,21 @@
 }
 .form{
     width: 100%;
+}
+.containerLinks{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.6rem;
+}
+
+.link{
+    color: black;
+    font-size: 1.4rem;
+    text-decoration: none;
+}
+.link:hover{
+    opacity: 80%;
+    color: var(--color-dark);
+    font-size: 1.5rem;
 }
