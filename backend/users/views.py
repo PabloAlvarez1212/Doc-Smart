@@ -28,7 +28,20 @@ class LoginView(APIView): #Creamos la clase LoginView y heredamos con APIView pa
                 value=str(token.access_token),
                 httponly=True,    # JS no puede acceder
                 secure=True,      # solo HTTPS
-                samesite='Lax'    # protección CSRF
+                samesite='Lax', # protección CSRF
+                path='/',    
+                domain=None,
+                max_age=3600
+            )
+            response.set_cookie(
+                key='user_role',
+                value=usuario.id_rol.nombre, 
+                httponly=False, #Permitimos que Next.js la lea
+                secure=False,
+                samesite='Lax',
+                path='/',      # Asegura que sea accesible en todas las rutas
+                domain=None,
+                max_age=3600
             )
             return response
 
@@ -46,9 +59,23 @@ class LoginView(APIView): #Creamos la clase LoginView y heredamos con APIView pa
                 value=str(token.access_token),
                 httponly=True,
                 secure=True,
-                samesite='Lax'
+                samesite='Lax',
+                path='/',      # Asegura que sea accesible en todas las rutas
+                domain=None,
+                max_age=3600
             )
-            return response
+            # Cookie de Navegación (Rol) - Visible para el Middleware
+            response.set_cookie(
+                key='user_role',
+                value=medico.id_rol.nombre, 
+                httponly=False, #Permitimos que Next.js la lea
+                secure=False,
+                samesite='Lax',
+                path='/',     
+                domain=None,
+                max_age=3600
+            )
+            return response        
 
         return Response(
             {'error': 'Credenciales incorrectas'},
