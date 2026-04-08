@@ -19,6 +19,14 @@ class LoginView(APIView): #Creamos la clase LoginView y heredamos con APIView pa
 
         # Busca en usuarios (pacientes)
         usuario = Usuario.objects.filter(correo=correo).first()
+        # Busca en medicos
+        medico = Medico.objects.filter(correo=correo).first()
+        
+        if( not usuario and not medico):
+            return Response(
+                {'error':'El correo no se encuentra registrado'},
+                status=404
+            )
         # verifica que el usuario exista y que la contraseña sea correcta
         if usuario and bcrypt.checkpw(contraseña.encode(), usuario.contraseña.encode()):
             token = RefreshToken.for_user(usuario)
@@ -44,9 +52,7 @@ class LoginView(APIView): #Creamos la clase LoginView y heredamos con APIView pa
                 max_age=3600
             )
             return response
-
-        # Busca en medicos
-        medico = Medico.objects.filter(correo=correo).first()
+             
         if medico and bcrypt.checkpw(contraseña.encode(), medico.contraseña.encode()):
             token = RefreshToken.for_user(medico)
             response = Response({'rol': medico.id_rol.nombre, 
