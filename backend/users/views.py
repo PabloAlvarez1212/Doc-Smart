@@ -1,89 +1,54 @@
-from rest_framework.views import APIView #Clase base para crear endpoints
-from rest_framework.response import Response #retornar respuestas json al front
-from rest_framework import status #codigos http(200,400,404,500 etc)
-from rest_framework_simplejwt.tokens import RefreshToken #Para generar el token 
-from users.models import Usuario
-from medicos.models import Medico
-import bcrypt
-class LoginView(APIView): #Creamos la clase LoginView y heredamos con APIView para heredar tdoas las herramientas de Django Rest Framework
-    def post(self, request): #metodo que se ejecuta cuando el front hace una peticion post, la funcion tiene 2 parametros, self(para acceder a campos de la misma clase), request(lo que recibe del front
-        #Obtenemos del body de la peticion el correo y la contraseña
-        correo = request.data.get('correo') 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from users.services import loginService
+
+class LoginView(APIView):
+    def post(self, request):
+        # Recibe los datos
+        correo = request.data.get('correo')
         contraseña = request.data.get('contraseña')
 
+        # Valida que vengan los campos
         if not correo or not contraseña:
             return Response(
                 {'error': 'Correo y contraseña son requeridos'},
                 status=400
             )
 
-        # Busca en usuarios (pacientes)
-        usuario = Usuario.objects.filter(correo=correo).first()
-        # Busca en medicos
-        medico = Medico.objects.filter(correo=correo).first()
-        
-        if( not usuario and not medico):
-            return Response(
-                {'error':'El correo no se encuentra registrado'},
-                status=404
-            )
-        # verifica que el usuario exista y que la contraseña sea correcta
-        if usuario and bcrypt.checkpw(contraseña.encode(), usuario.contraseña.encode()):
-            token = RefreshToken.for_user(usuario)
-            response = Response({'rol': usuario.id_rol.nombre , 'nombre': usuario.nombre , 'apellido': usuario.apellido,'message': "Login exitoso"})
-            response.set_cookie(
-                key='token',
-                value=str(token.access_token),
-                httponly=True,    # JS no puede acceder
-                secure=True,      # solo HTTPS
-                samesite='Lax', # protección CSRF
-                path='/',    
-                domain=None,
-                max_age=3600
-            )
-            response.set_cookie(
-                key='user_role',
-                value=usuario.id_rol.nombre, 
-                httponly=False, #Permitimos que Next.js la lea
-                secure=False,
-                samesite='Lax',
-                path='/',      # Asegura que sea accesible en todas las rutas
-                domain=None,
-                max_age=3600
-            )
-            return response
-             
-        if medico and bcrypt.checkpw(contraseña.encode(), medico.contraseña.encode()):
-            token = RefreshToken.for_user(medico)
-            response = Response({'rol': medico.id_rol.nombre, 
-                                 'nombre': medico.nombre , 
-                                 'apellido': medico.apellido,
-                                 'message': "Login exitoso"
-                                 })
+        try:
+            # Llama al servicio
+            token, resultado, status_code = loginService(correo, contraseña)
+
+            # Si hay error retorna el mensaje
+            if status_code != 200:
+                return Response({'error': resultado}, status=status_code)
+
+            # Si todo bien, crea la respuesta con cookies
+            response = Response(resultado)
             response.set_cookie(
                 key='token',
                 value=str(token.access_token),
                 httponly=True,
                 secure=True,
                 samesite='Lax',
-                path='/',      # Asegura que sea accesible en todas las rutas
+                path='/',
                 domain=None,
                 max_age=3600
             )
-            # Cookie de Navegación (Rol) - Visible para el Middleware
             response.set_cookie(
                 key='user_role',
-                value=medico.id_rol.nombre, 
-                httponly=False, #Permitimos que Next.js la lea
+                value=resultado['rol'],
+                httponly=False,
                 secure=False,
                 samesite='Lax',
-                path='/',     
+                path='/',
                 domain=None,
                 max_age=3600
             )
-            return response        
+            return response
 
-        return Response(
-            {'error': 'Credenciales incorrectas'},
-            status=401
-        )
+        except Exception as e:
+            return Response(
+                {'error': 'Error interno del servidor'},
+                status=500
+            )
