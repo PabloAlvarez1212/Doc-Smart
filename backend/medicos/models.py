@@ -17,6 +17,8 @@ class Medico(models.Model):
     contraseña = models.CharField(max_length=255)
     id_especialidad = models.ForeignKey(Especialidad, on_delete=models.PROTECT)
     id_rol = models.ForeignKey(Rol, on_delete=models.PROTECT)
+    token_reset = models.CharField(max_length=100, null=True, blank=True)
+    token_reset_expira = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
