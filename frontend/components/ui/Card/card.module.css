@@ -1,0 +1,23 @@
+.containerCard{
+    border-radius: 20px;
+    border: solid 1px;
+    height: auto;
+    background-color: var(--color-white);
+    width: auto;
+}
+.vertical{
+    display: flex;
+    flex-direction: column;
+}
+.horizontal{
+    display: flex;
+}
+.center{
+    align-items: center;
+}
+.left{
+    align-items: start;
+}
+.right{
+    align-items: end;
+}
