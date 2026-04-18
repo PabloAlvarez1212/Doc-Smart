@@ -1,5 +1,4 @@
 import axios from 'axios'
-
 const API_URL = 'http://localhost:8000/api' //Url de la api del back
 //formData = body
 export const loginService = async (formData) => {
@@ -7,4 +6,9 @@ export const loginService = async (formData) => {
         withCredentials: true  // para enviar y recibir cookies
     })
     return response.data //retorna respuesta del back
+}
+
+export const forgotPasswordService = async (formData) => {
+    const response = await axios.post(`${API_URL}/solicitar-cambio/`, formData)
+    return response.data
 }
