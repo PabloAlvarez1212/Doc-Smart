@@ -1,4 +1,10 @@
-.background {
+.container {
   min-height: 100vh;
-  background-color: var(--color-primary);
+  background-color: white;
+  position: relative; 
+}
+
+.content {
+  position: relative;
+  z-index: 1;  
 }
