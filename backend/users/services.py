@@ -9,6 +9,7 @@ from datetime import timedelta
 from django.core.mail import send_mail
 import os
 from utils import validarContraseña
+from django.template.loader import render_to_string
 
 def loginService(correo, contraseña):
     # Busca en ambas tablas
@@ -55,19 +56,35 @@ def solicitarCambioService(correo):
         medico.token_reset_expira = expiracion
         medico.save()
 
-    # Envía el email
-    link = f'http://localhost:3000/reset-password?token={token}'
-    send_mail(
-        subject='Recupera tu contraseña - DocSmart',
-        message=f'Haz click en el siguiente link para recuperar tu contraseña: {link}',
-        from_email=os.getenv('EMAIL_HOST_USER'),
-        recipient_list=[correo],
-        fail_silently=False
-    )
+    persona = usuario or medico
+    
+    if persona :
+        # Envía el email
+        link = f'http://localhost:3000/reset-password?token={token}'
+        nombre = persona.nombre or 'Usuario'
+        apellido = persona.apellido or ''
+        html_content = render_to_string(
+            'emails/reset_password.html',
+            {'link': link,
+            'nombre': nombre,
+            'apellido': apellido}
+        )
+        try:
+            send_mail(
+                subject='Recupera tu contraseña - DocSmart',
+                message=f'Usa este enlace: {link}',
+                from_email=os.getenv('EMAIL_HOST_USER'),
+                recipient_list=[correo],
+                html_message=html_content,
+                fail_silently=False
+            )
 
-    return 'Email enviado correctamente', 200
+            return 'Email enviado correctamente', 200
 
-
+        except Exception as e:
+            print("Error enviando correo:", e)
+            return 'Error enviando el correo', 500
+    
 def cambiarContraseñaService(token, nueva_contraseña):
     
     #validar contraseña
@@ -85,7 +102,7 @@ def cambiarContraseñaService(token, nueva_contraseña):
     # Verifica que el token no haya expirado
     persona = usuario or medico
     
-    if persona.token_reset_expira < timezone.now():
+    if not persona.token_reset_expira or persona.token_reset_expira < timezone.now():
         persona.token_reset = None
         persona.token_reset_expira = None
         persona.save()

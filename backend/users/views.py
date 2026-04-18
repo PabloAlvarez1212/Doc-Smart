@@ -48,6 +48,7 @@ class LoginView(APIView):
             return response
 
         except Exception as e:
+            print(e)
             return Response(
                 {'error': 'Error interno del servidor'},
                 status=500
@@ -66,9 +67,13 @@ class SolicitarCambioView(APIView):
 
         try:
             mensaje, status_code = solicitarCambioService(correo)
+            if status_code != 200:
+                return Response({'error': mensaje}, status=status_code)
+            
             return Response({'mensaje': mensaje}, status=status_code)
 
         except Exception as e:
+            print(e)
             return Response(
                 {'error': 'Error interno del servidor'},
                 status=500
@@ -89,6 +94,7 @@ class CambiarContraseñaView(APIView):
             return Response({'mensaje': mensaje}, status=status_code)
 
         except Exception as e:
+            print(e)
             return Response(
                 {'error': 'Error interno del servidor'},
                 status=500
