@@ -13,9 +13,9 @@ export default function Button({
 }) {
     //lista de las clases css
     const classes = [
-        styles.btn ,
+        styles.btn,
         styles[variant],
-        size !== "md" && styles[size], 
+        size !== "md" && styles[size],
         loading && styles.loading, // si loading es true agrega la clase, si no, no agrega nada
         className,
     ].filter(Boolean).join(" ");
@@ -28,7 +28,14 @@ export default function Button({
             onClick={onClick}
             {...rest}
         >
-            {children}
+            {loading ? (
+                <>
+                    <span className={styles.spinner}></span>
+                    <span>Enviando...</span>
+                </>
+            ) : (
+                children
+            )}
         </button>
     );
 }
