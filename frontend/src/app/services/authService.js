@@ -12,3 +12,8 @@ export const forgotPasswordService = async (formData) => {
     const response = await axios.post(`${API_URL}/solicitar-cambio/`, formData)
     return response.data
 }
+
+export const resetPassword = async (formData) =>{
+    const response = await axios.post(`${API_URL}/cambiar-contraseña/`,formData);
+    return response.data;
+}
