@@ -1,3 +1,61 @@
-export default function useResetPasswordForm(){
-    
+"use client";
+import { useState } from "react";
+import { resetPasswordService } from "@/app/services/authService";
+import Swal from "sweetalert2";
+import styles from "./resetPasswordForm.module.css"
+import ResetPasswordValidate from "@/app/validations/resetPasswordValidate";
+import { useSearchParams } from 'next/navigation'
+import { useRouter } from "next/navigation";
+
+export default function useResetPasswordForm() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const token = searchParams.get('token')
+    const [formData, setFormData] = useState({
+        token: token,
+        nueva_contraseña: "",
+        confirmarContraseña: ""
+    })
+    const [loading, setLoading] = useState(false);
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value })
+    }
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        const validateErrors = ResetPasswordValidate(formData);
+        if (Object.keys(validateErrors).length > 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: Object.values(validateErrors)[0],
+                customClass: { popup: styles.swal }
+            })
+            return
+        }
+        setLoading(true)
+        try {
+            const data = await resetPasswordService(formData);
+            await Swal.fire({
+                icon: 'success',
+                title: data.mensaje,
+                text: 'Debes iniciar sesion nuevamente',
+                customClass: { popup: styles.swal }
+            }).then(() => {
+                router.push('/login')
+            })
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.response?.data?.error || 'Error en el servidor',
+                customClass: { popup: styles.swal }
+            })
+        }
+        finally {
+            setLoading(false)
+        }
+    }
+
+    return { formData, handleChange, handleSubmit, loading }
+
 }

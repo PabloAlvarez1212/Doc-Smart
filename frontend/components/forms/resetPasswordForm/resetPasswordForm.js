@@ -1,13 +1,15 @@
+"use client";
 import styles from "./resetPasswordForm.module.css"
 import Input from "../../ui/Input/Input"
 import Button from "../../ui/Button/Button"
 import useResetPasswordForm from "./useResetPasswordForm"
 import { AlertCircleIcon } from "lucide-react"
 export default function ResetPasswordForm() {
+    const {formData,handleChange,handleSubmit,loading} = useResetPasswordForm()
     return (
-        <form className={styles.form}>
+        <form className={styles.form} onSubmit={handleSubmit}>
             <div className={styles.containerMain}>
-                <Input className={styles.input} type="password" placeholder="Nueva contraseña" />
+                <Input className={styles.input} type="password" name='nueva_contraseña' value={formData.nueva_contraseña || ''} onChange={handleChange} placeholder="Nueva contraseña" />
                 <ul className={styles.list}>
                     <div className={styles.listItem}>
                         <AlertCircleIcon size={30} color="orange" />
@@ -34,8 +36,8 @@ export default function ResetPasswordForm() {
                         <li>La contraseña debe tener mínimo un número</li>
                     </div>
                 </ul>
-                <Input type="password" className={styles.input} placeholder="Confirmar nueva contraseña" />
-                <Button type="submit">Cambiar contraseña</Button>
+                <Input type="password" className={styles.input} name='confirmarContraseña' value={formData.confirmarContraseña || ''} onChange={handleChange} placeholder="Confirmar nueva contraseña" />
+                <Button type="submit" loading={loading}>Cambiar contraseña</Button>
             </div>
         </form>
     )
