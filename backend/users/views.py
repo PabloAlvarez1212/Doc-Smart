@@ -91,8 +91,19 @@ class CambiarContraseñaView(APIView):
             )
         try:
             mensaje, status_code = cambiarContraseñaService(token, nueva_contraseña)
-            return Response({'mensaje': mensaje}, status=status_code)
+            
+            if status_code != 200 :
+                return Response({'error' : mensaje}, status=status_code)
+                
+            response = Response({'mensaje': mensaje}, status=status_code)
+            
+                
+            if status_code == 200:
+                response.delete_cookie('token')
+                response.delete_cookie('user_role')
 
+            return response
+                
         except Exception as e:
             print(e)
             return Response(
