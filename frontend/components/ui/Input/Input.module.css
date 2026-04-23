@@ -1,5 +1,6 @@
 .input {
   border: none;
+  width: 100%;
   border-bottom: 2px solid #ccc;
   outline: none;
   background: transparent;

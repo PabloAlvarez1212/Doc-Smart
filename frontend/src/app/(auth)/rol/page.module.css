@@ -1,0 +1,164 @@
+.main {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #e8f0fe 0%, #f0faf4 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    position: relative;
+}
+
+.backBtn {
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    background: none;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 500;
+}
+
+.backBtn:hover {
+    color: var(--color-dark);
+}
+
+.header {
+    text-align: center;
+    margin-top: 3rem;
+    margin-bottom: 3rem;
+}
+
+.title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #111;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: #555;
+}
+
+.cards {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 900px;
+}
+
+.card {
+    background: white;
+    border-radius: 1.2rem;
+    padding: 2.5rem;
+    width: 380px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.2rem;
+    border: 2px solid transparent;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+}
+
+.cardPaciente:hover {
+    border-color: #3b5bdb;
+}
+
+.cardMedico:hover{
+    border-color: #2f9e44;
+}
+
+.iconWrapper {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.iconPaciente {
+    background-color: #dbe4ff;
+}
+
+.iconMedico {
+    background-color: #d3f9d8;
+}
+
+.icon {
+    font-size: 2.5rem;
+}
+
+.cardTitle {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #111;
+}
+
+.cardDesc {
+    font-size: 0.95rem;
+    color: #555;
+    line-height: 1.5;
+}
+
+.features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.dotPaciente {
+    color: #3b5bdb;
+    margin-right: 0.5rem;
+}
+
+.dotMedico {
+    color: #2f9e44;
+    margin-right: 0.5rem;
+}
+
+.btn {
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: 0.6rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: white;
+    margin-top: auto;
+    transition: opacity 0.2s;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+.btnPaciente {
+    background-color: #3b5bdb;
+}
+
+.btnMedico {
+    background-color: #2f9e44;
+}
