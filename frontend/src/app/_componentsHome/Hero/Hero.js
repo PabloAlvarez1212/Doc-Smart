@@ -1,7 +1,13 @@
+"use client";
 import Button from "../../../../components/ui/Button/Button"
 import styles from "./Hero.module.css"
 import Image from "next/image"
+import { useRouter } from "next/navigation";
 export default function Hero() {
+    const router = useRouter();
+    const navigateRegister = () =>{
+        router.push('/rol')
+    }
     return (
         <div className={styles.container}>
             <div className={styles.hero}>
@@ -11,7 +17,7 @@ export default function Hero() {
                 <p>La plataforma integral que conecta pacientes y médicos para una 
                     atención médica moderna y eficiente</p>
             </div>
-            <Button className={styles.btn} size="lg">Comenzar Ahora</Button>
+            <Button className={styles.btn} onClick={navigateRegister} size="lg">Comenzar Ahora</Button>
             <div className={styles.Logos}>
                 <Image
                     src="/images/Logs.jpeg"

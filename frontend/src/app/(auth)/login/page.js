@@ -16,7 +16,7 @@ export default function login() {
                 </div>
                 <div className={styles.containerLinks}>
                     <Link href='/forgot-password' className={styles.link}>¿Olvidaste tu contraseña?</Link>
-                    <Link href='/roles' className={styles.link}>¿No tienes una cuenta?, registrate aquí</Link>
+                    <Link href='/rol' className={styles.link}>¿No tienes una cuenta?, registrate aquí</Link>
                     <Link href='/' className={styles.link}>Volver al inicio</Link>
                 </div>
             </div>
