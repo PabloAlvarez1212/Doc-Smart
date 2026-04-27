@@ -19,6 +19,7 @@ class Medico(models.Model):
     id_rol = models.ForeignKey(Rol, on_delete=models.PROTECT)
     token_reset = models.CharField(max_length=100, null=True, blank=True)
     token_reset_expira = models.DateTimeField(null=True, blank=True)
+    ultimo_envio = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
