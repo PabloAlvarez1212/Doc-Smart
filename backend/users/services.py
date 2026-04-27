@@ -58,6 +58,18 @@ def solicitarCambioService(correo):
 
     persona = usuario or medico
     
+    if persona.ultimo_envio:
+        tiempo_transcurrido = timezone.now() - persona.ultimo_envio
+
+        if tiempo_transcurrido < timedelta(minutes=5):
+            segundos_restantes = max(0, 300 - int(tiempo_transcurrido.total_seconds()))
+            minutos = segundos_restantes // 60
+            segundos = segundos_restantes % 60
+            if minutos > 0:
+                return f'Espera {minutos} min {segundos} seg antes de reenviar', 400
+            else:
+                return f'Espera {segundos} segundos antes de reenviar', 400
+    
     if persona :
         # Envía el email
         link = f'http://localhost:3000/reset-password?token={token}'
@@ -78,7 +90,8 @@ def solicitarCambioService(correo):
                 html_message=html_content,
                 fail_silently=False
             )
-
+            persona.ultimo_envio = timezone.now()
+            persona.save()
             return 'Email enviado correctamente', 200
 
         except Exception as e:
