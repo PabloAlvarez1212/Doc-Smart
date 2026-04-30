@@ -1,6 +1,4 @@
 from django.db import models
-from citas.models import Cita
-from users.models import Usuario
 
 class Rol(models.Model):
     nombre = models.CharField(max_length=50)
@@ -32,8 +30,8 @@ class HistorialClinico(models.Model):
     motivo_consulta = models.TextField()
     cedula = models.CharField(max_length=20)
 
-    cita = models.ForeignKey(Cita, on_delete=models.CASCADE)
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    cita = models.ForeignKey('citas.Cita', on_delete=models.CASCADE)
+    usuario = models.ForeignKey('users.Usuario', on_delete=models.CASCADE)
 
     def __str__(self):
         return f"Historial {self.id} - {self.cedula}"
