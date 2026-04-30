@@ -1,3 +1,4 @@
+from catalogos.models import Rol
 import bcrypt
 from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import Usuario
@@ -134,3 +135,85 @@ def cambiarContraseñaService(token, nueva_contraseña):
     persona.save()
 
     return 'Contraseña actualizada correctamente', 200
+
+def registrarUsuarioService(datos):
+    # Valida la contraseña
+    error = validarContraseña(datos.get('contraseña'))
+    if error:
+        return error, 400
+
+    # Verifica que el correo no exista
+    if Usuario.objects.filter(correo=datos.get('correo')).exists():
+        return 'El correo ya está registrado', 400
+
+    # Verifica que la cedula no exista
+    if Usuario.objects.filter(cedula=datos.get('cedula')).exists():
+        return 'La cédula ya está registrada', 400
+
+    # Obtiene el rol
+    rol = Rol.objects.filter(nombre='paciente').first()
+    if not rol:
+        return 'Rol no encontrado', 404
+
+    # Encripta la contraseña
+    contraseña_hash = bcrypt.hashpw(
+        datos.get('contraseña').encode(),
+        bcrypt.gensalt()
+    ).decode()
+
+    # Crea el usuario
+    usuario = Usuario.objects.create(
+        nombre=datos.get('nombre'),
+        apellido=datos.get('apellido'),
+        fecha_nacimiento=datos.get('fecha_nacimiento'),
+        estatura=datos.get('estatura'),
+        peso=datos.get('peso'),
+        correo=datos.get('correo'),
+        contraseña=contraseña_hash,
+        cedula=datos.get('cedula'),
+        telefono=datos.get('telefono'),
+        id_rol=rol
+    )
+
+    serializer = UsuarioSerializer(usuario)
+    return serializer.data, 201
+
+
+def listarUsuariosService():
+    usuarios = Usuario.objects.all()
+    serializer = UsuarioSerializer(usuarios, many=True)
+    return serializer.data, 200
+
+
+def obtenerUsuarioService(id):
+    usuario = Usuario.objects.filter(id=id).first()
+    if not usuario:
+        return 'Usuario no encontrado', 404
+    serializer = UsuarioSerializer(usuario)
+    return serializer.data, 200
+
+
+def editarUsuarioService(id, datos):
+    usuario = Usuario.objects.filter(id=id).first()
+    if not usuario:
+        return 'Usuario no encontrado', 404
+
+    # Actualiza solo los campos que vienen
+    usuario.nombre = datos.get('nombre', usuario.nombre)
+    usuario.apellido = datos.get('apellido', usuario.apellido)
+    usuario.fecha_nacimiento = datos.get('fecha_nacimiento', usuario.fecha_nacimiento)
+    usuario.estatura = datos.get('estatura', usuario.estatura)
+    usuario.peso = datos.get('peso', usuario.peso)
+    usuario.telefono = datos.get('telefono', usuario.telefono)
+    usuario.save()
+
+    serializer = UsuarioSerializer(usuario)
+    return serializer.data, 200
+
+
+def eliminarUsuarioService(id):
+    usuario = Usuario.objects.filter(id=id).first()
+    if not usuario:
+        return 'Usuario no encontrado', 404
+    usuario.delete()
+    return 'Usuario eliminado correctamente', 200

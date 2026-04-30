@@ -1,6 +1,15 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from users.services import loginService, solicitarCambioService, cambiarContraseñaService
+from users.services import (
+    loginService, 
+    solicitarCambioService, 
+    cambiarContraseñaService,
+    registrarUsuarioService,
+    listarUsuariosService,
+    obtenerUsuarioService,
+    editarUsuarioService,
+    eliminarUsuarioService
+)
 
 class LoginView(APIView):
     def post(self, request):
@@ -110,3 +119,54 @@ class CambiarContraseñaView(APIView):
                 {'error': 'Error interno del servidor'},
                 status=500
             )
+
+class UsuarioListView(APIView):
+    # GET → listar todos
+    def get(self, request):
+        try:
+            resultado, status_code = listarUsuariosService()
+            return Response(resultado, status=status_code)
+        except Exception as e:
+            return Response({'error': 'Error interno del servidor'}, status=500)
+
+    # POST → registrar
+    def post(self, request):
+        try:
+            resultado, status_code = registrarUsuarioService(request.data)
+            if status_code != 201:
+                return Response({'error': resultado}, status=status_code)
+            return Response(resultado, status=status_code)
+        except Exception as e:
+            return Response({'error': 'Error interno del servidor'}, status=500)
+
+
+class UsuarioDetailView(APIView):
+    # GET → obtener uno
+    def get(self, request, pk):
+        try:
+            resultado, status_code = obtenerUsuarioService(pk)
+            if status_code != 200:
+                return Response({'error': resultado}, status=status_code)
+            return Response(resultado, status=status_code)
+        except Exception as e:
+            return Response({'error': 'Error interno del servidor'}, status=500)
+
+    # PUT → editar
+    def put(self, request, pk):
+        try:
+            resultado, status_code = editarUsuarioService(pk, request.data)
+            if status_code != 200:
+                return Response({'error': resultado}, status=status_code)
+            return Response(resultado, status=status_code)
+        except Exception as e:
+            return Response({'error': 'Error interno del servidor'}, status=500)
+
+    # DELETE → eliminar
+    def delete(self, request, pk):
+        try:
+            resultado, status_code = eliminarUsuarioService(pk)
+            if status_code != 200:
+                return Response({'error': resultado}, status=status_code)
+            return Response({'mensaje': resultado}, status=status_code)
+        except Exception as e:
+            return Response({'error': 'Error interno del servidor'}, status=500)
