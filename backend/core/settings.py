@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'medicos',
     'catalogos',
     'corsheaders',
+    'chatbot',
 ]
 
 MIDDLEWARE = [
