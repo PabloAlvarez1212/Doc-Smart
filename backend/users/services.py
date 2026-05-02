@@ -198,7 +198,12 @@ def editarUsuarioService(id, datos):
     if not usuario:
         return 'Usuario no encontrado', 404
 
-    # Actualiza solo los campos que vienen
+    nuevo_correo = datos.get('correo')
+    if nuevo_correo and nuevo_correo != usuario.correo:
+        if Usuario.objects.filter(correo=nuevo_correo).exists():
+            return 'El correo ya está registrado', 400
+        usuario.correo = nuevo_correo
+
     usuario.nombre = datos.get('nombre', usuario.nombre)
     usuario.apellido = datos.get('apellido', usuario.apellido)
     usuario.fecha_nacimiento = datos.get('fecha_nacimiento', usuario.fecha_nacimiento)
