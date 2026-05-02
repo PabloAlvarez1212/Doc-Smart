@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'citas',
     'corsheaders',
     'chatbot',
+    'historial_medico',
 ]
 
 MIDDLEWARE = [
