@@ -36,28 +36,36 @@ export const useLogin = () => {
 
         try {
             const data = await loginService(formData)
-            if (data.rol === 'paciente') {
+            if (data.data.rol === 'paciente') {
                 await Swal.fire({
                     icon: 'success',
                     title: data.message,
-                    text: `Bienvenido de nuevo ${data.nombre} ${data.apellido}, a ingresado como ${data.rol}`,
+                    text: `Bienvenido de nuevo ${data.data.nombre} ${data.data.apellido}, a ingresado como ${data.data.rol}`,
                     customClass: { popup: styles.swal }
                 })
                 router.push('/patient/home')
-            } else if (data.rol === 'doctor') {
+            } else if (data.data.rol === 'doctor') {
                 await Swal.fire({
                     icon: 'success',
                     title: data.message,
-                    text: `Bienvenido de nuevo ${data.nombre} ${data.apellido}, a ingresado como ${data.rol}`,
+                    text: `Bienvenido de nuevo ${data.data.nombre} ${data.data.apellido}, a ingresado como ${data.data.rol}`,
                     customClass: { popup: styles.swal }
                 })
                 router.push('/doctor/home')
             }
         } catch (error) {
+            const errores = error.response?.data?.errores;
+
+            let mensaje = 'Error en el servidor';
+
+            if (errores && Object.keys(errores).length > 0) {
+                mensaje = Object.values(errores)[0][0];
+            }
+
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: error.response?.data?.error || 'Error al conectar con el servidor',
+                text: mensaje,
                 customClass: { popup: styles.swal }
             })
         }

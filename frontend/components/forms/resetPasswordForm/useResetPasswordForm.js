@@ -44,10 +44,18 @@ export default function useResetPasswordForm() {
                 router.push('/login')
             })
         } catch (error) {
+            const errores = error.response?.data?.errores;
+
+            let mensaje = 'Error en el servidor';
+
+            if (errores && Object.keys(errores).length > 0) {
+                mensaje = Object.values(errores)[0][0];
+            }
+
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: error.response?.data?.error || 'Error en el servidor',
+                text: mensaje,
                 customClass: { popup: styles.swal }
             })
         }

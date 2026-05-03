@@ -1,8 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from users.services import (
-    loginService, 
-    solicitarCambioService, 
+    loginService,
+    solicitarCambioService,
     cambiarContraseñaService,
     registrarUsuarioService,
     listarUsuariosService,
@@ -10,30 +10,58 @@ from users.services import (
     editarUsuarioService,
     eliminarUsuarioService
 )
+from users.serializers import (
+    LoginSerializer,
+    SolicitarCambioSerializer,
+    CambiarContraseñaSerializer,
+    RegistrarUsuarioSerializer,
+    EditarUsuarioSerializer,
+)
+
+
+# ─── RESPUESTAS ESTANDARIZADAS ────────────────────────────────────────────────
+
+def respuesta_ok(data=None, mensaje=None, status=200):
+    return Response({
+        'ok': True,
+        'mensaje': mensaje,
+        'data': data
+    }, status=status)
+
+def respuesta_error(mensaje, errores=None, status=400):
+    return Response({
+        'ok': False,
+        'mensaje': mensaje,
+        'errores': errores or {}
+    }, status=status)
+
+def respuesta_serializer_invalido(errors):
+    return respuesta_error('Datos inválidos', errores=errors, status=400)
+
+
+# ─── VISTAS ───────────────────────────────────────────────────────────────────
 
 class LoginView(APIView):
     def post(self, request):
-        # Recibe los datos
-        correo = request.data.get('correo')
-        contraseña = request.data.get('contraseña')
-
-        # Valida que vengan los campos
-        if not correo or not contraseña:
-            return Response(
-                {'error': 'Correo y contraseña son requeridos'},
-                status=400
-            )
+        # Valida formato con serializer
+        serializer = LoginSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
 
         try:
-            # Llama al servicio
-            token, resultado, status_code = loginService(correo, contraseña)
+            token, resultado, status_code = loginService(
+                serializer.validated_data['correo'],
+                serializer.validated_data['contraseña']
+            )
 
-            # Si hay error retorna el mensaje
             if status_code != 200:
-                return Response({'error': resultado}, status=status_code)
+                return respuesta_error('Error', errores=resultado, status=status_code)
 
-            # Si todo bien, crea la respuesta con cookies
-            response = Response(resultado)
+            response = Response({
+                'ok': True,
+                'mensaje': 'Inicio de sesión exitoso',
+                'data': resultado
+            })
             response.set_cookie(
                 key='token',
                 value=str(token.access_token),
@@ -41,7 +69,6 @@ class LoginView(APIView):
                 secure=True,
                 samesite='Lax',
                 path='/',
-                domain=None,
                 max_age=3600
             )
             response.set_cookie(
@@ -51,122 +78,120 @@ class LoginView(APIView):
                 secure=False,
                 samesite='Lax',
                 path='/',
-                domain=None,
                 max_age=3600
             )
             return response
 
         except Exception as e:
             print(e)
-            return Response(
-                {'error': 'Error interno del servidor'},
-                status=500
-            )
-            
+            return respuesta_error('Error interno del servidor', status=500)
+
+
 class SolicitarCambioView(APIView):
     def post(self, request):
-        #obtenemos el correo del front
-        correo = request.data.get('correo')
-
-        if not correo:
-            return Response(
-                {'error': 'El correo es requerido'},
-                status=400
-            )
+        serializer = SolicitarCambioSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
 
         try:
-            mensaje, status_code = solicitarCambioService(correo)
+            mensaje, status_code = solicitarCambioService(
+                serializer.validated_data['correo']
+            )
+
             if status_code != 200:
-                return Response({'error': mensaje}, status=status_code)
-            
-            return Response({'mensaje': mensaje}, status=status_code)
+                return respuesta_error('Error',  errores=mensaje , status=status_code)
+
+            return respuesta_ok(mensaje=mensaje)
 
         except Exception as e:
             print(e)
-            return Response(
-                {'error': 'Error interno del servidor'},
-                status=500
-        )
+            return respuesta_error('Error interno del servidor', status=500)
 
 
 class CambiarContraseñaView(APIView):
     def post(self, request):
-        token = request.data.get('token')
-        nueva_contraseña = request.data.get('nueva_contraseña')
-        if not token or not nueva_contraseña:
-            return Response(
-                {'error': 'Token y nueva contraseña son requeridos'},
-                status=400
-            )
-        try:
-            mensaje, status_code = cambiarContraseñaService(token, nueva_contraseña)
-            
-            if status_code != 200 :
-                return Response({'error' : mensaje}, status=status_code)
-                
-            response = Response({'mensaje': mensaje}, status=status_code)
-            
-                
-            if status_code == 200:
-                response.delete_cookie('token')
-                response.delete_cookie('user_role')
+        serializer = CambiarContraseñaSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
 
+        try:
+            mensaje, status_code = cambiarContraseñaService(
+                serializer.validated_data['token'],
+                serializer.validated_data['nueva_contraseña']
+            )
+
+            if status_code != 200:
+                return respuesta_error('Error',errores=mensaje, status=status_code)
+
+            response = respuesta_ok(mensaje=mensaje)
+            response.delete_cookie('token')
+            response.delete_cookie('user_role')
             return response
-                
+
         except Exception as e:
             print(e)
-            return Response(
-                {'error': 'Error interno del servidor'},
-                status=500
-            )
+            return respuesta_error('Error interno del servidor', status=500)
+
 
 class UsuarioListView(APIView):
-    # GET → listar todos
     def get(self, request):
         try:
             resultado, status_code = listarUsuariosService()
-            return Response(resultado, status=status_code)
+            return respuesta_ok(data=resultado)
         except Exception as e:
-            return Response({'error': 'Error interno del servidor'}, status=500)
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
 
-    # POST → registrar
     def post(self, request):
+        serializer = RegistrarUsuarioSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+
         try:
-            resultado, status_code = registrarUsuarioService(request.data)
+            resultado, status_code = registrarUsuarioService(
+                serializer.validated_data
+            )
             if status_code != 201:
-                return Response({'error': resultado}, status=status_code)
-            return Response(resultado, status=status_code)
+                return respuesta_error("Error",errores=resultado, status=status_code)
+            return respuesta_ok(data=resultado, mensaje='Usuario registrado correctamente', status=201)
         except Exception as e:
-            return Response({'error': 'Error interno del servidor'}, status=500)
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
 
 
 class UsuarioDetailView(APIView):
-    # GET → obtener uno
     def get(self, request, pk):
         try:
             resultado, status_code = obtenerUsuarioService(pk)
             if status_code != 200:
-                return Response({'error': resultado}, status=status_code)
-            return Response(resultado, status=status_code)
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(data=resultado)
         except Exception as e:
-            return Response({'error': 'Error interno del servidor'}, status=500)
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
 
-    # PUT → editar
     def put(self, request, pk):
-        try:
-            resultado, status_code = editarUsuarioService(pk, request.data)
-            if status_code != 200:
-                return Response({'error': resultado}, status=status_code)
-            return Response(resultado, status=status_code)
-        except Exception as e:
-            return Response({'error': 'Error interno del servidor'}, status=500)
+        serializer = EditarUsuarioSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
 
-    # DELETE → eliminar
+        try:
+            resultado, status_code = editarUsuarioService(
+                pk, serializer.validated_data
+            )
+            if status_code != 200:
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(data=resultado, mensaje='Usuario actualizado correctamente')
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
+
     def delete(self, request, pk):
         try:
             resultado, status_code = eliminarUsuarioService(pk)
             if status_code != 200:
-                return Response({'error': resultado}, status=status_code)
-            return Response({'mensaje': resultado}, status=status_code)
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(mensaje=resultado)
         except Exception as e:
-            return Response({'error': 'Error interno del servidor'}, status=500)
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
