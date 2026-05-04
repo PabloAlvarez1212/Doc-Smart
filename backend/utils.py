@@ -14,3 +14,7 @@ def validarContraseña(contraseña):
     if not re.search(r'\d', contraseña):
         return 'La contraseña debe tener mínimo un número'
     return None
+
+def valdarCedulaNumber(cedula):
+    if not re.match(r"^\d+$",cedula):
+        return 'Ingresa un numero valido en la cedula'

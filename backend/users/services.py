@@ -9,7 +9,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.core.mail import send_mail
 import os
-from utils import validarContraseña
+from utils import validarContraseña, valdarCedulaNumber
 from django.template.loader import render_to_string
 
 def loginService(correo, contraseña):
@@ -19,7 +19,7 @@ def loginService(correo, contraseña):
 
     # Verifica que existe en alguna tabla
     if not usuario and not medico:
-        return None, 'El correo no se encuentra registrado', 404
+       return None,{"correo": ["El correo no se encuentra registrado"]}, 404
 
     # Verifica usuario
     if usuario and bcrypt.checkpw(contraseña.encode(), usuario.contraseña.encode()):
@@ -33,7 +33,7 @@ def loginService(correo, contraseña):
         serializer = MedicoSerializer(medico)
         return token, serializer.data, 200
 
-    return None, 'Credenciales incorrectas', 401
+    return None, {"general": ["Credenciales incorrectas"]}, 401
 
 def solicitarCambioService(correo):
     # Busca en ambas tablas
@@ -41,7 +41,7 @@ def solicitarCambioService(correo):
     medico = Medico.objects.filter(correo=correo).first()
 
     if not usuario and not medico:
-        return 'El correo no se encuentra registrado', 404
+        return {"general": ["El correo no se encuentra registrado"]}, 404
 
     # Genera token temporal
     token = secrets.token_urlsafe(32)
@@ -67,9 +67,9 @@ def solicitarCambioService(correo):
             minutos = segundos_restantes // 60
             segundos = segundos_restantes % 60
             if minutos > 0:
-                return f'Espera {minutos} min {segundos} seg antes de reenviar', 400
+                return {"general":[f"Espera {minutos} min {segundos} seg antes de reenviar"]}, 400
             else:
-                return f'Espera {segundos} segundos antes de reenviar', 400
+                return {"general":[f"Espera {segundos} segundos antes de reenviar"]}, 400
     
     if persona :
         # Envía el email
@@ -97,21 +97,16 @@ def solicitarCambioService(correo):
 
         except Exception as e:
             print("Error enviando correo:", e)
-            return 'Error enviando el correo', 500
+            return {"general": ['Error enviando el correo']}, 500
     
 def cambiarContraseñaService(token, nueva_contraseña):
-    
-    #validar contraseña
-    error = validarContraseña(nueva_contraseña)
-    if error:
-        return error, 400
     
     # Busca el token en ambas tablas
     usuario = Usuario.objects.filter(token_reset=token).first()
     medico = Medico.objects.filter(token_reset=token).first()
 
     if not usuario and not medico:
-        return 'Token inválido', 400
+        return {"general": ["Token inválido"]}, 400
 
     # Verifica que el token no haya expirado
     persona = usuario or medico
@@ -120,7 +115,7 @@ def cambiarContraseñaService(token, nueva_contraseña):
         persona.token_reset = None
         persona.token_reset_expira = None
         persona.save()
-        return 'El token ha expirado', 400
+        return {"general":["El token ha expirado"]}, 400
     
     # Encripta la nueva contraseña
     nueva_contraseña_hash = bcrypt.hashpw(
@@ -137,18 +132,18 @@ def cambiarContraseñaService(token, nueva_contraseña):
     return 'Contraseña actualizada correctamente', 200
 
 def registrarUsuarioService(datos):
-    # Valida la contraseña
-    error = validarContraseña(datos.get('contraseña'))
-    if error:
-        return error, 400
 
-    # Verifica que el correo no exista
-    if Usuario.objects.filter(correo=datos.get('correo')).exists():
-        return 'El correo ya está registrado', 400
+    usuario_correo = Usuario.objects.filter(correo=datos.get('correo')).first()
+    medico_correo = Medico.objects.filter(correo=datos.get('correo')).first()
 
-    # Verifica que la cedula no exista
-    if Usuario.objects.filter(cedula=datos.get('cedula')).exists():
-        return 'La cédula ya está registrada', 400
+    usuario_cedula = Usuario.objects.filter(cedula=datos.get('cedula')).first()
+    medico_cedula = Medico.objects.filter(cedula=datos.get('cedula')).first()
+    # Verifica que existe en alguna tabla
+    if usuario_correo or medico_correo:
+       return {"correo": ["El correo ya se encuentra registrado"]}, 404
+
+    if usuario_cedula or medico_cedula:
+        return {'cedula': ['La cédula ya está registrada']}, 400
 
     # Obtiene el rol
     rol = Rol.objects.filter(nombre='paciente').first()

@@ -38,10 +38,15 @@ export const useForgotPassword = () => {
                 console.log(data);
         } catch(error){
             console.log(error)
+            const errores = error.response?.data?.errores;
+            let mensaje = 'Error al conectar con el servidor';
+            if (errores && Object.keys(errores).length > 0){
+                mensaje = Object.values(errores)[0][0];
+            }
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: error.response?.data?.error || 'Error al conectar con el servidor',
+                text: mensaje,
                 customClass: { popup: styles.swal }
             })
         }
