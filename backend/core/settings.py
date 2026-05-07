@@ -117,6 +117,12 @@ REST_FRAMEWORK = {
     ],
 }
 
+from datetime import timedelta
+#duracion token
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1), 
+}
+
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
