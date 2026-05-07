@@ -12,7 +12,7 @@ from citas.services import (
 )
 
 # =========================
-# 🔹 CITAS
+# CITAS
 # =========================
 
 class CitaListView(APIView):
@@ -84,7 +84,7 @@ class CitaDetailView(APIView):
 
 
 # =========================
-# 🔹 RECORDATORIOS
+# RECORDATORIOS
 # =========================
 
 class RecordatorioListView(APIView):
