@@ -1,7 +1,6 @@
-# catalogos/views.py
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from catalogos.serializers import CatalogoSerializer
 from catalogos.services import (
     listarRolesService, obtenerRolService, crearRolService, editarRolService, eliminarRolService,
     listarEstadosService, obtenerEstadoService, crearEstadoService, editarEstadoService, eliminarEstadoService,
@@ -16,7 +15,6 @@ from catalogos.services import (
 
 class RolListView(APIView):
 
-    # GET → listar todos los roles
     def get(self, request):
         try:
             resultado, status_code = listarRolesService()
@@ -25,10 +23,12 @@ class RolListView(APIView):
             print(f'Error: {e}')
             return Response({'error': 'Error interno del servidor'}, status=500)
 
-    # POST → crear un nuevo rol
     def post(self, request):
+        serializer = CatalogoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
         try:
-            resultado, status_code = crearRolService(request.data)
+            resultado, status_code = crearRolService(serializer.validated_data)
             if status_code != 201:
                 return Response({'error': resultado}, status=status_code)
             return Response(resultado, status=status_code)
@@ -39,7 +39,6 @@ class RolListView(APIView):
 
 class RolDetailView(APIView):
 
-    # GET → obtener un rol por ID
     def get(self, request, id):
         try:
             resultado, status_code = obtenerRolService(id)
@@ -50,10 +49,12 @@ class RolDetailView(APIView):
             print(f'Error: {e}')
             return Response({'error': 'Error interno del servidor'}, status=500)
 
-    # PUT → editar un rol por ID
     def put(self, request, id):
+        serializer = CatalogoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
         try:
-            resultado, status_code = editarRolService(id, request.data)
+            resultado, status_code = editarRolService(id, serializer.validated_data)
             if status_code != 200:
                 return Response({'error': resultado}, status=status_code)
             return Response(resultado, status=status_code)
@@ -61,7 +62,6 @@ class RolDetailView(APIView):
             print(f'Error: {e}')
             return Response({'error': 'Error interno del servidor'}, status=500)
 
-    # DELETE → eliminar un rol por ID
     def delete(self, request, id):
         try:
             resultado, status_code = eliminarRolService(id)
@@ -79,7 +79,6 @@ class RolDetailView(APIView):
 
 class EstadoListView(APIView):
 
-    # GET → listar todos los estados
     def get(self, request):
         try:
             resultado, status_code = listarEstadosService()
@@ -88,10 +87,12 @@ class EstadoListView(APIView):
             print(f'Error: {e}')
             return Response({'error': 'Error interno del servidor'}, status=500)
 
-    # POST → crear un nuevo estado
     def post(self, request):
+        serializer = CatalogoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
         try:
-            resultado, status_code = crearEstadoService(request.data)
+            resultado, status_code = crearEstadoService(serializer.validated_data)
             if status_code != 201:
                 return Response({'error': resultado}, status=status_code)
             return Response(resultado, status=status_code)
@@ -102,7 +103,6 @@ class EstadoListView(APIView):
 
 class EstadoDetailView(APIView):
 
-    # GET → obtener un estado por ID
     def get(self, request, id):
         try:
             resultado, status_code = obtenerEstadoService(id)
@@ -113,10 +113,12 @@ class EstadoDetailView(APIView):
             print(f'Error: {e}')
             return Response({'error': 'Error interno del servidor'}, status=500)
 
-    # PUT → editar un estado por ID
     def put(self, request, id):
+        serializer = CatalogoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
         try:
-            resultado, status_code = editarEstadoService(id, request.data)
+            resultado, status_code = editarEstadoService(id, serializer.validated_data)
             if status_code != 200:
                 return Response({'error': resultado}, status=status_code)
             return Response(resultado, status=status_code)
@@ -124,7 +126,6 @@ class EstadoDetailView(APIView):
             print(f'Error: {e}')
             return Response({'error': 'Error interno del servidor'}, status=500)
 
-    # DELETE → eliminar un estado por ID
     def delete(self, request, id):
         try:
             resultado, status_code = eliminarEstadoService(id)
@@ -142,7 +143,6 @@ class EstadoDetailView(APIView):
 
 class LugarListView(APIView):
 
-    # GET → listar todos los lugares
     def get(self, request):
         try:
             resultado, status_code = listarLugaresService()
@@ -151,10 +151,12 @@ class LugarListView(APIView):
             print(f'Error: {e}')
             return Response({'error': 'Error interno del servidor'}, status=500)
 
-    # POST → crear un nuevo lugar
     def post(self, request):
+        serializer = CatalogoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
         try:
-            resultado, status_code = crearLugarService(request.data)
+            resultado, status_code = crearLugarService(serializer.validated_data)
             if status_code != 201:
                 return Response({'error': resultado}, status=status_code)
             return Response(resultado, status=status_code)
@@ -165,7 +167,6 @@ class LugarListView(APIView):
 
 class LugarDetailView(APIView):
 
-    # GET → obtener un lugar por ID
     def get(self, request, id):
         try:
             resultado, status_code = obtenerLugarService(id)
@@ -176,10 +177,12 @@ class LugarDetailView(APIView):
             print(f'Error: {e}')
             return Response({'error': 'Error interno del servidor'}, status=500)
 
-    # PUT → editar un lugar por ID
     def put(self, request, id):
+        serializer = CatalogoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
         try:
-            resultado, status_code = editarLugarService(id, request.data)
+            resultado, status_code = editarLugarService(id, serializer.validated_data)
             if status_code != 200:
                 return Response({'error': resultado}, status=status_code)
             return Response(resultado, status=status_code)
@@ -187,7 +190,6 @@ class LugarDetailView(APIView):
             print(f'Error: {e}')
             return Response({'error': 'Error interno del servidor'}, status=500)
 
-    # DELETE → eliminar un lugar por ID
     def delete(self, request, id):
         try:
             resultado, status_code = eliminarLugarService(id)
@@ -205,7 +207,6 @@ class LugarDetailView(APIView):
 
 class MedioListView(APIView):
 
-    # GET → listar todos los medios
     def get(self, request):
         try:
             resultado, status_code = listarMediosService()
@@ -214,10 +215,12 @@ class MedioListView(APIView):
             print(f'Error: {e}')
             return Response({'error': 'Error interno del servidor'}, status=500)
 
-    # POST → crear un nuevo medio
     def post(self, request):
+        serializer = CatalogoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
         try:
-            resultado, status_code = crearMedioService(request.data)
+            resultado, status_code = crearMedioService(serializer.validated_data)
             if status_code != 201:
                 return Response({'error': resultado}, status=status_code)
             return Response(resultado, status=status_code)
@@ -228,7 +231,6 @@ class MedioListView(APIView):
 
 class MedioDetailView(APIView):
 
-    # GET → obtener un medio por ID
     def get(self, request, id):
         try:
             resultado, status_code = obtenerMedioService(id)
@@ -239,10 +241,12 @@ class MedioDetailView(APIView):
             print(f'Error: {e}')
             return Response({'error': 'Error interno del servidor'}, status=500)
 
-    # PUT → editar un medio por ID
     def put(self, request, id):
+        serializer = CatalogoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
         try:
-            resultado, status_code = editarMedioService(id, request.data)
+            resultado, status_code = editarMedioService(id, serializer.validated_data)
             if status_code != 200:
                 return Response({'error': resultado}, status=status_code)
             return Response(resultado, status=status_code)
@@ -250,7 +254,6 @@ class MedioDetailView(APIView):
             print(f'Error: {e}')
             return Response({'error': 'Error interno del servidor'}, status=500)
 
-    # DELETE → eliminar un medio por ID
     def delete(self, request, id):
         try:
             resultado, status_code = eliminarMedioService(id)
