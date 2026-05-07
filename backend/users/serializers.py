@@ -16,7 +16,7 @@ class MedicoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medico
         fields = ['id', 'nombre', 'apellido', 'correo', 'rol']
-        
+       
 #! MENSAJES REUTILIZABLES
 
 def msg(campo, articulo = 'El'):
