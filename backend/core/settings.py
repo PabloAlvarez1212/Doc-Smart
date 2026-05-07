@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'chatbot',
     'historial_medico',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
