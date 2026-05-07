@@ -5,21 +5,21 @@ from citas.seeds import run as citas_run
 from historial_medico.seeds import run as historial_run
 
 
-print("🚀 Iniciando seeder general...\n")
+print("Iniciando seeder general...\n")
 
 catalogos_run()
-print("✅ Catálogos completados")
+print("Catálogos completados")
 
 medicos_run()
-print("✅ Médicos completados")
+print(" Médicos completados")
 
 users_run()
-print("✅ Usuarios completados")
+print("Usuarios completados")
 
 citas_run()
-print("✅ Citas completadas")
+print(" Citas completadas")
 
 historial_run()
-print("✅ Historial médico completado")
+print(" Historial médico completado")
 
-print("\n🎉 Todos los seeders completados exitosamente")
+print("\n Todos los seeders completados exitosamente")
