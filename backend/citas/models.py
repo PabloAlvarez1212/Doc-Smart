@@ -6,10 +6,10 @@ from catalogos.models import Estado, Lugar, Medio
 class Cita(models.Model):
     fecha_programada = models.DateTimeField()
     fecha_final = models.DateTimeField(null=True, blank=True)
-    id_estado = models.ForeignKey(Estado, on_delete=models.PROTECT, null=True, blank=True)
-    id_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True, blank=True)
-    id_medico = models.ForeignKey(Medico, on_delete=models.CASCADE, null=True, blank=True)
-    id_lugar = models.ForeignKey(Lugar, on_delete=models.PROTECT, null=True, blank=True)
+    id_estado = models.ForeignKey(Estado,   on_delete=models.PROTECT)
+    id_usuario = models.ForeignKey(Usuario,  on_delete=models.PROTECT)
+    id_medico = models.ForeignKey(Medico,   on_delete=models.PROTECT) 
+    id_lugar = models.ForeignKey(Lugar,    on_delete=models.PROTECT) 
 
     def __str__(self):
         return f"Cita {self.id} - {self.fecha_programada}"
