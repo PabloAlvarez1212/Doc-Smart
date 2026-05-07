@@ -3,7 +3,7 @@ from catalogos.factories import RolFactory, EstadoFactory, LugarFactory, MedioFa
 
 
 def run():
-    print('🌱 Iniciando seeder de catálogos...')
+    print('Iniciando seeder de catálogos...')
 
     RolFactory.create_batch(50)
     print(' Roles creados')

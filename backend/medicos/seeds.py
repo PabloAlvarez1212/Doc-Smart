@@ -1,26 +1,12 @@
-import factory
-from faker import Faker
-from users.models import Usuario
-from catalogos.factories import RolFactory
+from .factories import EspecialidadFactory, MedicoFactory
 
-fake = Faker('es_CO')
+def run():
+    print("Iniciando seeder de médicos...")
 
-class UsuarioFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = Usuario
-        django_get_or_create = ('cedula',)
+    EspecialidadFactory.create_batch(7)
+    print("Especialidades creadas")
 
-    nombre = factory.LazyFunction(fake.first_name)
-    apellido = factory.LazyFunction(fake.last_name)
+    MedicoFactory.create_batch(20)
+    print("Médicos creados")
 
-    cedula = factory.Sequence(lambda n: f"100000{n}")
-
-    correo = factory.Sequence(
-        lambda n: f"usuario{n}@example.com"
-    )
-
-    telefono = factory.Sequence(
-        lambda n: f"300000{n:04}"
-    )
-
-    rol = factory.SubFactory(RolFactory)
+    print("Seeder de médicos completado")

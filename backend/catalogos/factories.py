@@ -12,7 +12,7 @@ class RolFactory(factory.django.DjangoModelFactory):
 
     nombre = factory.Iterator([
         'administrador',
-        'medico',
+        'doctor',
         'paciente',
         'recepcionista'
     ])
