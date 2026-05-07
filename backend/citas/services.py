@@ -6,7 +6,7 @@ from medicos.models import Medico
 
 
 # =========================
-# 🔹 CITAS
+#  CITAS
 # =========================
 
 def listarCitasService():
@@ -47,7 +47,7 @@ def crearCitaService(datos):
     estado = Estado.objects.filter(id=id_estado).first() if id_estado else None
     lugar = Lugar.objects.filter(id=id_lugar).first() if id_lugar else None
 
-    # 🔥 Validación PRO: evitar citas duplicadas del médico
+    # Validación: evitar citas duplicadas del médico
     existe = Cita.objects.filter(
         id_medico=medico,
         fecha_programada=fecha_programada
@@ -76,7 +76,7 @@ def editarCitaService(id, datos):
 
     nueva_fecha = datos.get('fecha_programada')
 
-    # 🔥 Validación de choque
+    # Validación de choque
     if nueva_fecha:
         existe = Cita.objects.filter(
             id_medico=cita.id_medico,
@@ -113,7 +113,7 @@ def eliminarCitaService(id):
 
 
 # =========================
-# 🔹 RECORDATORIOS
+# RECORDATORIOS
 # =========================
 
 def listarRecordatoriosService():
