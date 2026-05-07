@@ -11,10 +11,10 @@ class RolFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ('nombre',)
 
     nombre = factory.Iterator([
-        'Administrador',
-        'Médico',
-        'Paciente',
-        'Recepcionista'
+        'administrador',
+        'medico',
+        'paciente',
+        'recepcionista'
     ])
 
 
@@ -24,10 +24,10 @@ class EstadoFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ('nombre',)
 
     nombre = factory.Iterator([
-        'Activo',
-        'Inactivo',
-        'Pendiente',
-        'Cancelado'
+        'activo',
+        'inactivo',
+        'pendiente',
+        'cancelado'
     ])
 
 
@@ -37,10 +37,10 @@ class LugarFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ('nombre',)
 
     nombre = factory.Iterator([
-        'Consultorio 1',
-        'Consultorio 2',
-        'Sala de espera',
-        'Urgencias'
+        'consultorio 1',
+        'consultorio 2',
+        'sala de espera',
+        'urgencias'
     ])
 
 
@@ -50,8 +50,8 @@ class MedioFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ('nombre',)
 
     nombre = factory.Iterator([
-        'WhatsApp',
-        'Correo',
-        'Llamada',
+        'whatsApp',
+        'correo',
+        'llamada',
         'SMS'
     ])
