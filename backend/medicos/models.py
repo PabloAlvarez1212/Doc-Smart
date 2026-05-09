@@ -21,6 +21,14 @@ class Medico(models.Model):
     token_reset_expira = models.DateTimeField(null=True, blank=True)
     ultimo_envio = models.DateTimeField(null=True, blank=True)
 
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+    
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
 
