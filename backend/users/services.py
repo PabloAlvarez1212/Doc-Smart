@@ -3,7 +3,7 @@ import bcrypt
 from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import Usuario
 from medicos.models import Medico
-from users.serializers import UsuarioSerializer, MedicoSerializer
+from users.serializers import UsuarioSerializer, MedicoSerializer,UsuarioPerfilSerializer
 import secrets
 from django.utils import timezone
 from datetime import timedelta
@@ -184,7 +184,7 @@ def obtenerUsuarioService(id):
     usuario = Usuario.objects.filter(id=id).first()
     if not usuario:
         return 'Usuario no encontrado', 404
-    serializer = UsuarioSerializer(usuario)
+    serializer = UsuarioPerfilSerializer(usuario)
     return serializer.data, 200
 
 
@@ -196,7 +196,7 @@ def editarUsuarioService(id, datos):
     nuevo_correo = datos.get('correo')
     if nuevo_correo and nuevo_correo != usuario.correo:
         if Usuario.objects.filter(correo=nuevo_correo).exists():
-            return 'El correo ya está registrado', 400
+            return {"correo": ["El correo ya está registrado"]}, 400
         usuario.correo = nuevo_correo
 
     usuario.nombre = datos.get('nombre', usuario.nombre)
@@ -207,7 +207,7 @@ def editarUsuarioService(id, datos):
     usuario.telefono = datos.get('telefono', usuario.telefono)
     usuario.save()
 
-    serializer = UsuarioSerializer(usuario)
+    serializer = UsuarioPerfilSerializer(usuario)
     return serializer.data, 200
 
 

@@ -16,6 +16,24 @@ class MedicoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medico
         fields = ['id', 'nombre', 'apellido', 'correo', 'rol']
+        
+class UsuarioPerfilSerializer(serializers.ModelSerializer):
+    rol = serializers.CharField(source='id_rol.nombre')
+
+    class Meta:
+        model  = Usuario
+        fields = [
+            'id',
+            'nombre',
+            'apellido',
+            'correo',
+            'cedula',
+            'telefono',
+            'estatura',
+            'peso',
+            'fecha_nacimiento',
+            'rol'
+        ]
        
 #! MENSAJES REUTILIZABLES
 
@@ -88,7 +106,7 @@ class RegistrarUsuarioSerializer(serializers.Serializer):
         return value
     
     telefono = serializers.CharField(
-                max_length=20, required=False, allow_blank=True,
+                max_length=20, required=True, allow_blank=True,
                 trim_whitespace=True, error_messages=msg('teléfono'))
     
     fecha_nacimiento = serializers.DateField(
