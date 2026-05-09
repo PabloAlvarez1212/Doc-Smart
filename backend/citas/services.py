@@ -1,161 +1,170 @@
 from citas.models import Cita, RecordatorioCita
 from citas.serializers import CitaSerializer, RecordatorioSerializer
 from catalogos.models import Estado, Lugar, Medio
-from users.models import Usuario
 from medicos.models import Medico
+from django.utils import timezone
 
-
-# =========================
-# 🔹 CITAS
-# =========================
+# ─── CITAS ────────────────────────────────────────────────────────────────────
 
 def listarCitasService():
     citas = Cita.objects.all().order_by('-fecha_programada')
     serializer = CitaSerializer(citas, many=True)
     return serializer.data, 200
 
+def listarCitasPacienteService(usuario_id):
+    citas = Cita.objects.filter(id_usuario=usuario_id).order_by('-fecha_programada')
+    if not citas.exists():
+        return 'No se encontraron citas', 404
+    serializer = CitaSerializer(citas, many=True)
+    return serializer.data, 200
+
+def listarCitasMedicoService(medico_id):
+    citas = Cita.objects.filter(id_medico=medico_id).order_by('-fecha_programada')
+    if not citas.exists():
+        return 'No se encontraron citas', 404
+    serializer = CitaSerializer(citas, many=True)
+    return serializer.data, 200
 
 def obtenerCitaService(id):
     cita = Cita.objects.filter(id=id).first()
     if not cita:
         return 'Cita no encontrada', 404
-
     serializer = CitaSerializer(cita)
     return serializer.data, 200
 
-
-def crearCitaService(datos):
-    fecha_programada = datos.get('fecha_programada')
-    id_usuario = datos.get('id_usuario')
-    id_medico = datos.get('id_medico')
-    id_estado = datos.get('id_estado')
-    id_lugar = datos.get('id_lugar')
-
-    # 🔹 Validaciones básicas
-    if not fecha_programada or not id_usuario or not id_medico:
-        return 'Faltan campos obligatorios', 400
-
-    usuario = Usuario.objects.filter(id=id_usuario).first()
-    medico = Medico.objects.filter(id=id_medico).first()
-
-    if not usuario:
-        return 'Usuario no encontrado', 404
-
+def crearCitaService(datos, usuario_id):
+    # Verifica que el médico existe
+    medico = Medico.objects.filter(id=datos['id_medico']).first()
     if not medico:
         return 'Médico no encontrado', 404
 
-    estado = Estado.objects.filter(id=id_estado).first() if id_estado else None
-    lugar = Lugar.objects.filter(id=id_lugar).first() if id_lugar else None
+    # Verifica que el lugar existe
+    lugar = Lugar.objects.filter(id=datos['id_lugar']).first()
+    if not lugar:
+        return 'Lugar no encontrado', 404
 
-    # 🔥 Validación PRO: evitar citas duplicadas del médico
-    existe = Cita.objects.filter(
+    # Verifica que la fecha sea futura
+    if datos['fecha_programada'] < timezone.now():
+        return 'La fecha programada debe ser futura', 400
+
+    # Verifica choque de citas del médico
+    if Cita.objects.filter(
         id_medico=medico,
-        fecha_programada=fecha_programada
-    ).exists()
-
-    if existe:
+        fecha_programada=datos['fecha_programada']
+    ).exists():
         return 'El médico ya tiene una cita en esa fecha y hora', 400
 
+    # Estado siempre pendiente al crear
+    estado = Estado.objects.filter(nombre='pendiente').first()
+
     cita = Cita.objects.create(
-        fecha_programada=fecha_programada,
-        id_usuario=usuario,
-        id_medico=medico,
-        id_estado=estado,
-        id_lugar=lugar
+        fecha_programada = datos['fecha_programada'],
+        id_usuario_id    = usuario_id,
+        id_medico        = medico,
+        id_estado        = estado,
+        id_lugar         = lugar,
     )
 
     serializer = CitaSerializer(cita)
     return serializer.data, 201
 
-
-def editarCitaService(id, datos):
-    cita = Cita.objects.filter(id=id).first()
-
+def editarCitaService(id, datos, usuario_id):
+    # El paciente solo puede editar sus propias citas
+    cita = Cita.objects.filter(id=id, id_usuario=usuario_id).first()
     if not cita:
-        return 'Cita no encontrada', 404
+        return 'Cita no encontrada o no te pertenece', 404
+
+    # No se puede editar una cita cancelada o completada
+    if cita.id_estado.nombre in ['cancelada', 'completada']:
+        return 'No se puede editar una cita cancelada o completada', 400
 
     nueva_fecha = datos.get('fecha_programada')
-
-    # 🔥 Validación de choque
     if nueva_fecha:
-        existe = Cita.objects.filter(
+        # Verifica que la fecha sea futura
+        if nueva_fecha < timezone.now():
+            return 'La fecha programada debe ser futura', 400
+
+        # Verifica choque de citas
+        if Cita.objects.filter(
             id_medico=cita.id_medico,
             fecha_programada=nueva_fecha
-        ).exclude(id=cita.id).exists()
-
-        if existe:
+        ).exclude(id=cita.id).exists():
             return 'El médico ya tiene una cita en esa fecha', 400
 
         cita.fecha_programada = nueva_fecha
 
-    cita.fecha_final = datos.get('fecha_final', cita.fecha_final)
-
-    if datos.get('id_estado'):
-        cita.id_estado = Estado.objects.filter(id=datos.get('id_estado')).first()
-
     if datos.get('id_lugar'):
-        cita.id_lugar = Lugar.objects.filter(id=datos.get('id_lugar')).first()
+        lugar = Lugar.objects.filter(id=datos['id_lugar']).first()
+        if not lugar:
+            return 'Lugar no encontrado', 404
+        cita.id_lugar = lugar
 
+    cita.save()
+    serializer = CitaSerializer(cita)
+    return serializer.data, 200
+
+def cancelarCitaService(id, usuario_id):
+    cita = Cita.objects.filter(id=id, id_usuario=usuario_id).first()
+    if not cita:
+        return 'Cita no encontrada o no te pertenece', 404
+
+    if cita.id_estado.nombre == 'cancelada':
+        return 'La cita ya está cancelada', 400
+
+    if cita.id_estado.nombre == 'completada':
+        return 'No se puede cancelar una cita completada', 400
+
+    estado_cancelada = Estado.objects.filter(nombre='cancelada').first()
+    cita.id_estado = estado_cancelada
+    cita.save()
+
+    return 'Cita cancelada correctamente', 200
+
+def completarCitaService(id, medico_id):
+    cita = Cita.objects.filter(id=id, id_medico=medico_id).first()
+    if not cita:
+        return 'Cita no encontrada o no te pertenece', 404
+
+    if cita.id_estado.nombre == 'completada':
+        return 'La cita ya está completada', 400
+
+    estado_completada = Estado.objects.filter(nombre='completada').first()
+    cita.id_estado    = estado_completada
+    cita.fecha_final  = timezone.now()
     cita.save()
 
     serializer = CitaSerializer(cita)
     return serializer.data, 200
 
-
-def eliminarCitaService(id):
-    cita = Cita.objects.filter(id=id).first()
-
-    if not cita:
-        return 'Cita no encontrada', 404
-
-    cita.delete()
-    return 'Cita eliminada correctamente', 200
-
-
-# =========================
-# 🔹 RECORDATORIOS
-# =========================
+# ─── RECORDATORIOS ────────────────────────────────────────────────────────────
 
 def listarRecordatoriosService():
     recordatorios = RecordatorioCita.objects.all()
     serializer = RecordatorioSerializer(recordatorios, many=True)
     return serializer.data, 200
 
-
 def crearRecordatorioService(datos):
-    id_cita = datos.get('id_cita')
-    fecha_programada = datos.get('fecha_programada')
-    fecha_envio = datos.get('fecha_envio_recordatorio')
-    id_estado = datos.get('id_estado')
-    id_medio = datos.get('id_medios')
-
-    if not id_cita or not fecha_programada or not fecha_envio:
-        return 'Faltan campos obligatorios', 400
-
-    cita = Cita.objects.filter(id=id_cita).first()
+    cita = Cita.objects.filter(id=datos.get('id_cita')).first()
     if not cita:
         return 'Cita no encontrada', 404
 
-    estado = Estado.objects.filter(id=id_estado).first()
-    medio = Medio.objects.filter(id=id_medio).first()
+    estado = Estado.objects.filter(id=datos.get('id_estado')).first()
+    medio  = Medio.objects.filter(id=datos.get('id_medios')).first()
 
     recordatorio = RecordatorioCita.objects.create(
-        id_cita=cita,
-        fecha_programada=fecha_programada,
-        fecha_envio_recordatorio=fecha_envio,
-        id_estado=estado,
-        id_medios=medio
+        id_cita                  = cita,
+        fecha_programada         = datos['fecha_programada'],
+        fecha_envio_recordatorio = datos['fecha_envio_recordatorio'],
+        id_estado                = estado,
+        id_medios                = medio
     )
 
     serializer = RecordatorioSerializer(recordatorio)
     return serializer.data, 201
 
-
 def eliminarRecordatorioService(id):
     recordatorio = RecordatorioCita.objects.filter(id=id).first()
-
     if not recordatorio:
         return 'Recordatorio no encontrado', 404
-
     recordatorio.delete()
     return 'Recordatorio eliminado correctamente', 200

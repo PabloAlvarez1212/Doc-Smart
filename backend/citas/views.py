@@ -2,126 +2,182 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from citas.services import (
     listarCitasService,
+    listarCitasPacienteService,
+    listarCitasMedicoService,
     obtenerCitaService,
     crearCitaService,
     editarCitaService,
-    eliminarCitaService,
+    cancelarCitaService,
+    completarCitaService,
     listarRecordatoriosService,
     crearRecordatorioService,
     eliminarRecordatorioService
 )
+from citas.serializers import CrearCitaSerializer, EditarCitaSerializer
 
-# =========================
-# 🔹 CITAS
-# =========================
+
+# ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+def respuesta_ok(data=None, mensaje=None, status=200):
+    return Response({'ok': True, 'mensaje': mensaje, 'data': data}, status=status)
+
+def respuesta_error(mensaje, errores=None, status=400):
+    return Response({
+        'ok': False,
+        'mensaje': 'Error',
+        'errores': errores or {'detalle': mensaje}
+    }, status=status)
+
+def respuesta_serializer_invalido(errors):
+    return respuesta_error('Datos inválidos', errores=errors, status=400)
+
+
+# ─── CITAS ───────────────────────────────────────────────────────────────────
 
 class CitaListView(APIView):
-
     def get(self, request):
         try:
             resultado, status_code = listarCitasService()
-            return Response(resultado, status=status_code)
+            return respuesta_ok(data=resultado)
         except Exception as e:
             print(e)
-            return Response({'error': 'Error interno del servidor'}, status=500)
+            return respuesta_error('Error interno del servidor', status=500)
 
     def post(self, request):
+        serializer = CrearCitaSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+
         try:
-            resultado, status_code = crearCitaService(request.data)
-
+            usuario_id = request.user.id  # viene del token
+            resultado, status_code = crearCitaService(
+                serializer.validated_data,
+                usuario_id
+            )
             if status_code != 201:
-                return Response({'error': resultado}, status=status_code)
-
-            return Response(resultado, status=status_code)
-
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(data=resultado, mensaje='Cita creada correctamente', status=201)
         except Exception as e:
             print(e)
-            return Response({'error': 'Error interno del servidor'}, status=500)
+            return respuesta_error('Error interno del servidor', status=500)
+
+
+class CitaPacienteView(APIView):
+    # Paciente lista sus propias citas
+    def get(self, request):
+        try:
+            usuario_id = request.user.id
+            resultado, status_code = listarCitasPacienteService(usuario_id)
+            if status_code != 200:
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(data=resultado)
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
+
+
+class CitaMedicoView(APIView):
+    # Médico lista sus propias citas
+    def get(self, request):
+        try:
+            medico_id = request.user.id
+            resultado, status_code = listarCitasMedicoService(medico_id)
+            if status_code != 200:
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(data=resultado)
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
 
 
 class CitaDetailView(APIView):
-
     def get(self, request, pk):
         try:
             resultado, status_code = obtenerCitaService(pk)
-
             if status_code != 200:
-                return Response({'error': resultado}, status=status_code)
-
-            return Response(resultado, status=status_code)
-
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(data=resultado)
         except Exception as e:
             print(e)
-            return Response({'error': 'Error interno del servidor'}, status=500)
-
+            return respuesta_error('Error interno del servidor', status=500)
 
     def put(self, request, pk):
+        serializer = EditarCitaSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+
         try:
-            resultado, status_code = editarCitaService(pk, request.data)
-
+            usuario_id = request.user.id
+            resultado, status_code = editarCitaService(
+                pk,
+                serializer.validated_data,
+                usuario_id
+            )
             if status_code != 200:
-                return Response({'error': resultado}, status=status_code)
-
-            return Response(resultado, status=status_code)
-
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(data=resultado, mensaje='Cita actualizada correctamente')
         except Exception as e:
             print(e)
-            return Response({'error': 'Error interno del servidor'}, status=500)
+            return respuesta_error('Error interno del servidor', status=500)
 
 
-    def delete(self, request, pk):
+class CitaCancelarView(APIView):
+    # Paciente cancela su cita
+    def put(self, request, pk):
         try:
-            resultado, status_code = eliminarCitaService(pk)
-
+            usuario_id = request.user.id
+            resultado, status_code = cancelarCitaService(pk, usuario_id)
             if status_code != 200:
-                return Response({'error': resultado}, status=status_code)
-
-            return Response({'mensaje': resultado}, status=status_code)
-
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(mensaje=resultado)
         except Exception as e:
             print(e)
-            return Response({'error': 'Error interno del servidor'}, status=500)
+            return respuesta_error('Error interno del servidor', status=500)
 
 
-# =========================
-# 🔹 RECORDATORIOS
-# =========================
+class CitaCompletarView(APIView):
+    # Médico completa la cita
+    def put(self, request, pk):
+        try:
+            medico_id = request.user.id
+            resultado, status_code = completarCitaService(pk, medico_id)
+            if status_code != 200:
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(data=resultado, mensaje='Cita completada correctamente')
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
+
+
+# ─── RECORDATORIOS ───────────────────────────────────────────────────────────
 
 class RecordatorioListView(APIView):
-
     def get(self, request):
         try:
             resultado, status_code = listarRecordatoriosService()
-            return Response(resultado, status=status_code)
+            return respuesta_ok(data=resultado)
         except Exception as e:
             print(e)
-            return Response({'error': 'Error interno del servidor'}, status=500)
+            return respuesta_error('Error interno del servidor', status=500)
 
     def post(self, request):
         try:
             resultado, status_code = crearRecordatorioService(request.data)
-
             if status_code != 201:
-                return Response({'error': resultado}, status=status_code)
-
-            return Response(resultado, status=status_code)
-
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(data=resultado, mensaje='Recordatorio creado correctamente', status=201)
         except Exception as e:
             print(e)
-            return Response({'error': 'Error interno del servidor'}, status=500)
+            return respuesta_error('Error interno del servidor', status=500)
 
 
 class RecordatorioDetailView(APIView):
-
     def delete(self, request, pk):
         try:
             resultado, status_code = eliminarRecordatorioService(pk)
-
             if status_code != 200:
-                return Response({'error': resultado}, status=status_code)
-
-            return Response({'mensaje': resultado}, status=status_code)
-
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(mensaje=resultado)
         except Exception as e:
             print(e)
-            return Response({'error': 'Error interno del servidor'}, status=500)
+            return respuesta_error('Error interno del servidor', status=500)
