@@ -44,8 +44,3 @@ class CatalogoSerializer(serializers.Serializer):
     nombre = serializers.CharField(
                 max_length=50, allow_blank=False, trim_whitespace=True,
                 error_messages=msg('nombre'))
-
-    def validate_nombre(self, value):
-        if not value.strip():
-            raise serializers.ValidationError('El nombre no puede contener solo espacios')
-        return value.strip()
