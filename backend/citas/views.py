@@ -11,6 +11,7 @@ from citas.services import (
     completarCitaService,
     listarRecordatoriosService,
     crearRecordatorioService,
+    confirmarCitaService,
     eliminarRecordatorioService
 )
 from citas.serializers import CrearCitaSerializer, EditarCitaSerializer
@@ -93,7 +94,7 @@ class CitaMedicoView(APIView):
 class CitaDetailView(APIView):
     def get(self, request, pk):
         try:
-            resultado, status_code = obtenerCitaService(pk)
+            resultado, status_code = obtenerCitaService(pk,request.user.id )
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(data=resultado)
@@ -148,6 +149,17 @@ class CitaCompletarView(APIView):
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
 
+class CitaConfirmarView(APIView):
+    def put(self, request, pk):
+        try:
+            medico_id = request.user.id
+            resultado, status_code = confirmarCitaService(pk, medico_id)
+            if status_code != 200:
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(data=resultado, mensaje='Cita confirmada correctamente')
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
 
 # ─── RECORDATORIOS ───────────────────────────────────────────────────────────
 

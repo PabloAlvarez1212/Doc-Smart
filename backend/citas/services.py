@@ -25,10 +25,12 @@ def listarCitasMedicoService(medico_id):
     serializer = CitaSerializer(citas, many=True)
     return serializer.data, 200
 
-def obtenerCitaService(id):
+def obtenerCitaService(id,solicitante_id):
     cita = Cita.objects.filter(id=id).first()
     if not cita:
         return 'Cita no encontrada', 404
+    if cita.id_usuario_id != solicitante_id and cita.id_medico_id != solicitante_id:
+        return 'No tienes permiso para ver esta cita', 403
     serializer = CitaSerializer(cita)
     return serializer.data, 200
 
@@ -103,10 +105,14 @@ def editarCitaService(id, datos, usuario_id):
     serializer = CitaSerializer(cita)
     return serializer.data, 200
 
-def cancelarCitaService(id, usuario_id):
-    cita = Cita.objects.filter(id=id, id_usuario=usuario_id).first()
+def cancelarCitaService(id, solicitante_id):
+    cita = Cita.objects.filter(id=id).first()
     if not cita:
-        return 'Cita no encontrada o no te pertenece', 404
+        return 'Cita no encontrada', 404
+
+    # Verifica que sea el paciente o el médico de esa cita
+    if cita.id_usuario_id != solicitante_id and cita.id_medico_id != solicitante_id:
+        return 'No tienes permiso para cancelar esta cita', 403
 
     if cita.id_estado.nombre == 'cancelada':
         return 'La cita ya está cancelada', 400
@@ -127,10 +133,34 @@ def completarCitaService(id, medico_id):
 
     if cita.id_estado.nombre == 'completada':
         return 'La cita ya está completada', 400
+    
+    if cita.id_estado.nombre == 'cancelada':
+        return 'No se puede completar una cita cancelada', 400
 
     estado_completada = Estado.objects.filter(nombre='completada').first()
     cita.id_estado    = estado_completada
     cita.fecha_final  = timezone.now()
+    cita.save()
+
+    serializer = CitaSerializer(cita)
+    return serializer.data, 200
+
+def confirmarCitaService(id, medico_id):
+    cita = Cita.objects.filter(id=id, id_medico=medico_id).first()
+    if not cita:
+        return 'Cita no encontrada o no te pertenece', 404
+
+    if cita.id_estado.nombre == 'confirmada':
+        return 'La cita ya está confirmada', 400
+
+    if cita.id_estado.nombre == 'cancelada':
+        return 'No se puede confirmar una cita cancelada', 400
+
+    if cita.id_estado.nombre == 'completada':
+        return 'No se puede confirmar una cita completada', 400
+
+    estado_confirmada = Estado.objects.filter(nombre='confirmada').first()
+    cita.id_estado = estado_confirmada
     cita.save()
 
     serializer = CitaSerializer(cita)
