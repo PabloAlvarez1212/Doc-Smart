@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import serializers
 from chatbot.services import (
     crearChatService,
     listarChatsService,
@@ -7,7 +8,7 @@ from chatbot.services import (
     listarMensajesService,
     eliminarChatService
 )
-
+from chatbot.serializers import CrearMensajeSerializer
 # ─── RESPUESTAS ESTANDARIZADAS ────────────────────────────────────────────────
 
 def respuesta_ok(data=None, mensaje=None, status=200):
@@ -72,14 +73,16 @@ class MensajeListView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
     def post(self, request, id_chat):
-        contenido = request.data.get('contenido')
-        es_bot    = request.data.get('es_bot', False)
-
-        if not contenido:
-            return respuesta_error('El contenido es requerido', status=400)
+        serializer = CrearMensajeSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
 
         try:
-            resultado, status_code = crearMensajeService(id_chat, contenido, es_bot)
+            resultado, status_code = crearMensajeService(
+                id_chat,
+                serializer.validated_data['contenido'],
+                serializer.validated_data['es_bot']
+            )
             if status_code != 201:
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(data=resultado, mensaje='Mensaje creado correctamente', status=201)
