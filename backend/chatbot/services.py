@@ -43,7 +43,7 @@ def crearMensajeService(id_chat, contenido, es_bot=False):
     return serializer.data, 201
 
 
-def listarMensajesService(id_chat):
+def listarMensajesService(id_chat,id_usuario):
     """
     Lista todos los mensajes de un chat específico.
     Retorna (lista_serializada, 200) si el chat existe,
@@ -53,13 +53,15 @@ def listarMensajesService(id_chat):
     chat = Chat.objects.filter(id=id_chat).first()
     if not chat:
         return 'Chat no encontrado', 404
+    if chat.id_usuario_id != id_usuario:
+        return 'No tienes permiso para ver este mensaje', 403
 
     mensajes = Mensaje.objects.filter(id_chat=id_chat)
     serializer = MensajesSerializer(mensajes, many=True)
     return serializer.data, 200
 
 
-def eliminarChatService(id_chat):
+def eliminarChatService(id_chat,id_usuario):
     """
     Elimina un chat y todos sus mensajes asociados.
     Retorna ('Chat eliminado correctamente', 200) si existe,
@@ -69,6 +71,8 @@ def eliminarChatService(id_chat):
     chat = Chat.objects.filter(id=id_chat).first()
     if not chat:
         return 'Chat no encontrado', 404
+    if chat.id_usuario_id != id_usuario:
+        return 'No tienes permiso para eliminar este chat', 403
 
     chat.delete()
     return 'Chat eliminado correctamente', 200

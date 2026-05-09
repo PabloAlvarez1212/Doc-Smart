@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import serializers
+from rest_framework.permissions import IsAuthenticated
 from chatbot.services import (
     crearChatService,
     listarChatsService,
@@ -9,8 +9,7 @@ from chatbot.services import (
     eliminarChatService
 )
 from chatbot.serializers import CrearMensajeSerializer
-# ─── RESPUESTAS ESTANDARIZADAS ────────────────────────────────────────────────
-
+# ─── HELPERS ─────────────────────────────────────────────────────────────────
 def respuesta_ok(data=None, mensaje=None, status=200):
     return Response({
         'ok': True,
@@ -21,17 +20,18 @@ def respuesta_ok(data=None, mensaje=None, status=200):
 def respuesta_error(mensaje, errores=None, status=400):
     return Response({
         'ok': False,
-        'mensaje': mensaje,
-        'errores': errores or {}
+        'mensaje': 'Error',
+        'errores': errores or {'detalle': mensaje}
     }, status=status)
 
 def respuesta_serializer_invalido(errors):
     return respuesta_error('Datos inválidos', errores=errors, status=400)
 
 class ChatListView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         try:
-            usuario_id = request.user.id  # ← del token
+            usuario_id = request.user.id
             resultado, status_code = listarChatsService(usuario_id)
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)
@@ -42,7 +42,7 @@ class ChatListView(APIView):
 
     def post(self, request):
         try:
-            usuario_id = request.user.id  # ← del token
+            usuario_id = request.user.id
             resultado, status_code = crearChatService(usuario_id)
             if status_code != 201:
                 return respuesta_error(resultado, status=status_code)
@@ -52,19 +52,22 @@ class ChatListView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 class ChatDetailView(APIView):
+    permission_classes = [IsAuthenticated]
     def delete(self, request, id_chat):
         try:
-            resultado, status_code = eliminarChatService(id_chat)
+            resultado, status_code = eliminarChatService(id_chat, request.user.id)
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(mensaje=resultado)
         except Exception as e:
+            print(f'Error: {e}')
             return respuesta_error('Error interno del servidor', status=500)
 
 class MensajeListView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request, id_chat):
         try:
-            resultado, status_code = listarMensajesService(id_chat)
+            resultado, status_code = listarMensajesService(id_chat, request.user.id)
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(data=resultado)
