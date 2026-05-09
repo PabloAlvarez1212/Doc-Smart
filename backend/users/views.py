@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from users.services import (
     loginService,
     solicitarCambioService,
@@ -31,8 +32,8 @@ def respuesta_ok(data=None, mensaje=None, status=200):
 def respuesta_error(mensaje, errores=None, status=400):
     return Response({
         'ok': False,
-        'mensaje': mensaje,
-        'errores': errores or {}
+        'mensaje': "Error",
+        'errores': errores or {"detalle" : mensaje}
     }, status=status)
 
 def respuesta_serializer_invalido(errors):
@@ -40,6 +41,8 @@ def respuesta_serializer_invalido(errors):
 
 
 # ─── VISTAS ───────────────────────────────────────────────────────────────────
+
+#! Auths publicas - no necesitan Token
 
 class LoginView(APIView):
     def post(self, request):
@@ -132,7 +135,61 @@ class CambiarContraseñaView(APIView):
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
 
+#!Registro - publico - NO REQUIERE TOKEN
+class RegistroView(APIView):
+    def post(self,request):
+        serializer = RegistrarUsuarioSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+        try :
+            respuesta , status_code = registrarUsuarioService(
+                serializer.validated_data
+            )
+            if status_code != 201:
+                return respuesta_error(mensaje=respuesta,status=status_code)
+            return respuesta_ok(respuesta,"Registro existoso",status_code)
+        except Exception as e:
+            print(f"Error: {e}")
+            return respuesta_error("Error interno en el servidor",status=500)
 
+#!Metodos unicos del usuario - requiere Token
+
+class PerfilPacienteView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self,request):
+        try:
+            respuesta,status_code = obtenerUsuarioService(request.user.id)
+            if status_code != 200:
+                return respuesta_error(mensaje=respuesta,status=status_code)
+            return respuesta_ok(data=respuesta,status=status_code)
+        except Exception as e:
+            print(f"Error: {e}")
+    def put(self,request):
+        try:
+            serializer = EditarUsuarioSerializer(data=request.data)
+            if not serializer.is_valid():
+                return respuesta_serializer_invalido(serializer.errors)
+            respuesta , status_code = editarUsuarioService(
+                request.user.id,
+                serializer.validated_data
+            )
+            if status_code != 200:
+                return respuesta_error(mensaje=respuesta,status=status_code)
+            return respuesta_ok(data=respuesta,mensaje="Usuario actualizado correctamente",status=status_code)
+        except Exception as e:
+            print(f"Error: {e}")
+            return respuesta_error("Error interno en el servidor",status=500)
+    def delete(self,request):
+        try:
+            resultado, status_code = eliminarUsuarioService(request.user.id)
+            if status_code != 200:
+                return respuesta_error(resultado, status=status_code)
+            return respuesta_ok(mensaje=resultado)
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
+        
+# ! Metodos para el Admin
 class UsuarioListView(APIView):
     def get(self, request):
         try:
@@ -141,23 +198,6 @@ class UsuarioListView(APIView):
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
-
-    def post(self, request):
-        serializer = RegistrarUsuarioSerializer(data=request.data)
-        if not serializer.is_valid():
-            return respuesta_serializer_invalido(serializer.errors)
-
-        try:
-            resultado, status_code = registrarUsuarioService(
-                serializer.validated_data
-            )
-            if status_code != 201:
-                return respuesta_error("Error",errores=resultado, status=status_code)
-            return respuesta_ok(data=resultado, mensaje='Usuario registrado correctamente', status=201)
-        except Exception as e:
-            print(e)
-            return respuesta_error('Error interno del servidor', status=500)
-
 
 class UsuarioDetailView(APIView):
     def get(self, request, pk):

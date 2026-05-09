@@ -4,7 +4,9 @@ from .views import (
     SolicitarCambioView,
     CambiarContraseñaView,
     UsuarioListView,
-    UsuarioDetailView
+    UsuarioDetailView,
+    RegistroView,
+    PerfilPacienteView,
 )
 
 urlpatterns = [
@@ -13,4 +15,6 @@ urlpatterns = [
     path('cambiar-contraseña/', CambiarContraseñaView.as_view()),
     path('usuarios/', UsuarioListView.as_view()),
     path('usuarios/<int:pk>/', UsuarioDetailView.as_view()),
+    path('registro/',RegistroView.as_view()),
+    path('perfil/',PerfilPacienteView.as_view()),
 ]
