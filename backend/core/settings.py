@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'chatbot',
     'historial_medico',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -115,6 +116,12 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'utils.CustomJWTAuthentication',
     ],
+}
+
+from datetime import timedelta
+#duracion token
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1), 
 }
 
 # Password validation
