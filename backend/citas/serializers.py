@@ -58,6 +58,8 @@ class RecordatorioSerializer(serializers.ModelSerializer):
 # ─── ENTRADA ──────────────────────────────────────────────────────────────────
 
 class CrearCitaSerializer(serializers.Serializer):
+    id_cita                  = serializers.IntegerField(
+                                   error_messages=msg_numero('cita', 'La'))
     fecha_programada = serializers.DateTimeField(
                            error_messages={
                                'required': 'La fecha programada es obligatoria',
