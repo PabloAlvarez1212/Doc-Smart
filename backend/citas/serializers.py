@@ -23,7 +23,9 @@ class CitaSerializer(serializers.ModelSerializer):
     paciente = serializers.CharField(source='id_usuario.nombre')
     medico   = serializers.SerializerMethodField()
     estado   = serializers.CharField(source='id_estado.nombre')
-    lugar    = serializers.CharField(source='id_lugar.nombre')
+    ciudad    = serializers.CharField(source='id_medico.ciudad.nombre') 
+    departamento = serializers.CharField(source='id_medico.ciudad.departamento.nombre')
+    direccion = serializers.CharField(source='id_medico.direccion')
 
     class Meta:
         model  = Cita
@@ -34,7 +36,9 @@ class CitaSerializer(serializers.ModelSerializer):
             'estado',
             'paciente',
             'medico',
-            'lugar'
+            'departamento',
+            'ciudad',
+            'direccion'
         ]
 
     def get_medico(self, obj):
@@ -58,8 +62,6 @@ class RecordatorioSerializer(serializers.ModelSerializer):
 # ─── ENTRADA ──────────────────────────────────────────────────────────────────
 
 class CrearCitaSerializer(serializers.Serializer):
-    id_cita                  = serializers.IntegerField(
-                                   error_messages=msg_numero('cita', 'La'))
     fecha_programada = serializers.DateTimeField(
                            error_messages={
                                'required': 'La fecha programada es obligatoria',
@@ -67,8 +69,7 @@ class CrearCitaSerializer(serializers.Serializer):
                            })
     id_medico        = serializers.IntegerField(
                            error_messages=msg_numero('médico', 'El'))
-    id_lugar         = serializers.IntegerField(
-                           error_messages=msg_numero('lugar', 'El'))
+
 
 
 class EditarCitaSerializer(serializers.Serializer):
@@ -77,6 +78,3 @@ class EditarCitaSerializer(serializers.Serializer):
                            error_messages={
                                'invalid': 'La fecha programada no tiene un formato válido'
                            })
-    id_lugar         = serializers.IntegerField(
-                           required=False,
-                           error_messages=msg_numero('lugar', 'El'))
