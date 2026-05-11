@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Rol, Estado, Lugar, Medio
+from .models import Rol, Estado, Medio, Departamento, Ciudad
 
 
 # ! SALIDA
@@ -14,9 +14,14 @@ class EstadoSerializer(serializers.ModelSerializer):
         model = Estado
         fields = '__all__'
 
-class LugarSerializer(serializers.ModelSerializer):
+class DepartamentoSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Lugar
+        model = Departamento
+        fields = '__all__'
+        
+class CiudadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ciudad
         fields = '__all__'
 
 class MedioSerializer(serializers.ModelSerializer):

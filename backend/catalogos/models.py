@@ -12,9 +12,24 @@ class Estado(models.Model):
     def __str__(self):
         return self.nombre
 
-class Lugar(models.Model):
+class Departamento(models.Model): 
+    api_id = models.IntegerField(
+        unique=True,
+        null=True,
+        blank=True
+    )
     nombre = models.CharField(max_length=100)
-
+    def __str__(self):
+        return self.nombre
+    
+class Ciudad(models.Model):
+    api_id = models.IntegerField(
+        unique=True,
+        null=True,
+        blank=True
+    )
+    nombre = models.CharField(max_length=100)
+    departamento = models.ForeignKey('catalogos.Departamento', on_delete=models.CASCADE)
     def __str__(self):
         return self.nombre
 
