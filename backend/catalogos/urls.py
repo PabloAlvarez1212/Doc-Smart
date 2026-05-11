@@ -8,9 +8,12 @@ urlpatterns = [
     # Estado
     path('estados/', views.EstadoListView.as_view(), name='estado-list'),
     path('estados/<int:id>/', views.EstadoDetailView.as_view(), name='estado-detail'),
-    # Lugar
-    path('lugares/', views.LugarListView.as_view(), name='lugar-list'),
-    path('lugares/<int:id>/', views.LugarDetailView.as_view(), name='lugar-detail'),
+    # Ciudad
+    path('ciudades/<int:id_departamento>/', views.CiudadListView.as_view(), name='ciudad-list'),
+    path('ciudades/<int:id>/', views.CiudadDetailView.as_view(), name='ciudad-detail'),
+    #Departamento
+    path('departamentos/', views.DepartamentoListView.as_view(), name='departamento-list'),
+    path('departamentos/<int:id>/', views.DepartamentoDetailView.as_view(), name='departamento-detail'),
     # Medio
     path('medios/', views.MedioListView.as_view(), name='medio-list'),
     path('medios/<int:id>/', views.MedioDetailView.as_view(), name='medio-detail'),

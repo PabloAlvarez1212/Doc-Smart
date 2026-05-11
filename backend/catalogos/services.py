@@ -1,6 +1,6 @@
 # catalogos/services.py
-from catalogos.models import Rol, Estado, Lugar, Medio
-from catalogos.serializers import RolSerializer, EstadoSerializer, LugarSerializer, MedioSerializer
+from catalogos.models import Rol, Estado, Medio, Departamento,Ciudad
+from catalogos.serializers import RolSerializer, EstadoSerializer, MedioSerializer, DepartamentoSerializer, CiudadSerializer
 
 
 # ─── ROL ──────────────────────────────────────────────────────────────────────
@@ -87,39 +87,43 @@ def eliminarEstadoService(id):
     return 'Estado eliminado correctamente', 200
 
 
-# ─── LUGAR ────────────────────────────────────────────────────────────────────
+# ─── DEPARTAMENTO ────────────────────────────────────────────────────────────────────
 
-def listarLugaresService():
-    lugares = Lugar.objects.all().order_by('nombre')
-    serializer = LugarSerializer(lugares, many=True)
+def listarDepartamentosService():
+    departamentos = Departamento.objects.all().order_by('nombre')
+    serializer = DepartamentoSerializer(departamentos, many=True)
     return serializer.data, 200
 
-def obtenerLugarService(id):
-    lugar = Lugar.objects.filter(id=id).first()
-    if not lugar:
-        return 'Lugar no encontrado', 404
-    serializer = LugarSerializer(lugar)
+def obtenerDepartamentoService(id):
+    departamento = Departamento.objects.filter(id=id).first()
+    if not departamento:
+        return 'Departamento no encontrado', 404
+    serializer = DepartamentoSerializer(departamento)
     return serializer.data, 200
 
-def crearLugarService(datos):
-    nombre = datos.get('nombre')
-    if Lugar.objects.filter(nombre__iexact=nombre).exists():
-        return 'Ya existe un lugar con ese nombre', 400
-    lugar = Lugar.objects.create(nombre=nombre)
-    serializer = LugarSerializer(lugar)
-    return serializer.data, 201
+# ─── CIUDAD ────────────────────────────────────────────────────────────────────
 
-def editarLugarService(id, datos):
-    lugar = Lugar.objects.filter(id=id).first()
-    if not lugar:
-        return 'Lugar no encontrado', 404
-    
-def eliminarLugarService(id):
-    lugar = Lugar.objects.filter(id=id).first()
-    if not lugar:
-        return 'Lugar no encontrado', 404
-    lugar.delete()
-    return 'Lugar eliminado correctamente', 200
+def listarCiudadesService(departamento_id=None):
+
+    ciudades = Ciudad.objects.all()
+
+    if departamento_id:
+        ciudades = ciudades.filter(
+            departamento_id=departamento_id
+        )
+
+    ciudades = ciudades.order_by('nombre')
+
+    serializer = CiudadSerializer(ciudades, many=True)
+
+    return serializer.data, 200
+
+def obtenerCiudadService(id):
+    ciudad = Ciudad.objects.filter(id=id).first()
+    if not ciudad:
+        return 'Ciudad no encontrada', 404
+    serializer = CiudadSerializer(ciudad)
+    return serializer.data, 200
     
 # ─── MEDIO ────────────────────────────────────────────────────────────────────
 

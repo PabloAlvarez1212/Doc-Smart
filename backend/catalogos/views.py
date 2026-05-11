@@ -4,7 +4,7 @@ from catalogos.serializers import CatalogoSerializer
 from catalogos.services import (
     listarRolesService, obtenerRolService, crearRolService, editarRolService, eliminarRolService,
     listarEstadosService, obtenerEstadoService, crearEstadoService, editarEstadoService, eliminarEstadoService,
-    listarLugaresService, obtenerLugarService, crearLugarService, editarLugarService, eliminarLugarService,
+    listarDepartamentosService, obtenerDepartamentoService,listarCiudadesService,obtenerCiudadService,
     listarMediosService, obtenerMedioService, crearMedioService, editarMedioService, eliminarMedioService,
 )
 
@@ -145,35 +145,21 @@ class EstadoDetailView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 
-# ─── LUGAR ───────────────────────────────────────────────────────────────────
+# ─── DEPARTAMENTO ───────────────────────────────────────────────────────────────────
 
-class LugarListView(APIView):
+class DepartamentoListView(APIView):
     def get(self, request):
         try:
-            resultado, status_code = listarLugaresService()
+            resultado, status_code = listarDepartamentosService()
             return respuesta_ok(data=resultado)
         except Exception as e:
             print(f'Error: {e}')
             return respuesta_error('Error interno del servidor', status=500)
 
-    def post(self, request):
-        serializer = CatalogoSerializer(data=request.data)
-        if not serializer.is_valid():
-            return respuesta_serializer_invalido(serializer.errors)
-        try:
-            resultado, status_code = crearLugarService(serializer.validated_data)
-            if status_code != 201:
-                return respuesta_error(resultado, status=status_code)
-            return respuesta_ok(data=resultado, mensaje='Lugar creado correctamente', status=201)
-        except Exception as e:
-            print(f'Error: {e}')
-            return respuesta_error('Error interno del servidor', status=500)
-
-
-class LugarDetailView(APIView):
+class DepartamentoDetailView(APIView):
     def get(self, request, id):
         try:
-            resultado, status_code = obtenerLugarService(id)
+            resultado, status_code = obtenerDepartamentoService(id)
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(data=resultado)
@@ -181,28 +167,26 @@ class LugarDetailView(APIView):
             print(f'Error: {e}')
             return respuesta_error('Error interno del servidor', status=500)
 
-    def put(self, request, id):
-        serializer = CatalogoSerializer(data=request.data)
-        if not serializer.is_valid():
-            return respuesta_serializer_invalido(serializer.errors)
-        try:
-            resultado, status_code = editarLugarService(id, serializer.validated_data)
-            if status_code != 200:
-                return respuesta_error(resultado, status=status_code)
-            return respuesta_ok(data=resultado, mensaje='Lugar actualizado correctamente')
+# ─── CIUDAD ───────────────────────────────────────────────────────────────────
+class CiudadListView(APIView):
+    def get(self,request,id_departamento):
+        try :
+            resultado, status_code = listarCiudadesService(id_departamento)
+            return respuesta_ok(data=resultado,status=status_code)
         except Exception as e:
-            print(f'Error: {e}')
-            return respuesta_error('Error interno del servidor', status=500)
-
-    def delete(self, request, id):
+            print("Error: ", e)
+            return respuesta_error("Error interno en el servidor",status=500)
+        
+class CiudadDetailView(APIView):
+    def get(self,request,id):
         try:
-            resultado, status_code = eliminarLugarService(id)
+            resultado, status_code = obtenerCiudadService(id)
             if status_code != 200:
-                return respuesta_error(resultado, status=status_code)
-            return respuesta_ok(mensaje=resultado)
+                return respuesta_error(mensaje=resultado,status=status_code)
+            return respuesta_ok(data=resultado,status=status_code)
         except Exception as e:
-            print(f'Error: {e}')
-            return respuesta_error('Error interno del servidor', status=500)
+            print("Error: ", e)
+            return respuesta_error("Error interno en el servidor",status=500)
 
 
 # ─── MEDIO ───────────────────────────────────────────────────────────────────
