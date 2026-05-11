@@ -1,8 +1,9 @@
 from citas.models import Cita, RecordatorioCita
 from citas.serializers import CitaSerializer, RecordatorioSerializer
-from catalogos.models import Estado, Lugar, Medio
+from catalogos.models import Estado, Medio
 from medicos.models import Medico
 from django.utils import timezone
+from datetime import timedelta
 
 # ─── CITAS ────────────────────────────────────────────────────────────────────
 
@@ -40,14 +41,9 @@ def crearCitaService(datos, usuario_id):
     if not medico:
         return 'Médico no encontrado', 404
 
-    # Verifica que el lugar existe
-    lugar = Lugar.objects.filter(id=datos['id_lugar']).first()
-    if not lugar:
-        return 'Lugar no encontrado', 404
-
-    # Verifica que la fecha sea futura
-    if datos['fecha_programada'] < timezone.now():
-        return 'La fecha programada debe ser futura', 400
+    # Verifica que la cita sea al menos 1 hora después
+    if datos['fecha_programada'] < timezone.now() + timedelta(hours=1):
+        return 'La cita debe programarse con al menos 1 hora de anticipación', 400
 
     # Verifica choque de citas del médico
     if Cita.objects.filter(
@@ -58,13 +54,13 @@ def crearCitaService(datos, usuario_id):
 
     # Estado siempre pendiente al crear
     estado = Estado.objects.filter(nombre='pendiente').first()
-
+    if not estado :
+        return 'Estado pendiente no configurado', 500
     cita = Cita.objects.create(
         fecha_programada = datos['fecha_programada'],
         id_usuario_id    = usuario_id,
         id_medico        = medico,
         id_estado        = estado,
-        id_lugar         = lugar,
     )
 
     serializer = CitaSerializer(cita)
@@ -94,12 +90,6 @@ def editarCitaService(id, datos, usuario_id):
             return 'El médico ya tiene una cita en esa fecha', 400
 
         cita.fecha_programada = nueva_fecha
-
-    if datos.get('id_lugar'):
-        lugar = Lugar.objects.filter(id=datos['id_lugar']).first()
-        if not lugar:
-            return 'Lugar no encontrado', 404
-        cita.id_lugar = lugar
 
     cita.save()
     serializer = CitaSerializer(cita)
