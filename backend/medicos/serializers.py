@@ -79,11 +79,7 @@ class RegistrarMedicoSerializer(serializers.Serializer):
                             'invalid':  'La especialidad debe ser un número válido'
                         })
 
-    id_rol = serializers.IntegerField(
-                error_messages={
-                    'required': 'El rol es obligatorio',
-                    'invalid':  'El rol debe ser un número válido'
-                })
+
 
 
 class EditarMedicoSerializer(serializers.Serializer):
@@ -150,3 +146,13 @@ class CambiarContraseñaMedicoSerializer(serializers.Serializer):
                             **msg('contraseña', 'La'),
                             'min_length': 'La contraseña debe tener al menos 8 caracteres'
                         })
+    
+class RegistrarEspecialidadSerializer(serializers.Serializer):
+    nombre = serializers.CharField(
+        error_messages=msg('nombre')
+    )
+
+class EditarEspecialidadSerializer(serializers.Serializer):
+    nombre = serializers.CharField(
+        error_messages=msg('nombre')
+    )
