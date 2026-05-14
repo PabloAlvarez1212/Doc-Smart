@@ -187,7 +187,20 @@ class CiudadDetailView(APIView):
         except Exception as e:
             print("Error: ", e)
             return respuesta_error("Error interno en el servidor",status=500)
+        
 
+    def post(self, request):
+        serializer = CatalogoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+        try:  
+            resultado , status_code = crearCiudadService(serializer.validated_data)
+            if status_code != 201:
+                return respuesta_error(mensaje=resultado,status=status_code)
+            return respuesta_ok(data=resultado, mensaje= 'ciudadad creada correctamente', status= 2001 )    
+        except Exception as e:
+            print("Error: ", e)
+            return respuesta_error("Error interno en el servidor", status=500)
 
 # ─── MEDIO ───────────────────────────────────────────────────────────────────
 

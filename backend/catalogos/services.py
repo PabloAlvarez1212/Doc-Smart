@@ -124,7 +124,16 @@ def obtenerCiudadService(id):
         return 'Ciudad no encontrada', 404
     serializer = CiudadSerializer(ciudad)
     return serializer.data, 200
-    
+
+def crearCiudadService(datos):
+    nombre = datos.get('nombre')
+    departamento_id = datos.get('departamento_id')
+    if Ciudad.objects.filter(nombre__iexact=nombre, departamento_id=departamento_id).exists():  
+        return 'Ya existe una Ciudad con ese nombre en ese departamento', 400
+    ciudad = Ciudad.objects.create(nombre=nombre, departamento_id=departamento_id)
+    serializer = CiudadSerializer (ciudad)
+    return serializer.data, 201 
+
 # ─── MEDIO ────────────────────────────────────────────────────────────────────
 
 def listarMediosService():
