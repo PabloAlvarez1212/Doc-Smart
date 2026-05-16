@@ -144,11 +144,18 @@ class CambiarContraseñaMedicoSerializer(serializers.Serializer):
                             **msg('contraseña', 'La'),
                             'min_length': 'La contraseña debe tener al menos 8 caracteres'
                         })
-    
+
+
 class RegistrarEspecialidadSerializer(serializers.Serializer):
     nombre = serializers.CharField(
         max_length=100,
         allow_blank=False,
         trim_whitespace=True,
         error_messages=msg('especialidad', 'La')
+    )
+
+
+class EditarEspecialidadSerializer(serializers.Serializer):
+    nombre = serializers.CharField(
+        error_messages=msg('nombre')
     )
