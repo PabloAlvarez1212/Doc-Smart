@@ -19,3 +19,21 @@ export const resetPasswordService = async (formData) =>{
     });
     return response.data;
 }
+
+// Registro paciente → POST /api/registro/
+export const registerPacienteService = async (formData) => {
+  const response = await axios.post(`${API_URL}/registro/`, formData);
+  return response.data;
+};
+
+// Registro médico → POST /api/medicos/
+export const registerMedicoService = async (formData) => {
+  const response = await axios.post(`${API_URL}/medicos/`, formData);
+  return response.data;
+};
+
+// Cargar especialidades (para el select del médico)
+export const getEspecialidadesService = async () => {
+  const response = await axios.get(`${API_URL}/medicos/especialidades/`);
+  return response.data;
+};
