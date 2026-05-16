@@ -7,7 +7,7 @@ from catalogos.services import (
     listarEstadosService, obtenerEstadoService, crearEstadoService, editarEstadoService, eliminarEstadoService,
     listarDepartamentosService, obtenerDepartamentoService,listarCiudadesService,obtenerCiudadService,
     listarMediosService, obtenerMedioService, crearMedioService, editarMedioService, eliminarMedioService,
-    crearCiudadService, editarCiudadService,
+    crearCiudadService, editarCiudadService, eliminarCiudadService,
 )
 
 
@@ -219,19 +219,42 @@ class CiudadDetailView(APIView):
         serializer = CatalogoSerializer(data=request.data)
         if not serializer.is_valid():
             return respuesta_serializer_invalido(serializer.errors)
-
         try:
             resultado, status_code = editarCiudadService(id,serializer.validated_data)
             if status_code != 200:
                 return respuesta_error(mensaje=resultado,status=status_code)
             return respuesta_ok(data=resultado,mensaje='Ciudad actualizada correctamente',status=200)
-        
         except Exception as e:
             print("Error:", e)
             return respuesta_error("Error interno en el servidor",status=500)
         
+        
+    def delete(self, request, id):
 
+        try:
 
+            resultado, status_code = eliminarCiudadService(id)
+
+            if status_code != 200:
+
+                return respuesta_error(
+                    mensaje=resultado,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                mensaje=resultado,
+                status=200
+            )
+
+        except Exception as e:
+
+            print(f'Error: {e}')
+
+            return respuesta_error(
+                'Error interno del servidor',
+                status=500
+            )
 # ─── MEDIO ───────────────────────────────────────────────────────────────────
 
 class MedioListView(APIView):

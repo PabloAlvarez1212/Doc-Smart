@@ -10,10 +10,11 @@ urlpatterns = [
     path('estados/', views.EstadoListView.as_view(), name='estado-list'),
     path('estados/<int:id>/', views.EstadoDetailView.as_view(), name='estado-detail'),
 
-    # Ciudad - Departamento
-    path('ciudades/<int:id_departamento>/',views.CiudadListView.as_view(),name='ciudad-list'),
-    # All Ciudades
+    # Todas las ciudades
     path('ciudades/',views.CiudadesDetailView.as_view(),name='lista-ciudades'),
+    # Ciudades por departamento
+    path('departamentos/<int:id_departamento>/ciudades/',views.CiudadListView.as_view(),name='ciudad-list'),
+    # Ciudad específica
     path('ciudades/<int:id>/',views.CiudadDetailView.as_view(),name='ciudad-detail'),
 
     #Departamento

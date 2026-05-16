@@ -170,6 +170,12 @@ def editarCiudadService(id, datos):
     serializer = CiudadSerializer(ciudad)
     return serializer.data, 200
 
+def eliminarCiudadService(id):
+    ciudad = Ciudad.objects.filter(id=id).first()
+    if not ciudad:
+        return 'Ciudad no encontrada', 404
+    ciudad.delete()
+    return 'Ciudad eliminada correctamente', 200
 # ─── MEDIO ────────────────────────────────────────────────────────────────────
 
 def listarMediosService():
