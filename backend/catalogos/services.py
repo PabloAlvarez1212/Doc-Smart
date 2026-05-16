@@ -104,19 +104,21 @@ def obtenerDepartamentoService(id):
 # ─── CIUDAD ────────────────────────────────────────────────────────────────────
 
 def listarCiudadesService(departamento_id=None):
-
-    ciudades = Ciudad.objects.all()
-
-    if departamento_id:
-        ciudades = ciudades.filter(
-            departamento_id=departamento_id
-        )
-
+    ciudades = Ciudad.objects.select_related('departamento').all()
+    if departamento_id:ciudades = ciudades.filter(departamento_id=departamento_id)
     ciudades = ciudades.order_by('nombre')
+    data = []
+    for ciudad in ciudades:
+        data.append({
+            "id_ciudad": ciudad.id,
+            "nombre_ciudad": ciudad.nombre,
+            "id_departamento": ciudad.departamento.id,
+            "nombre_departamento": ciudad.departamento.nombre
+        })
 
-    serializer = CiudadSerializer(ciudades, many=True)
+    return data, 200
 
-    return serializer.data, 200
+
 
 def obtenerCiudadService(id):
     ciudad = Ciudad.objects.filter(id=id).first()
@@ -125,14 +127,48 @@ def obtenerCiudadService(id):
     serializer = CiudadSerializer(ciudad)
     return serializer.data, 200
 
+
 def crearCiudadService(datos):
     nombre = datos.get('nombre')
     departamento_id = datos.get('departamento_id')
-    if Ciudad.objects.filter(nombre__iexact=nombre, departamento_id=departamento_id).exists():  
-        return 'Ya existe una Ciudad con ese nombre en ese departamento', 400
+    if not nombre:
+        return 'El nombre de la ciudad es obligatorio', 400
+
+    if not departamento_id:
+        return 'Debe enviar el id del departamento', 400
+    
+    departamento = Departamento.objects.filter(id=departamento_id).first()
+    if not departamento:
+        return 'El departamento no existe', 404
+
+    if Ciudad.objects.filter(nombre__iexact=nombre, departamento_id=departamento_id).exists():
+        return 'Ya existe una ciudad con ese nombre en ese departamento', 400
+
     ciudad = Ciudad.objects.create(nombre=nombre, departamento_id=departamento_id)
-    serializer = CiudadSerializer (ciudad)
-    return serializer.data, 201 
+    serializer = CiudadSerializer(ciudad)
+    return serializer.data, 201
+
+
+def editarCiudadService(id, datos):
+    ciudad = Ciudad.objects.filter(id=id).first()
+    if not ciudad:
+        return 'Ciudad no encontrada', 404
+    nombre = datos.get('nombre', ciudad.nombre)
+    departamento_id = datos.get('departamento_id',ciudad.departamento_id)
+
+     # Validar departamento
+    departamento = Departamento.objects.filter(id=departamento_id).first()
+    if not departamento:
+        return 'El departamento no existe', 404
+    # Validar duplicados
+    if Ciudad.objects.filter(nombre__iexact=nombre,departamento_id=departamento_id).exclude(id=ciudad.id).exists():
+        return 'Ya existe una ciudad con ese nombre en ese departamento', 400
+
+    ciudad.nombre = nombre
+    ciudad.departamento_id = departamento_id
+    ciudad.save()
+    serializer = CiudadSerializer(ciudad)
+    return serializer.data, 200
 
 # ─── MEDIO ────────────────────────────────────────────────────────────────────
 

@@ -1,11 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from urllib3 import request
 from catalogos.serializers import CatalogoSerializer
 from catalogos.services import (
     listarRolesService, obtenerRolService, crearRolService, editarRolService, eliminarRolService,
     listarEstadosService, obtenerEstadoService, crearEstadoService, editarEstadoService, eliminarEstadoService,
     listarDepartamentosService, obtenerDepartamentoService,listarCiudadesService,obtenerCiudadService,
     listarMediosService, obtenerMedioService, crearMedioService, editarMedioService, eliminarMedioService,
+    crearCiudadService, editarCiudadService,
 )
 
 
@@ -169,12 +171,37 @@ class DepartamentoDetailView(APIView):
 
 # ─── CIUDAD ───────────────────────────────────────────────────────────────────
 class CiudadListView(APIView):
-    def get(self,request,id_departamento):
-        try :
+    def get(self, request, id_departamento):
+        try:
             resultado, status_code = listarCiudadesService(id_departamento)
             return respuesta_ok(data=resultado,status=status_code)
         except Exception as e:
-            print("Error: ", e)
+            print("Error:", e)
+            return respuesta_error("Error interno en el servidor",status=500)
+
+## Mostrar Detalles de todas las ciudades 
+class CiudadesDetailView(APIView):
+    def get(self, request):
+        try:
+            resultado, status_code = listarCiudadesService()
+            return respuesta_ok(data=resultado, status=status_code)
+
+        except Exception as e:
+            print("Error:", e)
+            return respuesta_error("Error interno en el servidor",status=500)
+
+    def post(self, request):
+        serializer = CatalogoSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+        try:
+            resultado, status_code = crearCiudadService(serializer.validated_data)
+            if status_code != 201:
+                return respuesta_error(mensaje=resultado, status=status_code)
+            return respuesta_ok(data=resultado,mensaje='Ciudad creada correctamente',status=201)
+
+        except Exception as e:
+            print("Error:", e)
             return respuesta_error("Error interno en el servidor",status=500)
         
 class CiudadDetailView(APIView):
@@ -187,20 +214,23 @@ class CiudadDetailView(APIView):
         except Exception as e:
             print("Error: ", e)
             return respuesta_error("Error interno en el servidor",status=500)
-        
-
-    def post(self, request):
+      
+    def put(self, request, id):
         serializer = CatalogoSerializer(data=request.data)
         if not serializer.is_valid():
             return respuesta_serializer_invalido(serializer.errors)
-        try:  
-            resultado , status_code = crearCiudadService(serializer.validated_data)
-            if status_code != 201:
+
+        try:
+            resultado, status_code = editarCiudadService(id,serializer.validated_data)
+            if status_code != 200:
                 return respuesta_error(mensaje=resultado,status=status_code)
-            return respuesta_ok(data=resultado, mensaje= 'ciudadad creada correctamente', status= 2001 )    
+            return respuesta_ok(data=resultado,mensaje='Ciudad actualizada correctamente',status=200)
+        
         except Exception as e:
-            print("Error: ", e)
-            return respuesta_error("Error interno en el servidor", status=500)
+            print("Error:", e)
+            return respuesta_error("Error interno en el servidor",status=500)
+        
+
 
 # ─── MEDIO ───────────────────────────────────────────────────────────────────
 
