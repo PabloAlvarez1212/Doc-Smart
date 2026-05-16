@@ -33,3 +33,53 @@
     width: 100%;
     margin-top: 1rem;
 }
+
+/* ── Select igualado al Input ── */
+.select {
+    width: 100%;
+    border: none;
+    border-bottom: 2px solid #ccc;
+    outline: none;
+    background: transparent;
+    padding: 8px 0;
+    text-align: center;
+    font-size: 1.6rem;
+    color: #aaa;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.select:focus {
+    border-bottom-color: #666;
+    color: #333;
+}
+
+.select option {
+    color: #333;
+    font-size: 1rem;
+}
+
+.select option:disabled {
+    color: #aaa;
+}
+
+/* ── Mensajes de error por campo ── */
+.error {
+    font-size: 0.78rem;
+    color: #e53e3e;
+    margin-top: -0.5rem;
+    padding-left: 0.25rem;
+}
+
+/* ── Error general (arriba del form) ── */
+.errorGeneral {
+    width: 100%;
+    font-size: 0.875rem;
+    color: #e53e3e;
+    background: #fff5f5;
+    border: 1px solid #feb2b2;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    text-align: center;
+}
