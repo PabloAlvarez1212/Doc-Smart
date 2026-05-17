@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Medico, Especialidad
+from utils import validarContraseña,validarNumber
 
 # ! SALIDA
 class EspecialidadSerializer(serializers.ModelSerializer):
@@ -7,13 +8,14 @@ class EspecialidadSerializer(serializers.ModelSerializer):
         model = Especialidad
         fields = '__all__'
 
-class MedicoSerializer(serializers.ModelSerializer):
+class MedicoPerfilSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source='id_rol.nombre')
     especialidad = serializers.CharField(source='id_especialidad.nombre')
+    ciudad = serializers.CharField(source='id_ciudad.nombre')
 
     class Meta:
         model = Medico
-        fields = ['id', 'nombre', 'apellido', 'correo', 'rol', 'especialidad']
+        fields = ['id', 'nombre', 'apellido', 'correo', 'rol', 'especialidad','ciudad','direccion']
 
 
 # ! MENSAJES REUTILIZABLES
@@ -48,6 +50,12 @@ class RegistrarMedicoSerializer(serializers.Serializer):
                     'min_length': 'La cédula debe tener mínimo 6 dígitos',
                     'max_length': 'La cédula debe tener máximo 10 dígitos'
                 })
+    def validate_cedula(self, value):
+        error = validarNumber(value)
+        if error:
+            raise serializers.ValidationError(error)
+        return value
+        
 
     fecha_nacimiento = serializers.DateField(
                         error_messages={
@@ -56,8 +64,14 @@ class RegistrarMedicoSerializer(serializers.Serializer):
                         })
 
     telefono = serializers.CharField(
-                max_length=20, required=False, allow_blank=True,
+                max_length=20,
                 trim_whitespace=True, error_messages=msg('teléfono'))
+    
+    def validate_telefono(self, value):
+        error = validarNumber(value)
+        if error:
+            raise serializers.ValidationError(error)
+        return value
 
     correo = serializers.EmailField(
                 trim_whitespace=True,
@@ -72,13 +86,26 @@ class RegistrarMedicoSerializer(serializers.Serializer):
                         **msg('contraseña', 'La'),
                         'min_length': 'La contraseña debe tener mínimo 8 caracteres'
                     })
+    
+    def validate_contraseña(self, value):
+        error = validarContraseña(value)
+        if error:
+            raise serializers.ValidationError(error)
+        return value
 
     id_especialidad = serializers.IntegerField(
                         error_messages={
                             'required': 'La especialidad es obligatoria',
                             'invalid':  'La especialidad debe ser un número válido'
                         })
-
+    id_ciudad = serializers.IntegerField(
+        error_messages={
+                            'required': 'La ciudad es obligatoria',
+                            'invalid':  'La ciudad debe ser un número válido'
+                        })
+    direccion = serializers.CharField(
+                max_length=100, allow_blank=False, trim_whitespace=True,
+                error_messages=msg('direccion','La'))
 
 class EditarMedicoSerializer(serializers.Serializer):
     nombre = serializers.CharField(
@@ -90,8 +117,14 @@ class EditarMedicoSerializer(serializers.Serializer):
                 required=False, error_messages=msg('apellido'))
 
     telefono = serializers.CharField(
-                max_length=20, allow_blank=True, trim_whitespace=True,
+                max_length=20, allow_blank=False, trim_whitespace=True,
                 required=False, error_messages=msg('teléfono'))
+    
+    def validate_telefono(self, value):
+        error = validarNumber(value)
+        if error:
+            raise serializers.ValidationError(error)
+        return value
 
     correo = serializers.EmailField(
                 trim_whitespace=True, required=False,
@@ -111,6 +144,16 @@ class EditarMedicoSerializer(serializers.Serializer):
                         error_messages={
                             'invalid': 'La especialidad debe ser un número válido'
                         })
+    
+    id_ciudad = serializers.IntegerField(
+                        required=False,
+                        error_messages={
+                            'invalid': 'La ciudad debe ser un número válido'
+                        })
+    
+    direccion = serializers.CharField(
+                max_length=100, allow_blank=False, trim_whitespace=True,
+                required=False, error_messages=msg('nombre','La'))
 
 
 class LoginMedicoSerializer(serializers.Serializer):
@@ -144,6 +187,12 @@ class CambiarContraseñaMedicoSerializer(serializers.Serializer):
                             **msg('contraseña', 'La'),
                             'min_length': 'La contraseña debe tener al menos 8 caracteres'
                         })
+    
+    def validate_nueva_contraseña(self, value):
+        error = validarContraseña(value)
+        if error:
+            raise serializers.ValidationError(error)
+        return value
 
 
 class RegistrarEspecialidadSerializer(serializers.Serializer):
@@ -157,5 +206,8 @@ class RegistrarEspecialidadSerializer(serializers.Serializer):
 
 class EditarEspecialidadSerializer(serializers.Serializer):
     nombre = serializers.CharField(
-        error_messages=msg('nombre')
+        max_length=100,
+        allow_blank=False,
+        trim_whitespace=True,
+        error_messages=msg('especialidad', 'La')
     )
