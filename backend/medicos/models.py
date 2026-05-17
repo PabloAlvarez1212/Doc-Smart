@@ -21,7 +21,7 @@ class Medico(models.Model):
     token_reset_expira = models.DateTimeField(null=True, blank=True)
     ultimo_envio = models.DateTimeField(null=True, blank=True)
     direccion = models.CharField(max_length=255)
-    ciudad = models.ForeignKey('catalogos.Ciudad',on_delete=models.SET_NULL,null=True)
+    id_ciudad = models.ForeignKey('catalogos.Ciudad',on_delete=models.PROTECT)
 
     @property
     def is_authenticated(self):
