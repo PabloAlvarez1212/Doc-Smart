@@ -1,12 +1,11 @@
 import bcrypt
 from medicos.models import Medico, Especialidad
+from catalogos.models import Ciudad
 from users.models import Usuario
 from catalogos.models import Rol
 from medicos.serializers import (
-    MedicoSerializer,
+    MedicoPerfilSerializer,
     EspecialidadSerializer,
-    RegistrarMedicoSerializer,
-    EditarMedicoSerializer,
     RegistrarEspecialidadSerializer,
 )
 
@@ -16,7 +15,7 @@ def listarMedicosService():
 
     medicos = Medico.objects.all()
 
-    serializer = MedicoSerializer(
+    serializer = MedicoPerfilSerializer(
         medicos,
         many=True
     )
@@ -33,46 +32,36 @@ def obtenerMedicoService(id_medico):
     if not medico:
         return 'Médico no encontrado', 404
 
-    serializer = MedicoSerializer(medico)
+    serializer = MedicoPerfilSerializer(medico)
 
     return serializer.data, 200
 
 
 def crearMedicoService(data):
-
-    serializer = RegistrarMedicoSerializer(
-        data=data
-    )
-
-    if not serializer.is_valid():
-        return serializer.errors, 400
-
-    data_validada = serializer.validated_data
-
     # Verificación cruzada de correo (usuarios y médicos)
     if Usuario.objects.filter(
-        correo=data_validada['correo']
+        correo=data['correo']
     ).exists() or Medico.objects.filter(
-        correo=data_validada['correo']
+        correo=data['correo']
     ).exists():
 
         return {'correo': ['El correo ya está registrado']}, 400
 
     # Verificación cruzada de cédula (usuarios y médicos)
     if Usuario.objects.filter(
-        cedula=data_validada['cedula']
+        cedula=data['cedula']
     ).exists() or Medico.objects.filter(
-        cedula=data_validada['cedula']
+        cedula=data['cedula']
     ).exists():
 
         return {'cedula': ['La cédula ya está registrada']}, 400
 
     especialidad = Especialidad.objects.filter(
-        id=data_validada['id_especialidad']
+        id=data['id_especialidad']
     ).first()
 
     if not especialidad:
-        return 'Especialidad no encontrada', 404
+        return {'especialidad':['Especialidad no encontrada']}, 404
 
     # Obtener rol médico desde la DB
     rol = Rol.objects.filter(
@@ -80,94 +69,66 @@ def crearMedicoService(data):
     ).first()
 
     if not rol:
-        return {'general': ['Rol médico no encontrado']}, 404
+        return {'rol': ['Rol médico no encontrado']}, 404
+    
+    ciudad = Ciudad.objects.filter(id=data['id_ciudad']).first()
+    
+    if not ciudad:
+        return {'ciudad':['ciudad no encontrada']},404
 
     password_encriptada = bcrypt.hashpw(
-        data_validada['contraseña'].encode('utf-8'),
+        data['contraseña'].encode('utf-8'),
         bcrypt.gensalt()
     ).decode('utf-8')
 
     medico = Medico.objects.create(
-        nombre=data_validada['nombre'],
-        apellido=data_validada['apellido'],
-        cedula=data_validada['cedula'],
-        fecha_nacimiento=data_validada['fecha_nacimiento'],
-        telefono=data_validada.get('telefono', ''),
-        correo=data_validada['correo'],
+        nombre=data['nombre'],
+        apellido=data['apellido'],
+        cedula=data['cedula'],
+        fecha_nacimiento=data['fecha_nacimiento'],
+        telefono=data.get('telefono', ''),
+        correo=data['correo'],
         contraseña=password_encriptada,
         id_especialidad=especialidad,
         id_rol=rol,
-        direccion=data_validada.get('direccion', ''),
-        ciudad=data_validada.get('ciudad', None)
+        direccion=data.get('direccion', ''),
+        id_ciudad=ciudad
     )
 
-    return MedicoSerializer(medico).data, 201
+    return MedicoPerfilSerializer(medico).data, 201
 
 
 def actualizarMedicoService(id_medico, data):
-
-    medico = Medico.objects.filter(
-        id=id_medico
-    ).first()
-
+    medico = Medico.objects.filter(id=id_medico).first()
     if not medico:
-        return 'Médico no encontrado', 404
+        return 'Medico no encontrado', 404
 
-    serializer = EditarMedicoSerializer(
-        data=data
-    )
-
-    if not serializer.is_valid():
-        return serializer.errors, 400
-
-    data_validada = serializer.validated_data
-
-    if 'correo' in data_validada:
-
-        if Medico.objects.filter(
-            correo=data_validada['correo']
-        ).exclude(id=id_medico).exists():
-
-            return 'Ya existe un médico con ese correo', 400
-
-    if 'cedula' in data_validada:
-
-        if Medico.objects.filter(
-            cedula=data_validada['cedula']
-        ).exclude(id=id_medico).exists():
-
-            return 'Ya existe un médico con esa cédula', 400
-
-    for campo, valor in data_validada.items():
-
-        if campo == 'id_especialidad':
-
-            especialidad = Especialidad.objects.filter(
-                id=valor
-            ).first()
-
-            if not especialidad:
-                return 'Especialidad no encontrada', 404
-
-            medico.id_especialidad = especialidad
-
-        elif campo == 'contraseña':
-
-            password_encriptada = bcrypt.hashpw(
-                valor.encode('utf-8'),
-                bcrypt.gensalt()
-            ).decode('utf-8')
-
-            medico.contraseña = password_encriptada
-
-        else:
-
-            setattr(medico, campo, valor)
-
+    nuevo_correo = data.get('correo')
+    if nuevo_correo and nuevo_correo != medico.correo:
+        if Usuario.objects.filter(correo=nuevo_correo).exists() or Medico.objects.filter(correo=nuevo_correo).exists():
+            return {"correo": ["El correo ya está registrado"]}, 400
+        medico.correo = nuevo_correo
+    especialidad_id = data.get('id_especialidad')
+    if especialidad_id:
+        especialidad = Especialidad.objects.filter(id=especialidad_id).first()
+        if not especialidad:
+            return {"especialidad":["La especialidad no existe"]},404
+        medico.id_especialidad = especialidad
+    ciudad_id = data.get('id_ciudad')
+    if ciudad_id:
+        ciudad = Ciudad.objects.filter(id=ciudad_id).first()
+        if not ciudad:
+            return {'ciudad':['ciudad no encontrada']},404
+        medico.id_ciudad = ciudad
+    medico.nombre = data.get('nombre', medico.nombre)
+    medico.apellido = data.get('apellido', medico.apellido)
+    medico.fecha_nacimiento = data.get('fecha_nacimiento', medico.fecha_nacimiento)
+    medico.direccion = data.get('direccion',medico.direccion)
+    medico.telefono = data.get('telefono', medico.telefono)
     medico.save()
-
-    return MedicoSerializer(medico).data, 200
-
+    medico.refresh_from_db()
+    serializer = MedicoPerfilSerializer(medico)
+    return serializer.data, 200
 
 def eliminarMedicoService(id_medico):
 
@@ -213,23 +174,14 @@ def obtenerEspecialidadService(id_especialidad):
 
 def crearEspecialidadService(data):
 
-    serializer = RegistrarEspecialidadSerializer(
-        data=data
-    )
-
-    if not serializer.is_valid():
-        return serializer.errors, 400
-
-    data_validada = serializer.validated_data
-
     if Especialidad.objects.filter(
-        nombre__iexact=data_validada['nombre']
+        nombre__iexact=data['nombre']
     ).exists():
 
         return 'La especialidad ya existe', 400
 
     especialidad = Especialidad.objects.create(
-        nombre=data_validada['nombre']
+        nombre=data['nombre']
     )
 
     return EspecialidadSerializer(especialidad).data, 201
@@ -244,22 +196,13 @@ def editarEspecialidadService(id_especialidad, data):
     if not especialidad:
         return 'Especialidad no encontrada', 404
 
-    serializer = RegistrarEspecialidadSerializer(
-        data=data
-    )
-
-    if not serializer.is_valid():
-        return serializer.errors, 400
-
-    data_validada = serializer.validated_data
-
     if Especialidad.objects.filter(
-        nombre__iexact=data_validada['nombre']
+        nombre__iexact=data['nombre']
     ).exclude(id=id_especialidad).exists():
 
         return 'Ya existe una especialidad con ese nombre', 400
 
-    especialidad.nombre = data_validada['nombre']
+    especialidad.nombre = data['nombre']
 
     especialidad.save()
 
