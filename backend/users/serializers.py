@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from users.models import Usuario
 from medicos.models import Medico
-from utils import valdarCedulaNumber,validarContraseña
+from utils import validarNumber,validarContraseña
 #!SALIDA
 class UsuarioSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source='id_rol.nombre')
@@ -100,7 +100,7 @@ class RegistrarUsuarioSerializer(serializers.Serializer):
         )
     
     def validate_cedula(self, value):
-        error = valdarCedulaNumber(value)
+        error = validarNumber(value)
         if error:
             raise serializers.ValidationError(error)
         return value
@@ -108,6 +108,12 @@ class RegistrarUsuarioSerializer(serializers.Serializer):
     telefono = serializers.CharField(
                 max_length=20, required=True, allow_blank=True,
                 trim_whitespace=True, error_messages=msg('teléfono'))
+    
+    def validate_telefono(self, value):
+        error = validarNumber(value)
+        if error:
+            raise serializers.ValidationError(error)
+        return value
     
     fecha_nacimiento = serializers.DateField(
                         error_messages={
@@ -140,6 +146,12 @@ class EditarUsuarioSerializer(serializers.Serializer):
     telefono = serializers.CharField(
                 max_length=20, allow_blank=True, trim_whitespace=True,
                 required=False, error_messages=msg('teléfono'))
+    
+    def validate_telefono(self, value):
+        error = validarNumber(value)
+        if error:
+            raise serializers.ValidationError(error)
+        return value
     
     fecha_nacimiento = serializers.DateField(
                         required=False,

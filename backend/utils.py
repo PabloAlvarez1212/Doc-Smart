@@ -19,9 +19,9 @@ def validarContraseña(contraseña):
         return 'La contraseña debe tener mínimo un número'
     return None
 
-def valdarCedulaNumber(cedula):
+def validarNumber(cedula):
     if not re.match(r"^\d+$",cedula):
-        return 'Ingresa un numero valido en la cedula'
+        return 'Ingresa un numero valido'
     
 # Autenticación JWT personalizada para soportar dos modelos de usuario (Medico y Usuario)
 class CustomJWTAuthentication(JWTAuthentication):

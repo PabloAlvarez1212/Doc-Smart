@@ -9,7 +9,6 @@ from django.utils import timezone
 from datetime import timedelta
 from django.core.mail import send_mail
 import os
-from utils import validarContraseña, valdarCedulaNumber
 from django.template.loader import render_to_string
 
 def loginService(correo, contraseña):
