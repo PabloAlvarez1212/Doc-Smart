@@ -22,13 +22,13 @@ export const resetPasswordService = async (formData) =>{
 
 // Registro paciente → POST /api/registro/
 export const registerPacienteService = async (formData) => {
-  const response = await axios.post(`${API_URL}/registro/`, formData);
+  const response = await axios.post(`${API_URL}/usuarios/registro/`, formData);
   return response.data;
 };
 
 // Registro médico → POST /api/medicos/
 export const registerMedicoService = async (formData) => {
-  const response = await axios.post(`${API_URL}/medicos/`, formData);
+  const response = await axios.post(`${API_URL}/medicos/registro/`, formData);
   return response.data;
 };
 
