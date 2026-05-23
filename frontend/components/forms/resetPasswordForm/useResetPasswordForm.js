@@ -6,6 +6,7 @@ import styles from "./resetPasswordForm.module.css"
 import ResetPasswordValidate from "@/app/validations/resetPasswordValidate";
 import { useSearchParams } from 'next/navigation'
 import { useRouter } from "next/navigation";
+import { obtenerPrimerError } from '@/app/utils/errrorUtils'
 
 export default function useResetPasswordForm() {
     const router = useRouter();
@@ -44,12 +45,12 @@ export default function useResetPasswordForm() {
                 router.push('/login')
             })
         } catch (error) {
+            console.log(error)
             const errores = error.response?.data?.errores;
-
-            let mensaje = 'Error en el servidor';
-
-            if (errores && Object.keys(errores).length > 0) {
-                mensaje = Object.values(errores)[0][0];
+            let mensaje =error.response?.data?.mensaje ||'Error al conectar con el servidor';
+            const errorExtraido = obtenerPrimerError(errores);
+            if (errorExtraido) {
+                mensaje = errorExtraido;
             }
 
             Swal.fire({

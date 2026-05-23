@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { obtenerPrimerError } from '@/app/utils/errrorUtils'
 import Swal from 'sweetalert2'
 import {
     validateRegisterStep1,
@@ -123,10 +124,10 @@ export const useRegister = (role, setRole) => {
         } catch (error) {
             const errores = error.response?.data?.errores
 
-            let mensaje = 'Error en el servidor'
-            if (errores && Object.keys(errores).length > 0) {
-                mensaje = Object.values(errores)[0]
-                if (Array.isArray(mensaje)) mensaje = mensaje[0]
+            let mensaje =error.response?.data?.mensaje ||'Error al conectar con el servidor';
+            const errorExtraido = obtenerPrimerError(errores);
+            if (errorExtraido) {
+                mensaje = errorExtraido;
             }
 
             Swal.fire({

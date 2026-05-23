@@ -5,6 +5,7 @@ import Swal from 'sweetalert2'
 import { validateLogin } from '@/app/validations/loginvalidate'
 import { loginService } from '@/app/services/authService'
 import styles from "./loginForm.module.css"
+import { obtenerPrimerError } from '@/app/utils/errrorUtils'
 
 export const useLogin = () => {
     const router = useRouter()
@@ -54,12 +55,12 @@ export const useLogin = () => {
                 router.push('/doctor/home')
             }
         } catch (error) {
+            console.log(error)
             const errores = error.response?.data?.errores;
-
-            let mensaje = 'Error en el servidor';
-
-            if (errores && Object.keys(errores).length > 0) {
-                mensaje = Object.values(errores)[0][0];
+            let mensaje =error.response?.data?.mensaje ||'Error al conectar con el servidor';
+            const errorExtraido = obtenerPrimerError(errores);
+            if (errorExtraido) {
+                mensaje = errorExtraido;
             }
 
             Swal.fire({

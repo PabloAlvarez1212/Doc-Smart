@@ -4,6 +4,7 @@ import { forgotPasswordValidate } from "@/app/validations/forgotPasswordValidate
 import { useState } from "react";
 import styles from "./forgotPassword.module.css"
 import { forgotPasswordService } from "@/app/services/authService";
+import { obtenerPrimerError } from '@/app/utils/errrorUtils'
 
 export const useForgotPassword = () => {
     const [loading,setLoading] = useState(false);
@@ -39,9 +40,10 @@ export const useForgotPassword = () => {
         } catch(error){
             console.log(error)
             const errores = error.response?.data?.errores;
-            let mensaje = 'Error al conectar con el servidor';
-            if (errores && Object.keys(errores).length > 0){
-                mensaje = Object.values(errores)[0][0];
+            let mensaje =error.response?.data?.mensaje ||'Error al conectar con el servidor';
+            const errorExtraido = obtenerPrimerError(errores);
+            if (errorExtraido) {
+                mensaje = errorExtraido;
             }
             Swal.fire({
                 icon: 'error',
