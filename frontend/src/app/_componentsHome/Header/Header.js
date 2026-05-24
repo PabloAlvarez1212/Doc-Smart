@@ -1,46 +1,33 @@
 "use client";
-
 import styles from './Header.module.css';
 import Image from 'next/image';
-import Button from '../../../../components/ui/Button/Button';
 import { useRouter } from 'next/navigation';
 
 export default function Header() {
     const router = useRouter();
 
-    const handleLoginClick = () => {
-        router.push('/login');
-    };
-
-    const handleRegisterClick = () => {
-        router.push('/rol');
-    };
-
     return (
-        <div className={styles.containerMain}>
+        <header className={styles.containerMain}>
             <div className={styles.logo}>
                 <Image
                     src="/images/logoSentado.png"
-                    width={100}
-                    height={100}
-                    alt='logo'
+                    width={54}
+                    height={54}
+                    alt="DocSmart logo"
                 />
-                <h2><span>Doc</span>Smart</h2>
+                <span className={styles.logoText}>
+                    Doc<span className={styles.logoAccent}>Smart</span>
+                </span>
             </div>
 
-            <div className={styles.btns}>
-                <Button size='sm' onClick={handleLoginClick}>
+            <nav className={styles.btns}>
+                <button className={styles.btnGhost} onClick={() => router.push('/login')}>
                     Iniciar sesión
-                </Button>
-
-                <Button 
-                    size='sm'
-                    variant="primary"
-                    onClick={handleRegisterClick}
-                >
+                </button>
+                <button className={styles.btnSolid} onClick={() => router.push('/rol')}>
                     Registrarse
-                </Button>
-            </div>
-        </div>
+                </button>
+            </nav>
+        </header>
     );
 }

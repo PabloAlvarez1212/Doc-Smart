@@ -1,18 +1,93 @@
-.containerMain{
-    background-color: white;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+.containerMain {
+    font-family: 'Inter', sans-serif;
+    background: rgba(255, 255, 255, 0.92);
     display: flex;
     justify-content: space-between;
     align-items: center;
-
+    padding: 0 36px;
+    height: 68px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(13, 31, 74, 0.07);
+    box-shadow: 0 1px 16px rgba(13, 31, 74, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
-.logo{
+.logo {
     display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.logoMark {
+    width: 42px;
+    height: 42px;
+    background: #0d1f4a;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(13, 31, 74, 0.30);
+    flex-shrink: 0;
+}
+
+.logoText {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #0d1f4a;
+    letter-spacing: -0.5px;
+}
+
+.logoAccent {
+    color: #3b82f6;
+}
+
+.btns {
+    display: flex;
+    gap: 10px;
     align-items: center;
 }
 
-div.btns{
-    display: flex;
-    gap: 1.5rem;
-    transform: translateX(-15px);
+.btnGhost {
+    padding: 8px 20px;
+    border: 1.5px solid rgba(13, 31, 74, 0.15);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--color-dark);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.btnGhost:hover {
+    background: #f0f4ff;
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.btnSolid {
+    padding: 8px 22px;
+    border: none;
+    border-radius: 10px;
+    background: var(--color-dark);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(13, 31, 74, 0.28);
+    transition: all 0.18s ease;
+}
+
+.btnSolid:hover {
+    background: #162b60;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(13, 31, 74, 0.35);
 }

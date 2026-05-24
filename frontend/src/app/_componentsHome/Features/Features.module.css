@@ -1,34 +1,107 @@
-.cardContainer{
-    display: grid;
-    grid-template-columns: repeat(3,1fr);
-    gap: 2rem;
-    margin-top:4rem ;
-    justify-items: center;
-    align-items: center;
-    margin-bottom: 5rem;
-}
-.cards:hover{
-    transform: translateY(-2px);
+.section {
+    font-family: 'Inter', sans-serif;
+    padding: 80px 40px;
+    background: #f8faff;
 }
 
-.title{
+.header {
     text-align: center;
-    margin-top: 4rem;
-    font-size: 2.5rem;
+    margin-bottom: 56px;
 }
-.card img{
-    width: 8rem;
-    height: auto;
+
+.sectionLabel {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #3b82f6;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
 }
-.card{
-    gap: 1rem;
-    padding: 1.5rem;
-    width: 32rem !important;
-    height: 20rem !important;
+
+.title {
+    font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+    font-weight: 800;
+    color: var(--color-dark);
+    letter-spacing: -1px;
+    line-height: 1.15;
+    margin: 0 0 14px;
 }
-.card p{
-    font-size: 1.3rem;
+
+.subtitle {
+    font-size: 1rem;
+    color: #64748b;
+    font-weight: 400;
+    line-height: 1.7;
+    margin: 0;
 }
-.card h2{
-    font-size: 2rem;
+
+.cardContainer {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.cardWrapper {
+    position: relative;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.cardWrapper:hover {
+    transform: translateY(-4px);
+}
+
+.badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 40px;
+    z-index: 1;
+    letter-spacing: 0.02em;
+}
+
+.card {
+    background: #ffffff !important;
+    border: 1px solid rgba(13, 31, 74, 0.07) !important;
+    border-radius: 20px !important;
+    padding: 32px 28px !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 220px !important;
+    box-shadow: 0 2px 16px rgba(13, 31, 74, 0.06), 0 1px 3px rgba(13, 31, 74, 0.04) !important;
+    transition: box-shadow 0.22s ease !important;
+    gap: 12px !important;
+    align-items: flex-start !important;
+}
+
+.cardWrapper:hover .card {
+    box-shadow: 0 8px 32px rgba(13, 31, 74, 0.11), 0 2px 8px rgba(13, 31, 74, 0.06) !important;
+}
+
+.card img {
+    width: 52px !important;
+    height: 52px !important;
+    object-fit: contain;
+    margin-bottom: 4px;
+}
+
+.card h2 {
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    color: var(--color-dark) !important;
+    letter-spacing: -0.3px;
+    margin: 0 !important;
+}
+
+.card p {
+    font-size: 0.9rem !important;
+    color: #64748b !important;
+    line-height: 1.65 !important;
+    font-weight: 400 !important;
+    margin: 0 !important;
 }
