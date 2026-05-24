@@ -1,7 +1,9 @@
 from citas.models import Cita, RecordatorioCita
 from citas.serializers import CitaSerializer, RecordatorioSerializer
 from catalogos.models import Estado, Medio
+from django.db.models import Q
 from medicos.models import Medico
+from users.models import Usuario
 from django.utils import timezone
 from datetime import timedelta
 
@@ -35,7 +37,15 @@ def obtenerCitaService(id,solicitante_id):
     serializer = CitaSerializer(cita)
     return serializer.data, 200
 
-def crearCitaService(datos, usuario_id):
+def crearCitaService(datos, usuario_id):  
+    usuario = Usuario.objects.filter(id=usuario_id).first()
+    
+    if not usuario:
+        return 'El usuario no existe',404
+    
+    if Medico.objects.filter(id = usuario.id).exists():
+        return 'Solo pacientes puden crear citas',400
+    
     # Verifica que el médico existe
     medico = Medico.objects.filter(id=datos['id_medico']).first()
     if not medico:
@@ -67,8 +77,8 @@ def crearCitaService(datos, usuario_id):
     return serializer.data, 201
 
 def editarCitaService(id, datos, usuario_id):
-    # El paciente solo puede editar sus propias citas
-    cita = Cita.objects.filter(id=id, id_usuario=usuario_id).first()
+    # El paciente o el medico solo puede editar sus propias citas
+    cita = Cita.objects.filter(Q(id_usuario=usuario_id) | Q(id_medico=usuario_id),id=id).first()
     if not cita:
         return 'Cita no encontrada o no te pertenece', 404
 
