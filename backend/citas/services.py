@@ -2,6 +2,7 @@ from citas.models import Cita, RecordatorioCita
 from citas.serializers import CitaSerializer, RecordatorioSerializer
 from catalogos.models import Estado, Medio
 from medicos.models import Medico
+from users.models import Usuario
 from django.utils import timezone
 from datetime import timedelta
 
@@ -35,7 +36,15 @@ def obtenerCitaService(id,solicitante_id):
     serializer = CitaSerializer(cita)
     return serializer.data, 200
 
-def crearCitaService(datos, usuario_id):
+def crearCitaService(datos, usuario_id):  
+    usuario = Usuario.objects.filter(id=usuario_id).first()
+    
+    if not usuario:
+        return 'El usuario no existe',404
+    
+    if Medico.objects.filter(usuario = usuario).exists():
+        return 'Solo pacientes puden crear citas',400
+    
     # Verifica que el médico existe
     medico = Medico.objects.filter(id=datos['id_medico']).first()
     if not medico:

@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from citas.services import (
     listarCitasService,
     listarCitasPacienteService,
@@ -35,6 +36,7 @@ def respuesta_serializer_invalido(errors):
 
 # ─── CITAS ───────────────────────────────────────────────────────────────────
 
+#!Metodo-administrador
 class CitaListView(APIView):
     def get(self, request):
         try:
@@ -44,6 +46,9 @@ class CitaListView(APIView):
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
 
+#!Metodo para crear cita - paciente
+class RegistroCitaView(APIView):
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         serializer = CrearCitaSerializer(data=request.data)
         if not serializer.is_valid():
@@ -64,6 +69,7 @@ class CitaListView(APIView):
 
 
 class CitaPacienteView(APIView):
+    permission_classes = [IsAuthenticated]
     # Paciente lista sus propias citas
     def get(self, request):
         try:
@@ -78,6 +84,7 @@ class CitaPacienteView(APIView):
 
 
 class CitaMedicoView(APIView):
+    permission_classes = [IsAuthenticated]
     # Médico lista sus propias citas
     def get(self, request):
         try:
@@ -92,6 +99,8 @@ class CitaMedicoView(APIView):
 
 
 class CitaDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    #!Medico o usuario obtienen una cita por id
     def get(self, request, pk):
         try:
             resultado, status_code = obtenerCitaService(pk,request.user.id )
@@ -101,7 +110,7 @@ class CitaDetailView(APIView):
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
-
+    #!Medico o usuario actualizan una cita por id
     def put(self, request, pk):
         serializer = EditarCitaSerializer(data=request.data)
         if not serializer.is_valid():
@@ -123,7 +132,8 @@ class CitaDetailView(APIView):
 
 
 class CitaCancelarView(APIView):
-    # Paciente cancela su cita
+    permission_classes = [IsAuthenticated]
+    #! Paciente o medico cancelan su cita
     def put(self, request, pk):
         try:
             usuario_id = request.user.id
@@ -137,6 +147,7 @@ class CitaCancelarView(APIView):
 
 
 class CitaCompletarView(APIView):
+    permission_classes = [IsAuthenticated]
     # Médico completa la cita
     def put(self, request, pk):
         try:
@@ -150,6 +161,8 @@ class CitaCompletarView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 class CitaConfirmarView(APIView):
+    permission_classes = [IsAuthenticated]
+    #Medico confirma la cita
     def put(self, request, pk):
         try:
             medico_id = request.user.id
@@ -163,7 +176,9 @@ class CitaConfirmarView(APIView):
 
 # ─── RECORDATORIOS ───────────────────────────────────────────────────────────
 
+#!Metodos admin
 class RecordatorioListView(APIView):
+    #!Listar recordatorios
     def get(self, request):
         try:
             resultado, status_code = listarRecordatoriosService()
@@ -172,6 +187,7 @@ class RecordatorioListView(APIView):
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
 
+    #!Crear recordatorio
     def post(self, request):
         try:
             resultado, status_code = crearRecordatorioService(request.data)
@@ -184,6 +200,7 @@ class RecordatorioListView(APIView):
 
 
 class RecordatorioDetailView(APIView):
+    #!Eliminar recordatorio
     def delete(self, request, pk):
         try:
             resultado, status_code = eliminarRecordatorioService(pk)
