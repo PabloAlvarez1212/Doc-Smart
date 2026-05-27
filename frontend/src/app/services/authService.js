@@ -1,11 +1,12 @@
 import axios from 'axios'
-const API_URL = 'http://localhost:8000/api' //Url de la api del back
-//formData = body
+
+const API_URL = 'http://localhost:8000/api'
+
 export const loginService = async (formData) => {
-    const response = await axios.post(`${API_URL}/login/`, formData, { //Envia Un solicitud post al back con el enpoint correspodiente al login
-        withCredentials: true  // para enviar y recibir cookies
+    const response = await axios.post(`${API_URL}/login/`, formData, {
+        withCredentials: true
     })
-    return response.data //retorna respuesta del back
+    return response.data
 }
 
 export const forgotPasswordService = async (formData) => {
@@ -13,27 +14,34 @@ export const forgotPasswordService = async (formData) => {
     return response.data
 }
 
-export const resetPasswordService = async (formData) =>{
-    const response = await axios.post(`${API_URL}/cambiar-contraseña/`,formData,{
+export const resetPasswordService = async (formData) => {
+    const response = await axios.post(`${API_URL}/cambiar-contraseña/`, formData, {
         withCredentials: true
-    });
-    return response.data;
+    })
+    return response.data
 }
 
-// Registro paciente → POST /api/registro/
 export const registerPacienteService = async (formData) => {
-  const response = await axios.post(`${API_URL}/usuarios/registro/`, formData);
-  return response.data;
-};
+    const response = await axios.post(`${API_URL}/usuarios/registro/`, formData)
+    return response.data
+}
 
-// Registro médico → POST /api/medicos/
 export const registerMedicoService = async (formData) => {
-  const response = await axios.post(`${API_URL}/medicos/registro/`, formData);
-  return response.data;
-};
+    const response = await axios.post(`${API_URL}/medicos/registro/`, formData)  // 👈
+    return response.data
+}
 
-// Cargar especialidades (para el select del médico)
 export const getEspecialidadesService = async () => {
-  const response = await axios.get(`${API_URL}/medicos/especialidades/`);
-  return response.data;
-};
+    const response = await axios.get(`${API_URL}/medicos/especialidades/`)
+    return response.data
+}
+
+export const getDepartamentosService = async () => {
+    const response = await axios.get(`${API_URL}/catalogos/departamentos/`)
+    return response.data
+}
+
+export const getCiudadesByDepartamentoService = async (id_departamento) => {
+    const response = await axios.get(`${API_URL}/catalogos/departamentos/${id_departamento}/ciudades/`)
+    return response.data
+}
