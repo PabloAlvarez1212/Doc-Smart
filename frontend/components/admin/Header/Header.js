@@ -22,9 +22,9 @@ export default function Header() {
                         <li><Link href={'../../../src/app/admin/specialties'}>Especialidades</Link></li>
                         <li><Link href={'../../../src/app/admin/cities'}>Ciudades</Link></li>
                         <li><Link href={'../../../src/app/admin/departments'}>Departamentos</Link></li>
-                        <li><Link href={'../../../src/app/admin/'}>Estados</Link></li>
-                        <li><Link href={'../../../src/app/admin/'}>Medios</Link></li>
-                        <li><Link href={'../../../src/app/admin/'}>Roles</Link></li>
+                        <li><Link href={'../../../src/app/admin/states'}>Estados</Link></li>
+                        <li><Link href={'../../../src/app/admin/channel'}>Medios</Link></li>
+                        <li><Link href={'../../../src/app/admin/roles'}>Roles</Link></li>
                     </ul>
                 </nav>
             </div>
