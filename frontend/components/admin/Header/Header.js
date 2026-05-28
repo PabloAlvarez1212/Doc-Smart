@@ -17,14 +17,14 @@ export default function Header() {
             <div className={Styles.containerNav}>
                 <nav>
                     <ul>
-                        <li><Link href={'../../../src/app/admin/patients'}>Pacientes</Link></li>
-                        <li><Link href={'../../../src/app/admin/doctors'}>Medicos</Link></li>
-                        <li><Link href={'../../../src/app/admin/specialties'}>Especialidades</Link></li>
-                        <li><Link href={'../../../src/app/admin/cities'}>Ciudades</Link></li>
-                        <li><Link href={'../../../src/app/admin/departments'}>Departamentos</Link></li>
-                        <li><Link href={'../../../src/app/admin/states'}>Estados</Link></li>
-                        <li><Link href={'../../../src/app/admin/channel'}>Medios</Link></li>
-                        <li><Link href={'../../../src/app/admin/roles'}>Roles</Link></li>
+                        <li><Link href={'/admin/patients'}>Pacientes</Link></li>
+                        <li><Link href={'/admin/doctors'}>Medicos</Link></li>
+                        <li><Link href={'/admin/specialties'}>Especialidades</Link></li>
+                        <li><Link href={'/admin/cities'}>Ciudades</Link></li>
+                        <li><Link href={'/admin/departments'}>Departamentos</Link></li>
+                        <li><Link href={'/admin/states'}>Estados</Link></li>
+                        <li><Link href={'/admin/channel'}>Medios</Link></li>
+                        <li><Link href={'/admin/roles'}>Roles</Link></li>
                     </ul>
                 </nav>
             </div>
