@@ -11,11 +11,10 @@ import {
 import {
     registerPacienteService,
     registerMedicoService,
-    getEspecialidadesService,
-    getDepartamentosService,
     getCiudadesByDepartamentoService,
 } from '@/app/services/authService'
-
+import { getDepartamentosService } from '@/app/services/catalogs'
+import { getEspecialidadesService } from '@/app/services/doctorServices'
 // Hook personalizado que centraliza toda la lógica del formulario de registro
 export const useRegister = (role, setRole) => {
     const router = useRouter()
