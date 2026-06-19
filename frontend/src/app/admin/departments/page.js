@@ -1,5 +1,5 @@
-export default function Countries(){
+export default function Departaments(){
     return(
-        <h2>Page Crud Countries</h2>
+        <h2>Page Crud Departaments</h2>
     )
 }
