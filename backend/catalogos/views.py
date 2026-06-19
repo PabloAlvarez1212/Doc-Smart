@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from urllib3 import request
-from catalogos.serializers import CatalogoSerializer
+from catalogos.serializers import CatalogoSerializer,CiudadInputSerializer
 from catalogos.services import (
     listarRolesService, obtenerRolService, crearRolService, editarRolService, eliminarRolService,
     listarEstadosService, obtenerEstadoService, crearEstadoService, editarEstadoService, eliminarEstadoService,
@@ -191,7 +191,7 @@ class CiudadesDetailView(APIView):
             return respuesta_error("Error interno en el servidor",status=500)
 
     def post(self, request):
-        serializer = CatalogoSerializer(data=request.data)
+        serializer = CiudadInputSerializer(data=request.data)
         if not serializer.is_valid():
             return respuesta_serializer_invalido(serializer.errors)
         try:
