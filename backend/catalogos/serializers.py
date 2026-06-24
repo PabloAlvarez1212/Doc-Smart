@@ -49,8 +49,12 @@ class CatalogoSerializer(serializers.Serializer):
     nombre = serializers.CharField(
                 max_length=50, allow_blank=False, trim_whitespace=True,
                 error_messages=msg('nombre'))
+
     
+class CiudadInputSerializer(serializers.Serializer):
+    nombre = serializers.CharField(
+        max_length=50, allow_blank=False, trim_whitespace=True,
+        error_messages=msg('nombre'))
     departamento_id = serializers.IntegerField(
         required=True,
-        error_messages=msg('id del departamento')
-    )
+        error_messages=msg('departamento'))

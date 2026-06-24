@@ -1,0 +1,44 @@
+.containerHeader{
+    width: 100%;
+    position: sticky;
+    height: 80px;
+}
+.container{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 95%;
+    margin: 0 auto;
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+}
+.icons{
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+.icons .icon{
+    cursor: pointer;
+}
+.icons .icon:hover{
+    opacity: 60%;
+}
+.logo{
+    display: flex;
+    align-items: center;
+}
+.logo h2{
+    font-size: 2rem;
+    color: var(--color-dark);
+}
+.logo h2 span{
+    color: black;
+}
+.logo img{
+    width: 5.5rem;
+    height: auto;
+}
+.containerNav{
+    display: flex;
+    justify-content: center;
+}

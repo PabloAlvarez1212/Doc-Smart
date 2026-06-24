@@ -1,0 +1,31 @@
+.containerForm{
+    background-color: white;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 4rem;
+    padding: 2rem;
+    width: 95%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);  
+    padding-left: 1rem 
+}
+.title{
+    margin-bottom: 3rem;
+    margin-left: 1rem;
+}
+.select{
+    padding: 1rem;
+    border-radius: 20px;
+    font-size: 1.2rem ;
+    margin-right: -1rem;
+    margin-left: 1rem;
+}
+.select:focus{
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    outline: none;
+}
+.select {
+    max-height: 200px;
+    overflow-y: auto;
+}

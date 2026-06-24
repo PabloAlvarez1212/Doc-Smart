@@ -1,0 +1,56 @@
+
+.containerNav nav ul li{
+    list-style: none;
+    text-decoration: none;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}
+.containerNav nav ul li .link{
+    color: black;
+    text-decoration: none;
+    padding-left: 0.5rem;
+}
+.containerNav nav ul li .link:hover{
+    color: var(--color-dark);
+    background-color: #CAE1FF;
+    color: #2B7FFF;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-weight: 600;
+}
+.activar{
+    color: var(--color-dark);
+    background-color: #CAE1FF;
+    color: #2B7FFF;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-weight: 600;
+
+}
+
+.containerNav nav ul{
+    display: flex;
+    flex-direction: column;
+    font-size: 1.5rem;
+    padding-top: 2rem;
+
+}
+.item{
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    padding-left: 4rem;
+}
+
+.catalogos{
+    margin: 0 auto;
+}
+
+.btn{
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    justify-content: center;
+    transform: translateX(-28px);
+    margin-top: 1rem;
+}

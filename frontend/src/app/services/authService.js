@@ -31,16 +31,6 @@ export const registerMedicoService = async (formData) => {
     return response.data
 }
 
-export const getEspecialidadesService = async () => {
-    const response = await axios.get(`${API_URL}/medicos/especialidades/`)
-    return response.data
-}
-
-export const getDepartamentosService = async () => {
-    const response = await axios.get(`${API_URL}/catalogos/departamentos/`)
-    return response.data
-}
-
 export const getCiudadesByDepartamentoService = async (id_departamento) => {
     const response = await axios.get(`${API_URL}/catalogos/departamentos/${id_departamento}/ciudades/`)
     return response.data
