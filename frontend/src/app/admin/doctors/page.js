@@ -1,5 +1,9 @@
-export default function Doctors(){
-    return(
-        <h2>Page Crud Doctors</h2>
-    )
+import Hero from "../../../../components/admin/Doctor/Hero";
+
+export default function Doctors() {
+  return (
+    <>
+      <Hero />
+    </>
+  );
 }
