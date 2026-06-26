@@ -8,7 +8,7 @@ const particlesConfig = {
         color: { value: 'transparent' }
     },
     particles: {
-        number: { value: 80 },
+        number: { value: 40 },
         color: { value: '#C5DEFF' },
         links: {
             enable: true,
@@ -30,7 +30,22 @@ const particlesConfig = {
                 mode: 'repulse'
             }
         }
-    }
+    },
+    responsive: [
+    {
+      maxWidth: 768,
+      options: {
+        particles: {
+          number: {
+            value: 30,
+          },
+          links: {
+            distance: 80,
+          },
+        },
+      },
+    },
+  ],
 }
 
 export default function ParticlesBackground() {

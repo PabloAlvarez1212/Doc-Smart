@@ -2,23 +2,22 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5rem;
+    gap: 2.5rem;
     margin-top: 1rem;
 }
 .btn{
     width: 7rem;
+    font-size: clamp(1rem,2vw,1.2rem) !important;
+    padding: 10px !important;
+    margin-top: 0.5rem;
 }
 .input{
-    width: 30rem;
+    font-size: clamp(1.2rem,2vw,1.4rem) !important;
 }
 .error {
     color: red;
-    font-size: 12px;
     min-height: 12px; 
-    margin: -3rem;
-    font-size: 1.3rem;
+    margin: -1.7rem;
+   font-size: clamp(0.6rem,1.2vw,1.3rem);
 
-}
-.swal{
-    font-size: 1.5rem;
 }
