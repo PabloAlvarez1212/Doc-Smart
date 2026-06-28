@@ -1,10 +1,10 @@
 import Select from 'react-select'
 import styles from "./SelectSearch.module.css"
-export default function SelectSearch({ opciones, value, onChange, placeholder }) {
+export default function SelectSearch({ opciones, value, onChange, placeholder,className }) {
     const valorSeleccionado = opciones.find(op => op.value === value) || null
 
     return (
-        <div style={{ width: '30%' }}>
+        <div className={className} style={{ width: '30%' }}>
             <Select
                 options={opciones}
                 value={valorSeleccionado}

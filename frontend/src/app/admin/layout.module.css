@@ -6,7 +6,7 @@
 
 .container {
     display: grid;
-    grid-template-columns: 350px 1fr;
+    grid-template-columns: 330px 1fr;
     height: 100%;
 }
 
@@ -14,13 +14,22 @@
     padding-left: 3rem;
     padding-top: 3.5rem;
     background-color: #F8FAFC;
+    margin-top: 80px;
+    height: 100vw;
 }
 
 .header{
     border-bottom: 4px solid #CAE1FF;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    left: 0;
+    z-index: 1000;
+    background-color: white;
 }
 
 .nav{
    box-shadow: 5px 0 10px rgba(0, 0, 0, 0.2);
    box-shadow: -5px 0 10px rgba(0, 0, 0, 0.2);
+   margin-top: 80px;
 }

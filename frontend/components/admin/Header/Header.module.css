@@ -1,7 +1,7 @@
 .containerHeader{
     width: 100%;
     position: sticky;
-    height: 80px;
+    height: 70px;
 }
 .container{
     display: flex;
@@ -17,8 +17,8 @@
     gap: 1rem;
     align-items: center;
 }
-.icons .icon{
-    cursor: pointer;
+.icons button{
+    padding: 6px 8px ;
 }
 .icons .icon:hover{
     opacity: 60%;
@@ -28,17 +28,13 @@
     align-items: center;
 }
 .logo h2{
-    font-size: 2rem;
+    font-size: clamp(1.3rem,3vw,1.6rem);
     color: var(--color-dark);
 }
 .logo h2 span{
     color: black;
 }
 .logo img{
-    width: 5.5rem;
+    width: clamp(5rem,6.5vw,6rem);
     height: auto;
-}
-.containerNav{
-    display: flex;
-    justify-content: center;
 }

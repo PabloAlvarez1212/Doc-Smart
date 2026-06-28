@@ -11,7 +11,7 @@ export default function FormCatalogo({ formData, handleChange, onSubmit, titulo 
                 <Input placeholder="Nombre" value={formData.nombre}
                     onChange={handleChange} name="nombre"
                 />
-                <Button type="submit">Crear</Button>
+                <Button type="submit" size="sm">Crear</Button>
             </div>
         </form>
     )

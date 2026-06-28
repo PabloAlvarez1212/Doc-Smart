@@ -16,12 +16,13 @@ export default function FormCiudad({ formData, departamentos, handleChange, onSu
                     opciones={opcionesDepartamentos}
                     value={formData.departamento_id}
                     onChange={(id) => handleChange({ target: { name: 'departamento_id', value: id } })}
-                    placeholder="Buscar departamento..."
+                    placeholder="Buscar departamento"
+                    className={styles.containerSelect}
                 />
                 <Input placeholder="Nombre" value={formData.nombre}
                     onChange={handleChange} name="nombre"
                 />
-                <Button type="submit">Crear</Button>
+                <Button type="submit" size="sm">Crear</Button>
             </div>
         </form>
     )

@@ -3,7 +3,7 @@ import Styles from "./Nav.module.css";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User } from "lucide-react";
-import { Stethoscope, MapPinned, Map, Shield, BadgeCheck, Phone , LayoutDashboard} from "lucide-react";
+import { Stethoscope, MapPinned, Map, Shield, BadgeCheck, Phone, LayoutDashboard } from "lucide-react";
 import { BadgePlus } from "lucide-react";
 import { useState } from "react";
 import Button from "../../ui/Button/Button";
@@ -21,32 +21,33 @@ export default function Nav() {
         <div className={Styles.containerNav}>
             <nav>
                 <ul>
-                    <div className={Styles.item}>
-                        <LayoutDashboard size={32} />
-                        <li><Link href={'/admin/'} className={activarLink('/admin/')}>Dashboard</Link></li>
+                    <div className={Styles.containerNavMain}>
+                        <div className={Styles.item}>
+                            <LayoutDashboard size={32} />
+                            <li><Link href={'/admin/'} className={activarLink('/admin/')}>Dashboard</Link></li>
+                        </div>
+                        <div className={Styles.item}>
+                            <User size={32} />
+                            <li><Link href={'/admin/patients'} className={activarLink('/admin/patients')}>Pacientes</Link></li>
+                        </div>
+                        <div className={Styles.item}>
+                            <Stethoscope size={32} />
+                            <li><Link href={'/admin/doctors'} className={activarLink('/admin/doctors')}>Medicos</Link></li>
+                        </div>
                     </div>
-                    <div className={Styles.item}>
-                        <User size={32} />
-                        <li><Link href={'/admin/patients'} className={activarLink('/admin/patients')}>Pacientes</Link></li>
-                    </div>
-                    <div className={Styles.item}>
-                        <Stethoscope size={32} />
-                        <li><Link href={'/admin/doctors'} className={activarLink('/admin/doctors')}>Medicos</Link></li>
-                    </div>
-
                     <div className={Styles.catalogos}>
                         <div className={Styles.btn}>
-                            
-                            <Button onClick={() => setCatalogoAbierto(!catalogoAbierto)}>Catalogos    {catalogoAbierto ? <ChevronUp color="white" size={25} /> : <ChevronDown color="white" size={25} />}</Button>
+
+                            <Button size="sm" onClick={() => setCatalogoAbierto(!catalogoAbierto)}>Catalogos    {catalogoAbierto ? <ChevronUp color="white" size={25} /> : <ChevronDown color="white" size={25} />}</Button>
                         </div>
                         {catalogoAbierto && (
                             <div>
                                 <div className={Styles.item}>
-                                    <BadgePlus size={32}/>
+                                    <BadgePlus size={32} />
                                     <li><Link href={'/admin/specialties'} className={activarLink('/admin/specialties')}>Especialidades</Link></li>
                                 </div>
                                 <div className={Styles.item}>
-                                    <MapPinned size={32}/>
+                                    <MapPinned size={32} />
                                     <li><Link href={'/admin/cities'} className={activarLink('/admin/cities')}>Ciudades</Link></li>
                                 </div>
                                 <div className={Styles.item}>
