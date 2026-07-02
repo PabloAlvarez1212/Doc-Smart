@@ -1,0 +1,158 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-right: 3rem;
+}
+
+/* ── Header ─────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.titulo {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+
+/* ── Buscador ────────────────────────────── */
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  max-width: 380px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.searchIcon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  border: none;
+  outline: none;
+  font-size: 1.3rem;
+  background: transparent;
+  width: 100%;
+  color: var(--color-text);
+}
+
+.searchInput::placeholder {
+  color: #94a3b8;
+}
+
+/* ── Tabla ───────────────────────────────── */
+.tableWrapper {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1.3rem;
+}
+
+.th {
+  background-color: var(--color-dark);
+  color: white;
+  padding: 1.2rem 1.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 1.2rem;
+  letter-spacing: 0.03em;
+}
+
+.th:first-child { border-radius: 0; }
+
+.td {
+  padding: 1.1rem 1.5rem;
+  color: #374151;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.row:last-child .td {
+  border-bottom: none;
+}
+
+.row:hover {
+  background-color: #f8fafc;
+  transition: background-color 0.15s;
+}
+
+/* ── Acciones ────────────────────────────── */
+.acciones {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.accionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s;
+}
+
+.accionBtn:hover {
+  transform: translateY(-1px);
+  opacity: 0.85;
+}
+
+.editar {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.eliminar {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+/* ── Skeleton ────────────────────────────── */
+.skeletonRow td {
+  padding: 1rem 1.5rem;
+}
+
+.skeleton {
+  height: 20px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Empty / Conteo ─────────────────────── */
+.empty {
+  text-align: center;
+  padding: 3rem;
+  color: #94a3b8;
+  font-size: 1.3rem;
+}
+
+.conteo {
+  font-size: 1.2rem;
+  color: #94a3b8;
+  text-align: right;
+  padding-right: 0.5rem;
+}

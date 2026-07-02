@@ -1,6 +1,5 @@
-"use client"
-import FormCiudad from "../../../../components/forms/CatalogoForm/formCatalogoCiudad"
-import { useCatalogoForm } from "../../../../components/forms/CatalogoForm/useCatalogoForm"
+/*"use client"
+import FormCiudad from "../../../../components/forms/CatalogoForm/FormCatalogo"
 import { crearCiudadService } from "@/app/services/catalogs"
 export default function Cities() {
     const { formData, handleChange, crear,departamentos } = useCatalogoForm({
@@ -15,4 +14,13 @@ export default function Cities() {
                 />
         </div>
     )
+}
+ESTE CODE ES PARA QUE COMPILE BIEN EL PROYECTO*/
+
+
+
+"use client";
+
+export default function Cities() {
+    return <h2>Consulta de Ciudades (En construcción)</h2>;
 }
