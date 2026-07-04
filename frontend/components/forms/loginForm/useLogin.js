@@ -53,6 +53,14 @@ export const useLogin = () => {
                     customClass: { popup: styles.swal }
                 })
                 router.push('/doctor/home')
+            } else if (data.data.rol === 'admin') {
+                await Swal.fire({
+                    icon: 'success',
+                    title: data.message,
+                    text: `Bienvenido de nuevo ${data.data.nombre} ${data.data.apellido}, a ingresado como ${data.data.rol}`,
+                    customClass: { popup: styles.swal }
+                })
+                router.push('/admin/dashboard')
             }
         } catch (error) {
             console.log(error)

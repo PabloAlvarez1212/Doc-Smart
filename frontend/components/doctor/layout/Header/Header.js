@@ -9,10 +9,11 @@ export default function Header() {
                 <div className={Styles.logo}>
                     <Image src='/images/logo.png' width='130' height='100' alt="logo"/>
                     <h2><span>Doc</span> Smart</h2>
-                    <UserCircle2Icon/>
-                    <Settings/>
                 </div>
-                <div className={Styles.icons}></div>
+                <div className={Styles.icons}>
+                    <UserCircle2Icon size={32} className={Styles.icon}/>
+                    <Settings size={32} color="#262626" className={Styles.icon}/>
+                </div>
             </div>
             <div className={Styles.containerNav}>
                 <nav>
@@ -27,6 +28,7 @@ export default function Header() {
                     </ul>
                 </nav>
             </div>
+            <div className={Styles.line}></div>
         </div>
     )
 }

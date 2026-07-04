@@ -6,17 +6,22 @@ export function middleware(request) {
   const { pathname } = request.nextUrl;
 
   // 1. Si no hay token y quiere entrar a zonas protegidas
-  if (!token && (pathname.startsWith('/patient') || pathname.startsWith('/doctor'))) {
+  if (!token && (pathname.startsWith('/patient') || pathname.startsWith('/doctor') || pathname.startsWith('/admin'))) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 2. Si el rol es doctor y quiere entrar a /patient
-  if (pathname.startsWith('/patient') && role === 'doctor') {
+  // Si el rol es admin y quiere entar a /patient o /doctor
+  if (role === 'admin' && (pathname.startsWith('/patient') || pathname.startsWith('/doctor'))) {
+    return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+  }
+
+  //Si el rol es doctor y quiere entrar a /patient o /admin
+  if (role === 'doctor' && (pathname.startsWith('/patient') || pathname.startsWith('/admin'))) {
     return NextResponse.redirect(new URL('/doctor/home', request.url));
   }
 
-  // 3. Si el rol es paciente (o cualquier otro que no sea doctor) y quiere entrar a /doctor
-  if (pathname.startsWith('/doctor') && role !== 'doctor') {
+  // 3. Si el rol es paciente y quiere entrar a /doctor
+  if (role === 'paciente' && (pathname.startsWith('/doctor') || pathname.startsWith('/admin'))) {
     return NextResponse.redirect(new URL('/patient/home', request.url));
   }
 
@@ -24,5 +29,5 @@ export function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/patient/:path*', '/doctor/:path*'],
+  matcher: ['/patient/:path*', '/doctor/:path*', '/admin/:path*'],
 };

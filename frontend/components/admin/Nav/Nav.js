@@ -24,7 +24,7 @@ export default function Nav() {
                     <div className={Styles.containerNavMain}>
                         <div className={Styles.item}>
                             <LayoutDashboard size={32} />
-                            <li><Link href={'/admin/'} className={activarLink('/admin/')}>Dashboard</Link></li>
+                            <li><Link href={'/admin/dashboard'} className={activarLink('/admin/dashboard')}>Dashboard</Link></li>
                         </div>
                         <div className={Styles.item}>
                             <User size={32} />

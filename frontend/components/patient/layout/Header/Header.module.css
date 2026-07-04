@@ -27,14 +27,14 @@
     align-items: center;
 }
 .logo h2{
-    font-size: 2rem;
+    font-size: 1.6rem;
     color: var(--color-dark);
 }
 .logo h2 span{
     color: black;
 }
 .logo img{
-    width: 5.5rem;
+    width: 4.5rem;
     height: auto;
 }
 .containerNav{
@@ -44,7 +44,7 @@
 .containerNav nav ul{
     display: flex;
     gap: 2rem;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
 }
 .containerNav nav ul li{
     list-style: none;
