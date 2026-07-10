@@ -90,14 +90,22 @@ export const eliminarMediosService = async function (id) {
 
 
 
-
 //===========================CIUDADES===========================
-export const crearCiudadService = async function (formData){
-    const response = await axios.post(`${API_URL}catalogos/ciudades/`, formData)
-    return response.data
-}
 
+// Obtener todas las ciudades
+export const getCiudadesService = async function () {
+    const response = await axios.get(`${API_URL}catalogos/ciudades/`);
+    return response.data;
+};
 
+// Obtener ciudades por departamento
+export const getCiudadesPorDepartamentoService = async function (idDepartamento) {
+    const response = await axios.get(
+        `${API_URL}catalogos/departamentos/${idDepartamento}/ciudades/`
+    );
+
+    return response.data;
+};
 
 
 
