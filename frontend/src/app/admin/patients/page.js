@@ -39,7 +39,7 @@ export default function Patients() {
                 <DataTable
                     titulo="Pacientes"
                     columnas={columnas}
-                    crear={false}
+                    mostrarBotonNuevo={false}
                     cargando={crud.cargando}
                     datos={crud.datos}
                     mostrarEditar={false}
