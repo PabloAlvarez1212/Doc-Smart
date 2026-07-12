@@ -26,6 +26,9 @@ export default function DataTable({
   onNuevo,
   cargando = false,
   campoBusqueda = "nombre",
+  crear = true,
+  mostrarEditar = true,
+  centrarAcciones = false
 }) {
   const [busqueda, setBusqueda] = useState("");
 
@@ -40,9 +43,11 @@ export default function DataTable({
       {/* Encabezado */}
       <div className={styles.header}>
         <h1 className={styles.titulo}>{titulo}</h1>
-        <Button onClick={onNuevo} size="sm">
-          + Nuevo
-        </Button>
+        {crear && (
+          <Button onClick={onNuevo} size="sm">
+            + Nuevo
+          </Button>
+        )}
       </div>
 
       {/* Buscador */}
@@ -100,14 +105,16 @@ export default function DataTable({
                     </td>
                   ))}
                   <td className={styles.td}>
-                    <div className={styles.acciones}>
-                      <button
-                        className={`${styles.accionBtn} ${styles.editar}`}
-                        onClick={() => onEditar?.(item)}
-                        title="Editar"
-                      >
-                        <Pencil size={16} />
-                      </button>
+                    <div className={`${styles.acciones} ${centrarAcciones ? styles.centrarAcciones : ''}`}>
+                      {mostrarEditar && (
+                        <button
+                          className={`${styles.accionBtn} ${styles.editar}`}
+                          onClick={() => onEditar?.(item)}
+                          title="Editar"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                      )}
                       <button
                         className={`${styles.accionBtn} ${styles.eliminar}`}
                         onClick={() => onEliminar?.(item)}
