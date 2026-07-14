@@ -20,7 +20,7 @@ export default function RegisterPage() {
       <div className={styles.container}>
 
         <div className={styles.logo}>
-          <Image src='/images/logoCara.png' width='100' height='100' alt="logo" />
+          <Image src='/images/logoCara.png' width='50' height='50' alt="logo" />
           <h1><span>Doc</span> Smart</h1>
         </div>
 
