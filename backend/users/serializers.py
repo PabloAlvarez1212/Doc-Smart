@@ -12,10 +12,12 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
 class MedicoSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source='id_rol.nombre')
-    
+    especialidad = serializers.CharField(source='id_especialidad.nombre')    # Nombre de la especialidad
+    ciudad = serializers.CharField(source='ciudad.nombre')                   # Nombre de la ciudad
+    departamento = serializers.CharField(source='ciudad.departamento.nombre') # Departamento de la ciudad
     class Meta:
         model = Medico
-        fields = ['id', 'nombre', 'apellido', 'correo', 'rol','telefono']
+        fields = ['id', 'nombre', 'apellido', 'correo', 'rol','telefono','especialidad', 'ciudad', 'departamento', 'direccion']
         
 class UsuarioPerfilSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source='id_rol.nombre')
