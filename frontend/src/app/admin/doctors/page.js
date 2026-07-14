@@ -61,6 +61,7 @@ export default function Doctors() {
           datos={crud.datos}
           cargando={crud.cargando}
           columnas={columnas}
+          mostrarBotonNuevo={false}
         />
       </div>
     </>
