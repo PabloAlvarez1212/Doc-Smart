@@ -17,3 +17,19 @@ export const deletePacienteService = async (id) => {
 
     return response.data;
 };
+
+export const getDoctoresService = async () => {
+    const response = await axios.get(`${API_URL}medicos/`, {
+        withCredentials: true,
+    });
+
+    return response.data;
+};
+
+export const deleteDoctorService = async (id) => {
+    const response = await axios.delete(`${API_URL}medicos/${id}/`, {
+        withCredentials: true,
+    });
+
+    return response.data;
+};
