@@ -10,13 +10,14 @@ from medicos.serializers import (
     RegistrarEspecialidadSerializer,
     EditarEspecialidadSerializer,
 )
+from users.serializers import MedicoSerializer
 
 # ── SERVICIOS DE MÉDICOS ──────────────────────────────────────────────────────
 
 # Retorna la lista completa de médicos registrados
 def listarMedicosService():
     medicos = Medico.objects.all()
-    serializer = MedicoPerfilSerializer(medicos, many=True)
+    serializer = MedicoSerializer(medicos, many=True)
     return serializer.data, 200
 
 
