@@ -12,32 +12,32 @@ export default function ResetPasswordForm() {
                 <Input className={styles.input} type="password" name='nueva_contraseña' value={formData.nueva_contraseña || ''} onChange={handleChange} placeholder="Nueva contraseña" />
                 <ul className={styles.list}>
                     <div className={styles.listItem}>
-                        <AlertCircleIcon size={30} color="orange" />
+                        <AlertCircleIcon size={25} color="orange" />
                         <li>La contraseña debe tener mínimo 8 caracteres</li>
                     </div>
                     <div className={styles.listItem}>
-                        <AlertCircleIcon size={30} color="orange" />
+                        <AlertCircleIcon size={25} color="orange" />
                         <li>No se permiten los caracteres (&lt;, &gt;, &quot;, &apos;, &amp;) en la contraseña</li>
                     </div>
                     <div className={styles.listItem}>
-                        <AlertCircleIcon size={30} color="orange" />
+                        <AlertCircleIcon size={25} color="orange" />
                         <li>La contraseña debe contener al menos un carácter especial</li>
                     </div>
                     <div className={styles.listItem}>
-                        <AlertCircleIcon size={30} color="orange" />
+                        <AlertCircleIcon size={25} color="orange" />
                         <li>La contraseña debe tener mínimo una mayúscula</li>
                     </div>
                     <div className={styles.listItem}>
-                        <AlertCircleIcon size={30} color="orange" />
+                        <AlertCircleIcon size={25} color="orange" />
                         <li>La contraseña debe tener mínimo una minúscula</li>
                     </div>
                     <div className={styles.listItem}>
-                        <AlertCircleIcon size={30} color="orange" />
+                        <AlertCircleIcon size={25} color="orange" />
                         <li>La contraseña debe tener mínimo un número</li>
                     </div>
                 </ul>
                 <Input type="password" className={styles.input} name='confirmarContraseña' value={formData.confirmarContraseña || ''} onChange={handleChange} placeholder="Confirmar nueva contraseña" />
-                <Button type="submit" loading={loading}>Cambiar contraseña</Button>
+                <Button type="submit" size="sm" loading={loading}>Cambiar contraseña</Button>
             </div>
         </form>
     )
