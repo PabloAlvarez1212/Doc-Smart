@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from utils import IsAdmin
 from medicos.services import (
     listarMedicosService,
     obtenerMedicoService,
@@ -63,6 +64,7 @@ class RegistrarMedicoView(APIView):
 
 # Vista admin: lista todos los médicos registrados
 class MedicoListView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request):
         try:
             resultado, status_code = listarMedicosService()
@@ -74,7 +76,7 @@ class MedicoListView(APIView):
 
 # Vista admin: obtiene, actualiza o elimina un médico por ID
 class MedicoDetailView(APIView):
-
+    permission_classes = [IsAdmin]
     # Obtiene los datos de un médico específico
     def get(self, request, id_medico):
         try:
@@ -117,7 +119,10 @@ class MedicoDetailView(APIView):
 
 # Lista todas las especialidades (GET) y permite crear una nueva (POST)
 class EspecialidadListView(APIView):
-
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return []
+        return [IsAdmin()] 
     # Retorna el listado completo de especialidades
     def get(self, request):
         try:
@@ -145,7 +150,10 @@ class EspecialidadListView(APIView):
 
 # Obtiene, actualiza o elimina una especialidad por ID
 class EspecialidadDetailView(APIView):
-
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return []
+        return [IsAdmin()] 
     # Retorna los datos de una especialidad específica
     def get(self, request, id_especialidad):
         try:

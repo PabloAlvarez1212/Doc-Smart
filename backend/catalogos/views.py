@@ -9,7 +9,7 @@ from catalogos.services import (
     listarMediosService, obtenerMedioService, crearMedioService, editarMedioService, eliminarMedioService,
     crearCiudadService, editarCiudadService, eliminarCiudadService,
 )
-
+from utils import IsAdmin
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -30,6 +30,7 @@ def respuesta_serializer_invalido(errors):
 # ─── ROL ─────────────────────────────────────────────────────────────────────
 
 class RolListView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request):
         try:
             resultado, status_code = listarRolesService()
@@ -53,6 +54,7 @@ class RolListView(APIView):
 
 
 class RolDetailView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request, id):
         try:
             resultado, status_code = obtenerRolService(id)
@@ -90,6 +92,7 @@ class RolDetailView(APIView):
 # ─── ESTADO ──────────────────────────────────────────────────────────────────
 
 class EstadoListView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request):
         try:
             resultado, status_code = listarEstadosService()
@@ -113,6 +116,7 @@ class EstadoListView(APIView):
 
 
 class EstadoDetailView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request, id):
         try:
             resultado, status_code = obtenerEstadoService(id)
@@ -181,6 +185,10 @@ class CiudadListView(APIView):
 
 ## Mostrar Detalles de todas las ciudades 
 class CiudadesDetailView(APIView):
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return []
+        return [IsAdmin()] 
     def get(self, request):
         try:
             resultado, status_code = listarCiudadesService()
@@ -205,6 +213,10 @@ class CiudadesDetailView(APIView):
             return respuesta_error("Error interno en el servidor",status=500)
         
 class CiudadDetailView(APIView):
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return []
+        return [IsAdmin()] 
     def get(self,request,id):
         try:
             resultado, status_code = obtenerCiudadService(id)
@@ -258,6 +270,7 @@ class CiudadDetailView(APIView):
 # ─── MEDIO ───────────────────────────────────────────────────────────────────
 
 class MedioListView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request):
         try:
             resultado, status_code = listarMediosService()
@@ -281,6 +294,7 @@ class MedioListView(APIView):
 
 
 class MedioDetailView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request, id):
         try:
             resultado, status_code = obtenerMedioService(id)

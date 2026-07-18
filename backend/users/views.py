@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from utils import IsAdmin
 from users.services import (
     loginService,
     solicitarCambioService,
@@ -191,6 +192,7 @@ class PerfilPacienteView(APIView):
         
 # ! Metodos para el Admin
 class UsuarioListView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request):
         try:
             resultado, status_code = listarUsuariosService()
@@ -200,6 +202,7 @@ class UsuarioListView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 class UsuarioDetailView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request, pk):
         try:
             resultado, status_code = obtenerUsuarioService(pk)
