@@ -24,6 +24,10 @@ export default function Doctors() {
       label: "Apellido"
     },
     {
+      key: "cedula",
+      label: "Cedula"
+    },
+    {
       key: "especialidad",
       label: "Especialidad"
     },
@@ -62,6 +66,7 @@ export default function Doctors() {
           cargando={crud.cargando}
           columnas={columnas}
           mostrarBotonNuevo={false}
+          campoBusqueda="cedula"
         />
       </div>
     </>

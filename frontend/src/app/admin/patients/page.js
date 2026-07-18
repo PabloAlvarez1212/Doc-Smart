@@ -24,6 +24,10 @@ export default function Patients() {
             label: "Apellido"
         },
         {
+            key: "cedula",
+            label: "Cedula"
+        },
+        {
             key: "telefono",
             label: "Telefono"
         },
@@ -45,6 +49,7 @@ export default function Patients() {
                     mostrarEditar={false}
                     centrarAcciones={true}
                     onEliminar={crud.eliminar}
+                    campoBusqueda="cedula"
                 />
             </div>
 
