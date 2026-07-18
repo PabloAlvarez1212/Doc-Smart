@@ -1,4 +1,5 @@
 import re
+from rest_framework.permissions import BasePermission
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
 from users.models import Usuario
@@ -29,8 +30,8 @@ class CustomJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
         token = request.COOKIES.get("token")
 
-        if token is None:
-            return None
+        if not token:
+            return super().authenticate(request)
 
         validated_token = self.get_validated_token(token)
         return self.get_user(validated_token), validated_token
@@ -47,3 +48,12 @@ class CustomJWTAuthentication(JWTAuthentication):
             return usuario
 
         raise InvalidToken("User not found")
+    
+class IsAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return bool(
+            request.user and
+            request.user.is_authenticated and  # ← verifica primero que esté logueado
+            hasattr(request.user, 'id_rol') and  # ← verifica que tenga id_rol
+            request.user.id_rol.nombre == 'admin'
+        )
