@@ -90,6 +90,16 @@ class LoginView(APIView):
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
 
+class LogoutView(APIView):
+    def post(self, request):
+        try:
+            response = respuesta_ok(mensaje='Sesión cerrada correctamente')
+            response.delete_cookie('token')
+            response.delete_cookie('user_role')
+            return response
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
 
 class SolicitarCambioView(APIView):
     def post(self, request):
