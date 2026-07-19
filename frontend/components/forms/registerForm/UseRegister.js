@@ -1,4 +1,5 @@
 'use client'
+import { obtenerPrimerError } from '@/app/utils/errrorUtils'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Swal from 'sweetalert2'
@@ -174,17 +175,15 @@ export const useRegister = (role, setRole) => {
         } catch (error) {
             // Extrae el primer mensaje de error devuelto por la API
             console.log('error completo:', JSON.stringify(error.response?.data))
-            const errores = error.response?.data?.errores
-
-            let mensaje = 'Error en el servidor'
-            if (errores && Object.keys(errores).length > 0) {
-                mensaje = Object.values(errores)[0]
-                if (Array.isArray(mensaje)) mensaje = mensaje[0] // Toma el primer elemento si es array
+            const errores = error.response?.data?.errores;
+            let mensaje =error.response?.data?.mensaje ||'Error al conectar con el servidor';
+            const errorExtraido = obtenerPrimerError(errores);
+            if (errorExtraido) {
+                mensaje = errorExtraido;
             }
-
             Swal.fire({
                 icon: 'error',
-                title: 'Error al registrarse',
+                title: 'Error',
                 text: mensaje,
             })
 
