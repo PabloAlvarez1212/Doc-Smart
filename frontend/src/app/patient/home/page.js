@@ -1,11 +1,10 @@
-import styles from './home.module.css'
-import Button from '../../../../components/ui/Button/Button'
-import Image from 'next/image'
 import Hero from '../../../../components/patient/Home/Hero/Hero'
+import StaticCards from '../../../../components/patient/Home/StaticCards/StaticCards'
 export default function Home() {
     return (
         <>
             <Hero/>
+            <StaticCards/>
         </>
     )
 }
