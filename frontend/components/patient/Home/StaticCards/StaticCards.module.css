@@ -27,3 +27,12 @@
 .card h2{
     font-size: 1.7rem;
 }
+.card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.itemCard{
+    border: none !important;
+}
