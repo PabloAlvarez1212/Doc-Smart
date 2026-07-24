@@ -1,14 +1,17 @@
 import styles from "./Hero.module.css"
-import Button from "../../../ui/Button/Button"
-export default function Hero(){
-    return(
+import { Stethoscope } from "lucide-react"
+
+export default function Hero() {
+    return (
         <div className={styles.containerMain}>
             <div className={styles.saludo}>
                 <div className={styles.containerText}>
-                    <p>¡Te Damos La bienvenida Nuevamente!,</p>
-                    <h3>Miguel Racero</h3>
-                    <p>Proximos Pacientes, ya estan a la espera.</p>
-                    <Button size='sm' variant="white">Ver mas</Button>
+                    <p>Bienvenido de vuelta</p>
+                    <h2>Dr. Miguel Racero</h2>
+                    <p>Medicina General · jueves, 23 de julio de 2026</p>
+                </div>
+                <div className={styles.iconWrapper}>
+                    <Stethoscope size={22} color="white" />
                 </div>
             </div>
         </div>

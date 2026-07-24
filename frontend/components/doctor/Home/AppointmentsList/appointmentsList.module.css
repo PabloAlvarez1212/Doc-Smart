@@ -1,0 +1,73 @@
+.containerMain{
+    width: 90%;
+    margin: 0 auto;
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+}
+.card{
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #E5E7EB;
+    padding: 20px 24px;
+}
+.header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.link{
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #16A34A;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+.list{
+    display: flex;
+    flex-direction: column;
+}
+.row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #F3F4F6;
+}
+.row:last-child{
+    border-bottom: none;
+}
+.container{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.avatar{
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #DCFCE7;
+    color: #16A34A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+.description{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.description p{
+    color: #6B7280;
+    font-size: 0.85rem;
+}
+.hora{
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.9rem;
+}
