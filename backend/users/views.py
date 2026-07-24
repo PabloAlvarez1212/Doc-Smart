@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from utils import IsAdmin
 from users.services import (
     loginService,
     solicitarCambioService,
@@ -89,6 +90,16 @@ class LoginView(APIView):
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
 
+class LogoutView(APIView):
+    def post(self, request):
+        try:
+            response = respuesta_ok(mensaje='Sesión cerrada correctamente')
+            response.delete_cookie('token')
+            response.delete_cookie('user_role')
+            return response
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
 
 class SolicitarCambioView(APIView):
     def post(self, request):
@@ -191,6 +202,7 @@ class PerfilPacienteView(APIView):
         
 # ! Metodos para el Admin
 class UsuarioListView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request):
         try:
             page = request.query_params.get('page')
@@ -206,6 +218,7 @@ class UsuarioListView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 class UsuarioDetailView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request, pk):
         try:
             resultado, status_code = obtenerUsuarioService(pk)

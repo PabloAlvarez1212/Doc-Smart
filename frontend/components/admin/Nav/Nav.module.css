@@ -8,6 +8,7 @@
 .containerNav nav ul li .link {
     color: black;
     text-decoration: none;
+    padding: 5px 10px;
 }
 
 .containerNav nav ul li .link:hover {

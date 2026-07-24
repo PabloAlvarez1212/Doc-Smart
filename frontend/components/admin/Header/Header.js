@@ -4,7 +4,9 @@ import Styles from "./Header.module.css";
 import Image from "next/image";
 import Button from "../../ui/Button/Button";
 import { LogOutIcon } from "lucide-react";
+import useHeader from "./useHeader";
 export default function Header() {
+    const {logout} = useHeader();
     const logoutFunction = () => {
         Swal.fire({
             title: "Estas seguro que quieres cerrar sesión?",
@@ -14,8 +16,10 @@ export default function Header() {
             cancelButtonColor: "#d33",
             confirmButtonText: "Si, cerrar sesión",
             cancelButtonText: "Cancelar",
-        }).then((result) => {
-            if (result.isConfirmed) Swal.fire({
+        }).then(async(result) => {
+            if (result.isConfirmed)
+                await logout()
+                Swal.fire({
                 title: "Éxito!",
                 text: "Se a cerrado sesión correctamente.",
                 icon: "success"

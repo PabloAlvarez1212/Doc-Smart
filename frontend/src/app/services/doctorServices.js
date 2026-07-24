@@ -1,9 +1,10 @@
-import axios from "axios"
 const API_URL = 'http://localhost:8000/api/'
+import axios from 'axios';
+import api from './api';
 
 //crear una especialidad
 export const crearEspecialidadService = async function (formData){
-    const response = await axios.post(`${API_URL}medicos/especialidades/`, formData)
+    const response = await api.post(`${API_URL}medicos/especialidades/`, formData)
     return response.data
 }
 
@@ -21,7 +22,7 @@ export const getEspecialidadesService = async (page, search) => {
 
 // actualizar un especialidad
 export const editarEspecialidadService = async function (id, formData) {
-    const response = await axios.put(
+    const response = await api.put(
         `${API_URL}medicos/especialidad/${id}/`,
         formData
     );
@@ -30,6 +31,6 @@ export const editarEspecialidadService = async function (id, formData) {
 
 // eliminar un especialidad
 export const eliminarEspecialidadService = async function (id) {
-    const response = await axios.delete(`${API_URL}medicos/especialidad/${id}/`);
+    const response = await api.delete(`${API_URL}medicos/especialidad/${id}/`);
     return response.data;
 };

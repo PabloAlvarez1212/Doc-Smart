@@ -1,0 +1,38 @@
+.containerMain{
+    width: 90%;
+    margin: 0 auto;
+    padding-top: 2rem;
+}
+.containerCards{
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 1rem;
+}
+.card:hover{
+    transform: translateY(-3px);
+}
+.card img{
+    width: 60px;
+    height: auto;
+    border-radius: 50%;
+    background-color: #F0F9FF;
+    margin-top: 10px;
+    object-fit: cover;
+    margin-bottom: 5px;
+}
+.card p{
+    margin-bottom: 10px;
+    margin-top: 5px;
+}
+.card h2{
+    font-size: 1.7rem;
+}
+.card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.itemCard{
+    border: none !important;
+}

@@ -51,14 +51,23 @@
     text-decoration: none;
 }
 .containerNav nav ul li .link{
-    text-decoration: none;
     color: black;
+    text-decoration: none;
+    padding: 5px 10px;
 }
 .containerNav nav ul li .link:hover{
     color: var(--color-dark);
+    background-color: #CAE1FF;
+    color: #2B7FFF;
+    border-radius: 8px;
+    padding: 5px 10px;
 }
-.activar{
+.activar {
     color: var(--color-dark);
+    background-color: #CAE1FF;
+    color: #2B7FFF;
+    border-radius: 8px;
+    padding: 5px 10px;
 }
 .line{
     background-color: var(--color-dark);

@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from utils import IsAdmin
 from medicos.services import (
     listarMedicosService,
     obtenerMedicoService,
@@ -63,6 +64,7 @@ class RegistrarMedicoView(APIView):
 
 # Vista admin: lista todos los médicos registrados
 class MedicoListView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request):
         try:
             resultado, status_code = listarMedicosService()
@@ -74,7 +76,7 @@ class MedicoListView(APIView):
 
 # Vista admin: obtiene, actualiza o elimina un médico por ID
 class MedicoDetailView(APIView):
-
+    permission_classes = [IsAdmin]
     # Obtiene los datos de un médico específico
     def get(self, request, id_medico):
         try:
@@ -117,22 +119,20 @@ class MedicoDetailView(APIView):
 
 # Lista todas las especialidades (GET) y permite crear una nueva (POST)
 class EspecialidadListView(APIView):
-    # Retorna el listado, paginado si se pide ?page=
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return []
+        return [IsAdmin()] 
+    # Retorna el listado completo de especialidades
     def get(self, request):
         try:
-            page = request.query_params.get('page')
-            page_size = request.query_params.get('page_size', 10)
-            search = request.query_params.get('search')
-
-            resultado, status_code = listarEspecialidadesService(
-                page=page, page_size=page_size, search=search,
-            )
+            resultado, status_code = listarEspecialidadesService()
             return respuesta_ok(resultado, status=status_code)
         except Exception as e:
             print(f'Error: {e}')
             return respuesta_error("Error interno en el servidor", status=500)
 
-    # Crea una nueva especialidad (sin cambios)
+    # Crea una nueva especialidad
     def post(self, request):
         try:
             serializer = RegistrarEspecialidadSerializer(data=request.data)
@@ -148,11 +148,12 @@ class EspecialidadListView(APIView):
             return respuesta_error("Error interno en el servidor", status=500)
 
 
-
-
 # Obtiene, actualiza o elimina una especialidad por ID
 class EspecialidadDetailView(APIView):
-
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return []
+        return [IsAdmin()] 
     # Retorna los datos de una especialidad específica
     def get(self, request, id_especialidad):
         try:

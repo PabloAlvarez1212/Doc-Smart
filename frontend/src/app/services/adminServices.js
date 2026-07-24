@@ -1,40 +1,13 @@
-import axios from "axios";
+import api from "./api"
 
-const API_URL = "http://localhost:8000/api/";
+export const getPacientesService = async () =>
+    (await api.get('/usuarios/')).data
 
-export const getPacientesService = async (page, search) => {
-    const response = await axios.get(`${API_URL}usuarios/`, {
-        withCredentials: true,
-        params: {
-            page,
-            page_size: page ? 10 : undefined,
-            search: search || undefined,
-        },
-    });
+export const deletePacienteService = async (id) =>
+    (await api.delete(`/usuarios/${id}/`)).data
 
-    return response.data;
-};
+export const getDoctoresService = async () =>
+    (await api.get('/medicos/')).data
 
-export const deletePacienteService = async (id) => {
-    const response = await axios.delete(`${API_URL}usuarios/${id}/`, {
-        withCredentials: true,
-    });
-
-    return response.data;
-};
-
-export const getDoctoresService = async () => {
-    const response = await axios.get(`${API_URL}medicos/`, {
-        withCredentials: true,
-    });
-
-    return response.data;
-};
-
-export const deleteDoctorService = async (id) => {
-    const response = await axios.delete(`${API_URL}medicos/${id}/`, {
-        withCredentials: true,
-    });
-
-    return response.data;
-}
+export const deleteDoctorService = async (id) =>
+    (await api.delete(`/medicos/${id}/`)).data

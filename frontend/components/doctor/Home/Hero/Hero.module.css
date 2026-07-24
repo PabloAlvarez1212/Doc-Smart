@@ -1,0 +1,43 @@
+.containerMain{
+    padding-top: 2rem;
+}
+.saludo {
+    background: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
+    border-radius: 16px;
+    padding: 24px 32px;
+    position: relative;
+    width: 90%;
+    margin: 0 auto;
+}
+.saludo:hover{
+    transform: translateY(-2px);
+}
+.containerText{
+    display: flex;
+    flex-direction: column;
+    color: white;
+    gap: 4px;
+}
+.containerText p:first-child{
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+.containerText h2{
+    font-size: 1.6rem;
+}
+.containerText p:last-child{
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+.iconWrapper{
+    position: absolute;
+    top: 24px;
+    right: 32px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
