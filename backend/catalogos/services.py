@@ -1,4 +1,5 @@
 # catalogos/services.py
+from django.core.paginator import Paginator
 from catalogos.models import Rol, Estado, Medio, Departamento,Ciudad
 from catalogos.serializers import RolSerializer, EstadoSerializer, MedioSerializer, DepartamentoSerializer, CiudadSerializer
 
@@ -89,10 +90,39 @@ def eliminarEstadoService(id):
 
 # ─── DEPARTAMENTO ────────────────────────────────────────────────────────────────────
 
-def listarDepartamentosService():
-    departamentos = Departamento.objects.all().order_by('nombre')
-    serializer = DepartamentoSerializer(departamentos, many=True)
-    return serializer.data, 200
+def listarDepartamentosService(page=None, page_size=10, search=None):
+    departamentos = Departamento.objects.all()
+
+    if search:
+        departamentos = departamentos.filter(nombre__icontains=search)
+
+    departamentos = departamentos.order_by('nombre')
+
+    # Sin 'page': comportamiento original (usado por el selector en Ciudades)
+    if page is None:
+        serializer = DepartamentoSerializer(departamentos, many=True)
+        return serializer.data, 200
+
+    # Con 'page': paginado
+    try:
+        page_size = int(page_size)
+    except (TypeError, ValueError):
+        page_size = 10
+
+    paginator = Paginator(departamentos, page_size)
+    page_obj = paginator.get_page(page)
+
+    serializer = DepartamentoSerializer(page_obj.object_list, many=True)
+
+    return {
+        "resultados": serializer.data,
+        "paginacion": {
+            "count": paginator.count,
+            "total_pages": paginator.num_pages,
+            "current_page": page_obj.number,
+            "page_size": page_size,
+        },
+    }, 200
 
 def obtenerDepartamentoService(id):
     departamento = Departamento.objects.filter(id=id).first()
@@ -103,12 +133,42 @@ def obtenerDepartamentoService(id):
 
 # ─── CIUDAD ────────────────────────────────────────────────────────────────────
 
-def listarCiudadesService(departamento_id=None):
+def listarCiudadesService(departamento_id=None, page=None, page_size=10, search=None):
     ciudades = Ciudad.objects.select_related('departamento').all()
-    if departamento_id:ciudades = ciudades.filter(departamento_id=departamento_id)
+
+    if departamento_id:
+        ciudades = ciudades.filter(departamento_id=departamento_id)
+
+    if search:
+        ciudades = ciudades.filter(nombre__icontains=search)
+
     ciudades = ciudades.order_by('nombre')
+
+    # Si no piden página (page=None), se comporta EXACTAMENTE igual que antes:
+    # devuelve la lista completa sin paginar. Esto es lo que sigue usando
+    # CiudadListView (el selector de ciudades por departamento) sin romperse.
+    if page is None:
+        data = []
+        for ciudad in ciudades:
+            data.append({
+                "id_ciudad": ciudad.id,
+                "nombre_ciudad": ciudad.nombre,
+                "id_departamento": ciudad.departamento.id,
+                "nombre_departamento": ciudad.departamento.nombre
+            })
+        return data, 200
+
+    # Si SÍ piden página: se pagina y se devuelve junto con la metadata.
+    try:
+        page_size = int(page_size)
+    except (TypeError, ValueError):
+        page_size = 10
+
+    paginator = Paginator(ciudades, page_size)
+    page_obj = paginator.get_page(page)
+
     data = []
-    for ciudad in ciudades:
+    for ciudad in page_obj:
         data.append({
             "id_ciudad": ciudad.id,
             "nombre_ciudad": ciudad.nombre,
@@ -116,7 +176,16 @@ def listarCiudadesService(departamento_id=None):
             "nombre_departamento": ciudad.departamento.nombre
         })
 
-    return data, 200
+    resultado = {
+        "resultados": data,
+        "paginacion": {
+            "count": paginator.count,
+            "total_pages": paginator.num_pages,
+            "current_page": page_obj.number,
+            "page_size": page_size,
+        },
+    }
+    return resultado, 200
 
 
 

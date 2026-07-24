@@ -7,9 +7,15 @@ export const crearEspecialidadService = async function (formData){
     return response.data
 }
 
-// obtener todas las especialidad
-export const getEspecialidadesService = async () => {
-    const response = await axios.get(`${API_URL}medicos/especialidades/`)
+// obtener todas las especialidades (paginado)
+export const getEspecialidadesService = async (page, search) => {
+    const response = await axios.get(`${API_URL}medicos/especialidades/`, {
+        params: {
+            page,
+            page_size: page ? 10 : undefined,
+            search: search || undefined,
+        },
+    })
     return response.data
 }
 

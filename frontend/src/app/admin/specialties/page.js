@@ -3,6 +3,7 @@
 import FormCatalogo from "../../../../components/forms/CatalogoForm/FormCatalogo";
 import { useCrud } from "../../../../components/hooks/useCrud";
 import DataTable from "../../../../components/ui/DataTable/DataTable";
+import Pagination from "../../../../components/ui/Pagination/Pagination";
 import Modal from "../../../../components/ui/Modal/Modal";
 
 import {
@@ -15,13 +16,14 @@ import {
 export default function Especialidad() {
 
     const crud = useCrud({
-        getService: getEspecialidadesService,
+        getService: (page, search) => getEspecialidadesService(page, search),
         crearService: crearEspecialidadService,
         editarService: editarEspecialidadService,
         eliminarService: eliminarEspecialidadService,
         camposIniciales: {
             nombre: "",
         },
+        paginado: true,
     });
 
     const columnas = [
@@ -41,6 +43,14 @@ export default function Especialidad() {
                 onNuevo={crud.abrirModalNuevo}
                 onEditar={crud.abrirModalEditar}
                 onEliminar={crud.eliminar}
+            />
+
+            <Pagination
+                paginaActual={crud.pagina}
+                totalPaginas={crud.paginacion.total_pages}
+                totalRegistros={crud.paginacion.count}
+                onCambiarPagina={crud.setPagina}
+                cargando={crud.cargando}
             />
 
             <Modal

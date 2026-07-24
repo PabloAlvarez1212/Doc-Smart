@@ -117,17 +117,22 @@ class MedicoDetailView(APIView):
 
 # Lista todas las especialidades (GET) y permite crear una nueva (POST)
 class EspecialidadListView(APIView):
-
-    # Retorna el listado completo de especialidades
+    # Retorna el listado, paginado si se pide ?page=
     def get(self, request):
         try:
-            resultado, status_code = listarEspecialidadesService()
+            page = request.query_params.get('page')
+            page_size = request.query_params.get('page_size', 10)
+            search = request.query_params.get('search')
+
+            resultado, status_code = listarEspecialidadesService(
+                page=page, page_size=page_size, search=search,
+            )
             return respuesta_ok(resultado, status=status_code)
         except Exception as e:
             print(f'Error: {e}')
             return respuesta_error("Error interno en el servidor", status=500)
 
-    # Crea una nueva especialidad
+    # Crea una nueva especialidad (sin cambios)
     def post(self, request):
         try:
             serializer = RegistrarEspecialidadSerializer(data=request.data)
@@ -141,6 +146,8 @@ class EspecialidadListView(APIView):
         except Exception as e:
             print(f'Error: {e}')
             return respuesta_error("Error interno en el servidor", status=500)
+
+
 
 
 # Obtiene, actualiza o elimina una especialidad por ID

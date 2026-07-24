@@ -193,8 +193,14 @@ class PerfilPacienteView(APIView):
 class UsuarioListView(APIView):
     def get(self, request):
         try:
-            resultado, status_code = listarUsuariosService()
-            return respuesta_ok(data=resultado)
+            page = request.query_params.get('page')
+            page_size = request.query_params.get('page_size', 10)
+            search = request.query_params.get('search')
+
+            resultado, status_code = listarUsuariosService(
+                page=page, page_size=page_size, search=search,
+            )
+            return respuesta_ok(data=resultado, status=status_code)
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor', status=500)

@@ -2,9 +2,14 @@ import axios from "axios";
 
 const API_URL = "http://localhost:8000/api/";
 
-export const getPacientesService = async () => {
+export const getPacientesService = async (page, search) => {
     const response = await axios.get(`${API_URL}usuarios/`, {
         withCredentials: true,
+        params: {
+            page,
+            page_size: page ? 10 : undefined,
+            search: search || undefined,
+        },
     });
 
     return response.data;
@@ -32,4 +37,4 @@ export const deleteDoctorService = async (id) => {
     });
 
     return response.data;
-};
+}

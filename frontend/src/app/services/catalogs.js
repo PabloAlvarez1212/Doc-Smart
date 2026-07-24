@@ -93,8 +93,11 @@ export const eliminarMediosService = async function (id) {
 //===========================CIUDADES===========================
 
 // Obtener todas las ciudades
-export const getCiudadesService = async function () {
-    const response = await axios.get(`${API_URL}catalogos/ciudades/`);
+// Obtener todas las ciudades (paginado)
+export const getCiudadesService = async function (page = 1, search = "") {
+    const response = await axios.get(`${API_URL}catalogos/ciudades/`, {
+        params: { page, page_size: 10, search: search || undefined },
+    });
     return response.data;
 };
 
