@@ -114,7 +114,13 @@ export const getCiudadesPorDepartamentoService = async function (idDepartamento)
 
 
 //===========================DEPARTAMENTOS===========================
-export const getDepartamentosService = async () => {
-    const response = await axios.get(`${API_URL}catalogos/departamentos/`)
+export const getDepartamentosService = async (page, search) => {
+    const response = await api.get(`${API_URL}catalogos/departamentos/`, {
+        params: {
+            page,
+            page_size: page ? 10 : undefined,
+            search: search || undefined,
+        },
+    })
     return response.data
 }

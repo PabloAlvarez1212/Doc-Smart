@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from utils import IsAdmin
+from django.conf import settings
 from users.services import (
     loginService,
     solicitarCambioService,
@@ -70,7 +71,7 @@ class LoginView(APIView):
                 key='token',
                 value=str(token.access_token),
                 httponly=True,
-                secure=True,
+                secure=not settings.DEBUG,
                 samesite='Lax',
                 path='/',
                 max_age=3600

@@ -24,12 +24,14 @@ def loginService(correo, contraseña):
     # Verifica usuario
     if usuario and bcrypt.checkpw(contraseña.encode(), usuario.contraseña.encode()):
         token = RefreshToken.for_user(usuario)
+        token['tipo'] = 'usuario'  # ← nuevo: marca el tipo de cuenta en el token
         serializer = UsuarioSerializer(usuario)
         return token, serializer.data, 200
 
     # Verifica medico
     if medico and bcrypt.checkpw(contraseña.encode(), medico.contraseña.encode()):
         token = RefreshToken.for_user(medico)
+        token['tipo'] = 'medico'  # ← nuevo: marca el tipo de cuenta en el token
         serializer = MedicoSerializer(medico)
         return token, serializer.data, 200
 
