@@ -186,10 +186,10 @@ class DepartamentoDetailView(APIView):
 class CiudadListView(APIView):
     def get(self, request, id_departamento):
         try:
-            page = request.query_params.get('page', 1)
+            page = request.query_params.get('page')  # ← sin valor por defecto
             page_size = request.query_params.get('page_size', 10)
             search = request.query_params.get('search')
- 
+
             resultado, status_code = listarCiudadesService(
                 departamento_id=id_departamento,
                 page=page,
@@ -200,7 +200,6 @@ class CiudadListView(APIView):
         except Exception as e:
             print("Error:", e)
             return respuesta_error("Error interno en el servidor",status=500)
-
 ## Mostrar Detalles de todas las ciudades (paginado: ?page=1&page_size=10&search=texto)
 class CiudadesDetailView(APIView):
     def get_permissions(self):
