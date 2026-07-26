@@ -41,10 +41,11 @@ def crearCitaService(datos, usuario_id):
     usuario = Usuario.objects.filter(id=usuario_id).first()
     
     if not usuario:
-        return 'El usuario no existe',404
-    
-    if Medico.objects.filter(id = usuario.id).exists():
-        return 'Solo pacientes puden crear citas',400
+        # Si no está en Usuario, busca en Medico
+        medico_logueado = Medico.objects.filter(id=usuario_id).first()
+        if medico_logueado:
+            return 'Solo pacientes pueden crear citas', 400
+        return 'El usuario no existe', 404
     
     # Verifica que el médico existe
     medico = Medico.objects.filter(id=datos['id_medico']).first()
