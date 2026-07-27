@@ -38,7 +38,7 @@ class CustomJWTAuthentication(JWTAuthentication):
 
     def get_user(self, validated_token):
         user_id = validated_token.get("user_id")
-        tipo = validated_token.get("tipo")  # ← nuevo: distingue el tipo de cuenta
+        tipo = validated_token.get("tipo")
 
         if tipo == "medico":
             medico = Medico.objects.filter(id=user_id).first()
