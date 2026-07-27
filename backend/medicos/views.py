@@ -123,10 +123,16 @@ class EspecialidadListView(APIView):
         if self.request.method == 'GET':
             return []
         return [IsAdmin()] 
-    # Retorna el listado completo de especialidades
+
     def get(self, request):
         try:
-            resultado, status_code = listarEspecialidadesService()
+            page = request.query_params.get('page')
+            page_size = request.query_params.get('page_size', 10)
+            search = request.query_params.get('search')
+
+            resultado, status_code = listarEspecialidadesService(
+                page=page, page_size=page_size, search=search,
+            )
             return respuesta_ok(resultado, status=status_code)
         except Exception as e:
             print(f'Error: {e}')

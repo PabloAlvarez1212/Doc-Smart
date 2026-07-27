@@ -2,13 +2,16 @@
 
 import Hero from "../../../../components/admin/Paciente/Hero/Hero"
 import DataTable from "../../../../components/ui/DataTable/DataTable"
+import Pagination from "../../../../components/ui/Pagination/Pagination"
 import styles from "./patients.module.css"
 import { useCrud } from "../../../../components/hooks/useCrud";
-import { getPacientesService,deletePacienteService } from "@/app/services/adminServices";
+import { getPacientesService, deletePacienteService } from "@/app/services/adminServices";
+
 export default function Patients() {
     const crud = useCrud({
-        getService: getPacientesService,
-        eliminarService: deletePacienteService
+        getService: (page, search) => getPacientesService(page, search),
+        eliminarService: deletePacienteService,
+        paginado: true,
     })
     const columnas = [
         {
@@ -50,6 +53,14 @@ export default function Patients() {
                     centrarAcciones={true}
                     onEliminar={crud.eliminar}
                     campoBusqueda="cedula"
+                />
+
+                <Pagination
+                    paginaActual={crud.pagina}
+                    totalPaginas={crud.paginacion.total_pages}
+                    totalRegistros={crud.paginacion.count}
+                    onCambiarPagina={crud.setPagina}
+                    cargando={crud.cargando}
                 />
             </div>
 

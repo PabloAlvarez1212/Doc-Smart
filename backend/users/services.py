@@ -10,6 +10,7 @@ from datetime import timedelta
 from django.core.mail import send_mail
 import os
 from django.template.loader import render_to_string
+from django.core.paginator import Paginator
 
 def loginService(correo, contraseña):
     # Busca en ambas tablas
@@ -23,12 +24,14 @@ def loginService(correo, contraseña):
     # Verifica usuario
     if usuario and bcrypt.checkpw(contraseña.encode(), usuario.contraseña.encode()):
         token = RefreshToken.for_user(usuario)
+        token['tipo'] = 'usuario'  # ← nuevo: marca el tipo de cuenta en el token
         serializer = UsuarioSerializer(usuario)
         return token, serializer.data, 200
 
     # Verifica medico
     if medico and bcrypt.checkpw(contraseña.encode(), medico.contraseña.encode()):
         token = RefreshToken.for_user(medico)
+        token['tipo'] = 'medico'  # ← nuevo: marca el tipo de cuenta en el token
         serializer = MedicoSerializer(medico)
         return token, serializer.data, 200
 
@@ -173,11 +176,35 @@ def registrarUsuarioService(datos):
     return serializer.data, 201
 
 
-def listarUsuariosService():
-    usuarios = Usuario.objects.all()
-    serializer = UsuarioSerializer(usuarios, many=True)
-    return serializer.data, 200
 
+
+def listarUsuariosService(page=None, page_size=10, search=None):
+    usuarios = Usuario.objects.all()
+    if search:
+        usuarios = usuarios.filter(nombre__icontains=search)
+    usuarios = usuarios.order_by('nombre')
+
+    if page is None:
+        serializer = UsuarioSerializer(usuarios, many=True)
+        return serializer.data, 200
+    try:
+        page_size = int(page_size)
+    except (TypeError, ValueError):
+        page_size = 10
+
+    paginator = Paginator(usuarios, page_size)
+    page_obj = paginator.get_page(page)
+    serializer = UsuarioSerializer(page_obj.object_list, many=True)
+
+    return {
+        "resultados": serializer.data,
+        "paginacion": {
+            "count": paginator.count,
+            "total_pages": paginator.num_pages,
+            "current_page": page_obj.number,
+            "page_size": page_size,
+        },
+    }, 200
 
 def obtenerUsuarioService(id):
     usuario = Usuario.objects.filter(id=id).first()

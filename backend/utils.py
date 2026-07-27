@@ -38,14 +38,16 @@ class CustomJWTAuthentication(JWTAuthentication):
 
     def get_user(self, validated_token):
         user_id = validated_token.get("user_id")
+        tipo = validated_token.get("tipo")  # ← nuevo: distingue el tipo de cuenta
 
-        medico = Medico.objects.filter(id=user_id).first()
-        if medico:
-            return medico
-
-        usuario = Usuario.objects.filter(id=user_id).first()
-        if usuario:
-            return usuario
+        if tipo == "medico":
+            medico = Medico.objects.filter(id=user_id).first()
+            if medico:
+                return medico
+        elif tipo == "usuario":
+            usuario = Usuario.objects.filter(id=user_id).first()
+            if usuario:
+                return usuario
 
         raise InvalidToken("User not found")
     

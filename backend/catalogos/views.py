@@ -156,8 +156,17 @@ class EstadoDetailView(APIView):
 class DepartamentoListView(APIView):
     def get(self, request):
         try:
-            resultado, status_code = listarDepartamentosService()
-            return respuesta_ok(data=resultado)
+            # OJO: sin valor por defecto en 'page' — si el frontend no lo manda
+            # (como hace el selector de departamento en la página de Ciudades),
+            # se devuelve la lista completa sin paginar, igual que antes.
+            page = request.query_params.get('page')
+            page_size = request.query_params.get('page_size', 10)
+            search = request.query_params.get('search')
+
+            resultado, status_code = listarDepartamentosService(
+                page=page, page_size=page_size, search=search,
+            )
+            return respuesta_ok(data=resultado, status=status_code)
         except Exception as e:
             print(f'Error: {e}')
             return respuesta_error('Error interno del servidor', status=500)
@@ -177,13 +186,21 @@ class DepartamentoDetailView(APIView):
 class CiudadListView(APIView):
     def get(self, request, id_departamento):
         try:
-            resultado, status_code = listarCiudadesService(id_departamento)
+            page = request.query_params.get('page')  # ← sin valor por defecto
+            page_size = request.query_params.get('page_size', 10)
+            search = request.query_params.get('search')
+
+            resultado, status_code = listarCiudadesService(
+                departamento_id=id_departamento,
+                page=page,
+                page_size=page_size,
+                search=search,
+            )
             return respuesta_ok(data=resultado,status=status_code)
         except Exception as e:
             print("Error:", e)
             return respuesta_error("Error interno en el servidor",status=500)
-
-## Mostrar Detalles de todas las ciudades 
+## Mostrar Detalles de todas las ciudades (paginado: ?page=1&page_size=10&search=texto)
 class CiudadesDetailView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
@@ -191,7 +208,15 @@ class CiudadesDetailView(APIView):
         return [IsAdmin()] 
     def get(self, request):
         try:
-            resultado, status_code = listarCiudadesService()
+            page = request.query_params.get('page', 1)
+            page_size = request.query_params.get('page_size', 10)
+            search = request.query_params.get('search')
+
+            resultado, status_code = listarCiudadesService(
+                page=page,
+                page_size=page_size,
+                search=search,
+            )
             return respuesta_ok(data=resultado, status=status_code)
 
         except Exception as e:

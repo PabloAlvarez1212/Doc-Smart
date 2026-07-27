@@ -6,11 +6,12 @@ import { obtenerPrimerError } from "@/app/utils/errrorUtils";
  * useCrud - Hook genérico para manejar operaciones CRUD
  *
  * Params:
- * - getService:    async () => { data: [] }   → obtener todos
+ * - getService:    async (page, search) => {...}  → obtener todos (page/search opcionales)
  * - crearService:  async (formData) => {}      → crear
  * - editarService: async (id, formData) => {}  → actualizar
  * - eliminarService: async (id) => {}          → eliminar
  * - camposIniciales: Object                    → estado inicial del formulario
+ * - paginado: boolean                          → true si el endpoint devuelve { resultados, paginacion }
  */
 export function useCrud({
   getService,
@@ -18,6 +19,7 @@ export function useCrud({
   editarService,
   eliminarService,
   camposIniciales = { nombre: "" },
+  paginado = false,
 }) {
   const [datos, setDatos] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -27,27 +29,62 @@ export function useCrud({
   const [formData, setFormData] = useState(camposIniciales);
   const [guardando, setGuardando] = useState(false);
 
+  // ── Paginación (solo se usa si paginado = true) ─────────
+  const [pagina, setPagina] = useState(1);
+  const [busqueda, setBusqueda] = useState("");
+  const [paginacion, setPaginacion] = useState({
+    count: 0,
+    total_pages: 1,
+    current_page: 1,
+    page_size: 10,
+  });
+
   // ── Cargar datos ────────────────────────────────────────
-  const cargarDatos = useCallback(async () => {
-    setCargando(true);
-    try {
-      const res = await getService();
-      // Soporta tanto { data: [] } como [] directo
-      setDatos(Array.isArray(res) ? res : res.data ?? []);
-    } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Error al cargar",
-        text: "No se pudieron obtener los datos del servidor.",
-      });
-    } finally {
-      setCargando(false);
-    }
-  }, [getService]);
+  const cargarDatos = useCallback(
+    async (paginaOverride) => {
+      setCargando(true);
+      try {
+        const paginaAConsultar = paginaOverride ?? pagina;
+        const res = paginado
+          ? await getService(paginaAConsultar, busqueda)
+          : await getService();
+
+        if (paginado) {
+          // getService devuelve { ok, mensaje, data: { resultados, paginacion } }
+          const resultados = res?.data?.resultados ?? [];
+          const meta = res?.data?.paginacion ?? {
+            count: resultados.length,
+            total_pages: 1,
+            current_page: 1,
+            page_size: 10,
+          };
+          setDatos(Array.isArray(resultados) ? resultados : []);
+          setPaginacion(meta);
+        } else {
+          // Comportamiento original: soporta tanto { data: [] } como [] directo
+          setDatos(Array.isArray(res) ? res : res?.data ?? []);
+        }
+      } catch (error) {
+        Swal.fire({
+          icon: "error",
+          title: "Error al cargar",
+          text: "No se pudieron obtener los datos del servidor.",
+        });
+      } finally {
+        setCargando(false);
+      }
+    },
+    [getService, paginado, pagina, busqueda]
+  );
 
   useEffect(() => {
     cargarDatos();
   }, [cargarDatos]);
+
+  // Al cambiar la búsqueda, siempre regresamos a la página 1
+  useEffect(() => {
+    if (paginado) setPagina(1);
+  }, [busqueda, paginado]);
 
   // ── Manejo de inputs ────────────────────────────────────
   const handleChange = (e) => {
@@ -138,5 +175,11 @@ export function useCrud({
     guardar,
     eliminar,
     cargarDatos,
+    // ── expuesto solo relevante cuando paginado = true ──────
+    pagina,
+    setPagina,
+    busqueda,
+    setBusqueda,
+    paginacion,
   };
 }

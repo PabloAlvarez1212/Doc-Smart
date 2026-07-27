@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from utils import IsAdmin
+from django.conf import settings
 from users.services import (
     loginService,
     solicitarCambioService,
@@ -70,7 +71,7 @@ class LoginView(APIView):
                 key='token',
                 value=str(token.access_token),
                 httponly=True,
-                secure=True,
+                secure=not settings.DEBUG,
                 samesite='Lax',
                 path='/',
                 max_age=3600
@@ -205,8 +206,14 @@ class UsuarioListView(APIView):
     permission_classes = [IsAdmin]
     def get(self, request):
         try:
-            resultado, status_code = listarUsuariosService()
-            return respuesta_ok(data=resultado)
+            page = request.query_params.get('page')
+            page_size = request.query_params.get('page_size', 10)
+            search = request.query_params.get('search')
+
+            resultado, status_code = listarUsuariosService(
+                page=page, page_size=page_size, search=search,
+            )
+            return respuesta_ok(data=resultado, status=status_code)
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor', status=500)

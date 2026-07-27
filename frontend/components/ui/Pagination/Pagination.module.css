@@ -1,0 +1,14 @@
+.wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 20px;
+    padding: 12px 0;
+}
+
+.info {
+    font-size: 14px;
+    color: #4b5563;
+    white-space: nowrap;
+}

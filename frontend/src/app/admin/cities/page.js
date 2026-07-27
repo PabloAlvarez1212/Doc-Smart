@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
 import DataTable from "../../../../components/ui/DataTable/DataTable";
+import Pagination from "../../../../components/ui/Pagination/Pagination";
 
 import {
     getCiudadesService,
@@ -18,10 +19,18 @@ export default function Cities() {
     const [departamentoSeleccionado, setDepartamentoSeleccionado] = useState("");
     const [cargando, setCargando] = useState(true);
 
+    const [pagina, setPagina] = useState(1);
+    const [totalPaginas, setTotalPaginas] = useState(1);
+    const [totalRegistros, setTotalRegistros] = useState(0);
+
     useEffect(() => {
         cargarDepartamentos();
-        cargarCiudades();
     }, []);
+
+    useEffect(() => {
+        cargarCiudades(pagina, departamentoSeleccionado);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pagina]);
 
     const cargarDepartamentos = async () => {
         try {
@@ -36,12 +45,27 @@ export default function Cities() {
         }
     };
 
-    const cargarCiudades = async () => {
+    const cargarCiudades = async (paginaSolicitada = 1, idDepartamento = "") => {
         setCargando(true);
 
         try {
-            const res = await getCiudadesService();
-            setCiudades(Array.isArray(res) ? res : res.data ?? []);
+            const res = idDepartamento
+                ? await getCiudadesPorDepartamentoService(idDepartamento, paginaSolicitada)
+                : await getCiudadesService(paginaSolicitada);
+
+            console.log("Respuesta ciudades:", res); // <-- TEMPORAL: revisa esto en la consola
+
+            const resultados = res?.data?.resultados ?? [];
+            const meta = res?.data?.paginacion ?? {
+                total_pages: 1,
+                current_page: 1,
+                count: resultados.length,
+            };
+
+            setCiudades(resultados);
+            setTotalPaginas(meta.total_pages);
+            setTotalRegistros(meta.count);
+            setPagina(meta.current_page);
         } catch (error) {
             Swal.fire({
                 icon: "error",
@@ -54,83 +78,31 @@ export default function Cities() {
     };
 
     const cambiarDepartamento = async (e) => {
-
         const id = e.target.value;
-
         setDepartamentoSeleccionado(id);
-
-        setCargando(true);
-
-        try {
-
-            if (id === "") {
-
-                await cargarCiudades();
-
-            } else {
-
-                const res = await getCiudadesPorDepartamentoService(id);
-                setCiudades(Array.isArray(res) ? res : res.data ?? []);
-
-            }
-
-        } catch (error) {
-
-            Swal.fire({
-                icon: "error",
-                title: "Error",
-                text: "No se pudieron filtrar las ciudades.",
-            });
-
-        } finally {
-
-            setCargando(false);
-
-        }
+        await cargarCiudades(1, id);
+        setPagina(1);
     };
 
     const columnas = [
-        {
-            key: "nombre_ciudad",
-            label: "Ciudad",
-        },
-        {
-            key: "nombre_departamento",
-            label: "Departamento",
-        },
+        { key: "nombre_ciudad", label: "Ciudad" },
+        { key: "nombre_departamento", label: "Departamento" },
     ];
 
     return (
         <>
             <div style={{ marginBottom: "20px", maxWidth: "300px" }}>
-                <label
-                    style={{
-                        display: "block",
-                        marginBottom: "8px",
-                        fontWeight: "600",
-                    }}
-                >
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600" }}>
                     Departamento
                 </label>
-
                 <select
                     value={departamentoSeleccionado}
                     onChange={cambiarDepartamento}
-                    style={{
-                        width: "100%",
-                        padding: "10px",
-                        borderRadius: "8px",
-                    }}
+                    style={{ width: "100%", padding: "10px", borderRadius: "8px" }}
                 >
-                    <option value="">
-                        Todos los departamentos
-                    </option>
-
+                    <option value="">Todos los departamentos</option>
                     {departamentos.map((dep) => (
-                        <option
-                            key={dep.id}
-                            value={dep.id}
-                        >
+                        <option key={dep.id} value={dep.id}>
                             {dep.nombre}
                         </option>
                     ))}
@@ -146,6 +118,14 @@ export default function Cities() {
                 placeholderBusqueda="Buscar ciudad..."
                 mostrarBotonNuevo={false}
                 mostrarAcciones={false}
+            />
+
+            <Pagination
+                paginaActual={pagina}
+                totalPaginas={totalPaginas}
+                totalRegistros={totalRegistros}
+                onCambiarPagina={setPagina}
+                cargando={cargando}
             />
         </>
     );

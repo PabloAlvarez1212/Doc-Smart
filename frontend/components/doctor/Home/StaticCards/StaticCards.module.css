@@ -1,0 +1,40 @@
+.containerMain{
+    width: 90%;
+    margin: 0 auto;
+    padding-top: 2rem;
+}
+.containerCards{
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 1rem;
+}
+.card{
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #E5E7EB;
+    padding: 18px 20px;
+    position: relative;
+}
+.card:hover{
+    transform: translateY(-2px);
+}
+.itemCard{
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+    width: fit-content;
+}
+.card svg{
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+.trend{
+    font-size: 0.8rem;
+    color: #6B7280;
+    margin-top: 8px;
+}
+.iconGreen{ color: #16A34A; }
+.iconBlue{ color: #2B7FFF; }
+.iconPurple{ color: #7C3AED; }
+.iconOrange{ color: #EA580C; }

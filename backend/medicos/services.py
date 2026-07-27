@@ -11,6 +11,7 @@ from medicos.serializers import (
     EditarEspecialidadSerializer,
 )
 from users.serializers import MedicoSerializer
+from django.core.paginator import Paginator
 
 # ── SERVICIOS DE MÉDICOS ──────────────────────────────────────────────────────
 
@@ -146,11 +147,35 @@ def eliminarMedicoService(id_medico):
 
 # ── SERVICIOS DE ESPECIALIDADES ───────────────────────────────────────────────
 
-# Retorna todas las especialidades registradas
-def listarEspecialidadesService():
+#retorna especialidades con paginación y búsqueda opcional
+
+
+def listarEspecialidadesService(page=None, page_size=10, search=None):
     especialidades = Especialidad.objects.all()
-    serializer = EspecialidadSerializer(especialidades, many=True)
-    return serializer.data, 200
+    if search:
+        especialidades = especialidades.filter(nombre__icontains=search)
+    especialidades = especialidades.order_by('nombre')
+
+    if page is None:
+        serializer = EspecialidadSerializer(especialidades, many=True)
+        return serializer.data, 200
+    try:
+        page_size = int(page_size)
+    except (TypeError, ValueError):
+        page_size = 10
+
+    paginator = Paginator(especialidades, page_size)
+    page_obj = paginator.get_page(page)
+    serializer = EspecialidadSerializer(page_obj.object_list, many=True)
+    return {
+        "resultados": serializer.data,
+        "paginacion": {
+            "count": paginator.count,
+            "total_pages": paginator.num_pages,
+            "current_page": page_obj.number,
+            "page_size": page_size,
+        },
+    }, 200
 
 
 # Retorna una especialidad específica por su ID
