@@ -16,3 +16,5 @@ class Mensaje(models.Model):
 
     def __str__(self):
         return f"Mensaje {self.id} - {'Bot' if self.es_bot else 'Usuario'}"
+    
+    
