@@ -23,8 +23,8 @@ class CitaSerializer(serializers.ModelSerializer):
     paciente = serializers.CharField(source='id_usuario.nombre')
     medico   = serializers.SerializerMethodField()
     estado   = serializers.CharField(source='id_estado.nombre')
-    ciudad    = serializers.CharField(source='id_medico.id_ciudad.nombre') 
-    departamento = serializers.CharField(source='id_medico.id_ciudad.departamento.nombre')
+    ciudad    = serializers.CharField(source='id_medico.ciudad.nombre') 
+    departamento = serializers.CharField(source='id_medico.ciudad.departamento.nombre')
     direccion = serializers.CharField(source='id_medico.direccion')
 
     class Meta:
