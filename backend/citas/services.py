@@ -6,6 +6,7 @@ from medicos.models import Medico
 from users.models import Usuario
 from django.utils import timezone
 from datetime import timedelta
+from notificaciones.services import enviarNotificacion
 
 # ─── CITAS ────────────────────────────────────────────────────────────────────
 
@@ -73,7 +74,20 @@ def crearCitaService(datos, usuario_id):
         id_medico        = medico,
         id_estado        = estado,
     )
-
+    fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
+    
+    enviarNotificacion(
+        titulo='Cita solicitada',
+        mensaje=f'Tu cita con el Dr. {cita.id_medico.nombre} {fecha_fmt} hs fue agendada con éxito. Queda en espera de la confirmación del médico.',
+        tipo='cita_pendiente',
+        id_usuario=cita.id_usuario_id
+    )
+    enviarNotificacion(
+        titulo='Nueva solicitud de cita',
+        mensaje=f'El paciente {cita.id_usuario.nombre} {cita.id_usuario.apellido} ha solicitado una cita para el {fecha_fmt} hs. Revisa tu agenda para confirmarla.',
+        tipo='nueva_solicitud',
+        id_medico=cita.id_medico_id
+    )   
     serializer = CitaSerializer(cita)
     return serializer.data, 201
 
@@ -87,6 +101,7 @@ def editarCitaService(id, datos, usuario_id):
     if cita.id_estado.nombre in ['cancelada', 'completada']:
         return 'No se puede editar una cita cancelada o completada', 400
 
+    fecha_antigua = cita.fecha_programada
     nueva_fecha = datos.get('fecha_programada')
     if nueva_fecha:
         # Verifica que la fecha sea futura
@@ -101,8 +116,28 @@ def editarCitaService(id, datos, usuario_id):
             return 'El médico ya tiene una cita en esa fecha', 400
 
         cita.fecha_programada = nueva_fecha
+        estado_reprogramado = Estado.objects.filter(nombre='reprogramada').first()
+        if estado_reprogramado:
+            cita.id_estado = estado_reprogramado
 
     cita.save()
+    
+    if nueva_fecha and nueva_fecha != fecha_antigua:
+        fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
+        enviarNotificacion(
+            titulo='Cita reprogramada',
+            mensaje=f'Tu cita con el Dr. {cita.id_medico.nombre} {cita.id_medico.apellido} fue reprogramada para el {fecha_fmt} hs.',
+            tipo='cita_reprogramada',
+            id_usuario=cita.id_usuario_id
+        )
+        
+        enviarNotificacion(
+                        titulo='Cita reprogramada',
+                        mensaje=f'La cita con el paciente {cita.id_usuario.nombre} {cita.id_usuario.apellido} fue reprogramada para el {fecha_fmt} hs. Revisa tu agenda para confirmarla.',
+                        tipo='cita_reprogramada',
+                        id_medico=cita.id_medico_id
+                    ) 
+            
     serializer = CitaSerializer(cita)
     return serializer.data, 200
 
@@ -123,6 +158,19 @@ def cancelarCitaService(id, solicitante_id):
 
     estado_cancelada = Estado.objects.filter(nombre='cancelada').first()
     cita.id_estado = estado_cancelada
+    fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
+    enviarNotificacion(
+        titulo='Cita cancelada',
+        mensaje=f'Tu cita con el Dr. {cita.id_medico.nombre} {cita.id_medico.apellido} del {fecha_fmt} ha sido cancelada.',
+        tipo='cita_cancelada',
+        id_usuario=cita.id_usuario_id,
+    )
+    enviarNotificacion(
+        titulo='Cita cancelada',
+        mensaje=f'Tu cita con el paciente {cita.id_usuario.nombre} {cita.id_medico.apellido} del {fecha_fmt} ha sido cancelada.',
+        tipo='cita_cancelada',
+        id_medico=cita.id_medico.id
+    )
     cita.save()
 
     return 'Cita cancelada correctamente', 200
@@ -142,7 +190,19 @@ def completarCitaService(id, medico_id):
     cita.id_estado    = estado_completada
     cita.fecha_final  = timezone.now()
     cita.save()
-
+    fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
+    enviarNotificacion(
+            titulo='Consulta finalizada',
+            mensaje=f'Tu consulta con el Dr. {cita.id_medico.nombre} {cita.id_medico.apellido} del {fecha_fmt} ha finalizado. Ya puedes revisar el resumen e indicaciones en tu historial.',
+            tipo='cita_completada', 
+            id_usuario=cita.id_usuario_id
+        )
+    enviarNotificacion(
+            titulo='Consulta finalizada',
+            mensaje=f'Tu consulta con el paciente {cita.id_usuario.nombre} {cita.id_usuario.apellido} del {fecha_fmt} ha finalizado.',
+            tipo='cita_completada', 
+            id_medico=cita.id_medico_id
+        )
     serializer = CitaSerializer(cita)
     return serializer.data, 200
 
@@ -163,7 +223,19 @@ def confirmarCitaService(id, medico_id):
     estado_confirmada = Estado.objects.filter(nombre='confirmada').first()
     cita.id_estado = estado_confirmada
     cita.save()
-
+    fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
+    enviarNotificacion(
+        titulo='Cita confirmada',
+        mensaje=f'Tu cita del {fecha_fmt} ha sido confirmada por el Dr. {cita.id_medico.nombre} {cita.id_medico.apellido}',
+        tipo='cita_confirmada',
+        id_usuario=cita.id_usuario_id
+    )
+    enviarNotificacion(
+        titulo='Cita confirmada',
+        mensaje=f'Confirmaste la cita con el paciente {cita.id_usuario.nombre} {cita.id_medico.apellido} para el {fecha_fmt} hs',
+        tipo='cita_confirmada',
+        id_medico=cita.id_medico_id
+    )
     serializer = CitaSerializer(cita)
     return serializer.data, 200
 
