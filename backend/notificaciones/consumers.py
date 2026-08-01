@@ -23,7 +23,6 @@ class NotificacionConsumer(AsyncWebsocketConsumer):
         }))
         
     async def disconnect(self, close_code):
-        # Salir del grupo al desconectarse
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
@@ -38,8 +37,20 @@ class NotificacionConsumer(AsyncWebsocketConsumer):
         if "notificacion" in event:
             payload["notificacion"] = event["notificacion"]
 
+        #  Si el payload traía información de la cita o tipo de evento, los adjuntamos
+        if "tipo_evento" in event:
+            payload["tipo_evento"] = event["tipo_evento"]
+
+        if "cita" in event:
+            payload["cita"] = event["cita"]
+
         await self.send(text_data=json.dumps(payload))
 
     @database_sync_to_async
     def get_unread_count(self, user_id):
-        return Notificacion.objects.filter(id_usuario_id=user_id, leida=False).count()
+        # Cuenta si el ID corresponde a usuario o médico
+        return Notificacion.objects.filter(
+            id_usuario_id=user_id, leida=False
+        ).count() or Notificacion.objects.filter(
+            id_medico_id=user_id, leida=False
+        ).count()
