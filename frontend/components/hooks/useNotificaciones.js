@@ -1,16 +1,27 @@
 "use client"
-// hooks/useNotificaciones.js
 import { useState, useEffect, useRef } from 'react'
 
-export const useNotificaciones = (userId) => {
-    const [notificaciones, setNotificaciones] = useState([])
+export const useNotificaciones = (userId, options = {}) => {
+    const { initialData = [], onEventoCita } = options
+    const [notificaciones, setNotificaciones] = useState(initialData)
     const [noLeidas, setNoLeidas] = useState(0)
     const ws = useRef(null)
+
+    // Sincronizar notificaciones iniciales cuando `initialData` cargue de la API REST
+    useEffect(() => {
+        if (initialData && initialData.length > 0) {
+            setNotificaciones(initialData)
+        }
+    }, [initialData])
+
+    const onEventoCitaRef = useRef(onEventoCita)
+    useEffect(() => {
+        onEventoCitaRef.current = onEventoCita
+    }, [onEventoCita])
 
     useEffect(() => {
         if (!userId) return
 
-        // Conectar WebSocket
         ws.current = new WebSocket(`ws://localhost:8000/ws/notificaciones/${userId}/`)
 
         ws.current.onopen = () => {
@@ -29,38 +40,43 @@ export const useNotificaciones = (userId) => {
                 setNoLeidas(data.count)
 
                 if (data.notificacion) {
-                    setNotificaciones(prev => [data.notificacion, ...prev])
+                    // Se agrega la notificación nueva al inicio MANTENIENDO las anteriores
+                    setNotificaciones(prev => {
+                        // Evita duplicados si la notificación ya existe
+                        const existe = prev.some(n => n.id === data.notificacion.id)
+                        if (existe) return prev
+                        return [data.notificacion, ...prev]
+                    })
+
+                    const citaData = data.cita || data.notificacion?.extra_data?.cita
+                    const tipoEvento = data.tipo_evento || data.notificacion?.extra_data?.tipo_evento
+
+                    if (citaData && onEventoCitaRef.current) {
+                        onEventoCitaRef.current({
+                            tipo_evento: tipoEvento,
+                            cita: citaData,
+                            notificacion: data.notificacion
+                        })
+                    }
                 }
             }
         }
 
-        ws.current.onclose = () => {
-            console.log('WebSocket desconectado')
-        }
+        ws.current.onclose = () => console.log('WebSocket desconectado')
+        ws.current.onerror = (error) => console.log('WebSocket error:', error)
 
-        ws.current.onerror = (error) => {
-            console.log('WebSocket error:', error)
-        }
-
-        // Limpiar al desmontar
         return () => {
-            if (ws.current) {
-                ws.current.close()
-            }
+            if (ws.current) ws.current.close()
         }
-
     }, [userId])
 
     const marcarLeida = (id) => {
-        //  Verificación de seguridad: solo enviar si el socket está abierto
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             ws.current.send(JSON.stringify({
                 type: 'marcar_leida',
                 id: id
             }))
         }
-
-        // Actualizar estado local inmediatamente (Optimistic UI)
         setNotificaciones(prev =>
             prev.map(n => n.id === id ? { ...n, leida: true } : n)
         )
