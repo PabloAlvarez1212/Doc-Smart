@@ -1,12 +1,12 @@
 .containerMain{
     width: 90%;
     margin: 0  auto ;
-    padding-bottom: 30px;
 }
 .container{
     padding-top: 30px;
     background-color: white;
-    margin-top: 70px;
+    margin-top: 120px;
+    margin-bottom: 20px;
     padding-left: 40px;
     padding-right: 40px;
     border-radius: 12px;
