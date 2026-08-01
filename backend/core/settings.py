@@ -33,12 +33,14 @@ load_dotenv()
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'rest_framework',
     'rest_framework_simplejwt',
     'users',
@@ -50,8 +52,6 @@ INSTALLED_APPS = [
     'historial_medico',
     'django_extensions',
     'notificaciones',
-    'channels',
-    'daphne',
 ]
 
 MIDDLEWARE = [
