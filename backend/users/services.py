@@ -13,6 +13,7 @@ from django.template.loader import render_to_string
 from django.core.paginator import Paginator
 from citas.models import Cita
 import calendar
+from notificaciones.models import Notificacion 
 
 def loginService(correo, contraseña):
     # Busca en ambas tablas
@@ -266,10 +267,13 @@ def obtenerDashboardPacienteInicioService(id):
     for cita in proximasTresCita:
         proximas_citas.append({
             "id": cita.id,
-            "fecha": cita.fecha_programada,
+            "fecha_programada": cita.fecha_programada,
             "medico": f"{cita.id_medico.nombre} {cita.id_medico.apellido}",
             "especialidad": cita.id_medico.id_especialidad.nombre,
-            "estado": cita.id_estado.nombre
+            "estado": cita.id_estado.nombre,
+            "direccion": cita.id_medico.direccion,
+            "ciudad": cita.id_medico.ciudad.nombre,
+            "departamento": cita.id_medico.ciudad.departamento.nombre
     })
     
     numeroCitasProximas = Cita.objects.filter(
@@ -289,6 +293,19 @@ def obtenerDashboardPacienteInicioService(id):
         day=calendar.monthrange(fecha_actual.year, fecha_actual.month)[1],
         hour=23, minute=59, second=59
     )
+    
+    tresNotificaciones= Notificacion.objects.filter(id_usuario=usuario).order_by('-fecha')[:3]
+    notificaciones = []
+    for notificacion in tresNotificaciones:
+        notificaciones.append({
+            "id" : notificacion.id,
+            "titulo": notificacion.titulo,
+            "mensaje": notificacion.mensaje,
+            "tipo": notificacion.tipo,
+            "leida": notificacion.leida,
+            "fecha" : notificacion.fecha,
+            "usuario" : f"{notificacion.id_usuario.nombre} {notificacion.id_usuario.apellido}"
+        })
 
     consultasRealizadasEsteMes = Cita.objects.filter(
         id_usuario=usuario,
@@ -303,7 +320,8 @@ def obtenerDashboardPacienteInicioService(id):
             "cantidad_proximas_citas": numeroCitasProximas,
             "consultas_pendientes": numeroCitasPendientes,
             "consultas_realizadas_mes": consultasRealizadasEsteMes,
-        }
+        },
+        "notificaciones" : notificaciones,
     }
     
     return data,200

@@ -1,38 +1,49 @@
 import styles from "./Notifications.module.css";
 import Button from "../../../ui/Button/Button";
-import { CheckCircle, AlertCircle } from "lucide-react";
-export default function Notifications() {
+import { renderIcono } from "@/app/utils/estadoDise/estadoDiseUtils";
+import { formatearFechaRelativa } from "@/app/utils/fechaFormaterUtils";
+
+export default function Notifications({ data, onMarcarLeida, onMarcarTodasLeidas }) {
+    // Sincronizamos con las notificaciones que vienen de la prop `data`
+    const listNotificaciones = (data?.notificaciones || []).slice(0, 3);
+
     return (
         <div className={styles.containerMain}>
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <h2>Notificaciones</h2>
+                    <h2>Notificaciones mas recientes</h2>
                     <Button className={styles.btn} size="sm">Ver más &nbsp;&nbsp;&gt;</Button>
                 </div>
-                <div className={styles.listNotifications}>
-                    <div className={styles.item}>
-                        <CheckCircle color="green" />
-                        <div className={styles.description}>
-                            <p className={styles.text}>Tu cita de mañana ha sido confirmada</p>
-                            <p className={styles.time}>Hace 2h</p>
-                        </div>
+
+                {listNotificaciones.length > 0 ? (
+                    <div className={styles.listNotifications}>
+                        {listNotificaciones.map((notificacion) => {
+                            const tiempoRelativo = formatearFechaRelativa(notificacion?.fecha);
+                            const esLeida = notificacion?.leida;
+
+                            return (
+                                <div 
+                                    className={`${styles.item} ${!esLeida ? styles.noLeida : ''}`} 
+                                    key={notificacion?.id}
+                                    onClick={() => {
+                                        if (!esLeida && onMarcarLeida) {
+                                            onMarcarLeida(notificacion.id);
+                                        }
+                                    }}
+                                >
+                                    {renderIcono(notificacion.tipo)}
+                                    <div className={styles.description}>
+                                        <p className={styles.text}>{notificacion.mensaje}</p>
+                                        <p className={styles.time}>{tiempoRelativo}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
-                    <div className={styles.item}>
-                        <AlertCircle color="#FFAD51" />
-                        <div className={styles.description}>
-                            <p className={styles.text}>Tu cita de mañana ha sido confirmada</p>
-                            <p className={styles.time}>Hace 2h</p>
-                        </div>
-                    </div>
-                    <div className={styles.item}>
-                        <AlertCircle color="#FFAD51" />
-                        <div className={styles.description}>
-                            <p className={styles.text}>Tu cita de mañana ha sido confirmada</p>
-                            <p className={styles.time}>Hace 2h</p>
-                        </div>
-                    </div>
-                </div>
+                ) : (
+                    <p className={styles.textNotCitas}>No hay notificaciones que mostrar</p>
+                )}
             </div>
         </div>
-    )
+    );
 }

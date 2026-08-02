@@ -26,6 +26,7 @@ class CitaSerializer(serializers.ModelSerializer):
     ciudad    = serializers.CharField(source='id_medico.ciudad.nombre') 
     departamento = serializers.CharField(source='id_medico.ciudad.departamento.nombre')
     direccion = serializers.CharField(source='id_medico.direccion')
+    especialidad = serializers.CharField(source='id_medico.id_especialidad.nombre')
 
     class Meta:
         model  = Cita
@@ -38,7 +39,8 @@ class CitaSerializer(serializers.ModelSerializer):
             'medico',
             'departamento',
             'ciudad',
-            'direccion'
+            'direccion',
+            'especialidad'
         ]
 
     def get_medico(self, obj):
