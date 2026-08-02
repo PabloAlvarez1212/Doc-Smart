@@ -33,12 +33,14 @@ load_dotenv()
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'rest_framework',
     'rest_framework_simplejwt',
     'users',
@@ -49,6 +51,7 @@ INSTALLED_APPS = [
     'chatbot',
     'historial_medico',
     'django_extensions',
+    'notificaciones',
 ]
 
 MIDDLEWARE = [
@@ -85,7 +88,13 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'core.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 
 # Database

@@ -11,7 +11,8 @@ from users.services import (
     listarUsuariosService,
     obtenerUsuarioService,
     editarUsuarioService,
-    eliminarUsuarioService
+    eliminarUsuarioService,
+    obtenerDashboardPacienteInicioService
 )
 from users.serializers import (
     LoginSerializer,
@@ -79,6 +80,15 @@ class LoginView(APIView):
             response.set_cookie(
                 key='user_role',
                 value=resultado['rol'],
+                httponly=False,
+                secure=False,
+                samesite='Lax',
+                path='/',
+                max_age=3600
+            )
+            response.set_cookie(
+                key='user_id',
+                value=resultado['id'],
                 httponly=False,
                 secure=False,
                 samesite='Lax',
@@ -255,3 +265,15 @@ class UsuarioDetailView(APIView):
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
+
+class DashboardInicioPacienteView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self,request):
+        try:
+            resultado, statusCode = obtenerDashboardPacienteInicioService(request.user.id)
+            if statusCode != 200:
+                return respuesta_error(resultado,status=statusCode)
+            return respuesta_ok(data=resultado,mensaje="Datos traidos exitosamente")
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error interno del servidor',status=500)

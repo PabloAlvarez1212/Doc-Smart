@@ -1,0 +1,44 @@
+.containerMain{
+    width: 90%;
+    margin: 0  auto ;
+}
+.container{
+    padding-top: 30px;
+    background-color: white;
+    margin-top: 120px;
+    margin-bottom: 20px;
+    padding-left: 40px;
+    padding-right: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.header button{
+    padding: 13px 10px;
+    font-size: 15px;
+}
+.header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 35px;
+}
+.listNotifications{
+    display: flex;
+    flex-direction: column;
+}
+.item{
+    display: flex;
+    gap: 30px;
+}
+.description{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.time{
+    color: #99A1AF;
+    margin-bottom: 25px;
+}
+.text{
+    font-size: 20px;
+}
