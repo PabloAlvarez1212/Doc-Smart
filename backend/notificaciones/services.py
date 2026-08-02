@@ -6,6 +6,7 @@ from notificaciones.serializers import NotificacionSerializer
 from citas.serializers import CitaSerializer
 
 def enviarNotificacion(titulo, mensaje, tipo, id_usuario=None, id_medico=None, extra_data=None):
+    # 1. Crear registro en BD
     notificacion = Notificacion.objects.create(
         titulo=titulo,
         mensaje=mensaje,
@@ -14,30 +15,30 @@ def enviarNotificacion(titulo, mensaje, tipo, id_usuario=None, id_medico=None, e
         id_medico_id=id_medico
     )
     
-    destinatario_id = id_usuario or id_medico
+    # 2. Definir destinatario y conteo de no leídas
+    if id_usuario:
+        group_name = f"user_{id_usuario}"
+        count_unreads = Notificacion.objects.filter(id_usuario_id=id_usuario, leida=False).count()
+    elif id_medico:
+        group_name = f"medico_{id_medico}" # Ajustar según prefijo en tu Consumer
+        count_unreads = Notificacion.objects.filter(id_medico_id=id_medico, leida=False).count()
+    else:
+        group_name = None
 
-    if destinatario_id:
-        if id_usuario:
-            count_unreads = Notificacion.objects.filter(id_usuario_id=id_usuario, leida=False).count()
-        else:
-            count_unreads = Notificacion.objects.filter(id_medico_id=id_medico, leida=False).count()
-
+    # 3. Transmitir por WebSocket si hay destinatario
+    if group_name:
         serializer = NotificacionSerializer(notificacion)
 
-        # Base del mensaje
         event_payload = {
-            "type": "send_notification_count", #  Coincide con async def send_notification_count
+            "type": "send_notification_count", # Llama al método en el Consumer
             "count": count_unreads,
-            "notificacion": serializer.data
+            "notificacion": serializer.data,
+            **(extra_data or {}) # Adjunta tipo_evento, cita, etc.
         }
-
-        # Adjuntamos extra_data si existe (como datos de la cita)
-        if extra_data:
-            event_payload.update(extra_data)
 
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
-            f"user_{destinatario_id}", 
+            group_name, 
             event_payload
         )
 
