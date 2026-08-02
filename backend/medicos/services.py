@@ -1,6 +1,11 @@
 import bcrypt
+import calendar
+from django.utils import timezone
+from citas.models import Cita
+from notificaciones.models import Notificacion
 from medicos.models import Medico, Especialidad
 from users.models import Usuario
+from historial_medico.models import HistorialClinico
 from catalogos.models import Rol, Ciudad
 from medicos.serializers import (
     MedicoPerfilSerializer,
@@ -233,3 +238,124 @@ def eliminarEspecialidadService(id_especialidad):
         return 'Especialidad no encontrada', 404
     especialidad.delete()
     return 'Especialidad eliminada correctamente', 200
+
+
+def obtenerDashboardMedicoInicioService(id):
+    fecha_actual = timezone.now()
+
+    medico = Medico.objects.filter(id=id).first()
+
+    if not medico:
+        return "Médico no encontrado", 404
+
+    nombreCompletoMedico = f"{medico.nombre} {medico.apellido}"
+
+    # ==========================
+    # CITAS DE HOY
+    # ==========================
+
+    citasHoy = Cita.objects.filter(
+        id_medico=medico,
+        fecha_programada__date=fecha_actual.date()
+    ).order_by("fecha_programada")
+
+    citas_hoy = []
+
+    for cita in citasHoy:
+        citas_hoy.append({
+            "id": cita.id,
+            "fecha_programada": cita.fecha_programada,
+            "paciente": f"{cita.id_usuario.nombre} {cita.id_usuario.apellido}",
+            "correo": cita.id_usuario.correo,
+            "telefono": cita.id_usuario.telefono,
+            "estado": cita.id_estado.nombre,
+        })
+
+    # ==========================
+    # FECHAS DEL MES
+    # ==========================
+
+    primer_dia = fecha_actual.replace(
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+    )
+
+    ultimo_dia = fecha_actual.replace(
+        day=calendar.monthrange(
+            fecha_actual.year,
+            fecha_actual.month
+        )[1],
+        hour=23,
+        minute=59,
+        second=59
+    )
+
+    # ==========================
+    # ESTADÍSTICAS
+    # ==========================
+
+    pacientesTotales = Cita.objects.filter(
+        id_medico=medico
+    ).values("id_usuario").distinct().count()
+
+    numeroCitasHoy = citasHoy.count()
+
+    # Aún no existe módulo de recetas
+    recetasEmitidas = 0
+
+    diagnosticos = HistorialClinico.objects.filter(
+        medico=medico
+    ).count()
+
+    numeroNoLeidas = Notificacion.objects.filter(
+        id_medico=medico,
+        leida=False
+    ).count()
+
+    # ==========================
+    # NOTIFICACIONES
+    # ==========================
+
+    tresNotificaciones = Notificacion.objects.filter(
+        id_medico=medico
+    ).order_by("-fecha")[:3]
+
+    notificaciones = []
+
+    for notificacion in tresNotificaciones:
+        notificaciones.append({
+            "id": notificacion.id,
+            "titulo": notificacion.titulo,
+            "mensaje": notificacion.mensaje,
+            "tipo": notificacion.tipo,
+            "leida": notificacion.leida,
+            "fecha": notificacion.fecha,
+            "medico": nombreCompletoMedico
+        })
+
+    # ==========================
+    # RESPUESTA
+    # ==========================
+
+    data = {
+        "usuario": nombreCompletoMedico,
+        "especialidad": medico.id_especialidad.nombre,
+        "id": medico.id,
+
+        "estadisticas": {
+            "pacientes_totales": pacientesTotales,
+            "citas_hoy": numeroCitasHoy,
+            "recetas_emitidas": recetasEmitidas,
+            "diagnosticos": diagnosticos,
+            "notificaciones_no_leidas": numeroNoLeidas,
+        },
+
+        "citas_hoy": citas_hoy,
+
+        "notificaciones": notificaciones,
+    }
+
+    return data, 200

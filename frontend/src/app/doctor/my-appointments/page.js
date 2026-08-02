@@ -1,7 +1,9 @@
+import Appointments from "../../../../components/doctor/Appointments/appointments";
+
 export default function MyAppointments(){
     return(
-        <div>
-            <h1>Citas Del Medico</h1>
-        </div> 
+        <>
+            <Appointments/>
+        </>
     )
 }
