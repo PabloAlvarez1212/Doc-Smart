@@ -1,59 +1,67 @@
-import styles from "./StaticCards.module.css"
-import Cards from "../../../ui/Card/Cards"
-import { Users, Calendar, FileText, ClipboardList } from "lucide-react"
+"use client";
 
-export default function StaticCards() {
+import styles from "./StaticCards.module.css";
+import Cards from "../../../ui/Card/Cards";
+
+export default function StaticCards({ dashboard }) {
+
+    const pacientesTotales =
+        dashboard?.estadisticas?.pacientes_totales ?? 0;
+
+    const citasHoy =
+        dashboard?.estadisticas?.citas_hoy ?? 0;
+
+    const recetasEmitidas =
+        dashboard?.estadisticas?.recetas_emitidas ?? 0;
+
+    const diagnosticos =
+        dashboard?.estadisticas?.diagnosticos ?? 0;
+
     return (
         <div className={styles.containerMain}>
             <div className={styles.containerCards}>
+
                 <div className={styles.card}>
                     <Cards
-                        className={styles.itemCard}
-                        variant="compact"
-                        align="left"
-                        title="142"
+                        image="/icons/cita-medica.png"
+                        title={pacientesTotales}
+                        align="center"
                         description="Pacientes Totales"
+                        className={styles.itemCard}
                     />
-                    <Users size={18} className={styles.iconGreen} />
-                    <p className={styles.trend}>+3 este mes</p>
                 </div>
 
                 <div className={styles.card}>
                     <Cards
+                        image="/icons/medico.png"
+                        title={citasHoy}
+                        align="center"
+                        description="Citas de Hoy"
                         className={styles.itemCard}
-                        variant="compact"
-                        align="left"
-                        title="8"
-                        description="Citas Hoy"
                     />
-                    <Calendar size={18} className={styles.iconBlue} />
-                    <p className={styles.trend}>Próxima a las 10:00</p>
                 </div>
 
                 <div className={styles.card}>
                     <Cards
-                        className={styles.itemCard}
-                        variant="compact"
-                        align="left"
-                        title="35"
+                        image="/icons/pendiente-medico.png"
+                        title={recetasEmitidas}
+                        align="center"
                         description="Recetas Emitidas"
+                        className={styles.itemCard}
                     />
-                    <FileText size={18} className={styles.iconPurple} />
-                    <p className={styles.trend}>Este mes</p>
                 </div>
 
                 <div className={styles.card}>
                     <Cards
-                        className={styles.itemCard}
-                        variant="compact"
-                        align="left"
-                        title="28"
+                        image="/icons/realizado-medico.png"
+                        title={diagnosticos}
+                        align="center"
                         description="Diagnósticos"
+                        className={styles.itemCard}
                     />
-                    <ClipboardList size={18} className={styles.iconOrange} />
-                    <p className={styles.trend}>Este mes</p>
                 </div>
+
             </div>
         </div>
-    )
+    );
 }

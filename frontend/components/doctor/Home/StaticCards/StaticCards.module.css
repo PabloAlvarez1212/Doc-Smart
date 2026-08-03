@@ -8,33 +8,31 @@
     grid-template-columns: repeat(4,1fr);
     gap: 1rem;
 }
-.card{
+.card:hover{
+    transform: translateY(-3px);
+}
+.card img{
+    width: 60px;
+    height: auto;
+    border-radius: 50%;
+    background-color: #F0F9FF;
+    margin-top: 10px;
+    object-fit: cover;
+    margin-bottom: 5px;
+}
+.card p{
+    margin-bottom: 10px;
+    margin-top: 5px;
+}
+.card h2{
+    font-size: 1.7rem;
+}
+.card {
     background: white;
     border-radius: 12px;
-    border: 1px solid #E5E7EB;
-    padding: 18px 20px;
-    position: relative;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
-.card:hover{
-    transform: translateY(-2px);
-}
+
 .itemCard{
     border: none !important;
-    padding: 0 !important;
-    background: transparent !important;
-    width: fit-content;
 }
-.card svg{
-    position: absolute;
-    top: 20px;
-    right: 20px;
-}
-.trend{
-    font-size: 0.8rem;
-    color: #6B7280;
-    margin-top: 8px;
-}
-.iconGreen{ color: #16A34A; }
-.iconBlue{ color: #2B7FFF; }
-.iconPurple{ color: #7C3AED; }
-.iconOrange{ color: #EA580C; }

@@ -1,7 +1,10 @@
+import AppointmentsList from "../../../../components/patient/MyAppointments/AppointmentList/Appointment"
+import Hero from "../../../../components/patient/MyAppointments/Hero/Hero"
 export default function MyAppointments(){
     return(
         <div>
-            <h1>Pagina Mis citas</h1>
+            <Hero/>
+            <AppointmentsList/>
         </div>
     )
 }

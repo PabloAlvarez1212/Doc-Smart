@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from utils import IsAdmin
+from rest_framework.permissions import IsAuthenticated
 from medicos.services import (
     listarMedicosService,
     obtenerMedicoService,
@@ -12,6 +13,7 @@ from medicos.services import (
     crearEspecialidadService,
     editarEspecialidadService,
     eliminarEspecialidadService,
+    obtenerDashboardMedicoInicioService,
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
@@ -196,3 +198,28 @@ class EspecialidadDetailView(APIView):
         except Exception as e:
             print(f'Error: {e}')
             return respuesta_error("Error interno en el servidor", status=500)
+
+
+class DashboardInicioMedicoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            resultado, statusCode = obtenerDashboardMedicoInicioService(
+                request.user.id
+            )
+
+            if statusCode != 200:
+                return respuesta_error(resultado, status=statusCode)
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje="Datos traídos exitosamente"
+            )
+
+        except Exception as e:
+            print(e)
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
