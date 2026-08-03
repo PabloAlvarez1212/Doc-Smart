@@ -41,7 +41,7 @@ export default function Notifications({ data, onMarcarLeida, onMarcarTodasLeidas
                         })}
                     </div>
                 ) : (
-                    <p className={styles.textNotCitas}>No hay notificaciones que mostrar</p>
+                    <p className={styles.textNoti}>No hay notificaciones que mostrar</p>
                 )}
             </div>
         </div>

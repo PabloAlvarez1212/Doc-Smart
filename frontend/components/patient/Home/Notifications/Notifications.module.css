@@ -1,16 +1,18 @@
 .containerMain{
     width: 90%;
     margin: 0  auto ;
+    padding-bottom: 20px;
 }
 .container{
     padding-top: 30px;
     background-color: white;
-    margin-top: 120px;
+    margin-top: 100px;
     margin-bottom: 20px;
     padding-left: 40px;
     padding-right: 40px;
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    padding-bottom: 20px;
 }
 .header button{
     padding: 13px 10px;
@@ -38,6 +40,13 @@
 .time{
     color: #99A1AF;
     margin-bottom: 25px;
+}
+.textNoti{
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+    padding-bottom: 30px;
+    padding-top: 30px;
 }
 .text{
     font-size: 20px;
