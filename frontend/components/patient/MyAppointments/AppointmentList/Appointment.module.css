@@ -1,0 +1,30 @@
+.containerMain{
+    width: 90%;
+    margin: 0 auto;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.filtros{
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+}
+
+.filtros input{
+    width: 300px !important;
+    border-radius: 5px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    padding: 10px;
+}
+.filtros select{
+    border-radius: 5px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    background-color: white;
+    border: none;
+    padding: 13px;
+    width: 300px;
+}
