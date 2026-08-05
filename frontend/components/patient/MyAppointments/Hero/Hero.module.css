@@ -15,20 +15,3 @@
 .container p{
     font-size: 20px;
 }
-
-.filtros{
-    display: flex;
-    align-items: center;
-    gap: 55px;
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    padding-left: 30px;
-    padding-top: 18px;
-    font-size: 18px;
-    padding-bottom: 18px;
-}
-
-.filtros:hover{
-    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25);
-}

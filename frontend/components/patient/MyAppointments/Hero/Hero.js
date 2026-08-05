@@ -8,14 +8,6 @@ export default function Hero() {
                 <h2>Mis citas</h2>
                 <p>En esta sección podrás ver, filtrar y administrar todas tus citas</p>
             </div>
-
-            <div className={styles.filtros}>
-                <p>Todas</p>
-                <p>Pendientes</p>
-                <p>Reprogramadas</p>
-                <p>Completadas</p>
-                <p>Canceladas</p>
-            </div>
         </div>
     );
 }
