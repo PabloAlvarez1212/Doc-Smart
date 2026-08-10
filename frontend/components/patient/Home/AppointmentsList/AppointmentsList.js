@@ -1,18 +1,20 @@
+"use client"
 import Image from "next/image";
 import styles from "./AppointmentsList.module.css";
 import { Clock12Icon } from "lucide-react";
 import Button from "../../../ui/Button/Button";
 import formatearFecha from '@/app/utils/fechaFormaterUtils';
 import { estadoDiseño } from "@/app/utils/estadoDise/estadoDiseUtils";
-
+import { useRouter } from "next/navigation";
 export default function AppointmentsList({ data }) {
     const proximasCitas = (data?.proximas_citas || []).slice(0, 3);
+    const ruta = useRouter()
 
     return (
         <div className={styles.containerMain}>
             <div className={styles.header}>
                 <h2>Próximas Citas</h2>
-                <Button className={styles.btn} size="sm">Ver más &nbsp;&nbsp;&gt;</Button>
+                <Button onClick={() => ruta.push('/patient/my-appointments')} className={styles.btn} size="sm" >Ver más &nbsp;&nbsp;&gt;</Button>
             </div>
 
             {proximasCitas.length > 0 ? (

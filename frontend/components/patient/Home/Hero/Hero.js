@@ -14,7 +14,6 @@ export default function Hero({ nombre, proximasCitas, noLeidas }) {
                         Tienes <strong>{proximasCitas ?? 0}</strong> citas próximas 
                         y <strong>{noLeidas ?? 0}</strong> notificaciones sin leer.
                     </p>
-                    <Button size='sm' variant='white'>Ver más&nbsp;&nbsp;&nbsp;&gt;</Button>
                 </div>
 
                 <div className={styles.img}>
