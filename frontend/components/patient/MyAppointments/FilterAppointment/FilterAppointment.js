@@ -1,31 +1,8 @@
 "use client";
-
-import { useState } from "react";
 import Input from "../../../ui/Input/Input";
 import styles from "./FilterAppointment.module.css"
 
-const OPCIONES_ESPECIALIDAD = [
-    { value: 'Cardiología', label: 'Cardiología' },
-    { value: 'Dermatología', label: 'Dermatología' },
-    { value: 'Pediatría', label: 'Pediatría' },
-    { value: 'Odontología', label: 'Odontología' },
-];
-
-const OPCIONES_ESTADO = [
-    { value: 'CONFIRMADA', label: 'Confirmada' },
-    { value: 'PENDIENTE', label: 'Pendiente' },
-    { value: 'COMPLETADA', label: 'Completada' },
-    { value: 'CANCELADA', label: 'Cancelada' },
-    { value: 'REPROGRAMADA', label: 'Reprogramada' },
-];
-
-export default function FilterAppointment() {
-    //  Estados individuales para cada filtro
-    const [doctor, setDoctor] = useState('');
-    const [direccion, setDireccion] = useState('');
-    const [especialidad, setEspecialidad] = useState('');
-    const [fecha, setFecha] = useState('');
-    const [estadoCita, setEstadoCita] = useState('');
+export default function FilterAppointment({ dataEspecialidades, dataDepartamentos, dataCiudades,filtros, cambiarFiltro }) {
 
     return (
         <div className={styles.containerMain}>
@@ -34,21 +11,23 @@ export default function FilterAppointment() {
                     <Input
                         type="text"
                         placeholder="Buscar por doctor"
-                        value={doctor}
-                        onChange={(e) => setDoctor(e.target.value)}
+                        value={filtros.doctor}
+                        onChange={(e) =>
+                            cambiarFiltro("doctor", e.target.value)
+                        }
                     />
                 </div>
 
                 <div className={styles.input}>
                     <select
                         className={styles.select}
-                        value={especialidad}
-                        onChange={(e) => setEspecialidad(e.target.value)}
+                        value={filtros.especialidad}
+                        onChange={(e) => cambiarFiltro("especialidad", e.target.value)}
                     >
                         <option value="">Selecciona una especialidad...</option>
-                        {OPCIONES_ESPECIALIDAD.map((opcion) => (
-                            <option key={opcion.value} value={opcion.value}>
-                                {opcion.label}
+                        {dataEspecialidades.map((data) => (
+                            <option key={data.id} value={data.nombre}>
+                                {data.nombre}
                             </option>
                         ))}
                     </select>
@@ -56,13 +35,16 @@ export default function FilterAppointment() {
                 <div className={styles.input}>
                     <select
                         className={styles.select}
-                        value={estadoCita}
-                        onChange={(e) => setEstadoCita(e.target.value)}
+                        value={filtros.departamento}
+                        onChange={(e) => {
+                            cambiarFiltro("departamento", e.target.value);
+                            cambiarFiltro("ciudad", "");
+                        }}
                     >
                         <option value="">Selecciona un departamento...</option>
-                        {OPCIONES_ESTADO.map((opcion) => (
-                            <option key={opcion.value} value={opcion.value}>
-                                {opcion.label}
+                        {dataDepartamentos.map((data) => (
+                            <option key={data.id} value={data.id}>
+                                {data.nombre}
                             </option>
                         ))}
                     </select>
@@ -70,13 +52,13 @@ export default function FilterAppointment() {
                 <div className={styles.input}>
                     <select
                         className={styles.select}
-                        value={estadoCita}
-                        onChange={(e) => setEstadoCita(e.target.value)}
+                        value={filtros.ciudad}
+                        onChange={(e) => cambiarFiltro("ciudad",e.target.value)}
                     >
                         <option value="">Selecciona una ciudad...</option>
-                        {OPCIONES_ESTADO.map((opcion) => (
-                            <option key={opcion.value} value={opcion.value}>
-                                {opcion.label}
+                        {dataCiudades.map((data) => (
+                            <option key={data.id_ciudad} value={data.id_ciudad}>
+                                {data.nombre_ciudad}
                             </option>
                         ))}
                     </select>
@@ -84,10 +66,9 @@ export default function FilterAppointment() {
                 <div className={styles.input}>
                     <Input
                         type="date"
-                        value={fecha}
+                        value={filtros.fecha_programada}
                         placeholder="Buscar por fecha"
-                        onChange={(e) => setFecha(e.target.value)}
-                    />
+                        onChange={(e) => cambiarFiltro("fecha_programada", e.target.value)}/>
                 </div>
 
             </div>
