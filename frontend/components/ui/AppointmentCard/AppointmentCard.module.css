@@ -1,0 +1,84 @@
+.card{
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 20px;
+    position: relative;
+}
+.iconX {
+  position: absolute;
+  top: 3px;
+  right: 2px;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  transition: 0.2s;
+}
+
+.iconX:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+.card:hover{
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25);
+    transform: translateY(-3px);
+}
+.btns{
+    display: flex;
+    gap: 10px;
+}
+.btnConfirmar{
+    background-color: #198754 !important;
+}
+.textCanelada,
+.textCompletada{
+    font-weight: bold;
+    font-size:18px;
+}
+.footer button{
+    font-size: 13px;
+    padding: 13px;
+}
+.containerHeader{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: black solid 1px;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+.info{
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.info img{
+    border-radius: 50%;
+    object-fit: cover;
+}
+.textInfo{
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.textInfoDireccion{
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+.direccion{
+    display: flex;
+    gap: 10px;
+}
+.infoCita{
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    border-bottom: black solid 1px;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    color: #686F78;
+}
+
