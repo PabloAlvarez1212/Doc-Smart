@@ -3,7 +3,7 @@ import { estadoDiseño } from "@/app/utils/estadoDise/estadoDiseUtils";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
 import Image from "next/image";
 import Button from "../Button/Button";
-import { MapPin, Calendar, Clock, XCircle } from "lucide-react";
+import { MapPin, Calendar, Clock} from "lucide-react";
 export default function AppointmentCard({ cita, rol, cancelarCita }) {
     const { fecha, hora } = formatearFecha(cita.fecha_programada)
     const renderAcciones = () => {
@@ -49,12 +49,6 @@ export default function AppointmentCard({ cita, rol, cancelarCita }) {
                     </div>
                 </div>
                 <p className={estadoDiseño(cita.estado)}>{cita.estado}</p>
-                {(cita.estado === "confirmada" || cita.estado === "cancelada") && (
-                    <XCircle
-                        color="red"
-                        className={style.iconX}
-                    />
-                )}
             </div>
             <div className={style.main}>
                 <div className={style.infoCita}>
