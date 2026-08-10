@@ -1,9 +1,18 @@
-export default function formatearFecha (fechaISO) {
-    const fecha = new Date(fechaISO)
+export default function formatearFecha(fechaISO) {
+    const fecha = new Date(fechaISO);
+
     return {
-        fecha: fecha.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }),
-        hora:  fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
-    }
+        fecha: fecha.toLocaleDateString('es-CO', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        }),
+
+        hora: fecha.toLocaleTimeString('es-CO', {
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+    };
 }
 
 export function formatearFechaRelativa(isoString) {

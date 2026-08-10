@@ -107,7 +107,7 @@ export const getCiudadesPorDepartamentoService = async function (idDepartamento)
         `${API_URL}catalogos/departamentos/${idDepartamento}/ciudades/`
     );
 
-    return response.data;
+    return response.data.data;
 };
 
 
@@ -122,5 +122,5 @@ export const getDepartamentosService = async (page, search) => {
             search: search || undefined,
         },
     })
-    return response.data
+    return response.data.data
 }

@@ -17,7 +17,7 @@ export const getEspecialidadesService = async (page, search) => {
             search: search || undefined,
         },
     })
-    return response.data
+    return response.data.data
 }
 
 // actualizar un especialidad
