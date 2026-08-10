@@ -7,6 +7,11 @@ from users.models import Usuario
 from django.utils import timezone
 from datetime import timedelta
 from notificaciones.services import enviarNotificacion
+from django.db.models import Value
+from django.db.models.functions import Concat
+from datetime import datetime, timedelta
+from django.utils import timezone
+from django.core.paginator import Paginator
 
 # ─── CITAS ────────────────────────────────────────────────────────────────────
 
@@ -15,12 +20,73 @@ def listarCitasService():
     serializer = CitaSerializer(citas, many=True)
     return serializer.data, 200
 
-def listarCitasPacienteService(usuario_id):
-    citas = Cita.objects.filter(id_usuario=usuario_id).order_by('-fecha_programada')
-    if not citas.exists():
-        return 'No se encontraron citas', 404
-    serializer = CitaSerializer(citas, many=True)
-    return serializer.data, 200
+def listarCitasPacienteService(usuario_id,estado=None,doctor=None,ciudad=None,departamento=None,especialidad=None,fecha=None,page=None, page_size=10):
+    citas = Cita.objects.filter(id_usuario=usuario_id)
+    
+    #estado
+    if estado:
+        citas = citas.filter(id_estado__nombre = estado)
+    #doctor
+    if doctor:
+        citas = citas.annotate(
+        nombre_completo=Concat(
+            "id_medico__nombre",
+            Value(" "),
+            "id_medico__apellido"
+        )
+    ).filter(
+        nombre_completo__icontains=doctor
+    )
+    #ciudad
+    if ciudad:
+        citas = citas.filter(id_medico__ciudad= ciudad)
+    #departamento
+    if departamento:
+        citas = citas.filter(id_medico__ciudad__departamento = departamento)
+    #especialidad
+    if especialidad:
+        citas = citas.filter(id_medico__id_especialidad__nombre__icontains = especialidad)
+    #fecha
+    if fecha:
+        fecha_obj = datetime.strptime(
+            fecha,
+            "%Y-%m-%d"
+        ).date()
+
+        inicio = timezone.make_aware(
+            datetime.combine(
+                fecha_obj,
+                datetime.min.time()
+            )
+        )
+
+        fin = inicio + timedelta(days=1)
+
+        citas = citas.filter(
+            fecha_programada__gte=inicio,
+            fecha_programada__lt=fin
+        )
+    citas = citas.order_by("-fecha_programada")
+    if page is None:
+        serializer = CitaSerializer(citas, many=True)
+    try:
+        page_size = int(page_size)
+    except (TypeError, ValueError):
+        page_size = 10
+    
+    paginator = Paginator(citas, page_size)
+    page_obj = paginator.get_page(page)
+    serializer = CitaSerializer(page_obj.object_list, many=True)
+    
+    return {
+            "data": serializer.data,
+            "paginacion": {
+                "count": paginator.count,
+                "total_pages": paginator.num_pages,
+                "current_page": page_obj.number,
+                "page_size": page_size,
+            },
+        }, 200
 
 def listarCitasMedicoService(medico_id):
     citas = Cita.objects.filter(id_medico=medico_id).order_by('-fecha_programada')
