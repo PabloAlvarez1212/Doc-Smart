@@ -28,24 +28,30 @@ export default function PersonalInfo() {
                 <div className={styles.inputs}>
 
                     <div className={styles.itemInput}>
-                        <label>Nombre</label>
+                        <label htmlFor="nombre">Nombre</label>
                         <Input
+                            id="nombre"
+                            name="nombre"
                             value={nombre}
                             onChange={(e) => setNombre(e.target.value)}
                         />
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label>Apellido</label>
+                        <label htmlFor="apellido">Apellido</label>
                         <Input
+                            id="apellido"
+                            name="apellido"
                             value={apellido}
                             onChange={(e) => setApellido(e.target.value)}
                         />
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label>Fecha de Nacimiento</label>
+                        <label htmlFor="fechaNacimiento">Fecha de Nacimiento</label>
                         <Input
+                            id="fechaNacimiento"
+                            name="fechaNacimiento"
                             type="date"
                             value={fechaNacimiento}
                             onChange={(e) => setFechaNacimiento(e.target.value)}
@@ -53,8 +59,10 @@ export default function PersonalInfo() {
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label>Cedula</label>
+                        <label htmlFor="cedula">Cedula</label>
                         <Input
+                            id="cedula"
+                            name="cedula"
                             value={cedula}
                             readOnly
                             disable
@@ -62,8 +70,10 @@ export default function PersonalInfo() {
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label>Télefono</label>
+                        <label htmlFor="telefono">Télefono</label>
                         <Input
+                            id="telefono"
+                            name="telefono"
                             value={telefono}
                             onChange={(e) => setTelefono(e.target.value)}
                         />
@@ -82,8 +92,10 @@ export default function PersonalInfo() {
                 <div className={styles.inputs}>
 
                     <div className={styles.itemInput}>
-                        <label>Peso (kg)</label>
+                        <label htmlFor="peso">Peso (kg)</label>
                         <Input
+                            id="peso"
+                            name="peso"
                             type="number"
                             min="20"
                             max="300"
@@ -94,8 +106,10 @@ export default function PersonalInfo() {
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label>Estatura (metros)</label>
+                        <label htmlFor="estatura">Estatura (metros)</label>
                         <Input
+                            id="estatura"
+                            name="estatura"
                             type="number"
                             value={estatura}
                             onChange={(e) => setEstatura(e.target.value)}
