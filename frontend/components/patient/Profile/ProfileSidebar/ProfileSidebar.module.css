@@ -1,0 +1,46 @@
+.containerSidebar{
+    background-color: white;
+    min-height: 100vh;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;  
+    padding-top: 28px;
+}
+.containerSidebar .fotoPerfil {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-direction: column;
+    border-bottom: 1px solid black;
+    padding-bottom: 28px;
+    width: 90%;
+    margin: 0 auto;
+}
+.containerSidebar .fotoPerfil img{
+    border-radius: 50%;
+    object-fit: cover;
+}
+.containerSidebar .fotoPerfil .nombre{
+    font-size: 23px;
+}   
+.containerSidebar .fotoPerfil .rol{
+    margin-bottom: 20px;
+    color: #4A5565;
+    font-size: 20px;
+}
+.containerSidebar .infoProfile{
+    display: flex;
+    flex-direction: column;
+    margin-top: 32px;
+    gap: 18px;
+    align-items: center;
+}
+.containerSidebar .infoProfile .itemList{
+    display: flex;
+    width: 90%;
+    gap: 20px;
+    align-items: center;
+    color: #4A5565;
+    font-size: 20px;
+}
