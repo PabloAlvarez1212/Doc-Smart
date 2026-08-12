@@ -2,6 +2,7 @@ import re
 from rest_framework.permissions import BasePermission
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
+from datetime import date
 from users.models import Usuario
 from medicos.models import Medico
 
@@ -59,3 +60,13 @@ class IsAdmin(BasePermission):
             hasattr(request.user, 'id_rol') and  # ← verifica que tenga id_rol
             request.user.id_rol.nombre == 'admin'
         )
+        
+def calcular_edad(fecha_nacimiento):
+    hoy = date.today()
+
+    edad = hoy.year - fecha_nacimiento.year
+
+    if (hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day):
+        edad -= 1
+
+    return edad
