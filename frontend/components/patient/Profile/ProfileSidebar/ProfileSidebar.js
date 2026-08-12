@@ -1,28 +1,28 @@
 import Button from "../../../ui/Button/Button"
 import styles from "./ProfileSidebar.module.css"
 import Image from "next/image"
-import { CakeIcon, MailIcon,PhoneCall,UploadCloudIcon    } from "lucide-react"
-export default function ProfileSidebar(){
+import { User, MailIcon,PhoneCall,UploadCloudIcon    } from "lucide-react"
+export default function ProfileSidebar({perfil}){
     return(
         <div className={styles.containerSidebar}> 
             <div className={styles.fotoPerfil}>
                 <Image width={100} height={100} alt="foto de perfil" src="/images/messias.jpg"/>
-                <p className={styles.nombre}>Pablos Alvarez</p>
-                <p className={styles.rol}>Paciente</p>
+                <p className={styles.nombre}>{`${perfil.nombre ?? "Usuario"} ${perfil.apellido}`}</p>
+                <p className={styles.rol}>{perfil.rol}</p>
                 <Button variant="white">{<UploadCloudIcon/>}&nbsp;&nbsp;&nbsp;Cambiar foto</Button>
             </div>
             <div className={styles.infoProfile}>
                 <div className={styles.itemList}>
                     <MailIcon/>
-                    <p>pablo@gmail.com</p>
+                    <p>{perfil.correo}</p>
                 </div>
                 <div className={styles.itemList}>
                     <PhoneCall/>
-                    <p>320982372</p>
+                    <p>{perfil.telefono}</p>
                 </div>
                 <div className={styles.itemList}>
-                    <CakeIcon/>
-                    <p>25 novim 2007</p>                  
+                    <User/>
+                    <p>{`${perfil.edad} años`}</p>                  
                 </div>
             </div>
         </div> 

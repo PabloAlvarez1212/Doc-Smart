@@ -1,15 +1,53 @@
-import ProfileSidebar from "../../../../components/patient/Profile/ProfileSidebar/ProfileSidebar"
-import PersonalInfo from "../../../../components/patient/Profile/PersonalInfo/PersonalInfo"
-import styles from "./MyProfile.module.css"
-export default function MyProfile(){
-    return(
+"use client";
+
+import ProfileSidebar from "../../../../components/patient/Profile/ProfileSidebar/ProfileSidebar";
+import PersonalInfo from "../../../../components/patient/Profile/PersonalInfo/PersonalInfo";
+import styles from "./MyProfile.module.css";
+import useProfile from "../../../../components/patient/Profile/useProfile";
+
+export default function MyProfile() {
+
+    const {
+        perfil,
+        actualizarPerfilPaciente,
+        error,
+        guardando,
+        loading
+    } = useProfile();
+
+    if (loading) {
+        return (
+            <div className={styles.containerMain}>
+                <p>Cargando perfil...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className={styles.containerMain}>
+                <p>{error}</p>
+            </div>
+        );
+    }
+
+    return (
         <div className={styles.containerMain}>
+
             <div className={styles.profileSidebar}>
-                <ProfileSidebar/>
+                <ProfileSidebar
+                    perfil={perfil}
+                />
             </div>
+
             <div className={styles.personalInfo}>
-                <PersonalInfo/>
+                <PersonalInfo
+                    perfil={perfil}
+                    actualizarPerfilPaciente={actualizarPerfilPaciente}
+                    guardando={guardando}
+                />
             </div>
+
         </div>
-    )
+    );
 }
