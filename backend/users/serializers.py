@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from users.models import Usuario
 from medicos.models import Medico
-from utils import validarNumber,validarContraseña
+from utils import validarNumber,validarContraseña,calcular_edad
+import re
+from datetime import date
 #!SALIDA
 class UsuarioSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source='id_rol.nombre')
@@ -21,7 +23,7 @@ class MedicoSerializer(serializers.ModelSerializer):
         
 class UsuarioPerfilSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source='id_rol.nombre')
-
+    edad = serializers.SerializerMethodField()
     class Meta:
         model  = Usuario
         fields = [
@@ -34,8 +36,11 @@ class UsuarioPerfilSerializer(serializers.ModelSerializer):
             'estatura',
             'peso',
             'fecha_nacimiento',
+            'edad',
             'rol'
         ]
+    def get_edad(self, obj):
+        return calcular_edad(obj.fecha_nacimiento)
        
 #! MENSAJES REUTILIZABLES
 
@@ -134,40 +139,130 @@ class RegistrarUsuarioSerializer(serializers.Serializer):
 
 class EditarUsuarioSerializer(serializers.Serializer):
     nombre = serializers.CharField(
-                max_length=100, allow_blank=False, trim_whitespace=True,
-                required=False, error_messages=msg('nombre'))
-    
+        max_length=100,
+        allow_blank=False,
+        trim_whitespace=True,
+        required=False,
+        error_messages=msg('nombre')
+    )
     apellido = serializers.CharField(
-                max_length=100, allow_blank=False, trim_whitespace=True,
-                required=False, error_messages=msg('apellido'))
-    
+        max_length=100,
+        allow_blank=False,
+        trim_whitespace=True,
+        required=False,
+        error_messages=msg('apellido')
+    )
     correo = serializers.EmailField(
-                trim_whitespace=True, required=False,
-                error_messages={**msg('correo'), 'invalid': 'El correo no tiene un formato válido'})
-    
+        trim_whitespace=True,
+        required=False,
+        error_messages={
+            **msg('correo'),
+            'invalid': 'El correo no tiene un formato válido'
+        }
+    )
     telefono = serializers.CharField(
-                max_length=20, allow_blank=True, trim_whitespace=True,
-                required=False, error_messages=msg('teléfono'))
-    
-    def validate_telefono(self, value):
-        error = validarNumber(value)
-        if error:
-            raise serializers.ValidationError(error)
-        return value
-    
+        min_length=10,
+        max_length=10,
+        allow_blank=False,
+        trim_whitespace=True,
+        required=True,
+        error_messages={
+            **msg('teléfono'),
+            'min_length': 'El teléfono debe tener 10 dígitos',
+            'max_length': 'El teléfono debe tener 10 dígitos',
+        }
+    )
     fecha_nacimiento = serializers.DateField(
-                        required=False,
-                        error_messages={
-                            'invalid': 'La fecha de nacimiento no tiene un formato válido'
-                        })
-    
+        required=False,
+        error_messages={
+            'invalid': 'La fecha de nacimiento no tiene un formato válido'
+        }
+    )
     estatura = serializers.FloatField(
-                min_value=0.5, max_value=2.5, required=False,
-                error_messages=msg_numero('estatura','La'))    
-                   
+        min_value=0.5,
+        max_value=2.5,
+        required=False,
+        error_messages=msg_numero('estatura', 'La')
+    )
     peso = serializers.FloatField(
-            min_value=1.0, max_value=500.0, required=False,
-            error_messages=msg_numero('peso'))
+        min_value=1.0,
+        max_value=500.0,
+        required=False,
+        error_messages=msg_numero('peso')
+    )
+    def validate_nombre(self, value):
+        if len(value) < 2:
+            raise serializers.ValidationError(
+                "El nombre debe tener al menos 2 caracteres"
+            )
+        if not re.fullmatch(
+            r"[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]+",
+            value
+        ):
+            raise serializers.ValidationError(
+                "El nombre solo puede contener letras"
+            )
+        return value
+    def validate_apellido(self, value):
+        if len(value) < 2:
+            raise serializers.ValidationError(
+                "El apellido debe tener al menos 2 caracteres"
+            )
+        if not re.fullmatch(
+            r"[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]+",
+            value
+        ):
+            raise serializers.ValidationError(
+                "El apellido solo puede contener letras"
+            )
+        return value
+
+    def validate_correo(self, value):
+        value = value.lower()
+
+        request = self.context.get("request")
+
+        if request:
+            existe = Usuario.objects.filter(
+                correo__iexact=value
+            ).exclude(
+                pk=request.user.pk
+            ).exists()
+
+            if existe:
+                raise serializers.ValidationError(
+                    "Este correo ya se encuentra registrado"
+                )
+
+        return value
+
+    def validate_telefono(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError(
+                "El teléfono solo puede contener números"
+            )
+
+        if not value.startswith("3"):
+            raise serializers.ValidationError(
+                "El número de celular debe comenzar por 3"
+            )
+
+        return value
+
+    def validate_fecha_nacimiento(self, value):
+        hoy = date.today()
+
+        if value > hoy:
+            raise serializers.ValidationError(
+                "La fecha de nacimiento no puede estar en el futuro"
+            )
+
+        if value.year < 1900:
+            raise serializers.ValidationError(
+                "La fecha de nacimiento no es válida"
+            )
+
+        return value
 
 
 class LoginSerializer(serializers.Serializer):
