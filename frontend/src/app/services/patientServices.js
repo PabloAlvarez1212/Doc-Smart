@@ -18,3 +18,7 @@ export const actualizarFotoPerfilPacienteService = async (archivo) => {
     const response = await api.patch("/perfil/foto/",formData);
     return response.data;
 };
+export const eliminarFotoPerfilPacienteService = async () => {
+    const response = await api.delete("/perfil/foto/");
+    return response.data;
+};

@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import {
     obtenerPerfilPacienteService,
     actualizarPerfilPacienteService,
-    actualizarFotoPerfilPacienteService
+    actualizarFotoPerfilPacienteService,
+    eliminarFotoPerfilPacienteService,
 } from "@/app/services/patientServices";
 
 export default function useProfile() {
@@ -96,6 +97,55 @@ export default function useProfile() {
     }
 };
 
+    const eliminarFotoPerfil = async () => {
+
+    const result = await Swal.fire({
+        title: "¿Eliminar foto de perfil?",
+        text: "Volverás a utilizar la foto predeterminada.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+        reverseButtons: true
+    });
+
+    if (!result.isConfirmed) {
+        return;
+    }
+
+    try {
+
+        setGuardando(true);
+
+        await eliminarFotoPerfilPacienteService();
+
+        await cargarPerfilPaciente();
+
+        await Swal.fire({
+            icon: "success",
+            title: "Foto eliminada",
+            text: "Ahora estás utilizando la foto predeterminada."
+        });
+
+    } catch (error) {
+
+        const mensajeBackend = obtenerPrimerError(
+            error.response?.data?.errores
+        );
+
+        await Swal.fire({
+            icon: "error",
+            title: "No se pudo eliminar la foto",
+            text: mensajeBackend || "Ocurrió un error al eliminar la foto."
+        });
+
+    } finally {
+
+        setGuardando(false);
+
+    }
+};
+
     return {
         perfil,
         loading,
@@ -103,5 +153,6 @@ export default function useProfile() {
         error,
         actualizarPerfilPaciente,
         actualizarFotoPerfil,
+        eliminarFotoPerfil,
     };
 }
