@@ -14,6 +14,7 @@ from users.services import (
     eliminarUsuarioService,
     obtenerDashboardPacienteInicioService,
     actualizarFotoPerfilPacienteService,
+    eliminarFotoPerfilPacienteService,
 )
 from users.serializers import (
     LoginSerializer,
@@ -245,6 +246,29 @@ class FotoPerfilPacienteView(APIView):
             return respuesta_ok(
                 data={
                     "foto_perfil": usuario.foto_perfil.url
+                }
+            )
+
+        except Exception as e:
+
+            print(e)
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+            
+    def delete(self, request):
+
+        try:
+
+            usuario = eliminarFotoPerfilPacienteService(
+                request.user
+            )
+
+            return respuesta_ok(
+                data={
+                    "foto_perfil": None
                 }
             )
 

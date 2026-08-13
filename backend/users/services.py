@@ -219,6 +219,16 @@ def actualizarFotoPerfilPacienteService(usuario, foto_perfil):
 
     return usuario
 
+def eliminarFotoPerfilPacienteService(usuario):
+
+    if usuario.foto_perfil:
+        usuario.foto_perfil.delete(save=False)
+
+    usuario.foto_perfil = None
+    usuario.save(update_fields=["foto_perfil"])
+
+    return usuario
+
 def obtenerUsuarioService(id):
     usuario = Usuario.objects.filter(id=id).first()
     if not usuario:
