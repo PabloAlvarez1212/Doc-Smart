@@ -3,7 +3,7 @@ import styles from "./Hero.module.css"
 import Button from '../../../../components/ui/Button/Button'
 import Image from 'next/image'
 
-export default function Hero({ nombre, proximasCitas, noLeidas }) {
+export default function Hero({ nombre, proximasCitas, noLeidas, foto_perfil}) {
     return (
         <div className={styles.containerMain}>
             <div className={styles.saludo}>
@@ -17,7 +17,7 @@ export default function Hero({ nombre, proximasCitas, noLeidas }) {
                 </div>
 
                 <div className={styles.img}>
-                    <Image src='/images/messias.jpg' alt='foto de perfil' width={150} height={100} />
+                    <Image src={foto_perfil ? `http://localhost:8000${foto_perfil}` : "/images/foto_default.png"} alt='foto de perfil' width={150} height={100} />
                 </div>
             </div>
         </div>

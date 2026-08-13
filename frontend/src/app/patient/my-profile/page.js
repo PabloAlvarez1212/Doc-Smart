@@ -12,7 +12,8 @@ export default function MyProfile() {
         actualizarPerfilPaciente,
         error,
         guardando,
-        loading
+        loading,
+        actualizarFotoPerfil,
     } = useProfile();
 
     if (loading) {
@@ -37,6 +38,8 @@ export default function MyProfile() {
             <div className={styles.profileSidebar}>
                 <ProfileSidebar
                     perfil={perfil}
+                    actualizarFotoPerfil={actualizarFotoPerfil}
+                    guardando={guardando}
                 />
             </div>
 

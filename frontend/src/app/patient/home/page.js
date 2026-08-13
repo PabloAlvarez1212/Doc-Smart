@@ -78,6 +78,7 @@ export default function Home() {
                 nombre={dashboard?.usuario}
                 proximasCitas={citas.length}
                 noLeidas={noLeidas}
+                foto_perfil={dashboard?.foto_perfil}
             />
             <StaticCards
                 dashboard={dashboard}
