@@ -15,6 +15,7 @@ class Usuario(models.Model):
     token_reset = models.CharField(max_length=100, null=True, blank=True)
     token_reset_expira = models.DateTimeField(null=True, blank=True)
     ultimo_envio = models.DateTimeField(null=True, blank=True)
+    foto_perfil = models.ImageField(upload_to="perfiles/pacientes/",null=True,blank=True)
 
     @property
     def is_authenticated(self):
