@@ -3,8 +3,8 @@ import { useRef } from "react";
 import Button from "../../../ui/Button/Button"
 import styles from "./ProfileSidebar.module.css"
 import Image from "next/image"
-import { User, MailIcon, PhoneCall, UploadCloudIcon } from "lucide-react"
-export default function ProfileSidebar({ perfil, actualizarFotoPerfil, guardando }) {
+import { User, MailIcon, PhoneCall, UploadCloudIcon, Trash2Icon } from "lucide-react"
+export default function ProfileSidebar({ perfil, actualizarFotoPerfil, guardando, eliminarFotoPerfil }) {
     const inputFotoRef = useRef(null);
     const handleSeleccionarFoto = (e) => {
         const archivo = e.target.files[0];
@@ -19,7 +19,10 @@ export default function ProfileSidebar({ perfil, actualizarFotoPerfil, guardando
     return (
         <div className={styles.containerSidebar}>
             <div className={styles.fotoPerfil}>
-                <Image width={100} height={100} alt="foto de perfil" src={perfil?.foto_perfil ? `http://localhost:8000${perfil.foto_perfil}` : "/images/foto_default.png"} />
+                <div className={styles.containerImage}>
+                    <Image width={100} height={100} alt="foto de perfil" src={perfil?.foto_perfil ? `http://localhost:8000${perfil.foto_perfil}` : "/images/foto_default.png"} />
+                    <Trash2Icon onClick={() => eliminarFotoPerfil()} className={styles.icon} size={42} />
+                </div>
                 <input ref={inputFotoRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleSeleccionarFoto} />
                 <p className={styles.nombre}>{`${perfil.nombre ?? "Usuario"} ${perfil.apellido}`}</p>
                 <p className={styles.rol}>{perfil.rol}</p>

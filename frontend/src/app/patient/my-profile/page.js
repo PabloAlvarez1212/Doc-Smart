@@ -14,6 +14,7 @@ export default function MyProfile() {
         guardando,
         loading,
         actualizarFotoPerfil,
+        eliminarFotoPerfil,
     } = useProfile();
 
     if (loading) {
@@ -40,6 +41,7 @@ export default function MyProfile() {
                     perfil={perfil}
                     actualizarFotoPerfil={actualizarFotoPerfil}
                     guardando={guardando}
+                    eliminarFotoPerfil={eliminarFotoPerfil}
                 />
             </div>
 
