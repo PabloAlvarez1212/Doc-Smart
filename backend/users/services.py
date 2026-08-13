@@ -209,6 +209,16 @@ def listarUsuariosService(page=None, page_size=10, search=None):
         },
     }, 200
 
+def actualizarFotoPerfilPacienteService(usuario, foto_perfil):
+
+    usuario.foto_perfil = foto_perfil
+
+    usuario.save(
+        update_fields=["foto_perfil"]
+    )
+
+    return usuario
+
 def obtenerUsuarioService(id):
     usuario = Usuario.objects.filter(id=id).first()
     if not usuario:
@@ -315,6 +325,7 @@ def obtenerDashboardPacienteInicioService(id):
     data = {
         "usuario" : nombreCompletoUsuario,
         "id": usuario.id,
+        "foto_perfil": usuario.foto_perfil.url if usuario.foto_perfil else None,
         "proximas_citas": proximas_citas,
         "estadisticas": {
             "cantidad_proximas_citas": numeroCitasProximas,

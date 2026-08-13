@@ -8,7 +8,8 @@ from .views import (
     RegistroView,
     PerfilPacienteView,
     LogoutView,
-    DashboardInicioPacienteView
+    DashboardInicioPacienteView,
+    FotoPerfilPacienteView
 )
 
 urlpatterns = [
@@ -20,5 +21,6 @@ urlpatterns = [
     path('usuarios/<int:pk>/', UsuarioDetailView.as_view()),
     path('perfil/',PerfilPacienteView.as_view()),
     path('logout/', LogoutView.as_view()),
-    path('dashboard/inicio/paciente/',DashboardInicioPacienteView.as_view())
+    path('dashboard/inicio/paciente/',DashboardInicioPacienteView.as_view()),
+    path("perfil/foto/",FotoPerfilPacienteView.as_view(),name="foto-perfil-paciente"),
 ]

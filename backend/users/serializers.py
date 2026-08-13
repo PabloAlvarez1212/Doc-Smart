@@ -37,10 +37,41 @@ class UsuarioPerfilSerializer(serializers.ModelSerializer):
             'peso',
             'fecha_nacimiento',
             'edad',
-            'rol'
+            'rol',
+            "foto_perfil",
         ]
     def get_edad(self, obj):
         return calcular_edad(obj.fecha_nacimiento)
+
+class FotoPerfilPacienteSerializer(serializers.Serializer):
+
+    foto_perfil = serializers.ImageField(
+        required=True,
+        error_messages={
+            "required": "Debes seleccionar una imagen",
+            "invalid": "El archivo seleccionado no es una imagen válida",
+        }
+    )
+
+    def validate_foto_perfil(self, value):
+
+        tipos_permitidos = [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+        ]
+
+        if value.content_type not in tipos_permitidos:
+            raise serializers.ValidationError(
+                "Solo se permiten imágenes JPG, PNG o WEBP"
+            )
+
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError(
+                "La imagen no puede superar los 5 MB"
+            )
+
+        return value
        
 #! MENSAJES REUTILIZABLES
 
