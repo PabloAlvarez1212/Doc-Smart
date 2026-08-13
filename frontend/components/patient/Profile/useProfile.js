@@ -4,7 +4,8 @@ import Swal from "sweetalert2";
 import { useEffect, useState } from "react";
 import {
     obtenerPerfilPacienteService,
-    actualizarPerfilPacienteService
+    actualizarPerfilPacienteService,
+    actualizarFotoPerfilPacienteService
 } from "@/app/services/patientServices";
 
 export default function useProfile() {
@@ -66,11 +67,41 @@ export default function useProfile() {
         }
     };
 
+    const actualizarFotoPerfil = async (archivo) => {
+    try {
+        setGuardando(true);
+        setError(null);
+        await actualizarFotoPerfilPacienteService(archivo);
+        await cargarPerfilPaciente();
+        await Swal.fire({
+            icon: "success",
+            title: "Foto actualizada",
+            text: "Tu foto de perfil fue actualizada correctamente.",
+        });
+        return true;
+    } catch (error) {
+        const mensajeBackend = obtenerPrimerError(
+            error.response?.data?.errores
+        );
+        await Swal.fire({
+            icon: "error",
+            title: "No se pudo actualizar la foto",
+            text:
+                mensajeBackend ||
+                "Ocurrió un error al actualizar la foto.",
+        });
+        return false;
+    } finally {
+        setGuardando(false);
+    }
+};
+
     return {
         perfil,
         loading,
         guardando,
         error,
-        actualizarPerfilPaciente
+        actualizarPerfilPaciente,
+        actualizarFotoPerfil,
     };
 }

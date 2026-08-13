@@ -12,3 +12,9 @@ export const actualizarPerfilPacienteService = async function (formData) {
     const response = await api.put(`${API_URL}perfil/`,formData)
     return response.data
 }
+export const actualizarFotoPerfilPacienteService = async (archivo) => {
+    const formData = new FormData();
+    formData.append("foto_perfil", archivo);
+    const response = await api.patch("/perfil/foto/",formData);
+    return response.data;
+};
