@@ -8,6 +8,7 @@ from django.utils import timezone
 from datetime import timedelta
 from notificaciones.services import enviarNotificacion
 
+
 # ─── CITAS ────────────────────────────────────────────────────────────────────
 
 def listarCitasService():

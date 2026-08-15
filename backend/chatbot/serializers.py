@@ -28,5 +28,4 @@ class CrearMensajeSerializer(serializers.Serializer):
                     allow_blank=False,
                     trim_whitespace=True,
                     error_messages=msg('contenido', 'El'))
-    es_bot    = serializers.BooleanField(default=False, required=False)
         
