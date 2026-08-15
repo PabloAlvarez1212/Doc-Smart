@@ -22,7 +22,6 @@ export const useLogin = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-
         const validationErrors = validateLogin(formData)
         if (Object.keys(validationErrors).length > 0) {
             Swal.fire({
@@ -37,6 +36,7 @@ export const useLogin = () => {
 
         try {
             const data = await loginService(formData)
+            
             if (data.data.rol === 'paciente') {
                 await Swal.fire({
                     icon: 'success',

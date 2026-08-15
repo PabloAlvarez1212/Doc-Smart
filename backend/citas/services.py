@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.paginator import Paginator
 
+
 # ─── CITAS ────────────────────────────────────────────────────────────────────
 
 def listarCitasService():

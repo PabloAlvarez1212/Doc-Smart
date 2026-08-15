@@ -23,4 +23,6 @@ class HistorialClinico(models.Model):
               )
 
     def __str__(self):
-        return f"Historial {self.id} - {self.cedula}"
+        return f"Historial {self.id} - {self.usuario.nombre}"
+
+    
