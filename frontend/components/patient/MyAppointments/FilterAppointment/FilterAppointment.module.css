@@ -1,0 +1,48 @@
+.containerMain{
+    width: 90%;
+    margin: 0 auto;
+    margin-top: 40px;
+    margin-bottom: 20px;
+}
+
+.filtros{
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    background-color: white;
+    padding: 30px;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.05),
+        0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.filtros:hover{
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25);
+}
+
+.filtros input{
+    border-radius: 16px;
+    width: 300px !important;
+    padding: 10px;
+    background-color: #F6F7F9;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.05),
+        0 8px 20px rgba(0, 0, 0, 0.06);
+}
+.filtros select{
+    border-radius: 16px;
+    padding: 13px;
+    width: 300px;
+    background-color: #F6F7F9;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.05),
+        0 8px 20px rgba(0, 0, 0, 0.06);
+}

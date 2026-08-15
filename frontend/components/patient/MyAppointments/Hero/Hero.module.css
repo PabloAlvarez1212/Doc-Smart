@@ -1,0 +1,17 @@
+.containerMain{
+    width: 90%;
+    margin: 0 auto;
+    padding-top: 50px;
+}
+.container{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+.container h2{
+    font-size: 38px;
+}
+.container p{
+    font-size: 20px;
+}

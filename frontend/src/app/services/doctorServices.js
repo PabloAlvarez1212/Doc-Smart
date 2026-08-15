@@ -17,7 +17,7 @@ export const getEspecialidadesService = async (page, search) => {
             search: search || undefined,
         },
     })
-    return response.data
+    return response.data.data
 }
 
 // actualizar un especialidad
@@ -34,3 +34,9 @@ export const eliminarEspecialidadService = async function (id) {
     const response = await api.delete(`${API_URL}medicos/especialidad/${id}/`);
     return response.data;
 };
+
+// obtener dashboard inicio del médico
+export const obtenerDashboardMedicoInicioService = async function () {
+    const response = await api.get(`${API_URL}medicos/dashboard/inicio/`)
+    return response.data
+}

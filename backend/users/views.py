@@ -11,7 +11,10 @@ from users.services import (
     listarUsuariosService,
     obtenerUsuarioService,
     editarUsuarioService,
-    eliminarUsuarioService
+    eliminarUsuarioService,
+    obtenerDashboardPacienteInicioService,
+    actualizarFotoPerfilPacienteService,
+    eliminarFotoPerfilPacienteService,
 )
 from users.serializers import (
     LoginSerializer,
@@ -19,6 +22,7 @@ from users.serializers import (
     CambiarContraseñaSerializer,
     RegistrarUsuarioSerializer,
     EditarUsuarioSerializer,
+    FotoPerfilPacienteSerializer,
 )
 
 
@@ -79,6 +83,15 @@ class LoginView(APIView):
             response.set_cookie(
                 key='user_role',
                 value=resultado['rol'],
+                httponly=False,
+                secure=False,
+                samesite='Lax',
+                path='/',
+                max_age=3600
+            )
+            response.set_cookie(
+                key='user_id',
+                value=resultado['id'],
                 httponly=False,
                 secure=False,
                 samesite='Lax',
@@ -201,6 +214,73 @@ class PerfilPacienteView(APIView):
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
         
+class FotoPerfilPacienteView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+
+        try:
+
+            serializer = FotoPerfilPacienteSerializer(
+                data=request.data
+            )
+
+            if not serializer.is_valid():
+
+                return respuesta_error(
+                    "Error",
+                    errores=serializer.errors,
+                    status=400
+                )
+
+            foto = serializer.validated_data[
+                "foto_perfil"
+            ]
+
+            usuario = actualizarFotoPerfilPacienteService(
+                request.user,
+                foto
+            )
+
+            return respuesta_ok(
+                data={
+                    "foto_perfil": usuario.foto_perfil.url
+                }
+            )
+
+        except Exception as e:
+
+            print(e)
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+            
+    def delete(self, request):
+
+        try:
+
+            usuario = eliminarFotoPerfilPacienteService(
+                request.user
+            )
+
+            return respuesta_ok(
+                data={
+                    "foto_perfil": None
+                }
+            )
+
+        except Exception as e:
+
+            print(e)
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+        
 # ! Metodos para el Admin
 class UsuarioListView(APIView):
     permission_classes = [IsAdmin]
@@ -255,3 +335,15 @@ class UsuarioDetailView(APIView):
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
+
+class DashboardInicioPacienteView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self,request):
+        try:
+            resultado, statusCode = obtenerDashboardPacienteInicioService(request.user.id)
+            if statusCode != 200:
+                return respuesta_error(resultado,status=statusCode)
+            return respuesta_ok(data=resultado,mensaje="Datos traidos exitosamente")
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error interno del servidor',status=500)

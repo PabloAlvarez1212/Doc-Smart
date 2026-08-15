@@ -9,3 +9,6 @@ body{
   background-color: var(--color-white);
   color: var(--color-text);
 }
+html {
+    scrollbar-gutter: stable;
+}

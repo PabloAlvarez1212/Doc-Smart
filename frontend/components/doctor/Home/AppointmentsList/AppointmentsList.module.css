@@ -1,0 +1,80 @@
+.containerMain {
+    width: 90%;
+    margin: 0 auto;
+}
+
+.container {
+    background: white;
+    margin-top: 40px;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 35px;
+}
+
+.header button {
+    padding: 13px 10px;
+    font-size: 15px;
+}
+
+.btnGreen {
+    background-color: #22c55e !important; /* verde */
+    color: white;
+    border: none;
+}
+
+.btnGreen:hover {
+    background-color: #16a34a !important;
+}
+
+.containerCards {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 26px;
+    border: 1px solid #ececec;
+    border-radius: 10px;
+    transition: .2s;
+}
+
+.card:hover {
+    background: #fafafa;
+}
+
+.containerInfo {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.description {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.schedule {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6b7280;
+}
+
+.textNotCitas {
+    text-align: center;
+    padding: 40px 0;
+    color: #6b7280;
+    font-size: 18px;
+}

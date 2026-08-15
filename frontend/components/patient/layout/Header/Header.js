@@ -29,7 +29,7 @@ export default function Header() {
                         <li><Link href='/patient/my-profile'  className={activateLink('/patient/my-profile')}>Perfil</Link></li>
                         <li><Link href='/patient/chatbot'  className={activateLink('/patient/chatbot')}>Chat bot</Link></li>
                         <li><Link href='/patient/'  className={activateLink('/patient/')}>Encontar doctores</Link></li>
-                        <li><Link href='/patient/about'  className={activateLink('/patient/about')}>Sobre nosotros</Link></li>
+                        <li><Link href='/patient/notifications'  className={activateLink('/patient/notifications')}>Notificaciones</Link></li>
                     </ul>
                 </nav>
             </div>

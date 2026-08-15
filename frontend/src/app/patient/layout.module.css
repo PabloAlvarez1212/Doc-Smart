@@ -1,4 +1,5 @@
 .main main{
     background-color: #F8FAFC;
-    height: 100vw;
+    min-height: 100vh;
+    padding-top: 160px;
 }

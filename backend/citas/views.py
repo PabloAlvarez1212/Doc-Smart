@@ -74,10 +74,20 @@ class CitaPacienteView(APIView):
     def get(self, request):
         try:
             usuario_id = request.user.id
-            resultado, status_code = listarCitasPacienteService(usuario_id)
+            estado = request.GET.get("estado")
+            doctor = request.GET.get("doctor")
+            ciudad = request.GET.get("ciudad")
+            departamento = request.GET.get("departamento")
+            especialidad = request.GET.get("especialidad")
+            fecha = request.GET.get("fecha_programada")
+            page = request.query_params.get('page')
+            page_size = request.query_params.get('page_size', 10)
+            
+            resultado, status_code = listarCitasPacienteService(usuario_id,estado,doctor,ciudad,departamento,especialidad,fecha,page,page_size)
+            
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)
-            return respuesta_ok(data=resultado)
+            return respuesta_ok(data=resultado,status=status_code)
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor', status=500)

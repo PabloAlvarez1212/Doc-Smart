@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import styles from './Input.module.css';
 
-export default function Input({ type = 'text', placeholder, className = '', id, name, value, onChange }) {
+export default function Input({ type = 'text', placeholder, className = '', id, name, value, onChange, readOnly, min,max,step }) {
     const [showPassword, setShowPassword] = useState(false);
     const isPassword = type === 'password';
     const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
@@ -17,6 +17,10 @@ export default function Input({ type = 'text', placeholder, className = '', id, 
                 name={name}
                 value={value}
                 onChange={onChange}
+                readOnly={readOnly}
+                min={min}
+                max={max}
+                step={step}
             />
             {isPassword && (
                 <button className={styles.eyeButton} type='button' onClick={() => setShowPassword(!showPassword)}>
