@@ -1,4 +1,4 @@
-import styles from "./appointmentsList.module.css";
+import styles from "./AppointmentsList.module.css";
 import Button from "../../../ui/Button/Button";
 import { Clock12Icon } from "lucide-react";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";

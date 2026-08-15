@@ -1,7 +1,7 @@
 "use client"
 
 import Hero from "../../../../components/doctor/Home/Hero/Hero"
-import AppointmentsList from "../../../../components/doctor/Home/AppointmentsList/appointmentsList"
+import AppointmentsList from "../../../../components/doctor/Home/AppointmentsList/AppointmentsList"
 import Notifications from "../../../../components/doctor/Home/Notifications/Notifications"
 import StaticCards from "../../../../components/doctor/Home/StaticCards/StaticCards"
 import { useDashboardMedico } from "../../../../components/doctor/Home/useDashboardMedico"
