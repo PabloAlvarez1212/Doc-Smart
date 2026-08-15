@@ -23,7 +23,7 @@ export default function AppointmentCard({ cita, rol, cancelarCita }) {
                 return (
                     <div className={style.btns}>
                         <Button variant="warning">Reprogramar</Button>
-                        <Button variant="danger">Cancelar</Button>
+                        <Button onClick={() => cancelarCita(cita.id)} variant="danger">Cancelar</Button>
                     </div>
                 )
             case "cancelada":
