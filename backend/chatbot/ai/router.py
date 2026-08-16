@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 from dotenv import load_dotenv
@@ -6,9 +7,13 @@ from google import genai
 from google.genai.types import GenerateContentConfig
 from chatbot.ai.tool_registry import TOOLS
 from chatbot.ai.gemini_service import preguntar_gemini
+from chatbot.ai.model_config import GEMINI_MODEL
 from chatbot.ai.router_decision import RouterDecision
+from chatbot.ai.filters import solicita_buscar_medicos
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 client = genai.Client(
     api_key=os.getenv("GEMINI_API_KEY")
@@ -117,6 +122,13 @@ def extraer_json(texto):
     }
 def procesar_mensaje(historial, mensaje):
 
+    if solicita_buscar_medicos(mensaje):
+        return RouterDecision(
+            tool=True,
+            tool_name="buscar_medico",
+            parametros={},
+        )
+
     contents = historial[-12:]
 
     if not contents:
@@ -127,19 +139,29 @@ def procesar_mensaje(historial, mensaje):
             }
         ]
 
-    response = client.models.generate_content(
+    try:
+        response = client.models.generate_content(
 
-        model="gemini-2.5-flash",
+            model=GEMINI_MODEL,
 
-        contents=contents,
+            contents=contents,
 
-        config=GenerateContentConfig(
-            system_instruction=PROMPT_ROUTER,
-            temperature=0,
-            response_mime_type="application/json",
+            config=GenerateContentConfig(
+                system_instruction=PROMPT_ROUTER,
+                temperature=0,
+                response_mime_type="application/json",
+            )
+
         )
-
-    )
+    except Exception:
+        logger.exception("No fue posible consultar el router de Gemini")
+        return RouterDecision(
+            tool=False,
+            respuesta=(
+                "En este momento no puedo procesar tu solicitud. "
+                "Por favor, intenta nuevamente en unos segundos."
+            ),
+        )
 
     try:
 

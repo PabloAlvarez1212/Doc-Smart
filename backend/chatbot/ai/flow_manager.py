@@ -1,6 +1,7 @@
 from chatbot.ai.flow_definition import FLOWS
 from chatbot.ai.conversation_flow import ConversationFlow
 from chatbot.ai.router_decision import RouterDecision
+from chatbot.ai.filters import solicita_cancelar_flujo
 
 class FlowManager:
 
@@ -35,6 +36,10 @@ class FlowManager:
 
         if chat.estado_conversacion.startswith("confirmar:"):
             return FlowManager._continuar_confirmacion(chat, mensaje)
+
+        if solicita_cancelar_flujo(mensaje):
+            ConversationFlow.finalizar(chat)
+            return "Entendido. Cancelé la operación actual y no hice cambios."
 
         flujo = FLOWS.get(chat.estado_conversacion)
 
