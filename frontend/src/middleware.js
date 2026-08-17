@@ -5,6 +5,12 @@ export function middleware(request) {
   const role = request.cookies.get('user_role')?.value;
   const { pathname } = request.nextUrl;
 
+  if (token && pathname === '/login') {
+    if (role === 'paciente') {
+      return NextResponse.redirect(
+        new URL('/patient/home', request.url)
+      );
+  }}
   // 1. Si no hay token y quiere entrar a zonas protegidas
   if (!token && (pathname.startsWith('/patient') || pathname.startsWith('/doctor') || pathname.startsWith('/admin'))) {
     return NextResponse.redirect(new URL('/login', request.url));
@@ -29,5 +35,5 @@ export function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/patient/:path*', '/doctor/:path*', '/admin/:path*'],
+  matcher: ['/patient/:path*', '/doctor/:path*', '/admin/:path*', '/login',],
 };
