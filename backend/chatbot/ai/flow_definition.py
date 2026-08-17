@@ -8,17 +8,14 @@ FLOWS = {
 
             {
                 "campo": "especialidad",
+                "alternativas": ["id_medico", "nombre", "especialidad"],
                 "pregunta": "¿Con qué especialidad médica necesitas la cita?"
             },
 
             {
-                "campo": "ciudad",
-                "pregunta": "¿En qué ciudad deseas la cita?"
-            },
-
-            {
                 "campo": "fecha",
-                "pregunta": "¿Qué fecha prefieres?"
+                "alternativas": ["fecha", "fecha_programada"],
+                "pregunta": "¿Qué fecha y hora prefieres?"
             }
 
         ]

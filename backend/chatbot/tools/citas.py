@@ -145,6 +145,77 @@ class AgendarCitaTool(BaseTool):
 
         if id_medico:
             medico = MedicoService.obtener_por_id(id_medico)
+        elif not nombre and not apellido:
+            candidatos = list(
+                MedicoService.buscar_medicos(
+                    especialidad=especialidad,
+                    ciudad=ciudad,
+                )[:20]
+            )
+
+            if not candidatos and especialidad:
+                candidatos = MedicoService.buscar_por_especialidad_aproximada(
+                    especialidad=especialidad,
+                    ciudad=ciudad,
+                    limite=20,
+                )
+
+            disponibles = [
+                candidato
+                for candidato in candidatos
+                if not CitaService.medico_tiene_cita(
+                    candidato.id,
+                    fecha_normalizada,
+                )
+            ]
+
+            if not disponibles:
+                return {
+                    "success": False,
+                    "message": (
+                        "No encontré médicos disponibles con esas "
+                        "características para la fecha indicada."
+                    ),
+                    "data": {"medicos": []},
+                }
+
+            if len(disponibles) > 1:
+                opciones = []
+                lineas = [
+                    "Encontré estos médicos disponibles para esa fecha:"
+                ]
+
+                for indice, candidato in enumerate(disponibles[:10], start=1):
+                    ciudad_nombre = (
+                        candidato.ciudad.nombre
+                        if candidato.ciudad
+                        else "Ciudad no registrada"
+                    )
+                    lineas.append(
+                        f"{indice}. Dr(a). {candidato.nombre} "
+                        f"{candidato.apellido} — "
+                        f"{candidato.id_especialidad.nombre}, {ciudad_nombre}"
+                    )
+                    opciones.append({
+                        "id_medico": candidato.id,
+                        "nombre": f"{candidato.nombre} {candidato.apellido}",
+                        "especialidad": candidato.id_especialidad.nombre,
+                        "ciudad": ciudad_nombre,
+                    })
+
+                lineas.append("Indícame el nombre o el número del médico que prefieres.")
+
+                return {
+                    "success": True,
+                    "requires_selection": True,
+                    "message": "\n".join(lineas),
+                    "data": {
+                        "medicos": opciones,
+                        "fecha": fecha_normalizada.isoformat(),
+                    },
+                }
+
+            medico = disponibles[0]
         else:
             medico = MedicoService.obtener_medico(
 

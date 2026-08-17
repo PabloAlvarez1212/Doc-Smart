@@ -71,6 +71,44 @@ class MedicoService:
         return mejor_medico
 
     @staticmethod
+    def buscar_por_especialidad_aproximada(
+        especialidad,
+        ciudad=None,
+        limite=20,
+    ):
+        especialidad_normalizada = MedicoService._normalizar(especialidad)
+
+        if not especialidad_normalizada:
+            return []
+
+        candidatos = (
+            Medico.objects
+            .select_related("id_especialidad", "ciudad")
+            .all()
+        )
+
+        if ciudad:
+            candidatos = candidatos.filter(ciudad__nombre__icontains=ciudad)
+
+        puntuados = []
+
+        for medico in candidatos.order_by("id")[:100]:
+            nombre_especialidad = MedicoService._normalizar(
+                medico.id_especialidad.nombre
+            )
+            puntuacion = SequenceMatcher(
+                None,
+                especialidad_normalizada,
+                nombre_especialidad,
+            ).ratio()
+
+            if puntuacion >= 0.72:
+                puntuados.append((puntuacion, medico))
+
+        puntuados.sort(key=lambda elemento: elemento[0], reverse=True)
+        return [medico for _, medico in puntuados[:limite]]
+
+    @staticmethod
     def obtener_por_id(id_medico):
         return (
             Medico.objects

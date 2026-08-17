@@ -11,6 +11,10 @@ from chatbot.services import (
 )
 
 from chatbot.serializers import CrearMensajeSerializer
+from chatbot.services.imagen_medica_service import (
+    analizar_imagen_medica,
+    validar_imagen_medica,
+)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -254,12 +258,18 @@ class ChatbotResponderView(APIView):
     def post(self, request, id_chat):
 
         mensaje = request.data.get("mensaje")
+        imagen = request.FILES.get("imagen")
 
-        if not mensaje:
+        if not mensaje and not imagen:
             return respuesta_error(
-                "Debe enviar un mensaje.",
+                "Debe enviar un mensaje o una imagen médica.",
                 status=400,
             )
+
+        if imagen:
+            error_imagen = validar_imagen_medica(imagen)
+            if error_imagen:
+                return respuesta_error(error_imagen, status=400)
 
         try:
 
@@ -278,18 +288,31 @@ class ChatbotResponderView(APIView):
         try:
 
             # Guardar mensaje del usuario
+            contenido_usuario = mensaje or "Analiza esta imagen médica."
+            if imagen:
+                contenido_usuario = (
+                    f"{contenido_usuario}\n[Imagen adjunta: {imagen.name}]"
+                )
+
             Mensaje.objects.create(
                 id_chat=chat,
-                contenido=mensaje,
+                contenido=contenido_usuario,
                 es_bot=False,
-                tipo="texto",
+                tipo="imagen" if imagen else "texto",
             )
 
+            if chat.titulo == "Nuevo chat":
+                chat.titulo = (mensaje or "Consulta con imagen")[:150]
+                chat.save(update_fields=["titulo", "ultima_interaccion"])
+
             # Procesar conversación
-            respuesta = ConversationManager.procesar(
-                chat=chat,
-                mensaje=mensaje,
-            )
+            if imagen:
+                respuesta = analizar_imagen_medica(imagen, mensaje or "")
+            else:
+                respuesta = ConversationManager.procesar(
+                    chat=chat,
+                    mensaje=mensaje,
+                )
 
             texto, resultado = normalizar_respuesta_bymax(respuesta)
 

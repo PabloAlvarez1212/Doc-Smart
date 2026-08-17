@@ -1,5 +1,6 @@
 from chatbot.tools.base_tool import BaseTool
 from chatbot.services.medico_service import MedicoService
+from chatbot.ai.language import LanguageService
 
 
 class BuscarMedicoTool(BaseTool):
@@ -23,6 +24,7 @@ class BuscarMedicoTool(BaseTool):
         parametros,
     ):
 
+        idioma = LanguageService.detectar(mensaje)
         nombre = parametros.get("nombre")
         apellido = parametros.get("apellido")
         especialidad = parametros.get("especialidad")
@@ -37,25 +39,35 @@ class BuscarMedicoTool(BaseTool):
 
         if not medicos.exists():
 
-            return (
-                "No encontré médicos con los criterios indicados."
-            )
+            return LanguageService.elegir(idioma,
+                "No encontré médicos con los criterios indicados.",
+                "I couldn't find doctors matching those criteria.",
+                "Δεν βρήκα γιατρούς που να ταιριάζουν με αυτά τα κριτήρια.")
 
-        respuesta = "Encontré los siguientes médicos:\n\n"
+        respuesta = LanguageService.elegir(idioma,
+            "Encontré los siguientes médicos:\n\n",
+            "I found the following doctors:\n\n",
+            "Βρήκα τους ακόλουθους γιατρούς:\n\n")
+        etiquetas = {
+            "especialidad": LanguageService.elegir(idioma, "Especialidad", "Specialty", "Ειδικότητα"),
+            "ciudad": LanguageService.elegir(idioma, "Ciudad", "City", "Πόλη"),
+            "telefono": LanguageService.elegir(idioma, "Teléfono", "Phone", "Τηλέφωνο"),
+            "sin_ciudad": LanguageService.elegir(idioma, "No registrada", "Not registered", "Δεν έχει καταχωρηθεί"),
+        }
 
         for medico in medicos:
 
             ciudad_nombre = (
                 medico.ciudad.nombre
                 if medico.ciudad
-                else "No registrada"
+                else etiquetas["sin_ciudad"]
             )
 
             respuesta += (
                 f"👨‍⚕️ Dr. {medico.nombre} {medico.apellido}\n"
-                f"Especialidad: {medico.id_especialidad.nombre}\n"
-                f"Ciudad: {ciudad_nombre}\n"
-                f"Teléfono: {medico.telefono}\n\n"
+                f"{etiquetas['especialidad']}: {medico.id_especialidad.nombre}\n"
+                f"{etiquetas['ciudad']}: {ciudad_nombre}\n"
+                f"{etiquetas['telefono']}: {medico.telefono}\n\n"
             )
 
         return respuesta.strip()
