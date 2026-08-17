@@ -1,51 +1,72 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+
+  padding: 20px;
+
+  background: rgba(0, 0, 0, 0.45);
+
   animation: fadeIn 0.18s ease;
 }
 
 .modal {
-  background: white;
-  border-radius: 16px;
   width: 100%;
   max-width: 480px;
+  max-height: 90vh;
+
+  background: white;
+  border-radius: 16px;
+
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-  animation: slideUp 0.2s ease;
+
   overflow: hidden;
+
+  animation: slideUp 0.2s ease;
 }
 
 /* ── Header ───────────────────── */
+
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   padding: 1.5rem 2rem;
+
   border-bottom: 1.5px solid #e2e8f0;
   background-color: var(--color-dark);
 }
 
 .titulo {
+  margin: 0;
+
   font-size: 1.6rem;
   font-weight: 700;
+
   color: white;
 }
 
 .cerrar {
-  background: rgba(255, 255, 255, 0.15);
-  border: none;
-  border-radius: 8px;
   width: 34px;
   height: 34px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 8px;
+
   color: white;
+
   cursor: pointer;
+
   transition: background 0.15s;
 }
 
@@ -54,17 +75,34 @@
 }
 
 /* ── Body ─────────────────────── */
+
 .body {
   padding: 2rem;
+
+  max-height: calc(90vh - 90px);
+  overflow-y: auto;
 }
 
 /* ── Animaciones ─────────────── */
+
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
