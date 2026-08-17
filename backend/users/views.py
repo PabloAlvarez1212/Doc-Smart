@@ -110,6 +110,7 @@ class LogoutView(APIView):
             response = respuesta_ok(mensaje='Sesión cerrada correctamente')
             response.delete_cookie('token')
             response.delete_cookie('user_role')
+            response.delete_cookie('user_id')
             return response
         except Exception as e:
             print(e)
@@ -204,15 +205,19 @@ class PerfilPacienteView(APIView):
         except Exception as e:
             print(f"Error: {e}")
             return respuesta_error("Error interno en el servidor",status=500)
-    def delete(self,request):
+    def delete(self, request):
         try:
             resultado, status_code = eliminarUsuarioService(request.user.id)
             if status_code != 200:
-                return respuesta_error(resultado, status=status_code)
-            return respuesta_ok(mensaje=resultado)
+                return respuesta_error(resultado,status=status_code)
+            response = respuesta_ok(mensaje=resultado)
+            response.delete_cookie('token',path='/')
+            response.delete_cookie('user_role',path='/')
+            response.delete_cookie('user_id',path='/')
+            return response
         except Exception as e:
             print(e)
-            return respuesta_error('Error interno del servidor', status=500)
+            return respuesta_error('Error interno del servidor',status=500)
         
 class FotoPerfilPacienteView(APIView):
 
