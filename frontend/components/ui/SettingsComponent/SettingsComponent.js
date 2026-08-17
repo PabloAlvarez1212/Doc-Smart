@@ -40,7 +40,7 @@ export default function SettingsComponent({ data, eliminarCuenta, cerrarSesion }
                     </div>
 
                 </div>
-                <div className={Style.card}>
+                <div className={Style.card} onClick={() => cerrarSesion()}>
                     <div className={Style.titleContainer}>
                         <div className={Style.containerCerrarSesionIcon}>
                             <LogOutIcon color="#E77837" className={Style.cerrarSesionIcon} />
@@ -52,7 +52,7 @@ export default function SettingsComponent({ data, eliminarCuenta, cerrarSesion }
                     </div>
                     <ChevronRight size={28} />
                 </div>
-                <div className={Style.card}>
+                <div className={Style.card} onClick={() => eliminarCuenta()}>
                     <div className={Style.titleContainer}>
                         <div className={Style.containerEliminarIcon}>
                             <TrashIcon color="#E05362" />

@@ -1,8 +1,9 @@
 "use client";
 import Styles from "./Header.module.css";
 import Image from "next/image";
-import Button from "../../../ui/Button/Button";
-import { use, useState } from "react";
+import useLogout from "../../../hooks/useLogout";
+import usePatient from "../../usePatient";
+import { useState } from "react";
 import SettingsComponent from "../../../ui/SettingsComponent/SettingsComponent";
 import Modal from "../../../ui/Modal/Modal";
 import { SettingsIcon } from "lucide-react";
@@ -14,6 +15,8 @@ export default function Header() {
     const activateLink = function (route) {
         return pathName === route ? Styles.activar : Styles.link;
     }
+    const {logoutUser} = useLogout()
+    const {eliminarCuentaPaciente} = usePatient()
     return (
         <div className={Styles.containerHeader}>
             <div className={Styles.container}>
@@ -42,7 +45,10 @@ export default function Header() {
                 abierto={modal}
                 onCerrar={() => setModal(false)}
             >
-                <SettingsComponent/>
+                <SettingsComponent
+                    cerrarSesion={logoutUser}
+                    eliminarCuenta={eliminarCuentaPaciente}
+                />
             </Modal>
         </div>
     )
