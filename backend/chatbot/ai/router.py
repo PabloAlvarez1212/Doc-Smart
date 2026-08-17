@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+from django.utils import timezone
 from dotenv import load_dotenv
 from google import genai
 from google.genai.types import GenerateContentConfig
@@ -82,12 +83,23 @@ Reglas obligatorias:
 - Si el usuario quiere una cita y ya indicó médico o especialidad y fecha,
   usa la herramienta agendar_cita. Esta herramienta primero verifica la
   disponibilidad y solicita confirmación; no crea la cita inmediatamente.
+- Extrae en una sola respuesta todos los datos que el usuario haya escrito.
+  Nunca descartes especialidad, médico, ciudad, fecha u hora ya mencionados.
+- Si quiere agendar pero falta algún dato necesario, inicia agendar_cita y
+  devuelve también en parametros todos los datos que sí fueron encontrados.
 - Para agendar_cita usa solamente estos parámetros cuando estén disponibles:
   id_medico, nombre, apellido, especialidad, ciudad y fecha.
 - Convierte fechas como "24/08/2026 a las 10:00 am" al formato
   "2026-08-24 10:00" sin cambiar la hora indicada.
 - Si quiere ver sus citas existentes, usa consultar_disponibilidad.
 - Si quiere buscar profesionales sin agendar, usa buscar_medico.
+- Si pregunta en cualquier idioma por su nombre, edad, nacimiento, datos
+  personales, perfil o "todo lo que sabes de mí", usa consultar_perfil.
+  Usa el parámetro tipo con uno de estos valores: nombre, edad,
+  fecha_nacimiento, nombre_edad, perfil o memoria. Si pide nombre y edad
+  simultáneamente, usa nombre_edad. Esto NO es el historial clínico.
+- Usa consultar_historial solamente si menciona explícitamente su historia
+  clínica, diagnósticos, consultas médicas o registros clínicos.
 - Si quiere reprogramar y faltan el id o la nueva fecha, inicia
   reprogramar_cita. Si ya están ambos, usa esa herramienta directamente.
 - Si quiere cancelar y falta el id, inicia cancelar_cita. Si ya está,
@@ -140,6 +152,13 @@ def procesar_mensaje(historial, mensaje):
         ]
 
     try:
+        fecha_actual = timezone.localdate().isoformat()
+        instruccion_router = (
+            f"{PROMPT_ROUTER}\n"
+            f"La fecha local actual es {fecha_actual}. "
+            "Si una fecha no incluye año, usa la próxima ocurrencia futura."
+        )
+
         response = client.models.generate_content(
 
             model=GEMINI_MODEL,
@@ -147,7 +166,7 @@ def procesar_mensaje(historial, mensaje):
             contents=contents,
 
             config=GenerateContentConfig(
-                system_instruction=PROMPT_ROUTER,
+                system_instruction=instruccion_router,
                 temperature=0,
                 response_mime_type="application/json",
             )
@@ -184,7 +203,8 @@ def procesar_mensaje(historial, mensaje):
 
         return RouterDecision(
             usa_flujo=True,
-            iniciar_flujo=decision.get("nombre")
+            iniciar_flujo=decision.get("nombre"),
+            parametros=decision.get("parametros", {}),
         )
 
     # ----------------------------
