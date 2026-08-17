@@ -8,6 +8,10 @@ export const obtenerPerfilPacienteService = async function () {
     const response = await api.get(`${API_URL}perfil/`)
     return response.data
 }
+export const eliminarPacienteService = async function () {
+    const response = await api.delete(`${API_URL}perfil/`)
+    return response.data
+}
 export const actualizarPerfilPacienteService = async function (formData) {
     const response = await api.put(`${API_URL}perfil/`,formData)
     return response.data
