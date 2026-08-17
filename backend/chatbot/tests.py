@@ -68,6 +68,85 @@ class BuscarMedicoToolTests(SimpleTestCase):
         buscar_medicos.assert_called_once_with(**parametros)
 
 
+class IntencionesDeterministasTests(SimpleTestCase):
+
+    def test_hola_se_reconoce_como_saludo(self):
+        from chatbot.ai.filters import es_saludo
+
+        self.assertTrue(es_saludo("¡Hola!"))
+        self.assertTrue(es_saludo("Buenos días"))
+
+    def test_listado_de_medicos_se_reconoce_sin_gemini(self):
+        from chatbot.ai.filters import solicita_buscar_medicos
+
+        self.assertTrue(
+            solicita_buscar_medicos("Muéstrame todos los médicos disponibles")
+        )
+
+    @patch("chatbot.ai.router.client.models.generate_content")
+    def test_router_no_consulta_gemini_para_listar_medicos(
+        self,
+        generate_content,
+    ):
+        from chatbot.ai.router import procesar_mensaje
+
+        decision = procesar_mensaje(
+            [],
+            "Muéstrame todos los médicos disponibles",
+        )
+
+        self.assertEqual(decision.tool_name, "buscar_medico")
+        generate_content.assert_not_called()
+
+    def test_cancelar_detiene_un_flujo_activo(self):
+        from chatbot.ai.flow_manager import FlowManager
+
+        chat = MagicMock(estado_conversacion="agendar_cita")
+
+        with patch(
+            "chatbot.ai.flow_manager.ConversationFlow.finalizar"
+        ) as finalizar:
+            resultado = FlowManager.continuar(chat, "olvídalo")
+
+        finalizar.assert_called_once_with(chat)
+        self.assertIn("Cancelé", resultado)
+
+
+class MedicoServiceTests(SimpleTestCase):
+
+    def test_tolera_segundo_nombre_apellido_compuesto_y_error_menor(self):
+        from chatbot.services.medico_service import MedicoService
+
+        medico = SimpleNamespace(
+            nombre="Edilma Ines",
+            apellido="Echeverri Espinoza",
+        )
+
+        seleccionado = MedicoService._seleccionar_candidato(
+            "Edilma",
+            "Echeverry",
+            [medico],
+        )
+
+        self.assertIs(seleccionado, medico)
+
+    def test_rechaza_dos_resultados_ambiguos(self):
+        from chatbot.services.medico_service import MedicoService
+
+        candidatos = [
+            SimpleNamespace(nombre="Ana María", apellido="Pérez López"),
+            SimpleNamespace(nombre="Ana", apellido="Pérez Gómez"),
+        ]
+
+        seleccionado = MedicoService._seleccionar_candidato(
+            "Ana",
+            "Pérez",
+            candidatos,
+        )
+
+        self.assertIsNone(seleccionado)
+
+
 class ConfirmacionTests(SimpleTestCase):
 
     @patch("chatbot.ai.flow_manager.ConversationFlow")
@@ -163,6 +242,17 @@ class RouterTests(SimpleTestCase):
             generate_content.call_args.kwargs["contents"],
             historial,
         )
+
+    @patch("chatbot.ai.router.client.models.generate_content")
+    def test_error_del_proveedor_no_produce_error_500(self, generate_content):
+        from chatbot.ai.router import procesar_mensaje
+
+        generate_content.side_effect = RuntimeError("Proveedor no disponible")
+
+        decision = procesar_mensaje([], "Hola Bymax")
+
+        self.assertFalse(decision.usa_tool)
+        self.assertIn("intenta nuevamente", decision.respuesta)
 
 
 class RespuestaApiTests(SimpleTestCase):

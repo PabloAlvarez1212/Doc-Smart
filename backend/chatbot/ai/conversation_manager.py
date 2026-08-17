@@ -1,6 +1,8 @@
 from chatbot.ai.filters import (
     limpiar_mensaje,
     contiene_prompt_injection,
+    es_saludo,
+    solicita_buscar_medicos,
 )
 
 from chatbot.ai.memory import construir_historial
@@ -16,6 +18,7 @@ from chatbot.ai.conversation_state import ConversationState
 from chatbot.ai.flow_manager import FlowManager
 
 from chatbot.ai.conversation_flow import ConversationFlow
+from chatbot.ai.router_decision import RouterDecision
 
 
 class ConversationManager:
@@ -30,6 +33,23 @@ class ConversationManager:
         if contiene_prompt_injection(state.mensaje):
 
             return "No puedo procesar ese tipo de instrucciones."
+
+        if chat.estado_conversacion == "normal" and es_saludo(state.mensaje):
+            return "¡Hola! 👋 Soy Bymax. ¿En qué puedo ayudarte hoy?"
+
+        if solicita_buscar_medicos(state.mensaje):
+
+            if chat.estado_conversacion != "normal":
+                ConversationFlow.finalizar(chat)
+
+            state.decision = RouterDecision(
+                tool=True,
+                tool_name="buscar_medico",
+                parametros={},
+            )
+
+            ConversationManager._resolver(chat, state)
+            return state.respuesta
 
 
         if chat.estado_conversacion != "normal":

@@ -1,4 +1,5 @@
 import re
+import unicodedata
 
 
 PALABRAS_APP = [
@@ -33,6 +34,63 @@ def limpiar_mensaje(texto):
     texto = re.sub(r"\s+", " ", texto)
 
     return texto
+
+
+def normalizar_intencion(texto):
+    texto = limpiar_mensaje(texto).lower()
+    texto = unicodedata.normalize("NFKD", texto)
+    texto = "".join(
+        caracter
+        for caracter in texto
+        if not unicodedata.combining(caracter)
+    )
+    return re.sub(r"[^a-z0-9\s]", "", texto).strip()
+
+
+def es_saludo(texto):
+    return normalizar_intencion(texto) in {
+        "hola",
+        "buenas",
+        "buenos dias",
+        "buenas tardes",
+        "buenas noches",
+        "hola bymax",
+        "bymax",
+    }
+
+
+def solicita_buscar_medicos(texto):
+    texto = normalizar_intencion(texto)
+
+    menciona_medicos = any(
+        palabra in texto.split()
+        for palabra in {"medico", "medicos", "doctor", "doctores"}
+    )
+    solicita_listado = any(
+        expresion in texto
+        for expresion in {
+            "muestra",
+            "muestrame",
+            "listar",
+            "lista",
+            "buscar",
+            "busca",
+            "disponibles",
+            "todos",
+        }
+    )
+
+    return menciona_medicos and solicita_listado
+
+
+def solicita_cancelar_flujo(texto):
+    return normalizar_intencion(texto) in {
+        "cancelar",
+        "cancela",
+        "salir",
+        "detener",
+        "olvidalo",
+    }
 
 
 def es_pregunta_medica(texto):

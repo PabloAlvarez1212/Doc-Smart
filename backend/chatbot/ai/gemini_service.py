@@ -6,6 +6,7 @@ from google import genai
 from google.genai.types import GenerateContentConfig
 
 from chatbot.ai.prompts import SYSTEM_PROMPT
+from chatbot.ai.model_config import GEMINI_MODEL
 
 load_dotenv()
 
@@ -24,7 +25,7 @@ def preguntar_gemini(historial):
 
             response = client.models.generate_content(
 
-                model="gemini-2.5-flash",
+                model=GEMINI_MODEL,
 
                 contents=historial,
 
