@@ -10,7 +10,7 @@ import {
 import { bymaxService } from "@/app/services/bymaxServices";
 import styles from "./ChatBot.module.css";
 
-const SALUDO = "Hola 👋 Soy Bymax. ¿En qué puedo ayudarte hoy?";
+const SALUDO = "Hola Soy Bymax Tu Asistente Personal. ¿En qué puedo ayudarte el dia de hoy?";
 const CONFIG_VOZ_INICIAL = {
   voiceURI: "",
   rate: 0.96,

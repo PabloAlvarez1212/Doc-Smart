@@ -1,4 +1,4 @@
-// Reemplaza src/app/services/bymaxServices.js
+
 import api from "@/app/services/api";
 
 function detalleError(error, respaldo) {
