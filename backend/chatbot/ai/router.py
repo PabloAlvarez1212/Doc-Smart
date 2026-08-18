@@ -141,18 +141,48 @@ def procesar_mensaje(historial, mensaje):
             parametros={},
         )
 
-    contents = historial[-12:]
+    mensaje_actual = str(mensaje or "").strip()
+
+    # Copiamos el historial para no modificar la lista original.
+    contents = list(historial or [])[-12:]
+
+    # El mensaje actual debe agregarse siempre.
+    # Antes solo se agregaba cuando el historial estaba vacío.
+    ultimo_texto = ""
+
+    if contents:
+        try:
+            ultimo = contents[-1]
+            partes = ultimo.get("parts", [])
+
+            if partes:
+                ultimo_texto = str(partes[-1].get("text", "")).strip()
+        except (AttributeError, IndexError, TypeError):
+            ultimo_texto = ""
+
+    # Evita duplicarlo si ConversationManager ya lo agregó al historial.
+    if mensaje_actual and ultimo_texto != mensaje_actual:
+        contents.append({
+            "role": "user",
+            "parts": [
+                {
+                    "text": mensaje_actual,
+                }
+            ],
+        })
 
     if not contents:
-        contents = [
-            {
-                "role": "user",
-                "parts": [{"text": mensaje}],
-            }
-        ]
+        return RouterDecision(
+            tool=False,
+            respuesta=(
+                "No recibí el contenido de tu mensaje. "
+                "Por favor, vuelve a intentarlo."
+            ),
+        )
 
     try:
         fecha_actual = timezone.localdate().isoformat()
+
         instruccion_router = (
             f"{PROMPT_ROUTER}\n"
             f"La fecha local actual es {fecha_actual}. "
@@ -160,20 +190,20 @@ def procesar_mensaje(historial, mensaje):
         )
 
         response = client.models.generate_content(
-
             model=GEMINI_MODEL,
-
             contents=contents,
-
             config=GenerateContentConfig(
                 system_instruction=instruccion_router,
                 temperature=0,
                 response_mime_type="application/json",
-            )
-
+            ),
         )
+
+        decision = extraer_json(response.text or "")
+
     except Exception:
         logger.exception("No fue posible consultar el router de Gemini")
+
         return RouterDecision(
             tool=False,
             respuesta=(
@@ -182,61 +212,29 @@ def procesar_mensaje(historial, mensaje):
             ),
         )
 
-    try:
-
-        decision = extraer_json(response.text)
-
-    except Exception:
-
-        decision = {
-            "accion": "gemini",
-            "parametros": {}
-        }
-
-    # ----------------------------
-    # Iniciar un flujo
-    # ----------------------------
-
     accion = decision.get("accion", "gemini")
 
     if accion == "flujo":
-
         return RouterDecision(
             usa_flujo=True,
             iniciar_flujo=decision.get("nombre"),
             parametros=decision.get("parametros", {}),
         )
 
-    # ----------------------------
-    # Ejecutar una Tool
-    # ----------------------------
-
     if accion == "tool":
-
         return RouterDecision(
             tool=True,
             tool_name=decision.get("tool"),
-            parametros=decision.get("parametros", {})
+            parametros=decision.get("parametros", {}),
         )
-
-    # ----------------------------
-    # Responder con Gemini
-    # ----------------------------
 
     if accion == "gemini":
-
-        respuesta = preguntar_gemini(historial)
-
         return RouterDecision(
             tool=False,
-            respuesta=respuesta,
+            respuesta=preguntar_gemini(contents),
         )
-
-    # ----------------------------
-    # Respuesta por defecto
-    # ----------------------------
 
     return RouterDecision(
         tool=False,
-        respuesta=preguntar_gemini(historial),
+        respuesta=preguntar_gemini(contents),
     )
