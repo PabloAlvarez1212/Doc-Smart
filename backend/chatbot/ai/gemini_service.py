@@ -88,3 +88,59 @@ def preguntar_gemini(contents):
         "En este momento no puedo procesar tu solicitud con inteligencia "
         "artificial. Por favor, intenta nuevamente más tarde."
     )
+
+
+def preguntar_gemini_stream(contents):
+    """Entrega fragmentos de texto a medida que Gemini los genera."""
+
+    contents = list(contents or [])
+    if not contents:
+        raise ValueError("contents are required")
+
+    for intento in range(3):
+        emitio_texto = False
+        try:
+            response = client.models.generate_content_stream(
+                model=GEMINI_MODEL,
+                contents=contents,
+                config=GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    temperature=0.6,
+                    max_output_tokens=1000,
+                ),
+            )
+
+            for chunk in response:
+                texto = getattr(chunk, "text", None)
+                if texto:
+                    emitio_texto = True
+                    yield texto
+
+            if emitio_texto:
+                return
+
+            raise RuntimeError("Gemini devolvió un stream vacío")
+
+        except Exception as error:
+            logger.exception(
+                "Error en stream de Gemini. Intento %s", intento + 1
+            )
+
+            # Reintentar después de haber emitido texto duplicaría la respuesta.
+            if emitio_texto or intento == 2:
+                raise
+
+            mensaje_error = str(error).lower()
+            if any(
+                codigo in mensaje_error
+                for codigo in (
+                    "contents are required",
+                    "not_found",
+                    "404",
+                    "resource_exhausted",
+                    "429",
+                )
+            ):
+                raise
+
+            time.sleep(1.5 * (intento + 1))

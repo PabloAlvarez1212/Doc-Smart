@@ -1,4 +1,4 @@
-// Reemplaza src/app/services/bymaxServices.js
+
 import api from "@/app/services/api";
 
 function detalleError(error, respaldo) {
@@ -11,6 +11,11 @@ function datos(response) {
 }
 
 export const bymaxService = {
+  crearSocket(idChat) {
+    const base = process.env.NEXT_PUBLIC_BYMAX_WS_URL ||
+      `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8000`;
+    return new WebSocket(`${base}/ws/chatbot/${idChat}/`);
+  },
   async iniciarChat() {
     try { return datos(await api.post("/chatbot/chats/")); }
     catch (error) { throw new Error(detalleError(error, "No fue posible crear la conversación.")); }
@@ -44,6 +49,18 @@ export const bymaxService = {
       };
     } catch (error) {
       throw new Error(detalleError(error, "Ocurrió un error comunicándome con Bymax."));
+    }
+  },
+  async generarVoz(texto, velocidad = 0.96) {
+    try {
+      const response = await api.post(
+        "/chatbot/voz/",
+        { texto, velocidad },
+        { responseType: "blob" },
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(detalleError(error, "No fue posible generar la voz neuronal de Bymax."));
     }
   },
 };

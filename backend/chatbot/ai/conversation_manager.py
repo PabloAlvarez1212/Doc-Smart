@@ -37,7 +37,7 @@ from chatbot.ai.language import LanguageService
 class ConversationManager:
 
     @staticmethod
-    def procesar(chat, mensaje):
+    def procesar(chat, mensaje, streaming=False):
 
         state = ConversationState()
 
@@ -149,9 +149,7 @@ class ConversationManager:
             state
         )
 
-        ConversationManager._consultar_ia(
-            state
-        )
+        ConversationManager._consultar_ia(state, streaming=streaming)
 
         # Seguridad extra
         if state.decision is None:
@@ -159,6 +157,20 @@ class ConversationManager:
             return (
                 "Lo siento, ocurrió un error al procesar tu solicitud."
             )
+
+        # En modo streaming el router no genera todavía la respuesta final.
+        # Devuelve los contenidos listos para que el consumer los transmita
+        # progresivamente sin alterar los flujos ni las herramientas.
+        if (
+            streaming
+            and not state.decision.usa_tool
+            and not state.decision.usa_flujo
+            and (state.decision.parametros or {}).get("__stream_gemini__")
+        ):
+            return {
+                "stream": True,
+                "contents": (state.decision.parametros or {}).get("contents", []),
+            }
 
         if state.decision.usa_flujo:
 
@@ -242,11 +254,12 @@ class ConversationManager:
             )
 
     @staticmethod
-    def _consultar_ia(state):
+    def _consultar_ia(state, streaming=False):
 
         state.decision = procesar_mensaje(
             state.historial,
-            state.mensaje
+            state.mensaje,
+            streaming=streaming,
         )
 
     @staticmethod

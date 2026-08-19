@@ -132,7 +132,44 @@ def extraer_json(texto):
         "accion": "gemini",
         "parametros": {}
     }
-def procesar_mensaje(historial, mensaje):
+
+PATRON_CONSULTA_MEDICA = re.compile(
+    r"\b("
+    r"s[ií]ntoma|fiebre|dolor|mareo|n[aá]usea|v[oó]mito|"
+    r"diagn[oó]stico|medicamento|acetaminof[eé]n|paracetamol|"
+    r"dosis|alergia|peso|edad|a[nñ]os|me siento|me duele|"
+    r"tom[eé]|tomado|enfermedad|temperatura"
+    r")\b",
+    re.IGNORECASE,
+)
+
+PATRON_SOLICITUD_CITA = re.compile(
+    r"\b("
+    r"agendar|reservar|programar|pedir|solicitar|sacar"
+    r")\b.{0,30}\b(cita|consulta)\b|"
+    r"\b(cita|consulta)\b.{0,30}\b("
+    r"agendar|reservar|programar|pedir|solicitar|sacar"
+    r")\b",
+    re.IGNORECASE,
+)
+def _respuesta_gemini(contents, streaming=False):
+    if streaming:
+        return RouterDecision(
+            tool=False,
+            respuesta=None,
+            parametros={
+                "__stream_gemini__": True,
+                "contents": contents,
+            },
+        )
+
+    return RouterDecision(
+        tool=False,
+        respuesta=preguntar_gemini(contents),
+    )
+
+
+def procesar_mensaje(historial, mensaje, streaming=False):
 
     if solicita_buscar_medicos(mensaje):
         return RouterDecision(
@@ -146,10 +183,10 @@ def procesar_mensaje(historial, mensaje):
     # Copiamos el historial para no modificar la lista original.
     contents = list(historial or [])[-12:]
 
+
     # El mensaje actual debe agregarse siempre.
     # Antes solo se agregaba cuando el historial estaba vacío.
     ultimo_texto = ""
-
     if contents:
         try:
             ultimo = contents[-1]
@@ -170,6 +207,16 @@ def procesar_mensaje(historial, mensaje):
                 }
             ],
         })
+
+    es_consulta_medica = bool(PATRON_CONSULTA_MEDICA.search(mensaje_actual))
+    solicita_cita_explicita = bool(
+        PATRON_SOLICITUD_CITA.search(mensaje_actual)
+    )
+
+    # El mensaje actual ya está incluido en `contents`. Esto evita el error
+    # "contents are required" y mantiene el contexto de síntomas anteriores.
+    if es_consulta_medica and not solicita_cita_explicita:
+        return _respuesta_gemini(contents, streaming=streaming)
 
     if not contents:
         return RouterDecision(
@@ -229,12 +276,6 @@ def procesar_mensaje(historial, mensaje):
         )
 
     if accion == "gemini":
-        return RouterDecision(
-            tool=False,
-            respuesta=preguntar_gemini(contents),
-        )
+        return _respuesta_gemini(contents, streaming=streaming)
 
-    return RouterDecision(
-        tool=False,
-        respuesta=preguntar_gemini(contents),
-    )
+    return _respuesta_gemini(contents, streaming=streaming)

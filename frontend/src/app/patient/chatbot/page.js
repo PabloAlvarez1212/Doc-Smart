@@ -12,6 +12,7 @@ import styles from "./ChatBot.module.css";
 
 const SALUDO = "Hola 👋 Soy Bymax. ¿En qué puedo ayudarte hoy?";
 const CONFIG_VOZ_INICIAL = {
+  motor: "neural",
   voiceURI: "",
   rate: 0.96,
   pitch: 1.02,
@@ -122,10 +123,31 @@ export default function ChatBot() {
   const enviarTextoRef = useRef(null);
   const reinicioVozRef = useRef(null);
   const temporizadorConversacionRef = useRef(null);
+  const audioRef = useRef(null);
+  const audioUrlRef = useRef(null);
+  const solicitudVozRef = useRef(0);
+  const socketRef = useRef(null);
+  const mensajeStreamingRef = useRef(null);
+  const bufferVozRef = useRef("");
+  const colaVozRef = useRef([]);
+  const reproduciendoColaRef = useRef(false);
+  const streamFinalizadoRef = useRef(false);
+  const configVozRef = useRef(CONFIG_VOZ_INICIAL);
+  const vozActivaRef = useRef(false);
+  const finalizarTurnoStreamRef = useRef(null);
+  const procesarColaVozRef = useRef(null);
+  // Se decide una sola vez por respuesta para impedir que se mezclen voces.
+  // Valores: pendiente | neural | local.
+  const motorTurnoRef = useRef("pendiente");
 
   useEffect(() => {
     finalRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes, enviando]);
+
+  useEffect(() => {
+    configVozRef.current = configVoz;
+    vozActivaRef.current = vozActiva;
+  }, [configVoz, vozActiva]);
 
   useEffect(() => {
     const overflowHtml = document.documentElement.style.overflow;
@@ -147,7 +169,11 @@ export default function ChatBot() {
         localStorage.getItem("bymax_configuracion_voz") || "null"
       );
       if (guardada) {
-        setConfigVoz((actual) => ({ ...actual, ...guardada }));
+        setConfigVoz((actual) => ({
+          ...actual,
+          ...guardada,
+          motor: guardada.motor || "neural",
+        }));
       }
     } catch {
       localStorage.removeItem("bymax_configuracion_voz");
@@ -230,32 +256,293 @@ export default function ChatBot() {
       !escuchaPersistenteRef.current ||
       hablandoRef.current ||
       procesandoVozRef.current
-    ) return;
+    ) {
+      return;
+    }
+
     window.clearTimeout(reinicioVozRef.current);
+
     reinicioVozRef.current = window.setTimeout(() => {
-      if (reconocimientoActivoRef.current) return;
+      if (
+        !escuchaPersistenteRef.current ||
+        reconocimientoActivoRef.current ||
+        hablandoRef.current ||
+        procesandoVozRef.current
+      ) {
+        return;
+      }
+
       try {
         recognitionRef.current?.start();
       } catch (errorVoz) {
         if (errorVoz?.name !== "InvalidStateError") {
-          console.error("No fue posible reanudar la escucha:", errorVoz);
+          console.error(
+            "No fue posible reanudar la escucha:",
+            errorVoz,
+          );
         }
       }
-    }, 350);
+    }, 500);
   }, []);
 
-  const hablar = useCallback((texto, forzar = false) => {
-    if ((!vozActiva && !forzar) || !window.speechSynthesis || !texto) {
-      reanudarEscucha();
+  const finalizarTurnoStream = useCallback(() => {
+    if (
+      !streamFinalizadoRef.current ||
+      reproduciendoColaRef.current ||
+      colaVozRef.current.length
+    ) return;
+
+    hablandoRef.current = false;
+    procesandoVozRef.current = false;
+    setEnviando(false);
+    mensajeStreamingRef.current = null;
+    inputRef.current?.focus();
+    reanudarEscucha();
+  }, [reanudarEscucha]);
+
+  useEffect(() => {
+    finalizarTurnoStreamRef.current = finalizarTurnoStream;
+  }, [finalizarTurnoStream]);
+
+  const reproducirTextoLocal = useCallback((texto) => new Promise((resolve) => {
+    if (!window.speechSynthesis) {
+      resolve();
+      return;
+    }
+    const config = configVozRef.current;
+    const utterance = new SpeechSynthesisUtterance(texto);
+    const seleccionada = config.voiceURI
+      ? voces.find((item) => item.voiceURI === config.voiceURI)
+      : voces[0];
+    if (seleccionada) utterance.voice = seleccionada;
+    utterance.lang = seleccionada?.lang || "es-CO";
+    utterance.rate = Number(config.rate);
+    utterance.pitch = Number(config.pitch);
+    utterance.volume = Number(config.volume);
+    utterance.onend = resolve;
+    utterance.onerror = resolve;
+    window.speechSynthesis.speak(utterance);
+  }), [voces]);
+
+  const procesarColaVoz = useCallback(async () => {
+    if (reproduciendoColaRef.current) return;
+    const item = colaVozRef.current.shift();
+    if (!item) {
+      finalizarTurnoStreamRef.current?.();
       return;
     }
 
-    window.speechSynthesis.cancel();
+    reproduciendoColaRef.current = true;
     hablandoRef.current = true;
 
     try {
-      recognitionRef.current?.stop();
-    } catch {}
+      const config = configVozRef.current;
+      const debeUsarNeural =
+        config.motor === "neural" && motorTurnoRef.current !== "local";
+
+      if (debeUsarNeural) {
+        let blob;
+
+        try {
+          const resultadoAudio = item.audioPromise
+            ? await item.audioPromise
+            : await bymaxService
+              .generarVoz(item.texto, Number(config.rate))
+              .then((audio) => ({ blob: audio }))
+              .catch((error) => ({ error }));
+
+          if (resultadoAudio.error) throw resultadoAudio.error;
+          blob = resultadoAudio.blob;
+          motorTurnoRef.current = "neural";
+
+          // Mientras esta frase se reproduce, ElevenLabs prepara las que ya
+          // están en cola. Así no esperamos otra petición HTTP entre frases.
+          colaVozRef.current.slice(0, 2).forEach((pendiente) => {
+            if (pendiente.audioPromise) return;
+            pendiente.audioPromise = bymaxService
+              .generarVoz(pendiente.texto, Number(config.rate))
+              .then((audio) => ({ blob: audio }))
+              .catch((error) => ({ error }));
+          });
+        } catch (errorVoz) {
+          // Solo se permite elegir la voz local antes de haber reproducido la
+          // primera frase neuronal. Si ElevenLabs ya fue elegido, jamás se
+          // intercala una voz distinta dentro de la misma respuesta.
+          if (motorTurnoRef.current === "pendiente") {
+            motorTurnoRef.current = "local";
+            console.warn(
+              "ElevenLabs no está disponible; todo el turno usará voz local:",
+              errorVoz,
+            );
+            await reproducirTextoLocal(item.texto);
+            return;
+          }
+
+          console.error(
+            "ElevenLabs falló durante un turno neuronal; no se mezclará la voz local:",
+            errorVoz,
+          );
+          return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        audioUrlRef.current = url;
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.volume = Number(configVozRef.current.volume);
+        await new Promise((resolve, reject) => {
+          audio.onended = resolve;
+          audio.onerror = reject;
+          audio.play().catch(reject);
+        });
+        URL.revokeObjectURL(url);
+        audioUrlRef.current = null;
+        audioRef.current = null;
+      } else {
+        motorTurnoRef.current = "local";
+        await reproducirTextoLocal(item.texto);
+      }
+    } catch (errorVoz) {
+      console.error("No fue posible reproducir la frase de Bymax:", errorVoz);
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+      audioRef.current = null;
+      // No hacemos fallback aquí: si ya comenzó ElevenLabs, usar la voz local
+      // produciría exactamente la mezcla de voces que queremos evitar.
+    } finally {
+      reproduciendoColaRef.current = false;
+      procesarColaVozRef.current?.();
+    }
+  }, [reproducirTextoLocal]);
+
+  useEffect(() => {
+    procesarColaVozRef.current = procesarColaVoz;
+  }, [procesarColaVoz]);
+
+  const encolarFrase = useCallback((texto) => {
+    const frase = String(texto || "").trim();
+    if (
+      !frase ||
+      (!vozActivaRef.current &&
+        !escuchaPersistenteRef.current &&
+        !modoConversacionRef.current)
+    ) return;
+
+    const config = configVozRef.current;
+    const debePrecargar =
+      config.motor === "neural" &&
+      motorTurnoRef.current === "neural" &&
+      colaVozRef.current.filter((item) => item.audioPromise).length < 2;
+
+    const audioPromise = debePrecargar
+      ? bymaxService
+        .generarVoz(frase, Number(config.rate))
+        .then((audio) => ({ blob: audio }))
+        .catch((error) => ({ error }))
+      : null;
+
+    colaVozRef.current.push({ texto: frase, audioPromise });
+    procesarColaVozRef.current?.();
+  }, []);
+
+  const extraerFrases = useCallback((forzar = false) => {
+    let buffer = bufferVozRef.current;
+    let coincidencia;
+    const patron = /^([\s\S]*?[.!?…](?:\s+|$))/;
+
+    while ((coincidencia = buffer.match(patron))) {
+      encolarFrase(coincidencia[1]);
+      buffer = buffer.slice(coincidencia[1].length);
+    }
+
+    if (forzar && buffer.trim()) {
+      encolarFrase(buffer);
+      buffer = "";
+    }
+    bufferVozRef.current = buffer;
+  }, [encolarFrase]);
+
+  useEffect(() => {
+    if (!chatId) return undefined;
+
+    const socket = bymaxService.crearSocket(chatId);
+    socketRef.current = socket;
+
+    socket.onmessage = (evento) => {
+      const data = JSON.parse(evento.data);
+
+      if (data.tipo === "texto") {
+        const fragmento = String(data.contenido || "");
+        setMensajes((prev) => prev.map((item) =>
+          item.id === mensajeStreamingRef.current
+            ? { ...item, texto: item.texto + fragmento }
+            : item
+        ));
+        bufferVozRef.current += fragmento;
+        extraerFrases(false);
+      } else if (data.tipo === "fin") {
+        setMensajes((prev) => prev.map((item) =>
+          item.id === mensajeStreamingRef.current
+            ? { ...item, resultado: data.resultado || item.resultado }
+            : item
+        ));
+        streamFinalizadoRef.current = true;
+        extraerFrases(true);
+        setChats((prev) => prev.map((chat) =>
+          chat.id === chatId
+            ? { ...chat, ultima_interaccion: new Date().toISOString() }
+            : chat
+        ));
+        finalizarTurnoStreamRef.current?.();
+      } else if (data.tipo === "error") {
+        setMensajes((prev) => prev.map((item) =>
+          item.id === mensajeStreamingRef.current
+            ? { ...item, texto: data.mensaje, error: true }
+            : item
+        ));
+        streamFinalizadoRef.current = true;
+        bufferVozRef.current = "";
+        finalizarTurnoStreamRef.current?.();
+      }
+    };
+
+    socket.onerror = () => {
+      setError("Se perdió la conexión en tiempo real con Bymax.");
+    };
+
+    socket.onclose = () => {
+      if (mensajeStreamingRef.current && !streamFinalizadoRef.current) {
+        setMensajes((prev) => prev.map((item) =>
+          item.id === mensajeStreamingRef.current && !item.texto
+            ? { ...item, texto: "La conexión con Bymax se cerró. Intenta nuevamente.", error: true }
+            : item
+        ));
+        streamFinalizadoRef.current = true;
+        finalizarTurnoStreamRef.current?.();
+      }
+    };
+
+    return () => {
+      socket.close();
+      if (socketRef.current === socket) socketRef.current = null;
+    };
+  }, [chatId, extraerFrases]);
+  
+  const finalizarVoz = useCallback(() => {
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+    audioRef.current = null;
+    hablandoRef.current = false;
+    reanudarEscucha();
+  }, [reanudarEscucha]);
+
+  const hablarConNavegador = useCallback((texto) => {
+    if (!window.speechSynthesis) {
+      finalizarVoz();
+      return;
+    }
 
     const voz = new SpeechSynthesisUtterance(texto);
     const seleccionada = configVoz.voiceURI
@@ -266,16 +553,67 @@ export default function ChatBot() {
     voz.rate = Number(configVoz.rate);
     voz.pitch = Number(configVoz.pitch);
     voz.volume = Number(configVoz.volume);
-    voz.onend = () => {
-      hablandoRef.current = false;
-      reanudarEscucha();
-    };
-    voz.onerror = () => {
-      hablandoRef.current = false;
-      reanudarEscucha();
-    };
+    voz.onend = finalizarVoz;
+    voz.onerror = finalizarVoz;
     window.speechSynthesis.speak(voz);
-  }, [configVoz, reanudarEscucha, voces, vozActiva]);
+  }, [configVoz, finalizarVoz, voces]);
+
+  const hablar = useCallback(async (texto, forzar = false) => {
+    if ((!vozActiva && !forzar) || !texto) {
+      reanudarEscucha();
+      return;
+    }
+
+    const solicitudActual = solicitudVozRef.current + 1;
+    solicitudVozRef.current = solicitudActual;
+    window.speechSynthesis?.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+    hablandoRef.current = true;
+
+    try {
+      recognitionRef.current?.stop();
+    } catch {}
+
+    if (configVoz.motor !== "neural") {
+      hablarConNavegador(texto);
+      return;
+    }
+
+    try {
+      const blob = await bymaxService.generarVoz(texto, Number(configVoz.rate));
+      if (solicitudActual !== solicitudVozRef.current) return;
+
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioUrlRef.current = url;
+      audioRef.current = audio;
+      audio.volume = Number(configVoz.volume);
+      audio.onended = finalizarVoz;
+      audio.onerror = () => {
+        if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+        audioRef.current = null;
+        hablandoRef.current = true;
+        hablarConNavegador(texto);
+      };
+      await audio.play();
+    } catch (errorVoz) {
+      if (solicitudActual !== solicitudVozRef.current) return;
+      console.warn("Se utilizará la voz local de respaldo:", errorVoz);
+      if (audioRef.current) audioRef.current.pause();
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+      audioRef.current = null;
+      audioUrlRef.current = null;
+      hablarConNavegador(texto);
+    }
+  }, [configVoz, finalizarVoz, hablarConNavegador, reanudarEscucha, vozActiva]);
 
   const enviarTexto = useCallback(async (textoForzado) => {
     const texto = String(textoForzado ?? mensaje).trim();
@@ -287,7 +625,33 @@ export default function ChatBot() {
     setMensaje("");
     setImagen(null);
     setEnviando(true);
+    procesandoVozRef.current = true;
     setError("");
+
+    const socket = socketRef.current;
+    if (!archivo && socket?.readyState === WebSocket.OPEN) {
+      // Detener cualquier locución anterior antes de seleccionar el motor del
+      // nuevo turno. Así una voz local previa no se superpone con ElevenLabs.
+      window.speechSynthesis?.cancel();
+      solicitudVozRef.current += 1;
+      if (audioRef.current) audioRef.current.pause();
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+      audioRef.current = null;
+      audioUrlRef.current = null;
+
+      const botTemporal = normalizarMensaje({ remitente: "bot", texto: "" });
+      mensajeStreamingRef.current = botTemporal.id;
+      bufferVozRef.current = "";
+      colaVozRef.current = [];
+      motorTurnoRef.current =
+        configVozRef.current.motor === "neural" ? "pendiente" : "local";
+      streamFinalizadoRef.current = false;
+      setMensajes((prev) => [...prev, botTemporal]);
+      try { recognitionRef.current?.stop(); } catch {}
+      socket.send(JSON.stringify({ tipo: "mensaje", mensaje: temporal.texto }));
+      return;
+    }
+
     try {
       const respuesta = await bymaxService.enviarMensaje(chatId, temporal.texto, archivo);
       const bot = normalizarMensaje({ remitente: "bot", texto: respuesta.respuesta, resultado: respuesta.resultado });
@@ -312,12 +676,16 @@ export default function ChatBot() {
   }, [enviarTexto]);
 
   const renovarTiempoConversacion = useCallback(() => {
+    // El modo conversación ya no caduca por tiempo. Después de pronunciar
+    // "Bymax" una vez permanece activo mientras el micrófono general siga
+    // habilitado. Solo una orden explícita o el botón pueden apagarlo.
     window.clearTimeout(temporizadorConversacionRef.current);
-    temporizadorConversacionRef.current = window.setTimeout(() => {
-      modoConversacionRef.current = false;
-      setModoConversacion(false);
-      setMensaje("");
-    }, 45000);
+    temporizadorConversacionRef.current = null;
+
+    if (escuchaPersistenteRef.current) {
+      modoConversacionRef.current = true;
+      setModoConversacion(true);
+    }
   }, []);
 
   const obtenerReconocimiento = useCallback(() => {
@@ -461,6 +829,16 @@ export default function ChatBot() {
       window.clearTimeout(reinicioVozRef.current);
       window.clearTimeout(temporizadorConversacionRef.current);
       window.speechSynthesis?.cancel();
+      solicitudVozRef.current += 1;
+      if (audioRef.current) audioRef.current.pause();
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+      audioRef.current = null;
+      audioUrlRef.current = null;
+      colaVozRef.current = [];
+      bufferVozRef.current = "";
+      reproduciendoColaRef.current = false;
+      hablandoRef.current = false;
+      procesandoVozRef.current = false;
       localStorage.removeItem("bymax_escucha_activa");
 
       try {
@@ -531,6 +909,11 @@ export default function ChatBot() {
       window.clearTimeout(reinicioVozRef.current);
       window.clearTimeout(temporizadorConversacionRef.current);
       window.speechSynthesis?.cancel();
+      solicitudVozRef.current += 1;
+      if (audioRef.current) audioRef.current.pause();
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+      audioRef.current = null;
+      audioUrlRef.current = null;
       try {
         recognitionRef.current?.abort();
       } catch {}
@@ -571,6 +954,18 @@ export default function ChatBot() {
     setConfigVoz(CONFIG_VOZ_INICIAL);
   };
 
+  const alternarLectura = () => {
+    solicitudVozRef.current += 1;
+    window.speechSynthesis?.cancel();
+    if (audioRef.current) audioRef.current.pause();
+    if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+    audioRef.current = null;
+    audioUrlRef.current = null;
+    hablandoRef.current = false;
+    setVozActiva((actual) => !actual);
+    reanudarEscucha();
+  };
+
   return (
     <main className={styles.shell}>
       {panelVoz && (
@@ -593,27 +988,38 @@ export default function ChatBot() {
 
             <label className={styles.voiceField}>
               <span>Voz del asistente</span>
-              <select value={configVoz.voiceURI} onChange={(event) => actualizarVoz("voiceURI", event.target.value)}>
-                <option value="">Bymax Natural · selección automática</option>
+              <select
+                value={configVoz.motor === "neural" ? "__neural__" : configVoz.voiceURI}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (value === "__neural__") {
+                    setConfigVoz((actual) => ({ ...actual, motor: "neural" }));
+                  } else {
+                    setConfigVoz((actual) => ({ ...actual, motor: "browser", voiceURI: value }));
+                  }
+                }}
+              >
+                <option value="__neural__">Bymax Neural · ElevenLabs</option>
+                <option value="">Voz natural automática del dispositivo</option>
                 {voces.map((voz) => (
                   <option value={voz.voiceURI} key={voz.voiceURI}>
                     {voz.name} · {voz.lang}{voz.localService ? "" : " · en línea"}
                   </option>
                 ))}
               </select>
-              <small>Actual: {vozSeleccionada ? `${vozSeleccionada.name} (${vozSeleccionada.lang})` : "voz predeterminada del sistema"}</small>
+              <small>Actual: {configVoz.motor === "neural" ? "identidad neuronal de Bymax" : vozSeleccionada ? `${vozSeleccionada.name} (${vozSeleccionada.lang})` : "voz predeterminada del sistema"}</small>
             </label>
 
             <label className={styles.voiceRange}>
               <span><strong>Velocidad</strong><output>{Number(configVoz.rate).toFixed(2)}×</output></span>
-              <input type="range" min="0.75" max="1.25" step="0.01" value={configVoz.rate} onChange={(event) => actualizarVoz("rate", event.target.value)} />
+              <input type="range" min="0.75" max="1.2" step="0.01" value={configVoz.rate} onChange={(event) => actualizarVoz("rate", event.target.value)} />
               <small><i>Lenta</i><i>Natural</i><i>Rápida</i></small>
             </label>
 
             <label className={styles.voiceRange}>
               <span><strong>Tono</strong><output>{Number(configVoz.pitch).toFixed(2)}</output></span>
               <input type="range" min="0.75" max="1.3" step="0.01" value={configVoz.pitch} onChange={(event) => actualizarVoz("pitch", event.target.value)} />
-              <small><i>Grave</i><i>Equilibrado</i><i>Agudo</i></small>
+              <small><i>Grave</i><i>Equilibrado</i><i>Agudo · respaldo local</i></small>
             </label>
 
             <label className={styles.voiceRange}>
@@ -652,7 +1058,7 @@ export default function ChatBot() {
           <div className={styles.headerActions}>
             <span className={styles.language}><Languages size={17} /> Idioma automático</span>
             <button onClick={() => setPanelVoz(true)} title="Configurar voz de Bymax"><SlidersHorizontal /></button>
-            <button className={vozActiva ? styles.activeAction : ""} onClick={() => { window.speechSynthesis?.cancel(); setVozActiva((v) => !v); }} title="Leer respuestas en voz alta">{vozActiva ? <Volume2 /> : <VolumeX />}</button>
+            <button className={vozActiva ? styles.activeAction : ""} onClick={alternarLectura} title="Leer respuestas en voz alta">{vozActiva ? <Volume2 /> : <VolumeX />}</button>
           </div>
         </header>
 
