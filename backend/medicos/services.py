@@ -8,6 +8,7 @@ from users.models import Usuario
 from historial_medico.models import HistorialClinico
 from catalogos.models import Rol, Ciudad
 from medicos.serializers import (
+    EspecialidadSerializer,
     MedicoPerfilSerializer,
     RegistrarMedicoSerializer,
     EditarMedicoSerializer,

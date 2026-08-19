@@ -32,7 +32,7 @@ export const getEspecialidadesService = async (page, search) => {
         }
     );
 
-    return response.data.data;
+    return response.data;
 };
 
 

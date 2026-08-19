@@ -1,14 +1,20 @@
 import json
+import logging
 import os
 import re
+from django.utils import timezone
 from dotenv import load_dotenv
 from google import genai
 from google.genai.types import GenerateContentConfig
 from chatbot.ai.tool_registry import TOOLS
 from chatbot.ai.gemini_service import preguntar_gemini
+from chatbot.ai.model_config import GEMINI_MODEL
 from chatbot.ai.router_decision import RouterDecision
+from chatbot.ai.filters import solicita_buscar_medicos
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 client = genai.Client(
     api_key=os.getenv("GEMINI_API_KEY")
@@ -77,12 +83,23 @@ Reglas obligatorias:
 - Si el usuario quiere una cita y ya indicó médico o especialidad y fecha,
   usa la herramienta agendar_cita. Esta herramienta primero verifica la
   disponibilidad y solicita confirmación; no crea la cita inmediatamente.
+- Extrae en una sola respuesta todos los datos que el usuario haya escrito.
+  Nunca descartes especialidad, médico, ciudad, fecha u hora ya mencionados.
+- Si quiere agendar pero falta algún dato necesario, inicia agendar_cita y
+  devuelve también en parametros todos los datos que sí fueron encontrados.
 - Para agendar_cita usa solamente estos parámetros cuando estén disponibles:
   id_medico, nombre, apellido, especialidad, ciudad y fecha.
 - Convierte fechas como "24/08/2026 a las 10:00 am" al formato
   "2026-08-24 10:00" sin cambiar la hora indicada.
 - Si quiere ver sus citas existentes, usa consultar_disponibilidad.
 - Si quiere buscar profesionales sin agendar, usa buscar_medico.
+- Si pregunta en cualquier idioma por su nombre, edad, nacimiento, datos
+  personales, perfil o "todo lo que sabes de mí", usa consultar_perfil.
+  Usa el parámetro tipo con uno de estos valores: nombre, edad,
+  fecha_nacimiento, nombre_edad, perfil o memoria. Si pide nombre y edad
+  simultáneamente, usa nombre_edad. Esto NO es el historial clínico.
+- Usa consultar_historial solamente si menciona explícitamente su historia
+  clínica, diagnósticos, consultas médicas o registros clínicos.
 - Si quiere reprogramar y faltan el id o la nueva fecha, inicia
   reprogramar_cita. Si ya están ambos, usa esa herramienta directamente.
 - Si quiere cancelar y falta el id, inicia cancelar_cita. Si ya está,
@@ -115,86 +132,150 @@ def extraer_json(texto):
         "accion": "gemini",
         "parametros": {}
     }
-def procesar_mensaje(historial, mensaje):
 
-    contents = historial[-12:]
+PATRON_CONSULTA_MEDICA = re.compile(
+    r"\b("
+    r"s[ií]ntoma|fiebre|dolor|mareo|n[aá]usea|v[oó]mito|"
+    r"diagn[oó]stico|medicamento|acetaminof[eé]n|paracetamol|"
+    r"dosis|alergia|peso|edad|a[nñ]os|me siento|me duele|"
+    r"tom[eé]|tomado|enfermedad|temperatura"
+    r")\b",
+    re.IGNORECASE,
+)
 
-    if not contents:
-        contents = [
-            {
-                "role": "user",
-                "parts": [{"text": mensaje}],
-            }
-        ]
-
-    response = client.models.generate_content(
-
-        model="gemini-2.5-flash",
-
-        contents=contents,
-
-        config=GenerateContentConfig(
-            system_instruction=PROMPT_ROUTER,
-            temperature=0,
-            response_mime_type="application/json",
+PATRON_SOLICITUD_CITA = re.compile(
+    r"\b("
+    r"agendar|reservar|programar|pedir|solicitar|sacar"
+    r")\b.{0,30}\b(cita|consulta)\b|"
+    r"\b(cita|consulta)\b.{0,30}\b("
+    r"agendar|reservar|programar|pedir|solicitar|sacar"
+    r")\b",
+    re.IGNORECASE,
+)
+def _respuesta_gemini(contents, streaming=False):
+    if streaming:
+        return RouterDecision(
+            tool=False,
+            respuesta=None,
+            parametros={
+                "__stream_gemini__": True,
+                "contents": contents,
+            },
         )
 
+    return RouterDecision(
+        tool=False,
+        respuesta=preguntar_gemini(contents),
     )
 
-    try:
 
-        decision = extraer_json(response.text)
+def procesar_mensaje(historial, mensaje, streaming=False):
+
+    if solicita_buscar_medicos(mensaje):
+        return RouterDecision(
+            tool=True,
+            tool_name="buscar_medico",
+            parametros={},
+        )
+
+    mensaje_actual = str(mensaje or "").strip()
+
+    # Copiamos el historial para no modificar la lista original.
+    contents = list(historial or [])[-12:]
+
+
+    # El mensaje actual debe agregarse siempre.
+    # Antes solo se agregaba cuando el historial estaba vacío.
+    ultimo_texto = ""
+    if contents:
+        try:
+            ultimo = contents[-1]
+            partes = ultimo.get("parts", [])
+
+            if partes:
+                ultimo_texto = str(partes[-1].get("text", "")).strip()
+        except (AttributeError, IndexError, TypeError):
+            ultimo_texto = ""
+
+    # Evita duplicarlo si ConversationManager ya lo agregó al historial.
+    if mensaje_actual and ultimo_texto != mensaje_actual:
+        contents.append({
+            "role": "user",
+            "parts": [
+                {
+                    "text": mensaje_actual,
+                }
+            ],
+        })
+
+    es_consulta_medica = bool(PATRON_CONSULTA_MEDICA.search(mensaje_actual))
+    solicita_cita_explicita = bool(
+        PATRON_SOLICITUD_CITA.search(mensaje_actual)
+    )
+
+    # El mensaje actual ya está incluido en `contents`. Esto evita el error
+    # "contents are required" y mantiene el contexto de síntomas anteriores.
+    if es_consulta_medica and not solicita_cita_explicita:
+        return _respuesta_gemini(contents, streaming=streaming)
+
+    if not contents:
+        return RouterDecision(
+            tool=False,
+            respuesta=(
+                "No recibí el contenido de tu mensaje. "
+                "Por favor, vuelve a intentarlo."
+            ),
+        )
+
+    try:
+        fecha_actual = timezone.localdate().isoformat()
+
+        instruccion_router = (
+            f"{PROMPT_ROUTER}\n"
+            f"La fecha local actual es {fecha_actual}. "
+            "Si una fecha no incluye año, usa la próxima ocurrencia futura."
+        )
+
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=contents,
+            config=GenerateContentConfig(
+                system_instruction=instruccion_router,
+                temperature=0,
+                response_mime_type="application/json",
+            ),
+        )
+
+        decision = extraer_json(response.text or "")
 
     except Exception:
+        logger.exception("No fue posible consultar el router de Gemini")
 
-        decision = {
-            "accion": "gemini",
-            "parametros": {}
-        }
-
-    # ----------------------------
-    # Iniciar un flujo
-    # ----------------------------
+        return RouterDecision(
+            tool=False,
+            respuesta=(
+                "En este momento no puedo procesar tu solicitud. "
+                "Por favor, intenta nuevamente en unos segundos."
+            ),
+        )
 
     accion = decision.get("accion", "gemini")
 
     if accion == "flujo":
-
         return RouterDecision(
             usa_flujo=True,
-            iniciar_flujo=decision.get("nombre")
+            iniciar_flujo=decision.get("nombre"),
+            parametros=decision.get("parametros", {}),
         )
 
-    # ----------------------------
-    # Ejecutar una Tool
-    # ----------------------------
-
     if accion == "tool":
-
         return RouterDecision(
             tool=True,
             tool_name=decision.get("tool"),
-            parametros=decision.get("parametros", {})
+            parametros=decision.get("parametros", {}),
         )
-
-    # ----------------------------
-    # Responder con Gemini
-    # ----------------------------
 
     if accion == "gemini":
+        return _respuesta_gemini(contents, streaming=streaming)
 
-        respuesta = preguntar_gemini(historial)
-
-        return RouterDecision(
-            tool=False,
-            respuesta=respuesta,
-        )
-
-    # ----------------------------
-    # Respuesta por defecto
-    # ----------------------------
-
-    return RouterDecision(
-        tool=False,
-        respuesta=preguntar_gemini(historial),
-    )
+    return _respuesta_gemini(contents, streaming=streaming)

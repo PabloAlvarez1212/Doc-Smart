@@ -30,6 +30,21 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+ELEVENLABS_API_KEY = os.getenv(
+    "ELEVENLABS_API_KEY",
+    "",
+)
+
+ELEVENLABS_VOICE_ID = os.getenv(
+    "ELEVENLABS_VOICE_ID",
+    "",
+)
+
+ELEVENLABS_MODEL_ID = os.getenv(
+    "ELEVENLABS_MODEL_ID",
+    "eleven_multilingual_v2",
+)
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -110,6 +125,9 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
     }
 }
 
@@ -124,9 +142,12 @@ DEFAULT_FROM_EMAIL = os.getenv('EMAIL_HOST_USER')
 
 # Usa autenticación JWT personalizada para soportar Medico y Usuario
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'utils.CustomJWTAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "utils.CustomJWTAuthentication",
     ],
+    "DEFAULT_THROTTLE_RATES": {
+        "bymax_voice": "30/min",
+    },
 }
 
 from datetime import timedelta

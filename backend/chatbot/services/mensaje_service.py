@@ -1,4 +1,5 @@
 from chatbot.models import Mensaje
+from chatbot.serializers import MensajesSerializer
 
 
 class MensajeService:
@@ -25,10 +26,11 @@ class MensajeService:
     @staticmethod
     def listar_mensajes(chat):
 
-        return (
+        mensajes = (
             Mensaje.objects
             .filter(
                 id_chat=chat
             )
             .order_by("fecha")
         )
+        return MensajesSerializer(mensajes, many=True).data

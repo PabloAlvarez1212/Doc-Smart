@@ -14,8 +14,22 @@ from chatbot.tools.medicos import (
 from chatbot.tools.historial import (
     ConsultarHistorialTool
 )
+from chatbot.tools.usuarios import ConsultarPerfilTool
 
 TOOLS = {
+
+    "consultar_perfil": ToolDefinition(
+        nombre="consultar_perfil",
+        descripcion=(
+            "Consulta exclusivamente el perfil y la memoria del usuario "
+            "autenticado. Parámetro tipo: nombre, edad, fecha_nacimiento, "
+            "nombre_edad, perfil o memoria. Úsala en cualquier idioma para "
+            "preguntas como "
+            "mi nombre, mi edad, mis datos o todo lo que sabes de mí."
+        ),
+        funcion=ConsultarPerfilTool(),
+        categoria="usuarios",
+    ),
 
     "consultar_disponibilidad": ToolDefinition(
         nombre="consultar_disponibilidad",

@@ -10,8 +10,7 @@ import {
 } from "@/app/services/patientServices";
 
 export default function useProfile() {
-
-    const [perfil, setPerfil] = useState({});
+    const [perfil, setPerfil] = useState({notificaciones: []});
     const [loading, setLoading] = useState(true);
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState(null);

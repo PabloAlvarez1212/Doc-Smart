@@ -51,6 +51,7 @@
 }
 .containerSidebar .fotoPerfil .nombre{
     font-size: 23px;
+    text-align: center;
 }   
 .containerSidebar .fotoPerfil .rol{
     margin-bottom: 20px;

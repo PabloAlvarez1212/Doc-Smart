@@ -1,0 +1,11 @@
+.containerHero{
+    display: flex;
+    width: 90%;
+    justify-content: space-between;
+    margin: 0 auto;
+    padding-top: 55px;
+    align-items: center;
+}
+.containerHero .Header h2{
+    font-size: 40px;
+}

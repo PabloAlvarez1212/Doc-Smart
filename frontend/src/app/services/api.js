@@ -12,8 +12,16 @@ api.interceptors.response.use(
     (response) => response,
 
     async (error) => {
+
+        const url = error.config?.url;
+
+        const esLogin =
+            url?.includes("/login/") ||
+            url?.includes("/login");
+
         if (
             error.response?.status === 401 &&
+            !esLogin &&
             !mostrandoSesionExpirada
         ) {
             mostrandoSesionExpirada = true;

@@ -7,6 +7,12 @@ from datetime import date
 # ── SERIALIZERS DE SALIDA (lectura) ───────────────────────────────────────────
 
 # Serializer simple para listar especialidades
+class EspecialidadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Especialidad
+        fields = '__all__'
+
+# Serializer simple para listar especialidades
 class MedicoPerfilSerializer(serializers.ModelSerializer):
 
     rol = serializers.CharField(

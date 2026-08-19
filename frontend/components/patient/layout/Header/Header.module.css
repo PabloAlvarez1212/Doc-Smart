@@ -1,10 +1,27 @@
 .containerHeader{
-    width: 100%;
+    width: 97%;
     position: fixed;
-    top: 0;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 100;
     background-color: white;
     height: 160px;
+    border-radius: 60px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.05),
+        0 8px 20px rgba(0, 0, 0, 0.06);
+}
+.iconSettings{
+    width: 32px;
+    height: 32px;
+}
+.iconSettings:hover{
+    cursor: pointer;
+    opacity: 70%;
+    width: 34px;
+    height: 34px;
 }
 .container{
     display: flex;
@@ -15,16 +32,14 @@
     margin-top: 2rem;
     margin-bottom: 1.5rem;
 }
-.icons{
-    display: flex;
-    gap: 1rem;
-    align-items: center;
+
+.logout button{
+    padding: 10px 14px;
+    font-size: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
-.icons .icon{
-    cursor: pointer;
-}
-.icons .icon:hover{
-    opacity: 60%;
+.iconLogout{
+    margin-right: 10px;
 }
 .logo{
     display: flex;
@@ -72,11 +87,4 @@
     color: #2B7FFF;
     border-radius: 8px;
     padding: 5px 10px;
-}
-.line{
-    background-color: var(--color-dark);
-    width: 100%;
-    height: 5px;
-    margin-top: 2rem ;
-    opacity: 90%;
 }

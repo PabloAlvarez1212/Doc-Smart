@@ -1,3 +1,4 @@
+import logging
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -11,8 +12,20 @@ from chatbot.services import (
 )
 
 from chatbot.serializers import CrearMensajeSerializer
+from chatbot.services.imagen_medica_service import (
+    analizar_imagen_medica,
+    validar_imagen_medica,
+)
 
+from django.http import HttpResponse
+from rest_framework.throttling import ScopedRateThrottle
 
+from chatbot.ai.elevenlabs_service import (
+    ElevenLabsError,
+    generar_audio_bymax,
+)
+
+logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────────────────────────
 # HELPERS
 # ──────────────────────────────────────────────────────────────────────────────
@@ -254,12 +267,18 @@ class ChatbotResponderView(APIView):
     def post(self, request, id_chat):
 
         mensaje = request.data.get("mensaje")
+        imagen = request.FILES.get("imagen")
 
-        if not mensaje:
+        if not mensaje and not imagen:
             return respuesta_error(
-                "Debe enviar un mensaje.",
+                "Debe enviar un mensaje o una imagen médica.",
                 status=400,
             )
+
+        if imagen:
+            error_imagen = validar_imagen_medica(imagen)
+            if error_imagen:
+                return respuesta_error(error_imagen, status=400)
 
         try:
 
@@ -278,18 +297,31 @@ class ChatbotResponderView(APIView):
         try:
 
             # Guardar mensaje del usuario
+            contenido_usuario = mensaje or "Analiza esta imagen médica."
+            if imagen:
+                contenido_usuario = (
+                    f"{contenido_usuario}\n[Imagen adjunta: {imagen.name}]"
+                )
+
             Mensaje.objects.create(
                 id_chat=chat,
-                contenido=mensaje,
+                contenido=contenido_usuario,
                 es_bot=False,
-                tipo="texto",
+                tipo="imagen" if imagen else "texto",
             )
 
+            if chat.titulo == "Nuevo chat":
+                chat.titulo = (mensaje or "Consulta con imagen")[:150]
+                chat.save(update_fields=["titulo", "ultima_interaccion"])
+
             # Procesar conversación
-            respuesta = ConversationManager.procesar(
-                chat=chat,
-                mensaje=mensaje,
-            )
+            if imagen:
+                respuesta = analizar_imagen_medica(imagen, mensaje or "")
+            else:
+                respuesta = ConversationManager.procesar(
+                    chat=chat,
+                    mensaje=mensaje,
+                )
 
             texto, resultado = normalizar_respuesta_bymax(respuesta)
 
@@ -316,5 +348,82 @@ class ChatbotResponderView(APIView):
 
             return respuesta_error(
                 str(e),
+                status=500,
+            )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# VOZ DE BYMAX
+# ──────────────────────────────────────────────────────────────────────────────
+
+class BymaxVoiceView(APIView):
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "bymax_voice"
+
+    def post(self, request):
+        texto = request.data.get("texto")
+        velocidad = request.data.get("velocidad", 0.96)
+
+        if not isinstance(texto, str) or not texto.strip():
+            return respuesta_error(
+                "Debe enviar el texto que Bymax debe pronunciar.",
+                status=400,
+            )
+
+        if len(texto.strip()) > 2500:
+            return respuesta_error(
+                "El texto para la voz no puede superar 2500 caracteres.",
+                status=400,
+            )
+
+        try:
+            velocidad = float(velocidad)
+        except (TypeError, ValueError):
+            return respuesta_error(
+                "La velocidad de voz no tiene un formato válido.",
+                status=400,
+            )
+
+        if velocidad < 0.7 or velocidad > 1.2:
+            return respuesta_error(
+                "La velocidad debe estar entre 0.7 y 1.2.",
+                status=400,
+            )
+
+        try:
+            audio = generar_audio_bymax(
+                texto=texto,
+                velocidad=velocidad,
+            )
+
+            response = HttpResponse(
+                audio,
+                content_type="audio/mpeg",
+                status=200,
+            )
+
+            response["Content-Disposition"] = (
+                'inline; filename="bymax-respuesta.mp3"'
+            )
+            response["Cache-Control"] = "private, no-store"
+            response["X-Content-Type-Options"] = "nosniff"
+
+            return response
+
+        except ElevenLabsError as error:
+            return respuesta_error(
+                str(error),
+                status=error.status_code,
+            )
+
+        except Exception:
+            logger.exception(
+                "Error inesperado generando la voz de Bymax"
+            )
+
+            return respuesta_error(
+                "No fue posible generar la voz de Bymax.",
                 status=500,
             )

@@ -103,7 +103,7 @@ export default function useAppointments() {
     const cargarDepartamentos = async () => {
         try {
             const data = await getDepartamentosService();
-            setDepartamentos(data)
+            setDepartamentos(data.data)
         } catch (error) {
             console.log(error)
         }
@@ -114,7 +114,7 @@ export default function useAppointments() {
 
             const data = await getEspecialidadesService();
 
-            setEspecialidades(data);
+            setEspecialidades(data.data);
 
         } catch (error) {
 

@@ -1,5 +1,6 @@
 "use client";
 import { X } from "lucide-react";
+import { createPortal } from "react-dom";
 import styles from "./Modal.module.css";
 
 /**
@@ -14,23 +15,29 @@ import styles from "./Modal.module.css";
 export default function Modal({ abierto, onCerrar, titulo, children }) {
   if (!abierto) return null;
 
-  return (
+  return createPortal(
     <div className={styles.overlay} onClick={onCerrar}>
       <div
         className={styles.modal}
-        onClick={(e) => e.stopPropagation()} // evita cerrar al clickear el contenido
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header del modal */}
         <div className={styles.header}>
           <h2 className={styles.titulo}>{titulo}</h2>
-          <button className={styles.cerrar} onClick={onCerrar} type="button">
+
+          <button
+            className={styles.cerrar}
+            onClick={onCerrar}
+            type="button"
+          >
             <X size={22} />
           </button>
         </div>
 
-        {/* Contenido */}
-        <div className={styles.body}>{children}</div>
+        <div className={styles.body}>
+          {children}
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
