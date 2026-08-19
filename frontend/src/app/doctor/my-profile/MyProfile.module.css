@@ -1,0 +1,23 @@
+.containerMain {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 30px;
+    padding: 30px 20px;
+    width: 100%;
+}
+
+.profileSidebar {
+    min-width: 0;
+}
+
+.personalInfo {
+    min-width: 0;
+}
+
+@media (max-width: 1000px) {
+
+    .containerMain {
+        grid-template-columns: 1fr;
+    }
+
+}
