@@ -16,19 +16,19 @@ export function estadoDiseño(data) {
     }
 }
 
-export function renderIcono(tipo){
+export function renderIcono(tipo,size){
     switch(tipo){
         case "nueva_solicitud":
-            return <CheckCircle color="green" />
+            return <CheckCircle size={size} color="#F59E0B" />
         case "cita_pendiente":
-            return <CheckCircle color="green" />
+            return <CheckCircle size={size} color="#F59E0B" />
         case "cita_confirmada":
-            return <CheckCircle color="green" />
+            return <CheckCircle size={size} color="#2563EB" />
         case "cita_reprogramada":
-            return <AlertCircle color="#FFAD51" />
+            return <AlertCircle size={size} color="#FFAD51" />
         case "cita_completada":
-            return <CheckCircle color="green" />
+            return <CheckCircle size={size} color="#22C55E" />
         case "cita_cancelada":
-            return <XCircle color="#FF0000" />;
+            return <XCircle size={size} color="#FF0000" />;
     }
 }
