@@ -1,0 +1,100 @@
+.containerMan{
+    width: 90%;
+    margin: 0 auto;
+    padding-top: 60px;
+    padding-bottom: 20px;
+}
+.containerMan .containerCard{
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+.containerMan .containerCard .card{
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    padding: 30px;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+}
+.containerMan .containerCard .card::before{
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 6px;
+    height: 100%;
+    background-color: var(--color-dark);
+}
+.containerMan .containerCard .cita_pendiente::before,
+.containerMan .containerCard .nueva_solicitud::before{
+    background-color: #F59E0B;
+}
+.containerMan .containerCard .cita_completada::before{
+    background-color: #22C55E;
+}
+.containerMan .containerCard .cita_reprogramada::before{
+    background-color: #8B5CF6;
+}
+.containerMan .containerCard .cita_confirmada::before{
+    background-color: #2563EB;
+}
+.containerMan .containerCard .cita_cancelada::before{
+    background-color: #EF4444;
+}
+.containerMan .containerCard .card h3{
+    font-size: 23px;
+}
+.containerMan .containerCard .card .container{
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.containerMan .containerCard .card .containerAcciones{
+    display: flex;
+    flex-direction: column;
+    width: 100px;
+    align-items: end;
+}
+
+.containerMan .containerCard .card .containerAcciones .btns{
+    display: flex;
+    gap: 25px;
+}
+.containerMan .containerCard .card .containerAcciones .btns .btn{
+    width: 20px;
+    height: 20px;
+}
+.containerMan .containerCard .card .containerAcciones .btns .btn:hover{
+    cursor: pointer;
+    width: 21px;
+    height: 21px;
+    opacity: 90%;
+    transform: translateY(-2px);
+}
+.containerMan .containerCard .card .containerAcciones p{
+    position: absolute;
+    bottom: 5px;
+    font-size: 15px;
+    color: #8D9395;
+}
+.containerMan .containerCard .card .containerTitle{
+    display: flex;
+    gap: 18px;
+    align-items: center;
+}
+.containerMan .containerCard .card .containerTitle p{
+    background-color: black;
+    padding: 3px 10px;
+    color: white;
+    border-radius: 10px;
+}
+.containerMan .containerCard .card .containerText{
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
