@@ -112,7 +112,6 @@ export const getCiudadesPorDepartamentoService = async function (idDepartamento)
 
 
 
-
 //===========================DEPARTAMENTOS===========================
 export const getDepartamentosService = async (page, search) => {
     const response = await api.get(`${API_URL}catalogos/departamentos/`, {
@@ -122,5 +121,5 @@ export const getDepartamentosService = async (page, search) => {
             search: search || undefined,
         },
     })
-    return response.data.data
+    return response.data
 }
