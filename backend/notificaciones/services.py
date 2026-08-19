@@ -2,6 +2,7 @@
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from notificaciones.models import Notificacion
+from medicos.models import Medico
 from notificaciones.serializers import NotificacionSerializer
 from citas.serializers import CitaSerializer
 
@@ -67,3 +68,63 @@ def notificar_actualizacion_cita(cita, fue_creada=False):
             "cita": data_cita
         }
     )
+
+def listarNotificacionesService(usuario):
+
+    if isinstance(usuario, Medico):
+
+        notificaciones = Notificacion.objects.filter(
+            id_medico=usuario
+        ).order_by("-fecha")
+
+    else:
+
+        notificaciones = Notificacion.objects.filter(
+            id_usuario=usuario
+        ).order_by("-fecha")
+
+    data = []
+
+    for notificacion in notificaciones:
+        data.append({
+            "id": notificacion.id,
+            "titulo": notificacion.titulo,
+            "mensaje": notificacion.mensaje,
+            "tipo": notificacion.tipo,
+            "leida": notificacion.leida,
+            "fecha": notificacion.fecha,
+        })
+
+    return data, 200
+
+def marcarNotificacionLeidaService(id_notificacion, usuario):
+
+    notificacion = Notificacion.objects.filter(
+        id=id_notificacion
+    ).first()
+
+    if not notificacion:
+        return "Notificación no encontrada", 404
+
+    es_destinatario = False
+
+    if notificacion.id_usuario:
+        es_destinatario = (
+            notificacion.id_usuario.id == usuario.id
+        )
+
+    if notificacion.id_medico:
+        es_destinatario = (
+            notificacion.id_medico.id == usuario.id
+        )
+
+    if not es_destinatario:
+        return "No tienes permiso para modificar esta notificación", 403
+
+    if not notificacion.leida:
+        notificacion.leida = True
+        notificacion.save(
+            update_fields=["leida"]
+        )
+
+    return "Notificación marcada como leída", 200

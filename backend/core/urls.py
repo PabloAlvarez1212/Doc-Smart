@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/catalogos/',  include('catalogos.urls')),
     path('api/citas/',      include('citas.urls')),
     path('api/historial/',  include('historial_medico.urls')),
+    path('api/notificaciones/', include('notificaciones.urls')),
 ]
 
 if settings.DEBUG:
