@@ -19,6 +19,7 @@ class Medico(models.Model):
     contraseña = models.CharField(max_length=255)                 # Almacenada con hash bcrypt
     id_especialidad = models.ForeignKey(Especialidad, on_delete=models.PROTECT)  # No permite borrar especialidad en uso
     id_rol = models.ForeignKey(Rol, on_delete=models.PROTECT)    # Rol asignado (ej: doctor)
+    foto_perfil = models.ImageField(upload_to='perfiles/medicos/',null=True,blank=True)
     token_reset = models.CharField(max_length=100, null=True, blank=True)        # Token para recuperar contraseña
     token_reset_expira = models.DateTimeField(null=True, blank=True)             # Expiración del token de reset
     ultimo_envio = models.DateTimeField(null=True, blank=True)   # Control de frecuencia de envío de correos
