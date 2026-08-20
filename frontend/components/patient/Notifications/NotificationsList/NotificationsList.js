@@ -25,9 +25,13 @@ export default function NotificationsList({ data, marcarLeida, }) {
                         <div className={Styles.containerAcciones}>
                             <div className={Styles.btns}>
                                 {!notificacion.leida && (
-                                    <Check className={Styles.btn} onClick={() => marcarLeida(notificacion.id)} color="green" />
+                                    <div title="Marcar como leida">
+                                        <Check className={Styles.btn} onClick={() => marcarLeida(notificacion.id)} color="green" />
+                                    </div>
                                 )}
-                                <X className={Styles.btn} color="red" />
+                                <div title="Eliminar notificacion">
+                                    <X className={Styles.btn} color="red" />
+                                </div>
                             </div>
                             <p>{formatearFechaRelativa(notificacion.fecha)}</p>
                         </div>
