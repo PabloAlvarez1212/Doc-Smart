@@ -9,10 +9,14 @@ import { useState } from "react";
 import useLogout from "../../../hooks/useLogout";
 import Modal from "../../../ui/Modal/Modal";
 import SettingsComponent from "../../../ui/SettingsComponent/SettingsComponent";
+import useDoctor from "../../useDoctor";
 
 export default function Header() {
     const [modal, setModal] = useState(false);
     const pathName = usePathname();
+    const {
+        eliminarCuentaMedico
+    } = useDoctor();
     const activateLink = function (route) {
         return pathName === route ? Styles.activar : Styles.link;
     };
@@ -47,6 +51,7 @@ export default function Header() {
             >
                 <SettingsComponent
                     cerrarSesion={logoutUser}
+                    eliminarCuenta={eliminarCuentaMedico}
                 />
             </Modal>
         </div>

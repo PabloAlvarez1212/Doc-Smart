@@ -288,6 +288,51 @@ class PerfilMedicoView(APIView):
                 status=500
             )
 
+    def delete(self, request):
+        try:
+
+            resultado, status_code = eliminarMedicoService(
+                request.user.id
+            )
+
+            if status_code != 200:
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            response = respuesta_ok(
+                mensaje=resultado
+            )
+
+            response.delete_cookie(
+                'token',
+                path='/'
+            )
+
+            response.delete_cookie(
+                'user_role',
+                path='/'
+            )
+
+            response.delete_cookie(
+                'user_id',
+                path='/'
+            )
+
+            return response
+
+        except Exception as e:
+
+            print(
+                f"Error al eliminar cuenta del médico: {e}"
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
 class FotoPerfilMedicoView(APIView):
 
     permission_classes = [IsAuthenticated]

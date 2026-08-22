@@ -95,6 +95,15 @@ export const actualizarPerfilMedicoService = async function (formData) {
     return response.data;
 };
 
+//Eliminar cuenta del medico
+export const eliminarCuentaMedicoService = async function () {
+    const response = await api.delete(
+        "/medicos/perfil/"
+    );
+
+    return response.data;
+};
+
 
 // Actualizar foto de perfil del médico
 export const actualizarFotoPerfilMedicoService = async function (archivo) {
