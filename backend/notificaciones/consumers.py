@@ -6,8 +6,19 @@ from .models import Notificacion
 class NotificacionConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
-        self.user_id = self.scope['url_route']['kwargs']['user_id']
-        self.room_group_name = f"user_{self.user_id}"
+        self.user_id = self.scope["url_route"]["kwargs"]["user_id"]
+        self.tipo_usuario = self.scope["url_route"]["kwargs"]["tipo_usuario"]
+        
+        if self.tipo_usuario == "paciente":
+            self.room_group_name = f"user_{self.user_id}"
+
+        elif self.tipo_usuario == "medico":
+            self.room_group_name = f"medico_{self.user_id}"
+
+        else:
+            await self.close()
+            return
+
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
@@ -15,18 +26,14 @@ class NotificacionConsumer(AsyncWebsocketConsumer):
         
         await self.accept()
 
-        # Enviar el conteo inicial al conectar
-        unreads = await self.get_unread_count(self.user_id)
-        await self.send(text_data=json.dumps({
-            "type": "count_initial",
-            "count": unreads
-        }))
-        
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(
-            self.room_group_name,
-            self.channel_name
+        unreads = await self.get_unread_count(
+            self.user_id,
+            self.tipo_usuario
         )
+        await self.send(
+            text_data=json.dumps({
+                "type": "count_initial",
+                "count": unreads}))
         
     async def send_notification_count(self, event):
         payload = {
@@ -47,10 +54,18 @@ class NotificacionConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(payload))
 
     @database_sync_to_async
-    def get_unread_count(self, user_id):
-        # Cuenta si el ID corresponde a usuario o médico
-        return Notificacion.objects.filter(
-            id_usuario_id=user_id, leida=False
-        ).count() or Notificacion.objects.filter(
-            id_medico_id=user_id, leida=False
-        ).count()
+    def get_unread_count(self, user_id, tipo_usuario):
+
+        if tipo_usuario == "paciente":
+            return Notificacion.objects.filter(
+                id_usuario_id=user_id,
+                leida=False
+            ).count()
+
+        if tipo_usuario == "medico":
+            return Notificacion.objects.filter(
+                id_medico_id=user_id,
+                leida=False
+            ).count()
+
+        return 0
