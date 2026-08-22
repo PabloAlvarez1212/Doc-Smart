@@ -1,9 +1,10 @@
 "use client"
-
+import Swal from "sweetalert2"
 import { useState, useEffect, useRef } from "react"
 import {
     obtenerNotificacionesService,
-    marcarNotificacionLeidaService
+    marcarNotificacionLeidaService,
+    marcarTodasNotificacionesLeidasService,
 } from "@/app/services/notificationsServices"
 
 export const useNotificaciones = (userId, options = {}) => {
@@ -186,16 +187,43 @@ export const useNotificaciones = (userId, options = {}) => {
     }
 
     const marcarTodasLeidas = async () => {
-
-        const pendientes = notificaciones.filter(
-            notificacion => !notificacion.leida
-        )
-
-        for (const notificacion of pendientes) {
-            await marcarLeida(
-                notificacion.id
-            )
+        if (noLeidas === 0) return
+        try {
+            const respuesta = await Swal.fire({
+                title: "¿Estas seguro de marcar todas las notificaciones como leidas?",
+                text: "Todas tus notificaciones pendientes se marcarán como leídas.",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Sí, marcar todas",
+                cancelButtonText: "Cancelar",
+                reverseButtons: true
+            })
+            if (respuesta.isConfirmed) {
+                await marcarTodasNotificacionesLeidasService();
+                setNotificaciones(prev =>
+                    prev.map(notificacion => ({
+                        ...notificacion,
+                        leida: true
+                    }))
+                )
+                setNoLeidas(0)
+                await Swal.fire({
+                    icon: "success",
+                    title: "Notificaciones actualizadas",
+                    text: "Todas las notificaciones fueron marcadas como leídas."
+                })
+            }
         }
+        catch (error) {
+            console.error("Error al marcar todas las notificaciones como leídas",error)
+            await Swal.fire({
+                icon: "error",
+                title: "No se pudo realizar la acción",
+                text: "Ocurrió un error al marcar las notificaciones como leídas."
+            })
+
+        }
+
     }
 
     return {

@@ -9,6 +9,7 @@ export default function Notifications() {
 
     const {
         marcarLeida,
+        marcarTodasLeidas,
         noLeidas,
         notificaciones,
         loading: loadingNotificaciones
@@ -22,6 +23,7 @@ export default function Notifications() {
         <div>
             <Hero
                 noLeidas={noLeidas}
+                marcarTodasLeidas={marcarTodasLeidas}
             />
             <NotificationsList
                 data={{...perfil,notificaciones}}

@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     NotificacionesView,
     MarcarNotificacionLeidaView,
+    MarcarTodasNotificacionesLeidasView,
 )
 
 urlpatterns = [
@@ -14,4 +15,6 @@ urlpatterns = [
         "<int:id_notificacion>/leida/",
         MarcarNotificacionLeidaView.as_view()
     ),
+    
+    path("leida/todas",MarcarTodasNotificacionesLeidasView.as_view())
 ]

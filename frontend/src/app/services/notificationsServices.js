@@ -10,3 +10,8 @@ export const marcarNotificacionLeidaService = async function (id_notificacion) {
     const response = await api.patch(`${API_URL}notificaciones/${id_notificacion}/leida/`);
     return response.data;
 };
+
+export const marcarTodasNotificacionesLeidasService = async function () {
+    const response = await api.patch('notificaciones/leida/todas');
+    return response.data
+}

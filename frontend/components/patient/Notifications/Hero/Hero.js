@@ -10,7 +10,7 @@ export default function Hero({ noLeidas, marcarTodasLeidas }) {
                 <p>Tienes {noLeidas ?? 0} notificaciones sin leer</p>
             </div>
             <div className={Styles.accionesGlobales}>
-                <Button className={Styles.btnLeerTodas} onClick={marcarTodasLeidas} disabled={noLeidas === 0}><CheckCheck size={18} />Marcar todas como leídas</Button>
+                <Button className={Styles.btnLeerTodas} onClick={() => marcarTodasLeidas()} disabled={noLeidas === 0}><CheckCheck size={18} />Marcar todas como leídas</Button>
                 <Button className={Styles.btnEliminarTodas}><Trash2 size={18} />Eliminar todas</Button>
             </div>
         </div>

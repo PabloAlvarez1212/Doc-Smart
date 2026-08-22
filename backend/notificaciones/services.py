@@ -3,6 +3,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from notificaciones.models import Notificacion
 from medicos.models import Medico
+from users.models import Usuario
 from notificaciones.serializers import NotificacionSerializer
 from citas.serializers import CitaSerializer
 
@@ -128,3 +129,17 @@ def marcarNotificacionLeidaService(id_notificacion, usuario):
         )
 
     return "Notificación marcada como leída", 200
+
+def marcarTodasNotificacionesLeidasService(usuario):
+    if isinstance(usuario,Usuario):
+        notificaciones = Notificacion.objects.filter(id_usuario=usuario,leida=False)
+    
+    elif isinstance(usuario,Medico):
+        notificaciones = Notificacion.objects.filter(id_medico=usuario,leida=False)
+        
+    else:
+        return "Usuario no válido",400
+    
+    notificaciones.update(leida=True)
+    
+    return "Notificaciones marcadas como leidas",200
