@@ -11,9 +11,10 @@ export default function Notifications() {
         marcarLeida,
         marcarTodasLeidas,
         noLeidas,
+        eliminarNotificacion,
         notificaciones,
         loading: loadingNotificaciones
-    } = useNotificaciones(perfil?.id);
+    } = useNotificaciones(perfil?.id,"paciente");
 
     if (loading || loadingNotificaciones) {
         return <p>Cargando notificaciones...</p>;
@@ -28,6 +29,7 @@ export default function Notifications() {
             <NotificationsList
                 data={{...perfil,notificaciones}}
                 marcarLeida={marcarLeida}
+                eliminarNotificacion={eliminarNotificacion}
             />
         </div>
     )

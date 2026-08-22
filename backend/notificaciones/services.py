@@ -143,3 +143,19 @@ def marcarTodasNotificacionesLeidasService(usuario):
     notificaciones.update(leida=True)
     
     return "Notificaciones marcadas como leidas",200
+
+def eliminarNotificacionService(usuario,idNotificacion):
+
+    if isinstance(usuario,Usuario):
+        notificacion = Notificacion.objects.filter(id=idNotificacion,id_usuario=usuario).first()
+    elif isinstance(usuario,Medico):
+        notificacion = Notificacion.objects.filter(id=idNotificacion,id_medico=usuario).first()
+    else:
+        return "Usuario no válido",400
+    
+    if not notificacion:
+        return "Notificación no encontrada", 404
+    
+    notificacion.delete()
+    
+    return "Notificacion eliminada correctamente",200

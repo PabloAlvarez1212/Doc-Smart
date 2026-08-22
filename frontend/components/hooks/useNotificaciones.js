@@ -5,10 +5,11 @@ import {
     obtenerNotificacionesService,
     marcarNotificacionLeidaService,
     marcarTodasNotificacionesLeidasService,
+    eliminarNotificacionService,
 } from "@/app/services/notificationsServices"
 import { obtenerPrimerError } from "@/app/utils/errrorUtils"
 
-export const useNotificaciones = (userId, options = {}) => {
+export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
 
     const { onEventoCita } = options
 
@@ -69,7 +70,7 @@ export const useNotificaciones = (userId, options = {}) => {
         if (!userId) return
 
         ws.current = new WebSocket(
-            `ws://localhost:8000/ws/notificaciones/${userId}/`
+            `ws://localhost:8000/ws/notificaciones/${tipoUsuario}/${userId}/`
         )
 
         ws.current.onopen = () => {
@@ -145,7 +146,7 @@ export const useNotificaciones = (userId, options = {}) => {
             }
         }
 
-    }, [userId])
+    }, [userId,tipoUsuario])
 
     const marcarLeida = async (idNotificacion) => {
 
@@ -233,11 +234,47 @@ export const useNotificaciones = (userId, options = {}) => {
 
     }
 
+    const eliminarNotificacion = async (idNotificacion) => {
+        const respuesta = await Swal.fire({
+            title: "¿Eliminar notificación?",
+            text: "Esta notificación será eliminada permanentemente.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+            reverseButtons: true
+        })
+
+        if (!respuesta.isConfirmed) return
+
+        try {
+            await eliminarNotificacionService(idNotificacion)
+
+            setNotificaciones(prev =>
+                prev.filter(
+                    notificacion =>
+                        notificacion.id !== idNotificacion
+                )
+            )
+
+        } catch (error) {
+            console.error("Error al eliminar notificacion como leídas", error)
+            await Swal.fire({
+                icon: "error",
+                title: "No se pudo eliminar",
+                text:
+                    mensajeBackend ||
+                    "Ocurrió un error al eliminar la notificación."
+            })
+        }
+    }
+
     return {
         notificaciones,
         noLeidas,
         marcarLeida,
         marcarTodasLeidas,
+        eliminarNotificacion,
         cargarNotificaciones,
         loading,
         error

@@ -15,3 +15,8 @@ export const marcarTodasNotificacionesLeidasService = async function () {
     const response = await api.patch('notificaciones/leida/todas');
     return response.data
 }
+
+export const eliminarNotificacionService = async function (id_notificacion) {
+    const response = await api.delete(`notificaciones/${id_notificacion}/eliminar/`)
+    return response.data;
+}
