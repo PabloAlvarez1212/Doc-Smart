@@ -86,6 +86,7 @@ class MarcarNotificacionLeidaView(APIView):
             )
 
 class MarcarTodasNotificacionesLeidasView(APIView):
+    permission_classes = [IsAuthenticated]
     def patch(self,request):
         try:
             respuesta, status_code = marcarTodasNotificacionesLeidasService(usuario=request.user)
@@ -93,4 +94,5 @@ class MarcarTodasNotificacionesLeidasView(APIView):
                 return respuesta_error(mensaje=respuesta,status=status_code)
             return respuesta_ok(mensaje=respuesta,status=status_code)
         except Exception as e:
+            print(e)
             return respuesta_error(mensaje="Error interno en el servidor",status=500)
