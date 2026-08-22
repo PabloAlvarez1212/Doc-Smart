@@ -6,6 +6,7 @@ import {
     marcarNotificacionLeidaService,
     marcarTodasNotificacionesLeidasService,
 } from "@/app/services/notificationsServices"
+import { obtenerPrimerError } from "@/app/utils/errrorUtils"
 
 export const useNotificaciones = (userId, options = {}) => {
 
@@ -178,11 +179,15 @@ export const useNotificaciones = (userId, options = {}) => {
             )
 
         } catch (error) {
-
-            console.error(
-                "Error al marcar la notificación como leída",
-                error
-            )
+            console.error("Error al marcar la notificación como leída",error)
+            const mensajeBackend = obtenerPrimerError(error.response?.data?.errores)
+            await Swal.fire({
+                icon: "error",
+                title: "No se pudo eliminar",
+                text:
+                    mensajeBackend ||
+                    "Ocurrió un error al eliminar la notificación."
+            })
         }
     }
 
@@ -215,11 +220,13 @@ export const useNotificaciones = (userId, options = {}) => {
             }
         }
         catch (error) {
-            console.error("Error al marcar todas las notificaciones como leídas",error)
+            console.error("Error al marcar todas las notificaciones como leídas", error)
             await Swal.fire({
                 icon: "error",
-                title: "No se pudo realizar la acción",
-                text: "Ocurrió un error al marcar las notificaciones como leídas."
+                title: "No se pudo eliminar",
+                text:
+                    mensajeBackend ||
+                    "Ocurrió un error al eliminar la notificación."
             })
 
         }
