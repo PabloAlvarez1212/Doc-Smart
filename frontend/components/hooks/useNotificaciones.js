@@ -1,12 +1,16 @@
 "use client"
-
+import Swal from "sweetalert2"
 import { useState, useEffect, useRef } from "react"
 import {
     obtenerNotificacionesService,
-    marcarNotificacionLeidaService
+    marcarNotificacionLeidaService,
+    marcarTodasNotificacionesLeidasService,
+    eliminarNotificacionService,
+    eliminarTodasNotificacionesService,
 } from "@/app/services/notificationsServices"
+import { obtenerPrimerError } from "@/app/utils/errrorUtils"
 
-export const useNotificaciones = (userId, options = {}) => {
+export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
 
     const { onEventoCita } = options
 
@@ -67,7 +71,7 @@ export const useNotificaciones = (userId, options = {}) => {
         if (!userId) return
 
         ws.current = new WebSocket(
-            `ws://localhost:8000/ws/notificaciones/${userId}/`
+            `ws://localhost:8000/ws/notificaciones/${tipoUsuario}/${userId}/`
         )
 
         ws.current.onopen = () => {
@@ -143,7 +147,7 @@ export const useNotificaciones = (userId, options = {}) => {
             }
         }
 
-    }, [userId])
+    }, [userId,tipoUsuario])
 
     const marcarLeida = async (idNotificacion) => {
 
@@ -177,24 +181,128 @@ export const useNotificaciones = (userId, options = {}) => {
             )
 
         } catch (error) {
-
-            console.error(
-                "Error al marcar la notificación como leída",
-                error
-            )
+            console.error("Error al marcar la notificación como leída",error)
+            const mensajeBackend = obtenerPrimerError(error.response?.data?.errores)
+            await Swal.fire({
+                icon: "error",
+                title: "No se pudo eliminar",
+                text:
+                    mensajeBackend ||
+                    "Ocurrió un error al eliminar la notificación."
+            })
         }
     }
 
     const marcarTodasLeidas = async () => {
+        if (noLeidas === 0) return
+        try {
+            const respuesta = await Swal.fire({
+                title: "¿Estas seguro de marcar todas las notificaciones como leidas?",
+                text: "Todas tus notificaciones pendientes se marcarán como leídas.",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Sí, marcar todas",
+                cancelButtonText: "Cancelar",
+                reverseButtons: true
+            })
+            if (respuesta.isConfirmed) {
+                await marcarTodasNotificacionesLeidasService();
+                setNotificaciones(prev =>
+                    prev.map(notificacion => ({
+                        ...notificacion,
+                        leida: true
+                    }))
+                )
+                setNoLeidas(0)
+                await Swal.fire({
+                    icon: "success",
+                    title: "Notificaciones actualizadas",
+                    text: "Todas las notificaciones fueron marcadas como leídas."
+                })
+            }
+        }
+        catch (error) {
+            console.error("Error al marcar todas las notificaciones como leídas", error)
+            await Swal.fire({
+                icon: "error",
+                title: "No se pudo eliminar",
+                text:
+                    mensajeBackend ||
+                    "Ocurrió un error al eliminar la notificación."
+            })
 
-        const pendientes = notificaciones.filter(
-            notificacion => !notificacion.leida
-        )
+        }
 
-        for (const notificacion of pendientes) {
-            await marcarLeida(
-                notificacion.id
+    }
+
+    const eliminarNotificacion = async (idNotificacion) => {
+        const respuesta = await Swal.fire({
+            title: "¿Eliminar notificación?",
+            text: "Esta notificación será eliminada permanentemente.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+            reverseButtons: true
+        })
+
+        if (!respuesta.isConfirmed) return
+
+        try {
+            await eliminarNotificacionService(idNotificacion)
+
+            setNotificaciones(prev =>
+                prev.filter(
+                    notificacion =>
+                        notificacion.id !== idNotificacion
+                )
             )
+
+        } catch (error) {
+            console.error("Error al eliminar notificacion como leídas", error)
+            await Swal.fire({
+                icon: "error",
+                title: "No se pudo eliminar",
+                text:
+                    mensajeBackend ||
+                    "Ocurrió un error al eliminar la notificación."
+            })
+        }
+    }
+
+    const eliminarTodasNotificaciones = async () => {
+        if (notificaciones.length === 0) return
+        const respuesta = await Swal.fire({
+            title: "¿Eliminar todas las notificaciones?",
+            text: "Esta acción eliminará permanentemente todas tus notificaciones.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Sí, eliminar todas",
+            cancelButtonText: "Cancelar",
+            reverseButtons: true
+        })
+        if (!respuesta.isConfirmed) return
+
+        try {
+            await eliminarTodasNotificacionesService()
+            setNotificaciones([])
+            setNoLeidas(0)
+            await Swal.fire({
+                icon: "success",
+                title: "Notificaciones eliminadas",
+                text: "Todas las notificaciones fueron eliminadas correctamente."
+            })
+        } catch (error) {
+            const mensajeBackend = obtenerPrimerError(
+                error.response?.data?.errores
+            )
+            await Swal.fire({
+                icon: "error",
+                title: "No se pudieron eliminar",
+                text:
+                    mensajeBackend ||
+                    "Ocurrió un error al eliminar las notificaciones."
+            })
         }
     }
 
@@ -203,6 +311,8 @@ export const useNotificaciones = (userId, options = {}) => {
         noLeidas,
         marcarLeida,
         marcarTodasLeidas,
+        eliminarNotificacion,
+        eliminarTodasNotificaciones,
         cargarNotificaciones,
         loading,
         error

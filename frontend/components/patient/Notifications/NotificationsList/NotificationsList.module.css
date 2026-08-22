@@ -66,14 +66,12 @@
     gap: 25px;
 }
 .containerMan .containerCard .card .containerAcciones .btns .btn{
-    width: 20px;
-    height: 20px;
+    width: 28px;
+    height: 28px;
 }
 .containerMan .containerCard .card .containerAcciones .btns .btn:hover{
     cursor: pointer;
-    width: 21px;
-    height: 21px;
-    opacity: 90%;
+    opacity: 50%;
     transform: translateY(-2px);
 }
 .containerMan .containerCard .card .containerAcciones p{

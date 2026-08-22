@@ -3,6 +3,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from notificaciones.models import Notificacion
 from medicos.models import Medico
+from users.models import Usuario
 from notificaciones.serializers import NotificacionSerializer
 from citas.serializers import CitaSerializer
 
@@ -128,3 +129,52 @@ def marcarNotificacionLeidaService(id_notificacion, usuario):
         )
 
     return "Notificación marcada como leída", 200
+
+def marcarTodasNotificacionesLeidasService(usuario):
+    if isinstance(usuario,Usuario):
+        notificaciones = Notificacion.objects.filter(id_usuario=usuario,leida=False)
+    
+    elif isinstance(usuario,Medico):
+        notificaciones = Notificacion.objects.filter(id_medico=usuario,leida=False)
+        
+    else:
+        return "Usuario no válido",400
+    
+    notificaciones.update(leida=True)
+    
+    return "Notificaciones marcadas como leidas",200
+
+def eliminarNotificacionService(usuario,idNotificacion):
+
+    if isinstance(usuario,Usuario):
+        notificacion = Notificacion.objects.filter(id=idNotificacion,id_usuario=usuario).first()
+    elif isinstance(usuario,Medico):
+        notificacion = Notificacion.objects.filter(id=idNotificacion,id_medico=usuario).first()
+    else:
+        return "Usuario no válido",400
+    
+    if not notificacion:
+        return "Notificación no encontrada", 404
+    
+    notificacion.delete()
+    
+    return "Notificacion eliminada correctamente",200
+
+def eliminarTodasNotificacionesService(usuario):
+
+    if isinstance(usuario, Usuario):
+        notificaciones = Notificacion.objects.filter(
+            id_usuario=usuario
+        )
+
+    elif isinstance(usuario, Medico):
+        notificaciones = Notificacion.objects.filter(
+            id_medico=usuario
+        )
+
+    else:
+        return "Usuario no válido", 400
+
+    notificaciones.delete()
+
+    return "Todas las notificaciones fueron eliminadas correctamente", 200

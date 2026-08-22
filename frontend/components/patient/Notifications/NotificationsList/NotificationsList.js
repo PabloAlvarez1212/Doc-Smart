@@ -3,7 +3,7 @@ import Styles from "./NotificationsList.module.css"
 import { renderIcono } from "@/app/utils/estadoDise/estadoDiseUtils"
 import { Check, X } from 'lucide-react';
 import { formatearFechaRelativa } from "@/app/utils/fechaFormaterUtils"
-export default function NotificationsList({ data, marcarLeida, }) {
+export default function NotificationsList({ data, marcarLeida, eliminarNotificacion }) {
     const listNotificaciones = data?.notificaciones || []
     return (
         <div className={Styles.containerMan}>
@@ -25,9 +25,13 @@ export default function NotificationsList({ data, marcarLeida, }) {
                         <div className={Styles.containerAcciones}>
                             <div className={Styles.btns}>
                                 {!notificacion.leida && (
-                                    <Check className={Styles.btn} onClick={() => marcarLeida(notificacion.id)} color="green" />
+                                    <div title="Marcar como leida">
+                                        <Check className={Styles.btn} onClick={() => marcarLeida(notificacion.id)} color="green" />
+                                    </div>
                                 )}
-                                <X className={Styles.btn} color="red" />
+                                <div title="Eliminar notificacion">
+                                    <X className={Styles.btn} color="red" onClick={() => eliminarNotificacion(notificacion.id)} />
+                                </div>
                             </div>
                             <p>{formatearFechaRelativa(notificacion.fecha)}</p>
                         </div>
