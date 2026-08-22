@@ -6,6 +6,7 @@ import {
     marcarNotificacionLeidaService,
     marcarTodasNotificacionesLeidasService,
     eliminarNotificacionService,
+    eliminarTodasNotificacionesService,
 } from "@/app/services/notificationsServices"
 import { obtenerPrimerError } from "@/app/utils/errrorUtils"
 
@@ -269,12 +270,49 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
         }
     }
 
+    const eliminarTodasNotificaciones = async () => {
+        if (notificaciones.length === 0) return
+        const respuesta = await Swal.fire({
+            title: "¿Eliminar todas las notificaciones?",
+            text: "Esta acción eliminará permanentemente todas tus notificaciones.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Sí, eliminar todas",
+            cancelButtonText: "Cancelar",
+            reverseButtons: true
+        })
+        if (!respuesta.isConfirmed) return
+
+        try {
+            await eliminarTodasNotificacionesService()
+            setNotificaciones([])
+            setNoLeidas(0)
+            await Swal.fire({
+                icon: "success",
+                title: "Notificaciones eliminadas",
+                text: "Todas las notificaciones fueron eliminadas correctamente."
+            })
+        } catch (error) {
+            const mensajeBackend = obtenerPrimerError(
+                error.response?.data?.errores
+            )
+            await Swal.fire({
+                icon: "error",
+                title: "No se pudieron eliminar",
+                text:
+                    mensajeBackend ||
+                    "Ocurrió un error al eliminar las notificaciones."
+            })
+        }
+    }
+
     return {
         notificaciones,
         noLeidas,
         marcarLeida,
         marcarTodasLeidas,
         eliminarNotificacion,
+        eliminarTodasNotificaciones,
         cargarNotificaciones,
         loading,
         error

@@ -1,7 +1,7 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .services import marcarNotificacionLeidaService,listarNotificacionesService,marcarTodasNotificacionesLeidasService,eliminarNotificacionService
+from .services import marcarNotificacionLeidaService,listarNotificacionesService,marcarTodasNotificacionesLeidasService,eliminarNotificacionService,eliminarTodasNotificacionesService
 # ── HELPERS DE RESPUESTA ESTANDARIZADA ───────────────────────────────────────
 
 # Respuesta exitosa: incluye datos y mensaje opcional
@@ -108,3 +108,33 @@ class EliminarNotificacionView(APIView):
         except Exception as e:
             print(e)
             return respuesta_error(mensaje="Error interno en el servidor",status=500)
+        
+class EliminarTodasNotificacionesView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        try:
+
+            respuesta, status_code = eliminarTodasNotificacionesService(
+                usuario=request.user
+            )
+
+            if status_code != 200:
+                return respuesta_error(
+                    mensaje=respuesta,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                mensaje=respuesta,
+                status=status_code
+            )
+
+        except Exception as e:
+            print(e)
+
+            return respuesta_error(
+                mensaje="Error interno en el servidor",
+                status=500
+            )

@@ -2,7 +2,7 @@
 import Styles from "./Hero.module.css"
 import Button from "../../../ui/Button/Button"
 import { CheckCheck, Trash2, } from "lucide-react"
-export default function Hero({ noLeidas, marcarTodasLeidas }) {
+export default function Hero({ noLeidas, marcarTodasLeidas,eliminarTodas, notificaciones }) {
     return (
         <div className={Styles.containerHero}>
             <div className={Styles.Header}>
@@ -11,7 +11,7 @@ export default function Hero({ noLeidas, marcarTodasLeidas }) {
             </div>
             <div className={Styles.accionesGlobales}>
                 <Button className={Styles.btnLeerTodas} onClick={() => marcarTodasLeidas()} disabled={noLeidas === 0}><CheckCheck size={18} />Marcar todas como leídas</Button>
-                <Button className={Styles.btnEliminarTodas}><Trash2 size={18} />Eliminar todas</Button>
+                <Button className={Styles.btnEliminarTodas}  onClick={() => eliminarTodas()} disabled={!notificaciones?.length} ><Trash2 size={18}/>Eliminar todas</Button>
             </div>
         </div>
     )

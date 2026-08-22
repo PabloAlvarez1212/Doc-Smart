@@ -159,3 +159,22 @@ def eliminarNotificacionService(usuario,idNotificacion):
     notificacion.delete()
     
     return "Notificacion eliminada correctamente",200
+
+def eliminarTodasNotificacionesService(usuario):
+
+    if isinstance(usuario, Usuario):
+        notificaciones = Notificacion.objects.filter(
+            id_usuario=usuario
+        )
+
+    elif isinstance(usuario, Medico):
+        notificaciones = Notificacion.objects.filter(
+            id_medico=usuario
+        )
+
+    else:
+        return "Usuario no válido", 400
+
+    notificaciones.delete()
+
+    return "Todas las notificaciones fueron eliminadas correctamente", 200

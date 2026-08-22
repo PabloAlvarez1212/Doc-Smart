@@ -4,6 +4,7 @@ from .views import (
     MarcarNotificacionLeidaView,
     MarcarTodasNotificacionesLeidasView,
     EliminarNotificacionView,
+    EliminarTodasNotificacionesView,
 )
 
 urlpatterns = [
@@ -20,4 +21,6 @@ urlpatterns = [
     path("leida/todas",MarcarTodasNotificacionesLeidasView.as_view()),
     
     path("<int:id_notificacion>/eliminar/", EliminarNotificacionView.as_view()),
+    
+    path("eliminar/todas/",EliminarTodasNotificacionesView.as_view()),
 ]
