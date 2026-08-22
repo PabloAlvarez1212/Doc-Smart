@@ -30,7 +30,7 @@ export default function Home() {
         notificaciones,
         noLeidas,
         marcarLeida
-    } = useNotificaciones(userId, {
+    } = useNotificaciones(userId,"paciente", {
         initialData: dashboard?.notificaciones || [],
         onEventoCita: ({ tipo_evento, cita }) => {
             console.log('⚡ Evento en vivo recibido en Home:', tipo_evento, cita);

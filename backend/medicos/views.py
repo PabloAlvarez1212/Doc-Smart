@@ -14,12 +14,18 @@ from medicos.services import (
     editarEspecialidadService,
     eliminarEspecialidadService,
     obtenerDashboardMedicoInicioService,
+    obtenerPerfilMedicoService,
+    editarPerfilMedicoService,
+    actualizarFotoPerfilMedicoService,
+    eliminarFotoPerfilMedicoService,
+
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
     EditarMedicoSerializer,
     RegistrarEspecialidadSerializer,
-    EditarEspecialidadSerializer
+    EditarEspecialidadSerializer,
+    FotoPerfilMedicoSerializer,
 )
 
 # ── HELPERS DE RESPUESTA ESTANDARIZADA ───────────────────────────────────────
@@ -219,6 +225,180 @@ class DashboardInicioMedicoView(APIView):
 
         except Exception as e:
             print(e)
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+class PerfilMedicoView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    # Obtener perfil del médico autenticado
+    def get(self, request):
+        try:
+            resultado, status_code = obtenerPerfilMedicoService(
+                request.user.id
+            )
+
+            if status_code != 200:
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=resultado,
+                status=status_code
+            )
+
+        except Exception as e:
+            print(f"Error al obtener perfil médico: {e}")
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+    # Actualizar perfil del médico autenticado
+    def put(self, request):
+        try:
+            resultado, status_code = editarPerfilMedicoService(
+                request.user.id,
+                request.data
+            )
+
+            if status_code != 200:
+                return respuesta_error(
+                    "Datos inválidos",
+                    errores=resultado,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje="Perfil actualizado correctamente",
+                status=status_code
+            )
+
+        except Exception as e:
+            print(f"Error al actualizar perfil médico: {e}")
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+    def delete(self, request):
+        try:
+
+            resultado, status_code = eliminarMedicoService(
+                request.user.id
+            )
+
+            if status_code != 200:
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            response = respuesta_ok(
+                mensaje=resultado
+            )
+
+            response.delete_cookie(
+                'token',
+                path='/'
+            )
+
+            response.delete_cookie(
+                'user_role',
+                path='/'
+            )
+
+            response.delete_cookie(
+                'user_id',
+                path='/'
+            )
+
+            return response
+
+        except Exception as e:
+
+            print(
+                f"Error al eliminar cuenta del médico: {e}"
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+class FotoPerfilMedicoView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+
+        try:
+
+            serializer = FotoPerfilMedicoSerializer(
+                data=request.data
+            )
+
+            if not serializer.is_valid():
+
+                return respuesta_serializer_invalido(
+                    serializer.errors
+                )
+
+            foto = serializer.validated_data[
+                "foto_perfil"
+            ]
+
+            medico = actualizarFotoPerfilMedicoService(
+                request.user,
+                foto
+            )
+
+            return respuesta_ok(
+                data={
+                    "foto_perfil": medico.foto_perfil.url
+                },
+                mensaje="Foto de perfil actualizada correctamente"
+            )
+
+        except Exception as e:
+
+            print(
+                f"Error al actualizar foto del médico: {e}"
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+    def delete(self, request):
+
+        try:
+
+            eliminarFotoPerfilMedicoService(
+                request.user
+            )
+
+            return respuesta_ok(
+                data={
+                    "foto_perfil": None
+                },
+                mensaje="Foto de perfil eliminada correctamente"
+            )
+
+        except Exception as e:
+
+            print(
+                f"Error al eliminar foto del médico: {e}"
+            )
+
             return respuesta_error(
                 "Error interno del servidor",
                 status=500

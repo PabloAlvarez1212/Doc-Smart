@@ -6,7 +6,7 @@
     transform: translateX(-50%);
     z-index: 100;
     background-color: white;
-    height: 160px;
+    height: 120px;
     border-radius: 60px;
     border: 1px solid rgba(0, 0, 0, 0.05);
     box-shadow:
@@ -30,7 +30,7 @@
     width: 95%;
     margin: 0 auto;
     margin-top: 2rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 10px;
 }
 
 .logout button{
@@ -46,14 +46,14 @@
     align-items: center;
 }
 .logo h2{
-    font-size: 1.6rem;
+    font-size: 20px;
     color: var(--color-dark);
 }
 .logo h2 span{
     color: black;
 }
 .logo img{
-    width: 4.5rem;
+    width: 60px;
     height: auto;
 }
 .containerNav{
@@ -63,7 +63,7 @@
 .containerNav nav ul{
     display: flex;
     gap: 2rem;
-    font-size: 1.2rem;
+    font-size: 17px;
 }
 .containerNav nav ul li{
     list-style: none;

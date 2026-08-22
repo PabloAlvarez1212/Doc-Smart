@@ -2,6 +2,8 @@
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from notificaciones.models import Notificacion
+from medicos.models import Medico
+from users.models import Usuario
 from notificaciones.serializers import NotificacionSerializer
 from citas.serializers import CitaSerializer
 
@@ -67,3 +69,112 @@ def notificar_actualizacion_cita(cita, fue_creada=False):
             "cita": data_cita
         }
     )
+
+def listarNotificacionesService(usuario):
+
+    if isinstance(usuario, Medico):
+
+        notificaciones = Notificacion.objects.filter(
+            id_medico=usuario
+        ).order_by("-fecha")
+
+    else:
+
+        notificaciones = Notificacion.objects.filter(
+            id_usuario=usuario
+        ).order_by("-fecha")
+
+    data = []
+
+    for notificacion in notificaciones:
+        data.append({
+            "id": notificacion.id,
+            "titulo": notificacion.titulo,
+            "mensaje": notificacion.mensaje,
+            "tipo": notificacion.tipo,
+            "leida": notificacion.leida,
+            "fecha": notificacion.fecha,
+        })
+
+    return data, 200
+
+def marcarNotificacionLeidaService(id_notificacion, usuario):
+
+    notificacion = Notificacion.objects.filter(
+        id=id_notificacion
+    ).first()
+
+    if not notificacion:
+        return "Notificación no encontrada", 404
+
+    es_destinatario = False
+
+    if notificacion.id_usuario:
+        es_destinatario = (
+            notificacion.id_usuario.id == usuario.id
+        )
+
+    if notificacion.id_medico:
+        es_destinatario = (
+            notificacion.id_medico.id == usuario.id
+        )
+
+    if not es_destinatario:
+        return "No tienes permiso para modificar esta notificación", 403
+
+    if not notificacion.leida:
+        notificacion.leida = True
+        notificacion.save(
+            update_fields=["leida"]
+        )
+
+    return "Notificación marcada como leída", 200
+
+def marcarTodasNotificacionesLeidasService(usuario):
+    if isinstance(usuario,Usuario):
+        notificaciones = Notificacion.objects.filter(id_usuario=usuario,leida=False)
+    
+    elif isinstance(usuario,Medico):
+        notificaciones = Notificacion.objects.filter(id_medico=usuario,leida=False)
+        
+    else:
+        return "Usuario no válido",400
+    
+    notificaciones.update(leida=True)
+    
+    return "Notificaciones marcadas como leidas",200
+
+def eliminarNotificacionService(usuario,idNotificacion):
+
+    if isinstance(usuario,Usuario):
+        notificacion = Notificacion.objects.filter(id=idNotificacion,id_usuario=usuario).first()
+    elif isinstance(usuario,Medico):
+        notificacion = Notificacion.objects.filter(id=idNotificacion,id_medico=usuario).first()
+    else:
+        return "Usuario no válido",400
+    
+    if not notificacion:
+        return "Notificación no encontrada", 404
+    
+    notificacion.delete()
+    
+    return "Notificacion eliminada correctamente",200
+
+def eliminarTodasNotificacionesService(usuario):
+
+    if isinstance(usuario, Usuario):
+        notificaciones = Notificacion.objects.filter(
+            id_usuario=usuario
+        )
+
+    elif isinstance(usuario, Medico):
+        notificaciones = Notificacion.objects.filter(
+            id_medico=usuario
+        )
+
+    else:
+        return "Usuario no válido", 400
+
+    notificaciones.delete()
+
+    return "Todas las notificaciones fueron eliminadas correctamente", 200

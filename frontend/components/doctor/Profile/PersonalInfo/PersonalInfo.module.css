@@ -1,0 +1,63 @@
+.containerPersonalInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    margin-bottom: 10px;
+}
+
+.infoSection {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    padding: 32px 40px;
+}
+
+.infoSection .title {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 45px;
+}
+
+.infoSection .title h2 {
+    font-size: 30px;
+}
+
+.infoSection .title p {
+    font-size: 19px;
+    color: #4A5565;
+}
+
+.infoSection .inputs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: 10px;
+    row-gap: 50px;
+}
+
+.infoSection .itemInput {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    font-size: 18px;
+}
+
+.infoSection .itemInput input {
+    background-color: #F3F3F5;
+    border-radius: 12px;
+    width: 200px;
+    border: 1px solid black;
+}
+
+.btn {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.btnGreen {
+    background-color: #22c55e !important; /* verde */
+    color: white;
+    border: none;
+}

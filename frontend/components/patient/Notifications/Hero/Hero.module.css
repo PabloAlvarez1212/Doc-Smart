@@ -1,0 +1,57 @@
+.containerHero{
+    display: flex;
+    width: 90%;
+    justify-content: space-between;
+    margin: 0 auto;
+    padding-top: 55px;
+    align-items: center;
+}
+.containerHero .Header h2{
+    font-size: 40px;
+}
+
+.accionesGlobales {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+}
+
+.btnLeerTodas,
+.btnEliminarTodas{
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem !important;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0 !important;
+    background-color: white !important;
+    font-size: 0.9rem !important;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.btnLeerTodas {
+    color: #2563eb !important;
+}
+
+.btnLeerTodas:hover {
+    background-color: #eff6ff !important;
+    border-color: #bfdbfe !important
+}
+
+.btnEliminarTodas {
+    color: #dc2626 !important;
+}
+
+.btnEliminarTodas:hover {
+    background-color: #fef2f2 !important;
+    border-color: #fecaca !important;
+}
+
+.btnLeerTodas:disabled,
+.btnEliminarTodas:disabled {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
+}
