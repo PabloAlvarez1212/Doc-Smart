@@ -9,7 +9,7 @@ import Modal from "../../../ui/Modal/Modal";
 import { SettingsIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-export default function Header() {
+export default function Header({NoLeidas}) {
     const [modal, setModal] = useState(false)
     const pathName = usePathname();
     const activateLink = function (route) {
@@ -36,7 +36,7 @@ export default function Header() {
                         <li><Link href='/patient/my-profile' className={activateLink('/patient/my-profile')}>Perfil</Link></li>
                         <li><Link href='/patient/chatbot' className={activateLink('/patient/chatbot')}>Chat bot</Link></li>
                         <li><Link href='/patient/' className={activateLink('/patient/')}>Encontar doctores</Link></li>
-                        <li><Link href='/patient/notifications' className={activateLink('/patient/notifications')}>Notificaciones</Link></li>
+                        <li><Link href='/patient/notifications' className={activateLink('/patient/notifications')}>Notificaciones&nbsp;&nbsp;({NoLeidas ?? 0})</Link></li>
                     </ul>
                 </nav>
             </div>
