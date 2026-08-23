@@ -8,7 +8,7 @@ import { useDashboardMedico } from "../../../../components/doctor/Home/useDashbo
 
 export default function Home() {
     const { dashboard, loading } = useDashboardMedico();
-
+    console.log("FOTO PERFIL DASHBOARD:", dashboard?.foto_perfil);
     if (loading) return <p>Cargando...</p>;
 
     return (
@@ -16,6 +16,7 @@ export default function Home() {
             <Hero
                 nombre={dashboard?.usuario}
                 especialidad={dashboard?.especialidad}
+                foto_perfil={dashboard?.foto_perfil}
             />
 
            <StaticCards dashboard={dashboard} />
