@@ -42,7 +42,10 @@ export default function AppointmentCard({ cita, rol, cancelarCita }) {
         <div className={style.card}>
             <div className={style.containerHeader}>
                 <div className={style.info}>
-                    <Image src="/images/doctor3.jpg" alt="Foto" height={70} width={70} />
+                    {rol === "medico" ? (
+                        <Image src={cita.foto_medico? `http://localhost:8000${cita.foto_paciente}` : "/images/foto_default.png"} alt="Foto" height={70} width={70} />
+                    ): <Image src={cita.foto_medico? `http://localhost:8000${cita.foto_medico}` : "/images/foto_default.png"} alt="Foto" height={70} width={70} />}
+                    
                     <div className={style.textHeader}>
                         <h3>{rol === "paciente" ? cita.medico : cita.paciente}</h3>
                         <p>{cita.especialidad}</p>
