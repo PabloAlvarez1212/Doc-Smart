@@ -18,9 +18,10 @@ export default function Notifications() {
     } = useNotificationsContext();
 
     const [filtroFecha, setFiltroFecha] = useState("todas")
-
+    const [fechaDesde, setFechaDesde] = useState("")
+    const [fechaHasta, setFechaHasta] = useState("")
     const notificacionesFiltradas =
-        filtrarNotificacionesPorFecha(notificaciones, filtroFecha)
+        filtrarNotificacionesPorFecha(notificaciones, filtroFecha, fechaDesde, fechaHasta)
 
     if (loadingNotificaciones) {
         return <p className={Styles.textCargandoNotificaciones}>Cargando notificaciones...</p>;
@@ -35,7 +36,46 @@ export default function Notifications() {
                 eliminarTodas={eliminarTodasNotificaciones}
                 setFiltroFecha={setFiltroFecha}
                 filtroFecha={filtroFecha}
+                fechaDesde={fechaDesde}
+                fechaHasta={fechaHasta}
+                setFechaDesde={setFechaDesde}
+                setFechaHasta={setFechaHasta}
             />
+            {filtroFecha === "rango" && (
+                <div className={Styles.rangoFechas}>
+
+                    <div className={Styles.campoFecha}>
+                        <label htmlFor="fechaDesde">
+                            Desde
+                        </label>
+
+                        <input
+                            id="fechaDesde"
+                            type="date"
+                            value={fechaDesde}
+                            onChange={(e) =>
+                                setFechaDesde(e.target.value)
+                            }
+                        />
+                    </div>
+
+                    <div className={Styles.campoFecha}>
+                        <label htmlFor="fechaHasta">
+                            Hasta
+                        </label>
+
+                        <input
+                            id="fechaHasta"
+                            type="date"
+                            value={fechaHasta}
+                            onChange={(e) =>
+                                setFechaHasta(e.target.value)
+                            }
+                        />
+                    </div>
+
+                </div>
+            )}
             {notificacionesFiltradas?.length > 0 ? (
                 <NotificationsList
                     data={{ notificaciones: notificacionesFiltradas }}

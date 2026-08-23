@@ -14,7 +14,7 @@
     display: flex;
     align-items: center;
     gap: 20px;
-    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
 }
 
 .btnLeerTodas,
@@ -72,4 +72,35 @@
 .selectFiltro:focus {
     outline: none;
     border-color: #2563eb;
+}
+
+
+.selectFiltro {
+    padding: 0.65rem 0.9rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background-color: white;
+    cursor: pointer;
+}
+
+.rangoFechas {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.campoFecha {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.campoFecha label {
+    font-size: 0.85rem;
+}
+
+.campoFecha input {
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
 }

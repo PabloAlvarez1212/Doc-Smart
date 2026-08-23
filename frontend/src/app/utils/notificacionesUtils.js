@@ -1,6 +1,8 @@
 export const filtrarNotificacionesPorFecha = (
     notificaciones,
-    filtroFecha
+    filtroFecha,
+    fechaDesde,
+    fechaHasta,
 ) => {
     if (!Array.isArray(notificaciones)) {
         return []
@@ -39,6 +41,19 @@ export const filtrarNotificacionesPorFecha = (
             return fechaNotificacion >= hace30Dias
         }
 
-        return true
+        if (filtroFecha === "rango") {
+
+            if (!fechaDesde || !fechaHasta) {
+                return true
+            }
+
+            const desde = new Date(`${fechaDesde}T00:00:00`)
+            const hasta = new Date(`${fechaHasta}T23:59:59`)
+
+            return (
+                fechaNotificacion >= desde &&
+                fechaNotificacion <= hasta
+            )
+        }
     })
 }

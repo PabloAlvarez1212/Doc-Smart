@@ -2,7 +2,7 @@
 import Styles from "./Hero.module.css"
 import Button from "../../../ui/Button/Button"
 import { CheckCheck, Trash2, } from "lucide-react"
-export default function Hero({ noLeidas, marcarTodasLeidas, eliminarTodas, notificaciones, filtroFecha, setFiltroFecha }) {
+export default function Hero({ noLeidas, marcarTodasLeidas, eliminarTodas, notificaciones, filtroFecha, setFiltroFecha, fechaDesde, setFechaDesde, fechaHasta, setFechaHasta }) {
     const cantidadNotificaciones = notificaciones.length
     return (
         <div className={Styles.containerHero}>
@@ -20,6 +20,7 @@ export default function Hero({ noLeidas, marcarTodasLeidas, eliminarTodas, notif
                         <option value="hoy">Hoy</option>
                         <option value="7dias">Últimos 7 días</option>
                         <option value="30dias">Últimos 30 días</option>
+                        <option value="rango">Rango personalizado</option>
                     </select>
                 </div>
                 <Button className={Styles.btnLeerTodas} onClick={() => marcarTodasLeidas()} disabled={noLeidas === 0}><CheckCheck size={18} />Marcar todas como leídas</Button>
