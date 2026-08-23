@@ -1,13 +1,10 @@
 "use client";
 import Hero from "../../../../components/patient/Notifications/Hero/Hero";
 import NotificationsList from "../../../../components/patient/Notifications/NotificationsList/NotificationsList";
-import useProfile from "../../../../components/patient/Profile/useProfile";
-import { useNotificaciones } from "../../../../components/hooks/useNotificaciones";
+import { useNotificationsContext } from "../../../../components/contex/NotificationsContext";
 import Styles from "./Notifications.module.css"
 
 export default function Notifications() {
-    const { perfil, loading } = useProfile();
-
     const {
         marcarLeida,
         marcarTodasLeidas,
@@ -16,9 +13,9 @@ export default function Notifications() {
         eliminarTodasNotificaciones,
         notificaciones,
         loading: loadingNotificaciones
-    } = useNotificaciones(perfil?.id, "paciente");
+    } = useNotificationsContext();
 
-    if (loading || loadingNotificaciones) {
+    if (loadingNotificaciones) {
         return <p className={Styles.textCargandoNotificaciones}>Cargando notificaciones...</p>;
     }
 
@@ -32,7 +29,7 @@ export default function Notifications() {
             />
             {notificaciones?.length > 0 ? (
                 <NotificationsList
-                    data={{ ...perfil, notificaciones }}
+                    data={{ notificaciones }}
                     marcarLeida={marcarLeida}
                     eliminarNotificacion={eliminarNotificacion}
                 />

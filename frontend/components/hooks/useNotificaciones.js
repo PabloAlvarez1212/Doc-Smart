@@ -10,9 +10,9 @@ import {
 } from "@/app/services/notificationsServices"
 import { obtenerPrimerError } from "@/app/utils/errrorUtils"
 
-export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
+export const useNotificaciones = (userId, tipoUsuario) => {
 
-    const { onEventoCita } = options
+    const [eventoCita, setEventoCita] = useState(null)
 
     const [notificaciones, setNotificaciones] = useState([])
     const [noLeidas, setNoLeidas] = useState(0)
@@ -20,12 +20,6 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
     const [error, setError] = useState(null)
 
     const ws = useRef(null)
-
-    const onEventoCitaRef = useRef(onEventoCita)
-
-    useEffect(() => {
-        onEventoCitaRef.current = onEventoCita
-    }, [onEventoCita])
 
     const cargarNotificaciones = async () => {
         try {
@@ -82,8 +76,6 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
 
             const data = JSON.parse(event.data)
 
-            console.log("📩 Evento recibido:", data)
-
             if (data.type === "count_initial") {
                 setNoLeidas(data.count)
             }
@@ -119,11 +111,8 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
                         data.tipo_evento ||
                         data.notificacion?.extra_data?.tipo_evento
 
-                    if (
-                        citaData &&
-                        onEventoCitaRef.current
-                    ) {
-                        onEventoCitaRef.current({
+                    if (citaData) {
+                        setEventoCita({
                             tipo_evento: tipoEvento,
                             cita: citaData,
                             notificacion: data.notificacion
@@ -147,7 +136,7 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
             }
         }
 
-    }, [userId,tipoUsuario])
+    }, [userId, tipoUsuario])
 
     const marcarLeida = async (idNotificacion) => {
 
@@ -181,7 +170,7 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
             )
 
         } catch (error) {
-            console.error("Error al marcar la notificación como leída",error)
+            console.error("Error al marcar la notificación como leída", error)
             const mensajeBackend = obtenerPrimerError(error.response?.data?.errores)
             await Swal.fire({
                 icon: "error",
@@ -314,6 +303,7 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
         eliminarNotificacion,
         eliminarTodasNotificaciones,
         cargarNotificaciones,
+        eventoCita,
         loading,
         error
     }
