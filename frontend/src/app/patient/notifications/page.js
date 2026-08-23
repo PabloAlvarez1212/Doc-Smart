@@ -1,8 +1,10 @@
 "use client";
+import { useState } from "react";
 import Hero from "../../../../components/patient/Notifications/Hero/Hero";
 import NotificationsList from "../../../../components/patient/Notifications/NotificationsList/NotificationsList";
 import { useNotificationsContext } from "../../../../components/contex/NotificationsContext";
 import Styles from "./Notifications.module.css"
+import { filtrarNotificacionesPorFecha } from "@/app/utils/notificacionesUtils";
 
 export default function Notifications() {
     const {
@@ -15,6 +17,11 @@ export default function Notifications() {
         loading: loadingNotificaciones
     } = useNotificationsContext();
 
+    const [filtroFecha, setFiltroFecha] = useState("todas")
+
+    const notificacionesFiltradas =
+        filtrarNotificacionesPorFecha(notificaciones, filtroFecha)
+
     if (loadingNotificaciones) {
         return <p className={Styles.textCargandoNotificaciones}>Cargando notificaciones...</p>;
     }
@@ -26,14 +33,16 @@ export default function Notifications() {
                 marcarTodasLeidas={marcarTodasLeidas}
                 notificaciones={notificaciones}
                 eliminarTodas={eliminarTodasNotificaciones}
+                setFiltroFecha={setFiltroFecha}
+                filtroFecha={filtroFecha}
             />
-            {notificaciones?.length > 0 ? (
+            {notificacionesFiltradas?.length > 0 ? (
                 <NotificationsList
-                    data={{ notificaciones }}
+                    data={{ notificaciones: notificacionesFiltradas }}
                     marcarLeida={marcarLeida}
                     eliminarNotificacion={eliminarNotificacion}
                 />
-            ): (<p className={Styles.textNingunaNotificacion}>No tienes notificaciones</p>)}
+            ) : (<p className={Styles.textNingunaNotificacion}>No tienes notificaciones</p>)}
         </div>
     )
 }

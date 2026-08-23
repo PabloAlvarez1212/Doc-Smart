@@ -13,7 +13,7 @@
 .accionesGlobales {
     display: flex;
     align-items: center;
-    gap: 0.8rem;
+    gap: 20px;
     margin-bottom: 1.5rem;
 }
 
@@ -54,4 +54,22 @@
 .btnEliminarTodas:disabled {
     opacity: 0.45 !important;
     cursor: not-allowed !important;
+}
+
+.selectFiltro {
+    padding: 0.65rem 0.9rem;
+
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+
+    background-color: white;
+
+    font-size: 0.9rem;
+
+    cursor: pointer;
+}
+
+.selectFiltro:focus {
+    outline: none;
+    border-color: #2563eb;
 }
