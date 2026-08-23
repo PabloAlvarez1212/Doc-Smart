@@ -6,6 +6,9 @@ export default function AppointmentList({
     citas,
     rol,
     cancelarCita,
+    confirmarCita,
+    completarCita,
+    reprogramarCita,
 }) {
 
     if (!citas.length) {
@@ -25,6 +28,9 @@ export default function AppointmentList({
                     cita={cita}
                     rol={rol}
                     cancelarCita={cancelarCita}
+                    confirmarCita={confirmarCita}
+                    completarCita={completarCita}
+                    reprogramarCita={reprogramarCita}
                 />
             ))}
 
