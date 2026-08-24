@@ -62,7 +62,7 @@ export const useNotificaciones = (userId, tipoUsuario) => {
 
     useEffect(() => {
 
-        if (!userId) return
+        if (!userId || !tipoUsuario) return;
 
         ws.current = new WebSocket(
             `ws://localhost:8000/ws/notificaciones/${tipoUsuario}/${userId}/`

@@ -508,6 +508,8 @@ def obtenerDashboardMedicoInicioService(id):
 
         "especialidad": medico.id_especialidad.nombre,
 
+        "foto_perfil": medico.foto_perfil.url if medico.foto_perfil else None,
+
         "id": medico.id,
 
         "estadisticas": {
