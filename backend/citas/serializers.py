@@ -36,6 +36,7 @@ class CitaSerializer(serializers.ModelSerializer):
             'id',
             'fecha_programada',
             'fecha_final',
+            'fecha_cancelacion',
             'estado',
             'paciente',
             'medico',

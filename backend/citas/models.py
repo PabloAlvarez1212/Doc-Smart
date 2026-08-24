@@ -9,6 +9,7 @@ class Cita(models.Model):
     id_estado = models.ForeignKey(Estado,   on_delete=models.PROTECT)
     id_usuario = models.ForeignKey(Usuario,  on_delete=models.PROTECT)
     id_medico = models.ForeignKey(Medico,   on_delete=models.PROTECT) 
+    fecha_cancelacion = models.DateTimeField(null=True,blank=True)
 
     def __str__(self):
         return f"Cita {self.id} - {self.fecha_programada}"
