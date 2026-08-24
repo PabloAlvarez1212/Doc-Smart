@@ -20,8 +20,35 @@ export default function AppointmentCard({
 
     const estado = cita.estado?.toLowerCase();
 
+    // ==========================================
+    // DATOS DEL PERFIL SEGÚN EL ROL
+    // ==========================================
+
+    const nombrePerfil =
+        rol === "medico"
+            ? cita.paciente
+            : cita.medico;
+
+    const fotoPerfil =
+        rol === "medico"
+            ? cita.foto_paciente
+            : cita.foto_medico;
+
+    const fotoSrc = fotoPerfil
+        ? fotoPerfil.startsWith("http")
+            ? fotoPerfil
+            : `http://localhost:8000${fotoPerfil}`
+        : "/images/foto_default.png";
+
+
+    // ==========================================
+    // ACCIONES SEGÚN ESTADO DE LA CITA
+    // ==========================================
+
     const renderAcciones = () => {
+
         switch (estado) {
+
             case "reprogramada":
             case "pendiente":
                 return (
@@ -29,13 +56,17 @@ export default function AppointmentCard({
 
                         <Button
                             variant="warning"
-                            onClick={() => reprogramarCita?.(cita)}
+                            onClick={() =>
+                                reprogramarCita?.(cita)
+                            }
                         >
                             Reprogramar
                         </Button>
 
                         <Button
-                            onClick={() => cancelarCita?.(cita.id)}
+                            onClick={() =>
+                                cancelarCita?.(cita.id)
+                            }
                             variant="danger"
                         >
                             Cancelar
@@ -43,7 +74,9 @@ export default function AppointmentCard({
 
                         {rol === "medico" && (
                             <Button
-                                onClick={() => confirmarCita?.(cita.id)}
+                                onClick={() =>
+                                    confirmarCita?.(cita.id)
+                                }
                                 className={style.btnConfirmar}
                             >
                                 Confirmar
@@ -53,16 +86,24 @@ export default function AppointmentCard({
                     </div>
                 );
 
+
             case "confirmada":
                 return (
                     <div className={style.btns}>
 
-                        <Button variant="warning">
+                        <Button
+                            variant="warning"
+                            onClick={() =>
+                                reprogramarCita?.(cita)
+                            }
+                        >
                             Reprogramar
                         </Button>
 
                         <Button
-                            onClick={() => cancelarCita?.(cita.id)}
+                            onClick={() =>
+                                cancelarCita?.(cita.id)
+                            }
                             variant="danger"
                         >
                             Cancelar
@@ -70,7 +111,9 @@ export default function AppointmentCard({
 
                         {rol === "medico" && (
                             <Button
-                                onClick={() => completarCita?.(cita.id)}
+                                onClick={() =>
+                                    completarCita?.(cita.id)
+                                }
                             >
                                 Completar
                             </Button>
@@ -79,12 +122,14 @@ export default function AppointmentCard({
                     </div>
                 );
 
+
             case "cancelada":
                 return (
                     <p className={style.textCanelada}>
                         La cita ha sido cancelada
                     </p>
                 );
+
 
             case "completada":
                 return (
@@ -93,35 +138,41 @@ export default function AppointmentCard({
                     </p>
                 );
 
+
             default:
                 return null;
         }
     };
 
+
     return (
         <div className={style.card}>
+
+            {/* =========================
+                HEADER DE LA TARJETA
+            ========================== */}
 
             <div className={style.containerHeader}>
 
                 <div className={style.info}>
 
                     <Image
-                        src="/images/doctor3.jpg"
-                        alt="Foto"
+                        src={fotoSrc}
+                        alt={`Foto de ${nombrePerfil || "usuario"}`}
                         height={70}
                         width={70}
                     />
 
                     <div className={style.textHeader}>
+
                         <h3>
-                            {rol === "paciente"
-                                ? cita.medico
-                                : cita.paciente}
+                            {nombrePerfil}
                         </h3>
 
                         <p>
                             {cita.especialidad}
                         </p>
+
                     </div>
 
                 </div>
@@ -132,24 +183,43 @@ export default function AppointmentCard({
 
             </div>
 
+
+            {/* =========================
+                INFORMACIÓN DE LA CITA
+            ========================== */}
+
             <div className={style.main}>
 
                 <div className={style.infoCita}>
 
                     <div className={style.textInfo}>
+
                         <Calendar />
-                        <p>{fecha}</p>
+
+                        <p>
+                            {fecha}
+                        </p>
+
                     </div>
+
 
                     <div className={style.textInfo}>
+
                         <Clock />
-                        <p>{hora}</p>
+
+                        <p>
+                            {hora}
+                        </p>
+
                     </div>
 
+
                     <div className={style.direccion}>
+
                         <MapPin />
 
                         <div className={style.textInfoDireccion}>
+
                             <p>
                                 {`${cita.ciudad} - ${cita.departamento}`}
                             </p>
@@ -157,10 +227,17 @@ export default function AppointmentCard({
                             <p>
                                 {cita.direccion}
                             </p>
+
                         </div>
+
                     </div>
 
                 </div>
+
+
+                {/* =========================
+                    ACCIONES
+                ========================== */}
 
                 <div className={style.footer}>
                     {renderAcciones()}

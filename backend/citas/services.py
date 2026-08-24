@@ -244,6 +244,7 @@ def cancelarCitaService(id, solicitante_id):
 
     estado_cancelada = Estado.objects.filter(nombre='cancelada').first()
     cita.id_estado = estado_cancelada
+    cita.fecha_cancelacion = timezone.now()
     cita.save()
 
     fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")

@@ -1,14 +1,28 @@
+"use client"
 import Header from "../../../components/patient/layout/Header/Header"
 import styles from "./layout.module.css"
+import { useNotificaciones } from "../../../components/hooks/useNotificaciones"
+import useProfile from "../../../components/doctor/Profile/useProfile"
+import { NotificationsProvider } from "../../../components/contex/NotificationsContext"
 export default function PacienteLayout({ children }) {
+  const { perfil, loading } = useProfile()
+  if (loading) {
+    return <p>Cargando...</p>
+  }
   return (
-    <div>
-      <Header />
-      <div className={styles.main}>
-        <main>
-          {children}
-        </main>
+    <NotificationsProvider
+      userId={perfil?.id}
+      tipoUsuario="paciente"
+    >
+      <div>
+        <Header />
+
+        <div className={styles.main}>
+          <main>
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </NotificationsProvider>
   )
 }

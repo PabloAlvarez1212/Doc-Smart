@@ -1,13 +1,12 @@
 "use client";
+import { useState } from "react";
 import Hero from "../../../../components/patient/Notifications/Hero/Hero";
 import NotificationsList from "../../../../components/patient/Notifications/NotificationsList/NotificationsList";
-import useProfile from "../../../../components/patient/Profile/useProfile";
-import { useNotificaciones } from "../../../../components/hooks/useNotificaciones";
+import { useNotificationsContext } from "../../../../components/contex/NotificationsContext";
 import Styles from "./Notifications.module.css"
+import { filtrarNotificacionesPorFecha } from "@/app/utils/notificacionesUtils";
 
 export default function Notifications() {
-    const { perfil, loading } = useProfile();
-
     const {
         marcarLeida,
         marcarTodasLeidas,
@@ -16,9 +15,15 @@ export default function Notifications() {
         eliminarTodasNotificaciones,
         notificaciones,
         loading: loadingNotificaciones
-    } = useNotificaciones(perfil?.id, "paciente");
+    } = useNotificationsContext();
 
-    if (loading || loadingNotificaciones) {
+    const [filtroFecha, setFiltroFecha] = useState("todas")
+    const [fechaDesde, setFechaDesde] = useState("")
+    const [fechaHasta, setFechaHasta] = useState("")
+    const notificacionesFiltradas =
+        filtrarNotificacionesPorFecha(notificaciones, filtroFecha, fechaDesde, fechaHasta)
+
+    if (loadingNotificaciones) {
         return <p className={Styles.textCargandoNotificaciones}>Cargando notificaciones...</p>;
     }
 
@@ -29,14 +34,55 @@ export default function Notifications() {
                 marcarTodasLeidas={marcarTodasLeidas}
                 notificaciones={notificaciones}
                 eliminarTodas={eliminarTodasNotificaciones}
+                setFiltroFecha={setFiltroFecha}
+                filtroFecha={filtroFecha}
+                fechaDesde={fechaDesde}
+                fechaHasta={fechaHasta}
+                setFechaDesde={setFechaDesde}
+                setFechaHasta={setFechaHasta}
             />
-            {notificaciones?.length > 0 ? (
+            {filtroFecha === "rango" && (
+                <div className={Styles.rangoFechas}>
+
+                    <div className={Styles.campoFecha}>
+                        <label htmlFor="fechaDesde">
+                            Desde
+                        </label>
+
+                        <input
+                            id="fechaDesde"
+                            type="date"
+                            value={fechaDesde}
+                            onChange={(e) =>
+                                setFechaDesde(e.target.value)
+                            }
+                        />
+                    </div>
+
+                    <div className={Styles.campoFecha}>
+                        <label htmlFor="fechaHasta">
+                            Hasta
+                        </label>
+
+                        <input
+                            id="fechaHasta"
+                            type="date"
+                            value={fechaHasta}
+                            onChange={(e) =>
+                                setFechaHasta(e.target.value)
+                            }
+                        />
+                    </div>
+
+                </div>
+            )}
+            {notificacionesFiltradas?.length > 0 ? (
                 <NotificationsList
-                    data={{ ...perfil, notificaciones }}
+                    data={{ notificaciones: notificacionesFiltradas }}
                     marcarLeida={marcarLeida}
                     eliminarNotificacion={eliminarNotificacion}
                 />
-            ): (<p className={Styles.textNingunaNotificacion}>No tienes notificaciones</p>)}
+            ) : (<p className={Styles.textNingunaNotificacion}>No tienes notificaciones</p>)}
         </div>
     )
 }
