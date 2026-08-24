@@ -24,6 +24,7 @@ export default function Home() {
     const [citas, setCitas] = useState([])
     const [pendientes, setPendientes] = useState(0)
     const [realizadas, setRealizadas] = useState(0)
+    const [canceladas,setCanceladas] = useState(0)
 
     // Carga inicial desde el dashboard
     useEffect(() => {
@@ -40,6 +41,10 @@ export default function Home() {
 
         setRealizadas(
             dashboard?.estadisticas?.consultas_realizadas_mes || 0
+        )
+
+        setCanceladas(
+            dashboard?.estadisticas?.consultas_canceladas_mes || 0
         )
 
     }, [dashboard])
@@ -128,6 +133,9 @@ export default function Home() {
             setPendientes(
                 prev => Math.max(0, prev - 1)
             )
+            setCanceladas(
+                prev => prev + 1
+            )
         }
 
     }, [eventoCita])
@@ -151,6 +159,7 @@ export default function Home() {
                 cantidadProximasCitas={citas.length}
                 consultasPendientes={pendientes}
                 consultasRealizadas={realizadas}
+                consultasCanceladas={canceladas}
             />
 
             <AppointmentsList
