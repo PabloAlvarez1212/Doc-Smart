@@ -18,6 +18,9 @@ export const useNotificaciones = (userId, tipoUsuario) => {
     const [noLeidas, setNoLeidas] = useState(0)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [paginaActual, setPaginaActual] = useState(1);
+    const [totalPaginas, setTotalPaginas] = useState(1);
+    const [totalRegistros, setTotalRegistros] = useState(0);
 
     const ws = useRef(null)
 
@@ -26,9 +29,15 @@ export const useNotificaciones = (userId, tipoUsuario) => {
             setLoading(true)
             setError(null)
 
-            const response = await obtenerNotificacionesService()
+            const params = {
+                page: paginaActual,
+                page_size: 6
+            }
 
-            const data = response?.data ?? []
+            const response = await obtenerNotificacionesService(params)
+
+            const data = response?.data?.data ?? []
+            const paginacion = response?.data?.paginacion ?? null
 
             setNotificaciones(
                 Array.isArray(data)
@@ -36,29 +45,38 @@ export const useNotificaciones = (userId, tipoUsuario) => {
                     : []
             )
 
-            const cantidadNoLeidas = data.filter(
-                notificacion => !notificacion.leida
-            ).length
+            if (paginacion) {
+                setPaginaActual(
+                    paginacion.current_page
+                )
 
-            setNoLeidas(cantidadNoLeidas)
+                setTotalPaginas(
+                    paginacion.total_pages
+                )
+
+                setTotalRegistros(
+                    paginacion.count
+                )
+            }
 
         } catch (error) {
-
             console.error(error)
 
             setError(
                 "No se pudieron cargar las notificaciones."
             )
-
         } finally {
-
             setLoading(false)
         }
     }
+    
+    const cambiarPagina = (nuevaPagina) => {
+        setPaginaActual(nuevaPagina);
+    };
 
     useEffect(() => {
         cargarNotificaciones()
-    }, [])
+    }, [paginaActual])
 
     useEffect(() => {
 
@@ -305,6 +323,10 @@ export const useNotificaciones = (userId, tipoUsuario) => {
         cargarNotificaciones,
         eventoCita,
         loading,
+        cambiarPagina,
+        paginaActual,
+        totalPaginas,
+        totalRegistros,
         error
     }
 }

@@ -6,6 +6,8 @@ from medicos.models import Medico
 from users.models import Usuario
 from notificaciones.serializers import NotificacionSerializer
 from citas.serializers import CitaSerializer
+from django.core.paginator import Paginator
+from .serializers import NotificacionSerializer
 
 def enviarNotificacion(titulo, mensaje, tipo, id_usuario=None, id_medico=None, extra_data=None):
     # 1. Crear registro en BD
@@ -70,7 +72,7 @@ def notificar_actualizacion_cita(cita, fue_creada=False):
         }
     )
 
-def listarNotificacionesService(usuario):
+def listarNotificacionesService(usuario,page=None, page_size=10):
 
     if isinstance(usuario, Medico):
 
@@ -83,20 +85,35 @@ def listarNotificacionesService(usuario):
         notificaciones = Notificacion.objects.filter(
             id_usuario=usuario
         ).order_by("-fecha")
+                 
+    try:
+        page_size = int(page_size)
+    except (TypeError, ValueError):
+        page_size = 10
 
-    data = []
+    paginator = Paginator(
+        notificaciones,
+        page_size
+    )
 
-    for notificacion in notificaciones:
-        data.append({
-            "id": notificacion.id,
-            "titulo": notificacion.titulo,
-            "mensaje": notificacion.mensaje,
-            "tipo": notificacion.tipo,
-            "leida": notificacion.leida,
-            "fecha": notificacion.fecha,
-        })
+    page_obj = paginator.get_page(
+        page or 1
+    )
 
-    return data, 200
+    serializer = NotificacionSerializer(
+        page_obj.object_list,
+        many=True
+    )
+    
+    return {
+        "data":serializer.data,
+        "paginacion": {
+            "count": paginator.count,
+            "total_pages": paginator.num_pages,
+            "current_page": page_obj.number,
+            "page_size": page_size,
+        },
+        }, 200
 
 def marcarNotificacionLeidaService(id_notificacion, usuario):
 

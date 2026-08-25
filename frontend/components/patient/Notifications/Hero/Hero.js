@@ -2,8 +2,7 @@
 import Styles from "./Hero.module.css"
 import Button from "../../../ui/Button/Button"
 import { CheckCheck, Trash2, } from "lucide-react"
-export default function Hero({ noLeidas, marcarTodasLeidas, eliminarTodas, notificaciones, filtroFecha, setFiltroFecha, fechaDesde, setFechaDesde, fechaHasta, setFechaHasta }) {
-    const cantidadNotificaciones = notificaciones.length
+export default function Hero({ noLeidas, marcarTodasLeidas, eliminarTodas, notificaciones, filtroFecha, setFiltroFecha, cantidadNotificaciones }) {
     return (
         <div className={Styles.containerHero}>
             <div className={Styles.Header}>

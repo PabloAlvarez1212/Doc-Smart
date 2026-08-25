@@ -5,6 +5,7 @@ import NotificationsList from "../../../../components/patient/Notifications/Noti
 import { useNotificationsContext } from "../../../../components/contex/NotificationsContext";
 import Styles from "./Notifications.module.css"
 import { filtrarNotificacionesPorFecha } from "@/app/utils/notificacionesUtils";
+import Pagination from "../../../../components/ui/Pagination/Pagination";
 
 export default function Notifications() {
     const {
@@ -14,7 +15,11 @@ export default function Notifications() {
         eliminarNotificacion,
         eliminarTodasNotificaciones,
         notificaciones,
-        loading: loadingNotificaciones
+        loading: loadingNotificaciones,
+        cambiarPagina,
+        paginaActual,
+        totalPaginas,
+        totalRegistros,
     } = useNotificationsContext();
 
     const [filtroFecha, setFiltroFecha] = useState("todas")
@@ -33,6 +38,7 @@ export default function Notifications() {
                 noLeidas={noLeidas}
                 marcarTodasLeidas={marcarTodasLeidas}
                 notificaciones={notificaciones}
+                cantidadNotificaciones={totalRegistros}
                 eliminarTodas={eliminarTodasNotificaciones}
                 setFiltroFecha={setFiltroFecha}
                 filtroFecha={filtroFecha}
@@ -77,11 +83,21 @@ export default function Notifications() {
                 </div>
             )}
             {notificacionesFiltradas?.length > 0 ? (
-                <NotificationsList
-                    data={{ notificaciones: notificacionesFiltradas }}
-                    marcarLeida={marcarLeida}
-                    eliminarNotificacion={eliminarNotificacion}
-                />
+                <div>
+                    <NotificationsList
+                        data={{ notificaciones: notificacionesFiltradas }}
+                        marcarLeida={marcarLeida}
+                        eliminarNotificacion={eliminarNotificacion}
+                    />
+
+                    <Pagination
+                        paginaActual={paginaActual}
+                        totalPaginas={totalPaginas}
+                        totalRegistros={totalRegistros}
+                        onCambiarPagina={cambiarPagina}
+                        cargando={loadingNotificaciones}
+                    />
+                </div>
             ) : (<p className={Styles.textNingunaNotificacion}>No tienes notificaciones</p>)}
         </div>
     )

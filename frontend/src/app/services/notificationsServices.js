@@ -1,8 +1,8 @@
 import api from "./api";
 
-export const obtenerNotificacionesService = async () => {
+export const obtenerNotificacionesService = async (params = {}) => {
     const response = await api.get(
-        "/notificaciones/"
+        "/notificaciones/",{params,}
     );
 
     return response.data;
