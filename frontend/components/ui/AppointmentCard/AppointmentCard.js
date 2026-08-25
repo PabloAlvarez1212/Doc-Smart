@@ -3,7 +3,7 @@ import { estadoDiseño } from "@/app/utils/estadoDise/estadoDiseUtils";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
 import Image from "next/image";
 import Button from "../Button/Button";
-import { MapPin, Calendar, Clock } from "lucide-react";
+import { MapPin, Calendar, Clock, CalendarX, CalendarCheck } from "lucide-react";
 
 export default function AppointmentCard({
     cita,
@@ -17,6 +17,14 @@ export default function AppointmentCard({
     const { fecha, hora } = formatearFecha(
         cita.fecha_programada
     );
+
+    const fechaCancelacionFormateada = cita.fecha_cancelacion ? formatearFecha(cita.fecha_cancelacion) : null
+    const fechaFinalFormateada = cita.fecha_final ? formatearFecha(cita.fecha_final) : null
+    const fechaCancelada = fechaCancelacionFormateada?.fecha
+    const horaCancelada = fechaCancelacionFormateada?.hora
+
+    const fechaCompleta = fechaFinalFormateada?.fecha
+    const horaCompletada = fechaFinalFormateada?.hora
 
     const estado = cita.estado?.toLowerCase();
 
@@ -125,17 +133,34 @@ export default function AppointmentCard({
 
             case "cancelada":
                 return (
-                    <p className={style.textCanelada}>
-                        La cita ha sido cancelada
-                    </p>
+                    <div className={style.containerFooter}>
+                        <p className={style.textCanelada}>
+                            La cita ha sido cancelada
+                        </p>
+
+                        {cita.fecha_cancelacion && (
+                            <div className={style.fecha}>
+                                <p><CalendarCheck size={18} /> <span>{fechaCompleta}</span></p>
+                                <p><Clock size={18} /> <span>{horaCompletada}</span></p>
+                            </div>
+                        )}
+                    </div>
                 );
 
 
             case "completada":
                 return (
-                    <p className={style.textCompletada}>
-                        La cita ha sido completada
-                    </p>
+                    <div className={style.containerFooter}>
+                        <p className={style.textCompletada}>
+                            La cita ha sido completada
+                        </p>
+                        {cita.fecha_final && (
+                            <div className={style.fecha}>
+                                <p><CalendarCheck size={18} /> <span>{fechaCompleta}</span></p>
+                                <p><Clock size={18} /> <span>{horaCompletada}</span></p>
+                            </div>
+                        )}
+                    </div>
                 );
 
 
