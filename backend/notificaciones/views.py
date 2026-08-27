@@ -30,8 +30,10 @@ class NotificacionesView(APIView):
 
     def get(self, request):
         try:
+            page = request.query_params.get('page')
+            page_size = request.query_params.get('page_size', 10)
             resultado, status_code = listarNotificacionesService(
-                request.user
+                usuario=request.user,page=page,page_size=page_size
             )
 
             if status_code != 200:

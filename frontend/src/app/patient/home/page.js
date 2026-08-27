@@ -1,76 +1,148 @@
 "use client"
-import { useState, useEffect } from 'react'
-import Hero from '../../../../components/patient/Home/Hero/Hero'
-import StaticCards from '../../../../components/patient/Home/StaticCards/StaticCards'
-import AppointmentsList from '../../../../components/patient/Home/AppointmentsList/AppointmentsList'
-import Notifications from '../../../../components/patient/Home/Notifications/Notifications'
-import { useDashboardPaciente } from '../../../../components/patient/Home/useDashboardPaciente'
-import { useNotificaciones } from '../../../../components/hooks/useNotificaciones'
+
+import { useState, useEffect } from "react"
+
+import Hero from "../../../../components/patient/Home/Hero/Hero"
+import StaticCards from "../../../../components/patient/Home/StaticCards/StaticCards"
+import AppointmentsList from "../../../../components/patient/Home/AppointmentsList/AppointmentsList"
+import Notifications from "../../../../components/patient/Home/Notifications/Notifications"
+
+import { useDashboardPaciente } from "../../../../components/patient/Home/useDashboardPaciente"
+import { useNotificationsContext } from "../../../../components/contex/NotificationsContext"
 
 export default function Home() {
-    const { dashboard, loading } = useDashboardPaciente();
-    const userId = dashboard?.id;
 
-    // Estados locales para contadores y lista en tiempo real
-    const [citas, setCitas] = useState([]);
-    const [pendientes, setPendientes] = useState(0);
-    const [realizadas, setRealizadas] = useState(0);
+    const { dashboard, loading } = useDashboardPaciente()
 
-    // Sincronizar datos iniciales desde la REST API
-    useEffect(() => {
-        if (dashboard) {
-            setCitas(dashboard?.proximas_citas || []);
-            setPendientes(dashboard?.estadisticas?.consultas_pendientes || 0);
-            setRealizadas(dashboard?.estadisticas?.consultas_realizadas_mes || 0);
-        }
-    }, [dashboard]);
-
-    // WebSocket Hook
     const {
         notificaciones,
         noLeidas,
-        marcarLeida
-    } = useNotificaciones(userId,"paciente", {
-        initialData: dashboard?.notificaciones || [],
-        onEventoCita: ({ tipo_evento, cita }) => {
-            console.log('⚡ Evento en vivo recibido en Home:', tipo_evento, cita);
+        marcarLeida,
+        eventoCita
+    } = useNotificationsContext()
 
-            const estado = cita?.estado?.toUpperCase();
+    const [citas, setCitas] = useState([])
+    const [pendientes, setPendientes] = useState(0)
+    const [realizadas, setRealizadas] = useState(0)
+    const [canceladas,setCanceladas] = useState(0)
 
-            // 1. Manejo de lista de Próximas Citas (solo confirmadas)
-            setCitas((prevCitas) => {
-                if (estado !== 'CONFIRMADA') {
-                    return prevCitas.filter((c) => c.id !== cita.id);
-                }
-                const existe = prevCitas.some((c) => c.id === cita.id);
-                if (existe) {
-                    return prevCitas.map((c) => (c.id === cita.id ? cita : c));
-                }
-                return [cita, ...prevCitas];
-            });
+    // Carga inicial desde el dashboard
+    useEffect(() => {
 
-            // 2. Manejo de contadores según eventos en vivo
-            if (tipo_evento === 'NUEVA_SOLICITUD' || estado === 'PENDIENTE') {
-                setPendientes((prev) => prev + 1);
+        if (!dashboard) return
+
+        setCitas(
+            dashboard?.proximas_citas || []
+        )
+
+        setPendientes(
+            dashboard?.estadisticas?.consultas_pendientes || 0
+        )
+
+        setRealizadas(
+            dashboard?.estadisticas?.consultas_realizadas_mes || 0
+        )
+
+        setCanceladas(
+            dashboard?.estadisticas?.consultas_canceladas_mes || 0
+        )
+
+    }, [dashboard])
+
+    // Cambios en tiempo real recibidos por WebSocket
+    useEffect(() => {
+
+        if (!eventoCita) return
+
+        const {
+            tipo_evento,
+            cita
+        } = eventoCita
+
+        if (!cita) return
+
+        const estado = cita?.estado?.toUpperCase()
+
+        // Próximas citas: solo mantener confirmadas
+        setCitas(prevCitas => {
+
+            if (estado !== "CONFIRMADA") {
+                return prevCitas.filter(
+                    citaActual =>
+                        citaActual.id !== cita.id
+                )
             }
 
-            if (tipo_evento === 'CITA_CONFIRMADA' || estado === 'CONFIRMADA') {
-                // Si estaba pendiente y pasa a confirmada, restamos de pendientes
-                setPendientes((prev) => Math.max(0, prev - 1));
+            const existe = prevCitas.some(
+                citaActual =>
+                    citaActual.id === cita.id
+            )
+
+            if (existe) {
+                return prevCitas.map(
+                    citaActual =>
+                        citaActual.id === cita.id
+                            ? cita
+                            : citaActual
+                )
             }
 
-            if (tipo_evento === 'CITA_COMPLETADA' || estado === 'COMPLETADA' || estado === 'REALIZADA') {
-                setRealizadas((prev) => prev + 1);
-            }
+            return [
+                cita,
+                ...prevCitas
+            ]
+        })
 
-            if (tipo_evento === 'CITA_CANCELADA' || estado === 'CANCELADA' || estado === 'RECHAZADA') {
-                // Si una solicitud pendiente fue rechazada o cancelada, se reduce pendientes
-                setPendientes((prev) => Math.max(0, prev - 1));
-            }
+        // Pendiente
+        if (
+            tipo_evento === "NUEVA_SOLICITUD" ||
+            estado === "PENDIENTE"
+        ) {
+            setPendientes(
+                prev => prev + 1
+            )
         }
-    });
 
-    if (loading) return <p>Cargando...</p>;
+        // Confirmada
+        if (
+            tipo_evento === "CITA_CONFIRMADA" ||
+            estado === "CONFIRMADA"
+        ) {
+            setPendientes(
+                prev => Math.max(0, prev - 1)
+            )
+        }
+
+        // Completada
+        if (
+            tipo_evento === "CITA_COMPLETADA" ||
+            estado === "COMPLETADA" ||
+            estado === "REALIZADA"
+        ) {
+            setRealizadas(
+                prev => prev + 1
+            )
+        }
+
+        // Cancelada o rechazada
+        if (
+            tipo_evento === "CITA_CANCELADA" ||
+            estado === "CANCELADA" ||
+            estado === "RECHAZADA"
+        ) {
+            setPendientes(
+                prev => Math.max(0, prev - 1)
+            )
+            setCanceladas(
+                prev => prev + 1
+            )
+        }
+
+    }, [eventoCita])
+
+    if (loading) {
+        return <p>Cargando...</p>
+    }
 
     return (
         <>
@@ -80,22 +152,30 @@ export default function Home() {
                 noLeidas={noLeidas}
                 foto_perfil={dashboard?.foto_perfil}
             />
+
             <StaticCards
                 dashboard={dashboard}
                 noLeidas={noLeidas}
                 cantidadProximasCitas={citas.length}
                 consultasPendientes={pendientes}
                 consultasRealizadas={realizadas}
+                consultasCanceladas={canceladas}
             />
+
             <AppointmentsList
-                data={{ ...dashboard, proximas_citas: citas }}
+                data={{
+                    ...dashboard,
+                    proximas_citas: citas
+                }}
             />
 
             <Notifications
-                data={{ ...dashboard, notificaciones }}
+                data={{
+                    ...dashboard,
+                    notificaciones
+                }}
                 onMarcarLeida={marcarLeida}
             />
-
         </>
-    );
+    )
 }

@@ -10,31 +10,34 @@ import {
 } from "@/app/services/notificationsServices"
 import { obtenerPrimerError } from "@/app/utils/errrorUtils"
 
-export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
+export const useNotificaciones = (userId, tipoUsuario) => {
 
-    const { onEventoCita } = options
+    const [eventoCita, setEventoCita] = useState(null)
 
     const [notificaciones, setNotificaciones] = useState([])
     const [noLeidas, setNoLeidas] = useState(0)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [paginaActual, setPaginaActual] = useState(1);
+    const [totalPaginas, setTotalPaginas] = useState(1);
+    const [totalRegistros, setTotalRegistros] = useState(0);
 
     const ws = useRef(null)
-
-    const onEventoCitaRef = useRef(onEventoCita)
-
-    useEffect(() => {
-        onEventoCitaRef.current = onEventoCita
-    }, [onEventoCita])
 
     const cargarNotificaciones = async () => {
         try {
             setLoading(true)
             setError(null)
 
-            const response = await obtenerNotificacionesService()
+            const params = {
+                page: paginaActual,
+                page_size: 6
+            }
 
-            const data = response?.data ?? []
+            const response = await obtenerNotificacionesService(params)
+
+            const data = response?.data?.data ?? []
+            const paginacion = response?.data?.paginacion ?? null
 
             setNotificaciones(
                 Array.isArray(data)
@@ -42,33 +45,42 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
                     : []
             )
 
-            const cantidadNoLeidas = data.filter(
-                notificacion => !notificacion.leida
-            ).length
+            if (paginacion) {
+                setPaginaActual(
+                    paginacion.current_page
+                )
 
-            setNoLeidas(cantidadNoLeidas)
+                setTotalPaginas(
+                    paginacion.total_pages
+                )
+
+                setTotalRegistros(
+                    paginacion.count
+                )
+            }
 
         } catch (error) {
-
             console.error(error)
 
             setError(
                 "No se pudieron cargar las notificaciones."
             )
-
         } finally {
-
             setLoading(false)
         }
     }
+    
+    const cambiarPagina = (nuevaPagina) => {
+        setPaginaActual(nuevaPagina);
+    };
 
     useEffect(() => {
         cargarNotificaciones()
-    }, [])
+    }, [paginaActual])
 
     useEffect(() => {
 
-        if (!userId) return
+        if (!userId || !tipoUsuario) return;
 
         ws.current = new WebSocket(
             `ws://localhost:8000/ws/notificaciones/${tipoUsuario}/${userId}/`
@@ -81,8 +93,6 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
         ws.current.onmessage = (event) => {
 
             const data = JSON.parse(event.data)
-
-            console.log("📩 Evento recibido:", data)
 
             if (data.type === "count_initial") {
                 setNoLeidas(data.count)
@@ -119,11 +129,8 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
                         data.tipo_evento ||
                         data.notificacion?.extra_data?.tipo_evento
 
-                    if (
-                        citaData &&
-                        onEventoCitaRef.current
-                    ) {
-                        onEventoCitaRef.current({
+                    if (citaData) {
+                        setEventoCita({
                             tipo_evento: tipoEvento,
                             cita: citaData,
                             notificacion: data.notificacion
@@ -147,7 +154,7 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
             }
         }
 
-    }, [userId,tipoUsuario])
+    }, [userId, tipoUsuario])
 
     const marcarLeida = async (idNotificacion) => {
 
@@ -181,7 +188,7 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
             )
 
         } catch (error) {
-            console.error("Error al marcar la notificación como leída",error)
+            console.error("Error al marcar la notificación como leída", error)
             const mensajeBackend = obtenerPrimerError(error.response?.data?.errores)
             await Swal.fire({
                 icon: "error",
@@ -314,7 +321,12 @@ export const useNotificaciones = (userId, tipoUsuario, options = {}) => {
         eliminarNotificacion,
         eliminarTodasNotificaciones,
         cargarNotificaciones,
+        eventoCita,
         loading,
+        cambiarPagina,
+        paginaActual,
+        totalPaginas,
+        totalRegistros,
         error
     }
 }

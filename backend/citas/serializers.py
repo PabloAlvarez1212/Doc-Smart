@@ -20,13 +20,15 @@ def msg_numero(campo, articulo='El'):
 # ─── SALIDA ───────────────────────────────────────────────────────────────────
 
 class CitaSerializer(serializers.ModelSerializer):
-    paciente = serializers.CharField(source='id_usuario.nombre')
+    paciente = serializers.SerializerMethodField()
     medico   = serializers.SerializerMethodField()
     estado   = serializers.CharField(source='id_estado.nombre')
     ciudad    = serializers.CharField(source='id_medico.ciudad.nombre') 
     departamento = serializers.CharField(source='id_medico.ciudad.departamento.nombre')
     direccion = serializers.CharField(source='id_medico.direccion')
     especialidad = serializers.CharField(source='id_medico.id_especialidad.nombre')
+    foto_paciente = serializers.SerializerMethodField()
+    foto_medico = serializers.SerializerMethodField()
 
     class Meta:
         model  = Cita
@@ -34,17 +36,35 @@ class CitaSerializer(serializers.ModelSerializer):
             'id',
             'fecha_programada',
             'fecha_final',
+            'fecha_cancelacion',
             'estado',
             'paciente',
             'medico',
             'departamento',
             'ciudad',
             'direccion',
-            'especialidad'
+            'especialidad',
+            'foto_paciente',
+            'foto_medico',
         ]
 
     def get_medico(self, obj):
         return f"{obj.id_medico.nombre} {obj.id_medico.apellido}"
+    
+    def get_paciente(self, obj):
+        return f"{obj.id_usuario.nombre} {obj.id_usuario.apellido}"
+    
+    def get_foto_paciente(self, obj):
+        if obj.id_usuario.foto_perfil:
+            return obj.id_usuario.foto_perfil.url
+
+        return None
+
+    def get_foto_medico(self, obj):
+        if obj.id_medico.foto_perfil:
+            return obj.id_medico.foto_perfil.url
+
+        return None
 
 
 class RecordatorioSerializer(serializers.ModelSerializer):

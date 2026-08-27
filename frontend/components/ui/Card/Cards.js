@@ -5,6 +5,7 @@ export default function Cards(
         variant = 'default', //primary,second
         className = '',
         image,
+        icono,
         description,
         title,
         layout = 'vertical', //vertical,horizontal
@@ -15,9 +16,9 @@ export default function Cards(
         <div className={`${styles.containerCard} ${styles[layout]} ${styles[align]} ${className}`}>
             {variant === 'default' && (
                 <>
-                    {image && (
+                    {image ? (
                         <Image width={150} height={150} alt={title} src={image} />
-                    )}
+                    ): icono}
                     <h2>{title}</h2>
                     <p>{description}</p>
                 </>

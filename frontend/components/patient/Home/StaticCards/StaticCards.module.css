@@ -8,18 +8,6 @@
     grid-template-columns: repeat(4,1fr);
     gap: 1rem;
 }
-.card:hover{
-    transform: translateY(-3px);
-}
-.card img{
-    width: 60px;
-    height: auto;
-    border-radius: 50%;
-    background-color: #F0F9FF;
-    margin-top: 10px;
-    object-fit: cover;
-    margin-bottom: 5px;
-}
 .card p{
     margin-bottom: 10px;
     margin-top: 5px;
@@ -32,7 +20,12 @@
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
-
+.icon{
+    width: 46px;
+    height: 46px;
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
 .itemCard{
     border: none !important;
 }

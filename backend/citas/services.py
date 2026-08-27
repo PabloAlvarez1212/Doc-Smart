@@ -189,9 +189,14 @@ def editarCitaService(id, datos, usuario_id):
             return 'El médico ya tiene una cita en esa fecha', 400
 
         cita.fecha_programada = nueva_fecha
-        estado_reprogramado = Estado.objects.filter(nombre='reprogramada').first()
-        if estado_reprogramado:
-            cita.id_estado = estado_reprogramado
+        estado_reprogramado = Estado.objects.filter(
+            nombre__iexact='reprogramada'
+        ).first()
+
+        if not estado_reprogramado:
+            return "Estado 'Reprogramada' no configurado", 404
+
+        cita.id_estado = estado_reprogramado
 
     cita.save()
     
@@ -239,6 +244,7 @@ def cancelarCitaService(id, solicitante_id):
 
     estado_cancelada = Estado.objects.filter(nombre='cancelada').first()
     cita.id_estado = estado_cancelada
+    cita.fecha_cancelacion = timezone.now()
     cita.save()
 
     fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
@@ -308,29 +314,47 @@ def completarCitaService(id, medico_id):
     return cita_data, 200
 
 def confirmarCitaService(id, medico_id):
-    cita = Cita.objects.filter(id=id, id_medico=medico_id).first()
+    cita = Cita.objects.filter(
+        id=id,
+        id_medico=medico_id
+    ).first()
+
     if not cita:
         return 'Cita no encontrada o no te pertenece', 404
 
-    if cita.id_estado.nombre == 'confirmada':
+    estado_actual = cita.id_estado.nombre.lower()
+
+    if estado_actual == 'confirmada':
         return 'La cita ya está confirmada', 400
 
-    if cita.id_estado.nombre == 'cancelada':
+    if estado_actual == 'cancelada':
         return 'No se puede confirmar una cita cancelada', 400
 
-    if cita.id_estado.nombre == 'completada':
+    if estado_actual == 'completada':
         return 'No se puede confirmar una cita completada', 400
 
-    estado_confirmada = Estado.objects.filter(nombre='confirmada').first()
+    estado_confirmada = Estado.objects.filter(
+        nombre__iexact='confirmada'
+    ).first()
+
+    if not estado_confirmada:
+        return "No existe el estado 'confirmada' en el catálogo", 404
+
     cita.id_estado = estado_confirmada
     cita.save()
 
-    fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
+    fecha_fmt = cita.fecha_programada.strftime(
+        "%d/%m/%Y a las %H:%M"
+    )
+
     cita_data = CitaSerializer(cita).data
 
     enviarNotificacion(
         titulo='Cita confirmada',
-        mensaje=f'Tu cita del {fecha_fmt} ha sido confirmada por el Dr. {cita.id_medico.nombre} {cita.id_medico.apellido}',
+        mensaje=(
+            f'Tu cita del {fecha_fmt} ha sido confirmada por el '
+            f'Dr. {cita.id_medico.nombre} {cita.id_medico.apellido}'
+        ),
         tipo='cita_confirmada',
         id_usuario=cita.id_usuario_id,
         extra_data={
@@ -338,9 +362,14 @@ def confirmarCitaService(id, medico_id):
             "cita": cita_data
         }
     )
+
     enviarNotificacion(
         titulo='Cita confirmada',
-        mensaje=f'Confirmaste la cita con el paciente {cita.id_usuario.nombre} {cita.id_medico.apellido} para el {fecha_fmt} hs',
+        mensaje=(
+            f'Confirmaste la cita con el paciente '
+            f'{cita.id_usuario.nombre} {cita.id_usuario.apellido} '
+            f'para el {fecha_fmt}'
+        ),
         tipo='cita_confirmada',
         id_medico=cita.id_medico_id,
         extra_data={
@@ -350,7 +379,6 @@ def confirmarCitaService(id, medico_id):
     )
 
     return cita_data, 200
-
 # ─── RECORDATORIOS ────────────────────────────────────────────────────────────
 
 def listarRecordatoriosService():

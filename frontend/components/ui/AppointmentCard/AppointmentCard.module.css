@@ -32,10 +32,32 @@
 .btnConfirmar{
     background-color: #198754 !important;
 }
+.containerFooter{
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.containerFooter .fecha{
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+.containerFooter p{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #686F78;
+}
 .textCanelada,
 .textCompletada{
     font-weight: bold;
     font-size:18px;
+}
+.textCanelada{
+    color: #EF4444 !important;
+}
+.textCompletada{
+    color: #198754 !important;
 }
 .footer button{
     font-size: 13px;

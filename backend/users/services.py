@@ -313,25 +313,18 @@ def obtenerDashboardPacienteInicioService(id):
         day=calendar.monthrange(fecha_actual.year, fecha_actual.month)[1],
         hour=23, minute=59, second=59
     )
-    
-    tresNotificaciones= Notificacion.objects.filter(id_usuario=usuario).order_by('-fecha')[:3]
-    notificaciones = []
-    for notificacion in tresNotificaciones:
-        notificaciones.append({
-            "id" : notificacion.id,
-            "titulo": notificacion.titulo,
-            "mensaje": notificacion.mensaje,
-            "tipo": notificacion.tipo,
-            "leida": notificacion.leida,
-            "fecha" : notificacion.fecha,
-            "usuario" : f"{notificacion.id_usuario.nombre} {notificacion.id_usuario.apellido}"
-        })
-
     consultasRealizadasEsteMes = Cita.objects.filter(
         id_usuario=usuario,
         id_estado__nombre='completada',
         fecha_final__range=(primer_dia, ultimo_dia)
     ).count()
+    
+    consultasCanceladasEsteMes = Cita.objects.filter(
+        id_usuario = usuario,
+        id_estado__nombre ='cancelada',
+        fecha_cancelacion__range=(primer_dia,ultimo_dia)
+    ).count()
+    
     data = {
         "usuario" : nombreCompletoUsuario,
         "id": usuario.id,
@@ -341,8 +334,8 @@ def obtenerDashboardPacienteInicioService(id):
             "cantidad_proximas_citas": numeroCitasProximas,
             "consultas_pendientes": numeroCitasPendientes,
             "consultas_realizadas_mes": consultasRealizadasEsteMes,
+            "consultas_canceladas_mes": consultasCanceladasEsteMes,
         },
-        "notificaciones" : notificaciones,
     }
     
     return data,200
