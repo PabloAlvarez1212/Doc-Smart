@@ -45,9 +45,7 @@ export default function ProfileSidebar({
                         height={120}
                         alt="Foto de perfil"
                         src={
-                            perfil?.foto_perfil
-                                ? `http://localhost:8000${perfil.foto_perfil}`
-                                : "/images/foto_default.png"
+                            perfil?.foto_perfil || "/images/foto_default.png"
                         }
                     />
 

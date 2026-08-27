@@ -27,7 +27,7 @@ export default function AppointmentsList({ data }) {
                             <div className={styles.card} key={cita?.id}>
                                 <div className={styles.container}>
                                     <Image 
-                                        src={cita?.foto_medico ? `http://localhost:8000${cita.foto_medico}` : "/images/foto_default.png"} 
+                                        src={cita?.foto_medico ? cita.foto_medico : "/images/foto_default.png"} 
                                         width={80} 
                                         height={80} 
                                         alt="foto de perfil" 

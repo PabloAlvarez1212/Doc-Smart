@@ -3,11 +3,7 @@ import Image from "next/image";
 
 export default function Hero({ nombre, especialidad, foto_perfil }) {
 
-    const fotoPerfil = foto_perfil
-        ? foto_perfil.startsWith("http")
-            ? foto_perfil
-            : `http://localhost:8000${foto_perfil}`
-        : "/images/foto_default.png";
+    const fotoPerfil = foto_perfil || "/images/foto_default.png"
 
     return (
         <div className={styles.containerMain}>

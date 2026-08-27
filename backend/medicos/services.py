@@ -705,32 +705,38 @@ def editarPerfilMedicoService(id_medico, data):
 # ── FOTO DE PERFIL ────────────────────────────────────────────────────────────
 
 def actualizarFotoPerfilMedicoService(medico, foto):
+    nombre_foto_anterior = (
+        medico.foto_perfil.name
+        if medico.foto_perfil
+        else None
+    )
 
-    if medico.foto_perfil:
-        medico.foto_perfil.delete(
-            save=False
-        )
+    storage = medico.foto_perfil.storage
 
+    # Guardar primero la nueva foto
     medico.foto_perfil = foto
 
     medico.save(
-        update_fields=['foto_perfil']
+        update_fields=["foto_perfil"]
     )
+
+    # Borrar la foto anterior directamente desde el storage
+    if nombre_foto_anterior:
+        storage.delete(nombre_foto_anterior)
 
     return medico
 
 def eliminarFotoPerfilMedicoService(medico):
-
     if medico.foto_perfil:
+        nombre_foto = medico.foto_perfil.name
+        storage = medico.foto_perfil.storage
 
-        medico.foto_perfil.delete(
-            save=False
-        )
+        storage.delete(nombre_foto)
 
     medico.foto_perfil = None
 
     medico.save(
-        update_fields=['foto_perfil']
+        update_fields=["foto_perfil"]
     )
 
     return medico
