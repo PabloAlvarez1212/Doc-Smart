@@ -1,7 +1,7 @@
 "use client"
 import Image from "next/image";
 import styles from "./AppointmentsList.module.css";
-import { Clock12Icon } from "lucide-react";
+import { Calendar, Clock12Icon,MapPin,Stethoscope } from "lucide-react";
 import Button from "../../../ui/Button/Button";
 import formatearFecha from '@/app/utils/fechaFormaterUtils';
 import { estadoDiseño } from "@/app/utils/estadoDise/estadoDiseUtils";
@@ -27,19 +27,31 @@ export default function AppointmentsList({ data }) {
                             <div className={styles.card} key={cita?.id}>
                                 <div className={styles.container}>
                                     <Image 
-                                        src="/images/doctor3.jpg" 
-                                        width={120} 
-                                        height={100} 
+                                        src={cita?.foto_medico ? `http://localhost:8000${cita.foto_medico}` : "/images/foto_default.png"} 
+                                        width={80} 
+                                        height={80} 
                                         alt="foto de perfil" 
                                     />
                                     <div className={styles.description}>
                                         <h3>Dr. {cita?.medico}</h3>
-                                        <p>{cita?.especialidad}</p>
-                                        <p>{`${cita?.ciudad} - ${cita?.direccion}`}</p>
+                                        <div className={styles.especialidad}>
+                                            <Stethoscope size={20} color="#8B5CF6"/>
+                                            <p>{cita?.especialidad}</p>
+                                        </div>
+                                        <div className={styles.direccion}>
+                                            <MapPin size={20} color="#3B82F6"/>
+                                            <p>{`${cita?.ciudad} - ${cita?.direccion}`}</p>
+                                        </div>
+                                        
                                         <div className={styles.schedule}>
-                                            <Clock12Icon size={20} />
-                                            <p>{fecha}</p>
-                                            <p>{hora}</p>
+                                            <div className={styles.containerFecha}>
+                                                <Calendar size={20}/>
+                                                <p>{fecha}</p>
+                                            </div>
+                                            <div className={styles.containerFecha}>
+                                                <Clock12Icon size={20} />
+                                                <p>{hora}</p>
+                                            </div>      
                                         </div>
                                     </div>
                                 </div>
