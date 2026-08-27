@@ -77,6 +77,10 @@ def normalizar_respuesta_bymax(respuesta):
         resultado = {
             "success": respuesta.get("success", True),
             "data": respuesta.get("data", {}),
+            "requires_confirmation": respuesta.get(
+                "requires_confirmation", False
+            ),
+            "requires_selection": respuesta.get("requires_selection", False),
         }
 
         return texto, resultado

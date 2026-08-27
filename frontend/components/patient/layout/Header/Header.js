@@ -37,7 +37,6 @@ export default function Header() {
                         <li><Link href='/patient/my-appointments' className={activateLink('/patient/my-appointments')}>Mis citas</Link></li>
                         <li><Link href='/patient/my-medical-history' className={activateLink('/patient/my-medical-history')}>Historial clínico</Link></li>
                         <li><Link href='/patient/my-profile' className={activateLink('/patient/my-profile')}>Perfil</Link></li>
-                        <li><Link href='/patient/chatbot' className={activateLink('/patient/chatbot')}>Chat bot</Link></li>
                         <li><Link href='/patient/' className={activateLink('/patient/')}>Encontar doctores</Link></li>
                         <li><Link href='/patient/notifications' className={activateLink('/patient/notifications')}>Notificaciones&nbsp;&nbsp;({noLeidas ?? 0})</Link></li>
                     </ul>
