@@ -21,6 +21,10 @@ def _normalizar_respuesta(respuesta):
         return texto, {
             "success": respuesta.get("success", True),
             "data": respuesta.get("data", {}),
+            "requires_confirmation": respuesta.get(
+                "requires_confirmation", False
+            ),
+            "requires_selection": respuesta.get("requires_selection", False),
         }
 
     if respuesta is None:
