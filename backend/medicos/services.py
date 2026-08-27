@@ -429,6 +429,53 @@ def obtenerDashboardMedicoInicioService(id):
         })
 
     # ==========================
+    # PROXIMAS CITAS
+    # ==========================
+
+    ahora = timezone.now()
+
+    proximasCitasQuery = Cita.objects.filter(
+        id_medico=medico,
+        fecha_programada__gte=ahora
+    ).exclude(
+        id_estado__nombre__iexact="cancelada"
+    ).exclude(
+        id_estado__nombre__iexact="completada"
+    ).select_related(
+        "id_usuario",
+        "id_medico",
+        "id_estado"
+    ).order_by(
+        "fecha_programada"
+    )[:3]
+
+
+    proximas_citas = []
+
+    for cita in proximasCitasQuery:
+
+        proximas_citas.append({
+            "id": cita.id,
+            "fecha_programada": cita.fecha_programada,
+
+            "paciente": (
+                f"{cita.id_usuario.nombre} "
+                f"{cita.id_usuario.apellido}"
+            ),
+
+            "correo": cita.id_usuario.correo,
+            "telefono": cita.id_usuario.telefono,
+
+            "estado": cita.id_estado.nombre,
+
+            "foto_paciente": (
+                cita.id_usuario.foto_perfil.url
+                if cita.id_usuario.foto_perfil
+                else None
+            ),
+        })
+
+    # ==========================
     # FECHAS DEL MES
     # ==========================
 
@@ -527,6 +574,8 @@ def obtenerDashboardMedicoInicioService(id):
         },
 
         "citas_hoy": citas_hoy,
+
+        "proximas_citas": proximas_citas,
 
         "notificaciones": notificaciones,
 
