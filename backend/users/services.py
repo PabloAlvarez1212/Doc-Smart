@@ -293,7 +293,11 @@ def obtenerDashboardPacienteInicioService(id):
             "estado": cita.id_estado.nombre,
             "direccion": cita.id_medico.direccion,
             "ciudad": cita.id_medico.ciudad.nombre,
-            "departamento": cita.id_medico.ciudad.departamento.nombre
+            "departamento": cita.id_medico.ciudad.departamento.nombre,
+            "foto_medico": (
+                cita.id_medico.foto_perfil.url
+                if cita.id_medico.foto_perfil
+                else None),
     })
     
     numeroCitasProximas = Cita.objects.filter(

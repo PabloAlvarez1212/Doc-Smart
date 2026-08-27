@@ -1,17 +1,22 @@
 .containerMain {
     width: 90%;
     margin: 0 auto;
-    padding-top: 100px;
+    margin-top: 80px;
+    padding: 30px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .card img {
-    border-radius: 48%;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
 .card {
     background: white;
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border: 1px solid #ECECEC;
 }
 
 .header{
@@ -42,12 +47,13 @@
     display: flex;
     flex-direction: column;
     align-items: left;
-    gap: 5px;
+    gap: 7px;
 }
 .schedule{
     display: flex;
     align-items: center;
-    gap: 7px
+    gap: 14px;
+    color: #6B7280;
 }
 .containerCards{
     display: flex;
@@ -60,4 +66,17 @@
     font-size: 22px;
     font-weight: bold;
     margin-bottom: 100px;
+}
+
+.especialidad,
+.direccion{
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.containerFecha{
+    display: flex;
+    align-items: center;
+    gap: 7px;
 }
