@@ -1,5 +1,6 @@
 import styles from "./Notifications.module.css";
 import Button from "../../../ui/Button/Button";
+import Link from "next/link";
 import { renderIcono } from "@/app/utils/estadoDise/estadoDiseUtils";
 import { formatearFechaRelativa } from "@/app/utils/fechaFormaterUtils";
 
@@ -14,9 +15,11 @@ export default function Notifications({ data }) {
                 <div className={styles.header}>
                     <h2>Notificaciones recientes</h2>
 
-                    <Button className={styles.btnGreen} size="sm">
-                        Ver más &nbsp;&nbsp;&gt;
-                    </Button>
+                    <Link href="/doctor/notifications">
+                        <Button className={styles.btnGreen} size="sm">
+                            Ver más &nbsp;&nbsp;&gt;
+                        </Button>
+                    </Link>
                 </div>
 
                 {

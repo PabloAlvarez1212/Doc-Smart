@@ -1,89 +1,185 @@
 import styles from "./AppointmentsList.module.css";
 import Button from "../../../ui/Button/Button";
-import { Clock12Icon } from "lucide-react";
+import {
+    CalendarDays,
+    Clock,
+    Mail,
+    Phone
+} from "lucide-react";
+
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function AppointmentsList({ data }) {
 
-    const citasHoy = (data?.citas_hoy || []).slice(0, 3);
+    const proximasCitas =
+        data?.proximas_citas || [];
 
     return (
         <div className={styles.containerMain}>
+
             <div className={styles.container}>
 
                 <div className={styles.header}>
-                    <h2>Citas de Hoy</h2>
 
-                    <Button className={styles.btnGreen} size="sm">
-                        Ver más &nbsp;&nbsp;&gt;
-                    </Button>
+                    <div>
+                        <h2>Próximas Citas</h2>
+
+                        <p className={styles.subtitle}>
+                            Tus próximas consultas programadas
+                        </p>
+                    </div>
+
+                    <Link
+                        href="/doctor/my-appointments"
+                        className={styles.link}
+                    >
+                        <Button
+                            className={styles.btnGreen}
+                            size="sm"
+                        >
+                            Ver más &nbsp; &gt;
+                        </Button>
+                    </Link>
+
                 </div>
 
-                {
-                    citasHoy.length > 0 ? (
 
-                        <div className={styles.containerCards}>
+                {proximasCitas.length > 0 ? (
 
-                            {
-                                citasHoy.map((cita) => {
+                    <div className={styles.containerCards}>
 
-                                    const { fecha, hora } = formatearFecha(
-                                        cita.fecha_programada
-                                    );
+                        {proximasCitas.map((cita) => {
 
-                                    return (
+                            const { fecha, hora } =
+                                formatearFecha(
+                                    cita.fecha_programada
+                                );
 
-                                        <div
-                                            className={styles.card}
-                                            key={cita.id}
-                                        >
+                            const fotoPaciente =
+                                cita.foto_paciente
+                                    ? `http://localhost:8000${cita.foto_paciente}`
+                                    : "/images/foto_default.png";
 
-                                            <div className={styles.containerInfo}>
+                            const estado =
+                                cita.estado?.toLowerCase();
 
-                                                <div className={styles.avatar}>
-                                                    {cita.paciente
-                                                        ?.split(" ")
-                                                        .map(nombre => nombre[0])
-                                                        .slice(0, 2)
-                                                        .join("")}
-                                                </div>
+                            return (
 
-                                                <div className={styles.description}>
-                                                    <h3>{cita.paciente}</h3>
+                                <div
+                                    className={styles.card}
+                                    key={cita.id}
+                                >
 
-                                                    <p>
-                                                        Estado: {cita.estado}
-                                                    </p>
+                                    {/* FOTO */}
 
-                                                    <div className={styles.schedule}>
-                                                        <Clock12Icon size={18} />
-                                                        <span>{fecha}</span>
-                                                        <span>{hora}</span>
-                                                    </div>
+                                    <div className={styles.avatar}>
 
-                                                </div>
+                                        <Image
+                                            src={fotoPaciente}
+                                            alt={`Foto de ${cita.paciente}`}
+                                            width={75}
+                                            height={75}
+                                        />
 
+                                    </div>
+
+
+                                    {/* INFORMACIÓN DEL PACIENTE */}
+
+                                    <div className={styles.patientInfo}>
+
+                                        <div className={styles.nameRow}>
+
+                                            <div>
+                                                <h3>
+                                                    {cita.paciente}
+                                                </h3>
+
+                                                <span className={styles.patientLabel}>
+                                                    Paciente
+                                                </span>
                                             </div>
 
                                         </div>
 
-                                    );
 
-                                })
-                            }
+                                        <div className={styles.contactInfo}>
 
-                        </div>
+                                            {cita.correo && (
+                                                <div className={styles.infoItem}>
+                                                    <Mail size={16} />
+                                                    <span>
+                                                        {cita.correo}
+                                                    </span>
+                                                </div>
+                                            )}
 
-                    ) : (
+                                            {cita.telefono && (
+                                                <div className={styles.infoItem}>
+                                                    <Phone size={16} />
+                                                    <span>
+                                                        {cita.telefono}
+                                                    </span>
+                                                </div>
+                                            )}
 
-                        <p className={styles.textNotCitas}>
-                            No hay citas programadas para hoy.
+                                        </div>
+
+
+                                        <div className={styles.schedule}>
+
+                                            <div className={styles.infoItem}>
+                                                <CalendarDays size={17} />
+                                                <span>{fecha}</span>
+                                            </div>
+
+                                            <div className={styles.infoItem}>
+                                                <Clock size={17} />
+                                                <span>{hora}</span>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    {/* ESTADO */}
+
+                                    <div className={styles.statusContainer}>
+
+                                        <span
+                                            className={`${styles.status} ${styles[estado]}`}
+                                        >
+                                            {cita.estado}
+                                        </span>
+
+                                    </div>
+
+                                </div>
+                            );
+
+                        })}
+
+                    </div>
+
+                ) : (
+
+                    <div className={styles.emptyState}>
+
+                        <CalendarDays size={35} />
+
+                        <p>
+                            No tienes próximas citas programadas.
                         </p>
 
-                    )
-                }
+                    </div>
+
+                )}
 
             </div>
+
         </div>
     );
 }

@@ -8,7 +8,7 @@
     margin-top: 40px;
     padding: 30px 40px;
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
 }
 
 .header {
@@ -24,7 +24,7 @@
 }
 
 .btnGreen {
-    background-color: #22c55e !important; /* verde */
+    background-color: #22c55e !important;
     color: white;
     border: none;
 }
@@ -33,19 +33,45 @@
     background-color: #16a34a !important;
 }
 
+.link {
+    text-decoration: none;
+}
+
+.subtitle {
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+
+/* ==============================
+   CONTENEDOR DE CITAS
+============================== */
+
 .containerCards {
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
 
+
+/* ==============================
+   CARD
+============================== */
+
 .card {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+
+    /* foto | información | estado */
+    grid-template-columns: 90px 1fr auto;
+
     align-items: center;
+    gap: 20px;
+
     padding: 18px 26px;
+
     border: 1px solid #ececec;
     border-radius: 10px;
+
     transition: .2s;
 }
 
@@ -53,25 +79,130 @@
     background: #fafafa;
 }
 
-.containerInfo {
+
+/* ==============================
+   FOTO
+============================== */
+
+.avatar {
     display: flex;
+    justify-content: center;
     align-items: center;
-    gap: 20px;
 }
 
-.description {
+.avatar img {
+    width: 75px;
+    height: 75px;
+
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+
+/* ==============================
+   INFORMACIÓN DEL PACIENTE
+============================== */
+
+.patientInfo {
     display: flex;
     flex-direction: column;
+    justify-content: center;
+
+    gap: 6px;
+
+    /* Muy importante:
+       evita que la información se centre en la card */
+    align-items: flex-start;
+}
+
+.nameRow {
+    display: flex;
+    align-items: center;
+}
+
+.nameRow h3 {
+    margin: 0;
+}
+
+.patientLabel {
+    display: block;
+    color: #6b7280;
+    font-size: 14px;
+    margin-top: 2px;
+}
+
+
+/* ==============================
+   CONTACTO
+============================== */
+
+.contactInfo {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 18px;
+}
+
+.infoItem {
+    display: flex;
+    align-items: center;
     gap: 6px;
 }
+
+
+/* ==============================
+   FECHA Y HORA
+============================== */
 
 .schedule {
     display: flex;
     align-items: center;
-    gap: 8px;
+    flex-wrap: wrap;
+
+    gap: 18px;
+
     color: #6b7280;
 }
 
+
+/* ==============================
+   ESTADO
+============================== */
+
+.statusContainer {
+    display: flex;
+    align-self: start;
+    justify-content: flex-end;
+}
+
+.status {
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.confirmada {
+    background-color: #dbeafe;
+    color: #2563eb;
+}
+
+.pendiente {
+    background-color: #fef3c7;
+    color: #a16207;
+}
+
+.reprogramada {
+    background-color: #f3e8ff;
+    color: #7e22ce;
+}
+
+
+/* ==============================
+   SIN CITAS
+============================== */
+
+.emptyState,
 .textNotCitas {
     text-align: center;
     padding: 40px 0;
