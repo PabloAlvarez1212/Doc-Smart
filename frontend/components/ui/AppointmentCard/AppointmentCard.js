@@ -42,12 +42,7 @@ export default function AppointmentCard({
             ? cita.foto_paciente
             : cita.foto_medico;
 
-    const fotoSrc = fotoPerfil
-        ? fotoPerfil.startsWith("http")
-            ? fotoPerfil
-            : `http://localhost:8000${fotoPerfil}`
-        : "/images/foto_default.png";
-
+    const fotoSrc = fotoPerfil || "/images/foto_default.png"
 
     // ==========================================
     // ACCIONES SEGÚN ESTADO DE LA CITA

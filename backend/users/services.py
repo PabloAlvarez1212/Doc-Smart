@@ -14,6 +14,9 @@ from django.core.paginator import Paginator
 from citas.models import Cita
 import calendar
 from notificaciones.models import Notificacion 
+import logging
+
+logger = logging.getLogger(__name__)
 
 def loginService(correo, contraseña):
     # Busca en ambas tablas
@@ -210,22 +213,43 @@ def listarUsuariosService(page=None, page_size=10, search=None):
     }, 200
 
 def actualizarFotoPerfilPacienteService(usuario, foto_perfil):
+    nombre_foto_anterior = (
+        usuario.foto_perfil.name
+        if usuario.foto_perfil
+        else None
+    )
 
+    storage = usuario.foto_perfil.storage
+
+    # Guardar primero la nueva foto
     usuario.foto_perfil = foto_perfil
 
     usuario.save(
         update_fields=["foto_perfil"]
     )
 
+    # Borrar la anterior directamente desde el storage,
+    # sin modificar nuevamente usuario.foto_perfil
+    if nombre_foto_anterior:
+        storage.delete(nombre_foto_anterior)
+
     return usuario
 
-def eliminarFotoPerfilPacienteService(usuario):
 
+def eliminarFotoPerfilPacienteService(usuario):
     if usuario.foto_perfil:
-        usuario.foto_perfil.delete(save=False)
+        try:
+            usuario.foto_perfil.delete(save=False)
+        except Exception:
+            logger.exception(
+                "Error eliminando foto de perfil del paciente"
+            )
 
     usuario.foto_perfil = None
-    usuario.save(update_fields=["foto_perfil"])
+
+    usuario.save(
+        update_fields=["foto_perfil"]
+    )
 
     return usuario
 

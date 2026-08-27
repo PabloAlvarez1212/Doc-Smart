@@ -58,9 +58,7 @@ export default function AppointmentsList({ data }) {
                                 );
 
                             const fotoPaciente =
-                                cita.foto_paciente
-                                    ? `http://localhost:8000${cita.foto_paciente}`
-                                    : "/images/foto_default.png";
+                                cita.foto_paciente || "/images/foto_default.png";
 
                             const estado =
                                 cita.estado?.toLowerCase();

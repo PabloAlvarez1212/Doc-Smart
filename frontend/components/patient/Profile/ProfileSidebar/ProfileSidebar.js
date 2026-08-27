@@ -20,7 +20,7 @@ export default function ProfileSidebar({ perfil, actualizarFotoPerfil, guardando
         <div className={styles.containerSidebar}>
             <div className={styles.fotoPerfil}>
                 <div className={styles.containerImage}>
-                    <Image width={100} height={100} alt="foto de perfil" src={perfil?.foto_perfil ? `http://localhost:8000${perfil.foto_perfil}` : "/images/foto_default.png"} />
+                    <Image width={100} height={100} alt="foto de perfil" src={perfil?.foto_perfil ? perfil.foto_perfil : "/images/foto_default.png"} />
                     <Trash2Icon onClick={() => eliminarFotoPerfil()} className={styles.icon} size={42} />
                 </div>
                 <input ref={inputFotoRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleSeleccionarFoto} />
