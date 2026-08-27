@@ -27,7 +27,14 @@ SECRET_KEY = 'django-insecure-ml!j604gh^qj+m3-8mzldo)1+q^96*fapti*2p%+*r_y!&n0k2
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv(
+        "ALLOWED_HOSTS",
+        "localhost,127.0.0.1"
+    ).split(",")
+    if host.strip()
+]
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -126,7 +133,7 @@ DATABASES = {
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
+        'PORT': os.getenv('DB_PORT', 3306),
         'OPTIONS': {
             'charset': 'utf8mb4',
         },
