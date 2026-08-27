@@ -10,7 +10,7 @@ import {
 } from "@/app/services/notificationsServices"
 import { obtenerPrimerError } from "@/app/utils/errrorUtils"
 
-export const useNotificaciones = (userId, tipoUsuario) => {
+export const useNotificaciones = () => {
 
     const [eventoCita, setEventoCita] = useState(null)
 
@@ -69,7 +69,7 @@ export const useNotificaciones = (userId, tipoUsuario) => {
             setLoading(false)
         }
     }
-    
+
     const cambiarPagina = (nuevaPagina) => {
         setPaginaActual(nuevaPagina);
     };
@@ -79,82 +79,172 @@ export const useNotificaciones = (userId, tipoUsuario) => {
     }, [paginaActual])
 
     useEffect(() => {
+        const WS_URL = process.env.NEXT_PUBLIC_WS_URL
 
-        if (!userId || !tipoUsuario) return;
-
-        ws.current = new WebSocket(
-            `ws://localhost:8000/ws/notificaciones/${tipoUsuario}/${userId}/`
-        )
-
-        ws.current.onopen = () => {
-            console.log("WebSocket conectado")
+        if (!WS_URL) {
+            console.error(
+                "NEXT_PUBLIC_WS_URL no está configurada"
+            )
+            return
         }
 
-        ws.current.onmessage = (event) => {
+        let socket = null
+        let reconnectTimer = null
+        let intentos = 0
+        let desmontado = false
 
-            const data = JSON.parse(event.data)
+        const MAX_DELAY = 30000
 
-            if (data.type === "count_initial") {
-                setNoLeidas(data.count)
+        const conectar = () => {
+            if (desmontado) return
+
+            // Evitar conexiones duplicadas
+            if (
+                socket &&
+                (
+                    socket.readyState === WebSocket.OPEN ||
+                    socket.readyState === WebSocket.CONNECTING
+                )
+            ) {
+                return
             }
 
-            if (data.type === "notification_update") {
+            socket = new WebSocket(
+                `${WS_URL}/ws/notificaciones/`
+            )
 
-                setNoLeidas(data.count)
+            ws.current = socket
 
-                if (data.notificacion) {
+            // Conexión exitosa
+            socket.onopen = () => {
+                // Reiniciar los intentos de reconexión
+                intentos = 0
+            }
 
-                    setNotificaciones(prev => {
+            // Mensajes recibidos
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data)
 
-                        const existe = prev.some(
-                            notificacion =>
-                                notificacion.id === data.notificacion.id
-                        )
-
-                        if (existe) {
-                            return prev
-                        }
-
-                        return [
-                            data.notificacion,
-                            ...prev
-                        ]
-                    })
-
-                    const citaData =
-                        data.cita ||
-                        data.notificacion?.extra_data?.cita
-
-                    const tipoEvento =
-                        data.tipo_evento ||
-                        data.notificacion?.extra_data?.tipo_evento
-
-                    if (citaData) {
-                        setEventoCita({
-                            tipo_evento: tipoEvento,
-                            cita: citaData,
-                            notificacion: data.notificacion
-                        })
+                    // Cantidad inicial de notificaciones
+                    if (data.type === "count_initial") {
+                        setNoLeidas(data.count)
+                        return
                     }
+
+                    // Nueva notificación o actualización
+                    if (data.type === "notification_update") {
+                        setNoLeidas(data.count)
+
+                        if (data.notificacion) {
+                            setNotificaciones(prev => {
+                                const existe = prev.some(
+                                    notificacion =>
+                                        notificacion.id === data.notificacion.id
+                                )
+
+                                if (existe) {
+                                    return prev
+                                }
+
+                                return [
+                                    data.notificacion,
+                                    ...prev
+                                ]
+                            })
+
+                            const citaData =
+                                data.cita ||
+                                data.notificacion?.extra_data?.cita
+
+                            const tipoEvento =
+                                data.tipo_evento ||
+                                data.notificacion?.extra_data?.tipo_evento
+
+                            if (citaData) {
+                                setEventoCita({
+                                    tipo_evento: tipoEvento,
+                                    cita: citaData,
+                                    notificacion: data.notificacion
+                                })
+                            }
+                        }
+                    }
+
+                } catch (error) {
+                    console.error(
+                        "Error procesando mensaje WebSocket:",
+                        error
+                    )
                 }
             }
-        }
 
-        ws.current.onclose = () => {
-            console.log("WebSocket desconectado")
-        }
+            // El cierre del socket se encargará de iniciar
+            // la reconexión si corresponde.
+            socket.onerror = () => { }
 
-        ws.current.onerror = (error) => {
-            console.log("WebSocket error:", error)
-        }
+            socket.onclose = (event) => {
+                if (ws.current === socket) {
+                    ws.current = null
+                }
 
-        return () => {
-            if (ws.current) {
-                ws.current.close()
+                // Si React desmontó el componente,
+                // no reconectar.
+                if (desmontado) {
+                    return
+                }
+
+                // 4401 = usuario no autenticado
+                // 4403 = usuario no autorizado
+                if (
+                    event.code === 4401 ||
+                    event.code === 4403
+                ) {
+                    return
+                }
+
+                intentos += 1
+
+                const delay = Math.min(
+                    2000 * Math.pow(2, intentos - 1),
+                    MAX_DELAY
+                )
+
+                reconnectTimer = setTimeout(() => {
+                    conectar()
+                }, delay)
             }
         }
 
-    }, [userId, tipoUsuario])
+        conectar()
+
+        return () => {
+            desmontado = true
+
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer)
+            }
+
+            if (socket) {
+                socket.onopen = null
+                socket.onmessage = null
+                socket.onerror = null
+                socket.onclose = null
+
+                if (
+                    socket.readyState === WebSocket.OPEN ||
+                    socket.readyState === WebSocket.CONNECTING
+                ) {
+                    socket.close()
+                }
+            }
+
+            if (ws.current === socket) {
+                ws.current = null
+            }
+        }
+
+    }, [])
 
     const marcarLeida = async (idNotificacion) => {
 

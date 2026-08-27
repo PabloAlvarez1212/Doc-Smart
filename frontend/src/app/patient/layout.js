@@ -18,10 +18,7 @@ export default function PacienteLayout({ children }) {
 
   return (
 
-    <NotificationsProvider
-      userId={perfil?.id}
-      tipoUsuario="paciente"
-    >
+    <NotificationsProvider>
       <div>
         <Header />
 

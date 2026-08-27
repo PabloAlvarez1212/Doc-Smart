@@ -140,8 +140,8 @@ export default function AppointmentCard({
 
                         {cita.fecha_cancelacion && (
                             <div className={style.fecha}>
-                                <p><CalendarCheck size={18} /> <span>{fechaCompleta}</span></p>
-                                <p><Clock size={18} /> <span>{horaCompletada}</span></p>
+                                <p><CalendarCheck size={18} /> <span>{fechaCancelada}</span></p>
+                                <p><Clock size={18} /> <span>{horaCancelada}</span></p>
                             </div>
                         )}
                     </div>
