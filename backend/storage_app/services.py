@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 from django.conf import settings
 
 from storage_app.validators import validar_archivo
-from storage_app.utils import construir_ruta
+import storage_app.utils
 
 
 def obtener_cliente_s3():
@@ -42,7 +42,7 @@ def subir_archivo(
 
     validar_archivo(archivo)
 
-    storage_key = construir_ruta(
+    storage_key = storage_app.utils.construir_ruta(
         categoria=categoria,
         nombre_archivo=archivo.name,
         usuario_id=usuario_id,
