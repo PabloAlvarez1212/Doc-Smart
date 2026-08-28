@@ -4,7 +4,9 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 
 from django.conf import settings
+from django.db import transaction
 
+from storage_app.models import Archivo
 from storage_app.validators import validar_archivo
 import storage_app.utils
 
@@ -171,3 +173,74 @@ def probar_conexion_storage():
     except ClientError as error:
         print("Error conectando al Object Storage:", error)
         return False
+
+def determinar_tipo_archivo(content_type):
+    if not content_type:
+        return "otro"
+
+    if content_type.startswith("image/"):
+        return "imagen"
+
+    if content_type.startswith("video/"):
+        return "video"
+
+    if content_type.startswith("audio/"):
+        return "audio"
+
+    if content_type in {
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }:
+        return "documento"
+
+    return "otro"
+
+
+@transaction.atomic
+def guardar_archivo_usuario(
+    archivo,
+    usuario_id,
+    categoria="general",
+    referencia_id=None,
+):
+    resultado = subir_archivo(
+        archivo=archivo,
+        categoria=categoria,
+        usuario_id=usuario_id,
+        referencia_id=referencia_id,
+    )
+
+    try:
+        registro = Archivo.objects.create(
+            usuario_id=usuario_id,
+            nombre_original=resultado["nombre"],
+            storage_key=resultado["key"],
+            content_type=resultado["tipo"],
+            tamano=resultado["tamano"],
+            tipo=determinar_tipo_archivo(
+                resultado["tipo"]
+            ),
+            categoria=categoria,
+        )
+
+        return registro
+
+    except Exception:
+        eliminar_archivo(resultado["key"])
+        raise
+
+
+@transaction.atomic
+def eliminar_archivo_usuario(archivo):
+    eliminado = eliminar_archivo(
+        archivo.storage_key
+    )
+
+    if not eliminado:
+        return False
+
+    archivo.activo = False
+    archivo.save(update_fields=["activo"])
+
+    return True

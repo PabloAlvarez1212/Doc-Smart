@@ -25,7 +25,7 @@ class Archivo(models.Model):
     )
 
     storage_key = models.CharField(
-        max_length=500,
+        max_length=255,
         unique=True,
     )
 
