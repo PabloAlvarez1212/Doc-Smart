@@ -1,7 +1,6 @@
 from citas.models import Cita, RecordatorioCita
 from citas.serializers import CitaSerializer, RecordatorioSerializer
 from catalogos.models import Estado, Medio
-from django.db.models import Q
 from medicos.models import Medico
 from users.models import Usuario
 from django.utils import timezone
@@ -96,11 +95,17 @@ def listarCitasMedicoService(medico_id):
     serializer = CitaSerializer(citas, many=True)
     return serializer.data, 200
 
-def obtenerCitaService(id, solicitante_id):
+def obtenerCitaService(id, solicitante):
     cita = Cita.objects.filter(id=id).first()
     if not cita:
         return 'Cita no encontrada', 404
-    if cita.id_usuario_id != solicitante_id and cita.id_medico_id != solicitante_id:
+    if isinstance(solicitante, Usuario):
+        if cita.id_usuario_id != solicitante.id:
+            return 'No tienes permiso para ver esta cita', 403
+    elif isinstance(solicitante, Medico):
+        if cita.id_medico_id != solicitante.id:
+            return 'No tienes permiso para ver esta cita', 403
+    else:
         return 'No tienes permiso para ver esta cita', 403
     serializer = CitaSerializer(cita)
     return serializer.data, 200
@@ -167,8 +172,22 @@ def crearCitaService(datos, usuario_id):
 
     return cita_data, 201
 
-def editarCitaService(id, datos, usuario_id):
-    cita = Cita.objects.filter(Q(id_usuario=usuario_id) | Q(id_medico=usuario_id), id=id).first()
+def editarCitaService(id, datos, solicitante):
+    if isinstance(solicitante, Usuario):
+        cita = Cita.objects.filter(
+            id=id,
+            id_usuario=solicitante.id
+        ).first()
+
+    elif isinstance(solicitante, Medico):
+        cita = Cita.objects.filter(
+            id=id,
+            id_medico=solicitante.id
+        ).first()
+
+    else:
+        return 'No tienes permiso para editar esta cita', 403
+
     if not cita:
         return 'Cita no encontrada o no te pertenece', 404
 
@@ -185,7 +204,9 @@ def editarCitaService(id, datos, usuario_id):
         if Cita.objects.filter(
             id_medico=cita.id_medico,
             fecha_programada=nueva_fecha
-        ).exclude(id=cita.id).exists():
+        ).exclude(
+            id=cita.id
+        ).exists():
             return 'El médico ya tiene una cita en esa fecha', 400
 
         cita.fecha_programada = nueva_fecha
@@ -201,12 +222,20 @@ def editarCitaService(id, datos, usuario_id):
     cita.save()
     
     if nueva_fecha and nueva_fecha != fecha_antigua:
-        fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
+        fecha_fmt = cita.fecha_programada.strftime(
+            "%d/%m/%Y a las %H:%M"
+        )
+
         cita_data = CitaSerializer(cita).data
 
         enviarNotificacion(
             titulo='Cita reprogramada',
-            mensaje=f'Tu cita con el Dr. {cita.id_medico.nombre} {cita.id_medico.apellido} fue reprogramada para el {fecha_fmt} hs.',
+            mensaje=(
+                f'Tu cita con el Dr. '
+                f'{cita.id_medico.nombre} '
+                f'{cita.id_medico.apellido} '
+                f'fue reprogramada para el {fecha_fmt} hs.'
+            ),
             tipo='cita_reprogramada',
             id_usuario=cita.id_usuario_id,
             extra_data={
@@ -214,26 +243,46 @@ def editarCitaService(id, datos, usuario_id):
                 "cita": cita_data
             }
         )
-        
+
         enviarNotificacion(
             titulo='Cita reprogramada',
-            mensaje=f'La cita con el paciente {cita.id_usuario.nombre} {cita.id_usuario.apellido} fue reprogramada para el {fecha_fmt} hs. Revisa tu agenda para confirmarla.',
+            mensaje=(
+                f'La cita con el paciente '
+                f'{cita.id_usuario.nombre} '
+                f'{cita.id_usuario.apellido} '
+                f'fue reprogramada para el {fecha_fmt} hs. '
+                f'Revisa tu agenda para confirmarla.'
+            ),
             tipo='cita_reprogramada',
             id_medico=cita.id_medico_id,
             extra_data={
                 "tipo_evento": "ACTUALIZACION_CITA",
                 "cita": cita_data
-            }
-        ) 
-            
+            })
     return CitaSerializer(cita).data, 200
 
-def cancelarCitaService(id, solicitante_id):
-    cita = Cita.objects.filter(id=id).first()
+def cancelarCitaService(id, solicitante):
+    cita = Cita.objects.filter(
+        id=id
+    ).first()
+
     if not cita:
         return 'Cita no encontrada', 404
 
-    if cita.id_usuario_id != solicitante_id and cita.id_medico_id != solicitante_id:
+    if isinstance(solicitante, Usuario):
+        autorizado = (
+            cita.id_usuario_id == solicitante.id
+        )
+
+    elif isinstance(solicitante, Medico):
+        autorizado = (
+            cita.id_medico_id == solicitante.id
+        )
+
+    else:
+        autorizado = False
+
+    if not autorizado:
         return 'No tienes permiso para cancelar esta cita', 403
 
     if cita.id_estado.nombre == 'cancelada':
@@ -242,17 +291,31 @@ def cancelarCitaService(id, solicitante_id):
     if cita.id_estado.nombre == 'completada':
         return 'No se puede cancelar una cita completada', 400
 
-    estado_cancelada = Estado.objects.filter(nombre='cancelada').first()
+    estado_cancelada = Estado.objects.filter(
+        nombre='cancelada'
+    ).first()
+
+    if not estado_cancelada:
+        return "Estado 'cancelada' no configurado", 500
+
     cita.id_estado = estado_cancelada
     cita.fecha_cancelacion = timezone.now()
     cita.save()
 
-    fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
+    fecha_fmt = cita.fecha_programada.strftime(
+        "%d/%m/%Y a las %H:%M"
+    )
+
     cita_data = CitaSerializer(cita).data
 
     enviarNotificacion(
         titulo='Cita cancelada',
-        mensaje=f'Tu cita con el Dr. {cita.id_medico.nombre} {cita.id_medico.apellido} del {fecha_fmt} ha sido cancelada.',
+        mensaje=(
+            f'Tu cita con el Dr. '
+            f'{cita.id_medico.nombre} '
+            f'{cita.id_medico.apellido} '
+            f'del {fecha_fmt} ha sido cancelada.'
+        ),
         tipo='cita_cancelada',
         id_usuario=cita.id_usuario_id,
         extra_data={
@@ -262,9 +325,14 @@ def cancelarCitaService(id, solicitante_id):
     )
     enviarNotificacion(
         titulo='Cita cancelada',
-        mensaje=f'Tu cita con el paciente {cita.id_usuario.nombre} {cita.id_medico.apellido} del {fecha_fmt} ha sido cancelada.',
+        mensaje=(
+            f'Tu cita con el paciente '
+            f'{cita.id_usuario.nombre} '
+            f'{cita.id_usuario.apellido} '
+            f'del {fecha_fmt} ha sido cancelada.'
+        ),
         tipo='cita_cancelada',
-        id_medico=cita.id_medico.id,
+        id_medico=cita.id_medico_id,
         extra_data={
             "tipo_evento": "ACTUALIZACION_CITA",
             "cita": cita_data

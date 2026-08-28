@@ -116,6 +116,19 @@ class IsPaciente(BasePermission):
             and request.user.id_rol.nombre == "paciente"
         )
         
+class IsPacienteOrMedico(BasePermission):
+    message = "No tienes permisos para realizar esta acción."
+
+    def has_permission(self, request, view):
+        return (
+            request.user
+            and request.user.is_authenticated
+            and (
+                isinstance(request.user, Usuario)
+                or isinstance(request.user, Medico)
+            )
+        )
+        
 def calcular_edad(fecha_nacimiento):
     hoy = date.today()
 
