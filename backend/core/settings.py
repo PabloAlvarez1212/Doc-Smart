@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     'notificaciones',
     "cloudinary",
     "cloudinary_storage",
+    "storage_app",
 ]
 
 MIDDLEWARE = [
@@ -172,6 +173,20 @@ STORAGES = {
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
+
+    "railway": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "access_key": os.getenv("AWS_ACCESS_KEY_ID"),
+            "secret_key": os.getenv("AWS_SECRET_ACCESS_KEY"),
+            "bucket_name": os.getenv("AWS_STORAGE_BUCKET_NAME"),
+            "endpoint_url": os.getenv("AWS_STORAGE_ENDPOINT_URL"),
+            "region_name": os.getenv("AWS_S3_REGION_NAME"),
+            "default_acl": None,
+            "querystring_auth": True,
+            "file_overwrite": False,
+        },
+    },
 }
 
 WEBSOCKET_ALLOWED_ORIGINS = [
@@ -244,6 +259,26 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Storage settings for AWS S3
+AWS_ACCESS_KEY_ID = os.getenv(
+    "AWS_ACCESS_KEY_ID"
+)
+
+AWS_SECRET_ACCESS_KEY = os.getenv(
+    "AWS_SECRET_ACCESS_KEY"
+)
+
+AWS_S3_ENDPOINT_URL = os.getenv(
+    "AWS_STORAGE_ENDPOINT_URL"
+)
+
+AWS_S3_REGION_NAME = os.getenv(
+    "AWS_S3_REGION_NAME"
+)
+
+AWS_STORAGE_BUCKET_NAME = os.getenv(
+    "AWS_STORAGE_BUCKET_NAME"
+)
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
