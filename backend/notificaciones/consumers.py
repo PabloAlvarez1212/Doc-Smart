@@ -1,71 +1,90 @@
-import json 
-from channels.generic.websocket import AsyncWebsocketConsumer
+import json
 from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+from medicos.models import Medico
+from users.models import Usuario
+
 from .models import Notificacion
 
 class NotificacionConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
-        self.user_id = self.scope["url_route"]["kwargs"]["user_id"]
-        self.tipo_usuario = self.scope["url_route"]["kwargs"]["tipo_usuario"]
-        
-        if self.tipo_usuario == "paciente":
-            self.room_group_name = f"user_{self.user_id}"
+        usuario = self.scope.get("user")
 
-        elif self.tipo_usuario == "medico":
-            self.room_group_name = f"medico_{self.user_id}"
+        if not usuario or not usuario.is_authenticated:
+            await self.close(code=4401)
+            return
+
+        self.usuario = usuario
+
+        if isinstance(usuario, Usuario):
+            self.tipo_usuario = "paciente"
+            self.user_id = usuario.id
+            self.room_group_name = f"user_{usuario.id}"
+
+        elif isinstance(usuario, Medico):
+            self.tipo_usuario = "medico"
+            self.user_id = usuario.id
+            self.room_group_name = f"medico_{usuario.id}"
 
         else:
-            await self.close()
+            await self.close(code=4403)
             return
 
         await self.channel_layer.group_add(
             self.room_group_name,
-            self.channel_name
+            self.channel_name,
         )
-        
+
         await self.accept()
 
-        unreads = await self.get_unread_count(
-            self.user_id,
-            self.tipo_usuario
-        )
+        unreads = await self.get_unread_count()
+
         await self.send(
             text_data=json.dumps({
                 "type": "count_initial",
-                "count": unreads}))
-        
+                "count": unreads,
+            })
+        )
+
+    async def disconnect(self, close_code):
+        if hasattr(self, "room_group_name"):
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name,
+            )
+
     async def send_notification_count(self, event):
         payload = {
             "type": "notification_update",
-            "count": event["count"]
+            "count": event["count"],
         }
-        
+
         if "notificacion" in event:
             payload["notificacion"] = event["notificacion"]
 
-        #  Si el payload traía información de la cita o tipo de evento, los adjuntamos
         if "tipo_evento" in event:
             payload["tipo_evento"] = event["tipo_evento"]
 
         if "cita" in event:
             payload["cita"] = event["cita"]
 
-        await self.send(text_data=json.dumps(payload))
+        await self.send(
+            text_data=json.dumps(payload)
+        )
 
     @database_sync_to_async
-    def get_unread_count(self, user_id, tipo_usuario):
-
-        if tipo_usuario == "paciente":
+    def get_unread_count(self):
+        if self.tipo_usuario == "paciente":
             return Notificacion.objects.filter(
-                id_usuario_id=user_id,
-                leida=False
+                id_usuario_id=self.user_id,
+                leida=False,
             ).count()
 
-        if tipo_usuario == "medico":
+        if self.tipo_usuario == "medico":
             return Notificacion.objects.filter(
-                id_medico_id=user_id,
-                leida=False
+                id_medico_id=self.user_id,
+                leida=False,
             ).count()
 
         return 0

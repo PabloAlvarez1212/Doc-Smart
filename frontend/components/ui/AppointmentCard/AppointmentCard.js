@@ -42,12 +42,7 @@ export default function AppointmentCard({
             ? cita.foto_paciente
             : cita.foto_medico;
 
-    const fotoSrc = fotoPerfil
-        ? fotoPerfil.startsWith("http")
-            ? fotoPerfil
-            : `http://localhost:8000${fotoPerfil}`
-        : "/images/foto_default.png";
-
+    const fotoSrc = fotoPerfil || "/images/foto_default.png"
 
     // ==========================================
     // ACCIONES SEGÚN ESTADO DE LA CITA
@@ -140,8 +135,8 @@ export default function AppointmentCard({
 
                         {cita.fecha_cancelacion && (
                             <div className={style.fecha}>
-                                <p><CalendarCheck size={18} /> <span>{fechaCompleta}</span></p>
-                                <p><Clock size={18} /> <span>{horaCompletada}</span></p>
+                                <p><CalendarCheck size={18} /> <span>{fechaCancelada}</span></p>
+                                <p><Clock size={18} /> <span>{horaCancelada}</span></p>
                             </div>
                         )}
                     </div>

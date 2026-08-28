@@ -29,9 +29,3 @@ urlpatterns = [
     path('api/historial/',  include('historial_medico.urls')),
     path('api/notificaciones/', include('notificaciones.urls')),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(
-        settings.MEDIA_URL,
-        document_root=settings.MEDIA_ROOT
-    )

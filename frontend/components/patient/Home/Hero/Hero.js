@@ -17,7 +17,7 @@ export default function Hero({ nombre, proximasCitas, noLeidas, foto_perfil}) {
                 </div>
 
                 <div className={styles.img}>
-                    <Image src={foto_perfil ? `http://localhost:8000${foto_perfil}` : "/images/foto_default.png"} alt='foto de perfil' width={150} height={100} />
+                    <Image src={foto_perfil ? foto_perfil : "/images/foto_default.png"} alt='foto de perfil' width={150} height={100} />
                 </div>
             </div>
         </div>

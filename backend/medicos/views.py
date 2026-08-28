@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from utils import IsAdmin
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from medicos.services import (
     listarMedicosService,
@@ -334,7 +335,7 @@ class PerfilMedicoView(APIView):
             )
 
 class FotoPerfilMedicoView(APIView):
-
+    parser_classes = [MultiPartParser, FormParser]
     permission_classes = [IsAuthenticated]
 
     def patch(self, request):
