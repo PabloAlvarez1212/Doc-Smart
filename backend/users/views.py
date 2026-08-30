@@ -1,3 +1,5 @@
+from multiprocessing.util import DEBUG
+
 from rest_framework.views import APIView
 from django.middleware.csrf import get_token
 from rest_framework.response import Response
@@ -56,10 +58,9 @@ def respuesta_serializer_invalido(errors):
 class LoginView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
+
     def post(self, request):
-        serializer = LoginSerializer(
-            data=request.data
-        )
+        serializer = LoginSerializer(data=request.data)
 
         if not serializer.is_valid():
             return respuesta_serializer_invalido(
@@ -85,6 +86,7 @@ class LoginView(APIView):
                 "data": resultado
             })
 
+            # Access token
             response.set_cookie(
                 key="token",
                 value=str(token.access_token),
@@ -94,6 +96,8 @@ class LoginView(APIView):
                 path="/",
                 max_age=30 * 60
             )
+
+            # Refresh token
             response.set_cookie(
                 key="refresh_token",
                 value=str(token),
@@ -111,7 +115,6 @@ class LoginView(APIView):
                 "Error interno del servidor",
                 status=500
             )
-
 class RefreshTokenView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
