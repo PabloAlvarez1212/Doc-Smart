@@ -5,7 +5,6 @@ const nextConfig = {
 
   images: {
     remotePatterns: [
-      // Imágenes servidas por Django en desarrollo
       {
         protocol: "http",
         hostname: "localhost",
@@ -13,7 +12,6 @@ const nextConfig = {
         pathname: "/media/**",
       },
 
-      // Imágenes almacenadas en Cloudinary
       {
         protocol: "https",
         hostname: "res.cloudinary.com",
@@ -21,8 +19,18 @@ const nextConfig = {
       },
     ],
 
-    // Solo necesario para acceder a localhost/IP local
     dangerouslyAllowLocalIP: true,
+  },
+
+  // Proxy Vercel -> Railway
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination:
+          "https://doc-smart-production.up.railway.app/api/:path*",
+      },
+    ];
   },
 };
 
