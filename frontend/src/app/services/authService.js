@@ -1,8 +1,6 @@
 import api from './api'
 import axios from 'axios'
 
-const API_URL = 'http://localhost:8000/api'
-
 export const forgotPasswordService    = async (formData) => (await axios.post(`${API_URL}/solicitar-cambio/`, formData)).data
 export const registerPacienteService  = async (formData) => (await axios.post(`${API_URL}/usuarios/registro/`, formData)).data
 export const registerMedicoService    = async (formData) => (await axios.post(`${API_URL}/medicos/registro/`, formData)).data

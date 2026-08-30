@@ -7,7 +7,7 @@ export default function login() {
         <div className={styles.mainLogin}>
             <div className={styles.container}>
                 <div className={styles.logo}>
-                    <Image src='/images/logoCara.png' width='100' height='100' alt="logo" />
+                    <Image src='/images/logoCara.png' width='100' height='100' alt="logo" loading="eager"/>
                     <h1><span>Doc</span> Smart</h1>
                 </div>
                 <h2>Inicia sesión:</h2>
