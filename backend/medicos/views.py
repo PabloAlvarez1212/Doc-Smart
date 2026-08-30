@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from utils import IsAdmin
+from utils import IsAdmin,IsMedico
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from medicos.services import (
@@ -232,7 +232,10 @@ class DashboardInicioMedicoView(APIView):
             )
 class PerfilMedicoView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        IsMedico,
+    ]
 
     # Obtener perfil del médico autenticado
     def get(self, request):

@@ -1,8 +1,9 @@
 from rest_framework.views import APIView
+from django.middleware.csrf import get_token
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
-from utils import IsAdmin
+from utils import IsAdmin,IsPaciente
 from django.conf import settings
 from users.services import (
     loginService,
@@ -16,6 +17,7 @@ from users.services import (
     obtenerDashboardPacienteInicioService,
     actualizarFotoPerfilPacienteService,
     eliminarFotoPerfilPacienteService,
+    refreshTokenService,
 )
 from users.serializers import (
     LoginSerializer,
@@ -52,70 +54,162 @@ def respuesta_serializer_invalido(errors):
 #! Auths publicas - no necesitan Token
 
 class LoginView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
     def post(self, request):
-        # Valida formato con serializer
-        serializer = LoginSerializer(data=request.data)
+        serializer = LoginSerializer(
+            data=request.data
+        )
+
         if not serializer.is_valid():
-            return respuesta_serializer_invalido(serializer.errors)
+            return respuesta_serializer_invalido(
+                serializer.errors
+            )
 
         try:
             token, resultado, status_code = loginService(
-                serializer.validated_data['correo'],
-                serializer.validated_data['contraseña']
+                serializer.validated_data["correo"],
+                serializer.validated_data["contraseña"]
             )
 
             if status_code != 200:
-                return respuesta_error('Error', errores=resultado, status=status_code)
+                return respuesta_error(
+                    "Error",
+                    errores=resultado,
+                    status=status_code
+                )
 
             response = Response({
-                'ok': True,
-                'mensaje': 'Inicio de sesión exitoso',
-                'data': resultado
+                "ok": True,
+                "mensaje": "Inicio de sesión exitoso",
+                "data": resultado
             })
+
             response.set_cookie(
-                key='token',
+                key="token",
                 value=str(token.access_token),
                 httponly=True,
-                secure=not settings.DEBUG,
-                samesite='Lax',
-                path='/',
-                max_age=3600
+                secure=settings.AUTH_COOKIE_SECURE,
+                samesite=settings.AUTH_COOKIE_SAMESITE,
+                path="/",
+                max_age=30 * 60
             )
             response.set_cookie(
-                key='user_role',
-                value=resultado['rol'],
-                httponly=False,
-                secure=False,
-                samesite='Lax',
-                path='/',
-                max_age=3600
+                key="refresh_token",
+                value=str(token),
+                httponly=True,
+                secure=settings.AUTH_COOKIE_SECURE,
+                samesite=settings.AUTH_COOKIE_SAMESITE,
+                path="/api/refresh/",
+                max_age=7 * 24 * 60 * 60
             )
-            response.set_cookie(
-                key='user_id',
-                value=resultado['id'],
-                httponly=False,
-                secure=False,
-                samesite='Lax',
-                path='/',
-                max_age=3600
-            )
+
             return response
 
-        except Exception as e:
-            print(e)
-            return respuesta_error('Error interno del servidor', status=500)
+        except Exception:
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+class RefreshTokenView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    def post(self, request):
+        refresh_token = request.COOKIES.get("refresh_token")
+
+        if not refresh_token:
+            return respuesta_error(
+                "Error",
+                errores={
+                    "general": [
+                        "No hay una sesión disponible para renovar."
+                    ]
+                },
+                status=401
+            )
+
+        nuevo_access_token, errores, status_code = refreshTokenService(
+            refresh_token
+        )
+
+        if status_code != 200:
+            response = respuesta_error(
+                "Error",
+                errores=errores,
+                status=status_code
+            )
+
+            # Si el refresh ya no sirve,
+            # limpiamos ambas cookies.
+            response.delete_cookie(
+                "token",
+                path="/"
+            )
+
+            response.delete_cookie(
+                "refresh_token",
+                path="/api/refresh/"
+            )
+
+            return response
+
+        response = respuesta_ok(
+            mensaje="Sesión renovada correctamente"
+        )
+
+        response.set_cookie(
+            key="token",
+            value=str(nuevo_access_token),
+            httponly=True,
+            secure=settings.AUTH_COOKIE_SECURE,
+            samesite=settings.AUTH_COOKIE_SAMESITE,
+            path="/",
+            max_age=30 * 60
+        )
+
+        return response
 
 class LogoutView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
     def post(self, request):
         try:
-            response = respuesta_ok(mensaje='Sesión cerrada correctamente')
-            response.delete_cookie('token')
-            response.delete_cookie('user_role')
-            response.delete_cookie('user_id')
+            response = respuesta_ok(
+                mensaje="Sesión cerrada correctamente"
+            )
+
+            response.delete_cookie(
+                "token",
+                path="/"
+            )
+
+            response.delete_cookie(
+                "refresh_token",
+                path="/api/refresh/"
+            )
+
             return response
-        except Exception as e:
-            print(e)
-            return respuesta_error('Error interno del servidor', status=500)
+
+        except Exception:
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+class CSRFTokenView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        csrf_token = get_token(request)
+
+        return respuesta_ok(
+            data={
+                "csrf_token": csrf_token
+            }
+        )
 
 class SolicitarCambioView(APIView):
     def post(self, request):
@@ -182,7 +276,7 @@ class RegistroView(APIView):
 #!Metodos unicos del usuario - requiere Token
 
 class PerfilPacienteView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsPaciente]
     def get(self,request):
         try:
             respuesta,status_code = obtenerUsuarioService(request.user.id)

@@ -1,5 +1,5 @@
 "use client";
-
+import { obtenerPrimerError } from "@/app/utils/errrorUtils";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
@@ -32,14 +32,8 @@ export default function useAppointments() {
 
         } catch (error) {
 
-            console.error(
-                "Error al cargar citas del médico:",
-                error
-            );
-
-            setError(
-                "No se pudieron cargar las citas."
-            );
+            const mensajeBackend = obtenerPrimerError(error.response?.data?.errores);
+            setError(mensajeBackend || "No se pudieron cargar las citas.");
 
         } finally {
             setLoading(false);
@@ -212,4 +206,3 @@ export default function useAppointments() {
     };
 }
 
-    

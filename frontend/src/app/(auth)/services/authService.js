@@ -1,47 +1,28 @@
-import axios from 'axios'
+import api from "./api";
 
-const API_URL = 'http://localhost:8000/api'
+export const forgotPasswordService = async (formData) =>
+    (await api.post("/solicitar-cambio/", formData)).data;
 
-export const loginService = async (formData) => {
-    const response = await axios.post(`${API_URL}/login/`, formData, {
-        withCredentials: true
-    })
-    return response.data
-}
+export const registerPacienteService = async (formData) =>
+    (await api.post("/usuarios/registro/", formData)).data;
 
-export const forgotPasswordService = async (formData) => {
-    const response = await axios.post(`${API_URL}/solicitar-cambio/`, formData)
-    return response.data
-}
+export const registerMedicoService = async (formData) =>
+    (await api.post("/medicos/registro/", formData)).data;
 
-export const resetPasswordService = async (formData) => {
-    const response = await axios.post(`${API_URL}/cambiar-contraseña/`, formData, {
-        withCredentials: true
-    })
-    return response.data
-}
+export const getCiudadesByDepartamentoService = async (id) =>
+    (
+        await api.get(
+            `/catalogos/departamentos/${id}/ciudades/`
+        )
+    ).data;
 
-export const registerPacienteService = async (formData) => {
-    const response = await axios.post(`${API_URL}/usuarios/`, formData)
-    return response.data
-}
+export const loginService = async (formData) =>
+    (await api.post("/login/", formData)).data;
 
-export const registerMedicoService = async (formData) => {
-    const response = await axios.post(`${API_URL}/medicos/`, formData)
-    return response.data
-}
+export const resetPasswordService = async (formData) =>
+    (await api.post("/cambiar-contrasena/", formData)).data;
 
-export const getEspecialidadesService = async () => {
-    const response = await axios.get(`${API_URL}/medicos/especialidades/`)
-    return response.data
-}
-
-export const getDepartamentosService = async () => {
-    const response = await axios.get(`${API_URL}/catalogos/departamentos/`)
-    return response.data
-}
-
-export const getCiudadesByDepartamentoService = async (id_departamento) => {
-    const response = await axios.get(`${API_URL}/catalogos/departamentos/${id_departamento}/ciudades/`)
-    return response.data
-}
+export const logoutService = async () => {
+    const response = await api.post("/logout/");
+    return response.data;
+};

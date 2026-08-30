@@ -1,6 +1,8 @@
 import re
 from rest_framework.permissions import BasePermission
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.authentication import CSRFCheck
+from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.exceptions import InvalidToken
 from datetime import date
 from users.models import Usuario
@@ -33,20 +35,52 @@ class CustomJWTAuthentication(JWTAuthentication):
 
         if not token:
             return super().authenticate(request)
-
+        
         validated_token = self.get_validated_token(token)
+
+        self.enforce_csrf(request)
+
         return self.get_user(validated_token), validated_token
+
+
+    def enforce_csrf(self, request):
+        def dummy_get_response(request):
+            return None
+
+        check = CSRFCheck(dummy_get_response)
+
+        check.process_request(request)
+
+        reason = check.process_view(
+            request,
+            None,
+            (),
+            {}
+        )
+
+        if reason:
+            raise PermissionDenied(
+                f"CSRF Failed: {reason}"
+            )
+
 
     def get_user(self, validated_token):
         user_id = validated_token.get("user_id")
         tipo = validated_token.get("tipo")
 
         if tipo == "medico":
-            medico = Medico.objects.filter(id=user_id).first()
+            medico = Medico.objects.filter(
+                id=user_id
+            ).first()
+
             if medico:
                 return medico
+
         elif tipo == "usuario":
-            usuario = Usuario.objects.filter(id=user_id).first()
+            usuario = Usuario.objects.filter(
+                id=user_id
+            ).first()
+
             if usuario:
                 return usuario
 
@@ -59,6 +93,40 @@ class IsAdmin(BasePermission):
             request.user.is_authenticated and  # ← verifica primero que esté logueado
             hasattr(request.user, 'id_rol') and  # ← verifica que tenga id_rol
             request.user.id_rol.nombre == 'admin'
+        )
+        
+class IsMedico(BasePermission):
+
+    def has_permission(self, request, view):
+        return (
+            request.user
+            and request.user.is_authenticated
+            and isinstance(request.user, Medico)
+        )
+        
+class IsPaciente(BasePermission):
+    message = "No tienes permisos para acceder a esta sección."
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and isinstance(request.user, Usuario)
+            and request.user.id_rol
+            and request.user.id_rol.nombre == "paciente"
+        )
+        
+class IsPacienteOrMedico(BasePermission):
+    message = "No tienes permisos para realizar esta acción."
+
+    def has_permission(self, request, view):
+        return (
+            request.user
+            and request.user.is_authenticated
+            and (
+                isinstance(request.user, Usuario)
+                or isinstance(request.user, Medico)
+            )
         )
         
 def calcular_edad(fecha_nacimiento):

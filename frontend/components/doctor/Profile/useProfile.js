@@ -12,8 +12,7 @@ import {
 } from "@/app/services/doctorServices";
 
 export default function useProfile() {
-
-    const [perfil, setPerfil] = useState({});
+    const [perfil, setPerfil] = useState(null);
     const [loading, setLoading] = useState(true);
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState(null);
@@ -22,36 +21,39 @@ export default function useProfile() {
         cargarPerfilMedico();
     }, []);
 
-
     const cargarPerfilMedico = async () => {
-
         try {
-
             setLoading(true);
             setError(null);
 
             const data = await obtenerPerfilMedicoService();
 
-            setPerfil(data.data ?? data);
+            setPerfil(
+                data.data ?? data
+            );
 
         } catch (error) {
+            setPerfil(null);
 
-            console.error(error);
+            if (error.response?.status === 403) {
+                setError("NO_AUTORIZADO");
+                return;
+            }
 
-            setError("No se pudo cargar el perfil.");
+            if (error.response?.status === 401) {
+                setError("NO_AUTENTICADO");
+                return;
+            }
+
+            setError("ERROR_PERFIL");
 
         } finally {
-
             setLoading(false);
-
         }
-
     };
 
     const actualizarPerfilMedico = async (formData) => {
-
         try {
-
             setGuardando(true);
             setError(null);
 
@@ -68,7 +70,6 @@ export default function useProfile() {
             return true;
 
         } catch (error) {
-
             const mensajeBackend = obtenerPrimerError(
                 error.response?.data?.errores
             );
@@ -84,21 +85,18 @@ export default function useProfile() {
             return false;
 
         } finally {
-
             setGuardando(false);
-
         }
-
     };
 
     const actualizarFotoPerfil = async (archivo) => {
-
         try {
-
             setGuardando(true);
             setError(null);
 
-            await actualizarFotoPerfilMedicoService(archivo);
+            await actualizarFotoPerfilMedicoService(
+                archivo
+            );
 
             await cargarPerfilMedico();
 
@@ -111,7 +109,6 @@ export default function useProfile() {
             return true;
 
         } catch (error) {
-
             const mensajeBackend = obtenerPrimerError(
                 error.response?.data?.errores
             );
@@ -127,14 +124,11 @@ export default function useProfile() {
             return false;
 
         } finally {
-
             setGuardando(false);
-
         }
-
     };
-    const eliminarFotoPerfil = async () => {
 
+    const eliminarFotoPerfil = async () => {
         const result = await Swal.fire({
             title: "¿Eliminar foto de perfil?",
             text: "Volverás a utilizar la foto predeterminada.",
@@ -142,17 +136,14 @@ export default function useProfile() {
             showCancelButton: true,
             confirmButtonText: "Sí, eliminar",
             cancelButtonText: "Cancelar",
-            reverseButtons: true
+            reverseButtons: true,
         });
-
 
         if (!result.isConfirmed) {
             return;
         }
 
-
         try {
-
             setGuardando(true);
 
             await eliminarFotoPerfilMedicoService();
@@ -162,11 +153,10 @@ export default function useProfile() {
             await Swal.fire({
                 icon: "success",
                 title: "Foto eliminada",
-                text: "Ahora estás utilizando la foto predeterminada."
+                text: "Ahora estás utilizando la foto predeterminada.",
             });
 
         } catch (error) {
-
             const mensajeBackend = obtenerPrimerError(
                 error.response?.data?.errores
             );
@@ -176,15 +166,12 @@ export default function useProfile() {
                 title: "No se pudo eliminar la foto",
                 text:
                     mensajeBackend ||
-                    "Ocurrió un error al eliminar la foto."
+                    "Ocurrió un error al eliminar la foto.",
             });
 
         } finally {
-
             setGuardando(false);
-
         }
-
     };
 
     return {
@@ -192,7 +179,6 @@ export default function useProfile() {
         loading,
         guardando,
         error,
-
         actualizarPerfilMedico,
         actualizarFotoPerfil,
         eliminarFotoPerfil,

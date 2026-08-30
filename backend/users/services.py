@@ -15,34 +15,89 @@ from citas.models import Cita
 import calendar
 from notificaciones.models import Notificacion 
 import logging
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 
 logger = logging.getLogger(__name__)
 
 def loginService(correo, contraseña):
-    # Busca en ambas tablas
-    usuario = Usuario.objects.filter(correo=correo).first()
-    medico = Medico.objects.filter(correo=correo).first()
+    correo = correo.strip().lower()
 
-    # Verifica que existe en alguna tabla
+    # Busca el correo en ambas tablas
+    usuario = Usuario.objects.filter(
+        correo__iexact=correo
+    ).first()
+
+    medico = Medico.objects.filter(
+        correo__iexact=correo
+    ).first()
+
+    # El correo no existe en ninguna de las dos tablas
     if not usuario and not medico:
-       return None,{"correo": ["El correo no se encuentra registrado"]}, 404
+        return (
+            None,
+            {
+                "correo": [
+                    "El correo no se encuentra registrado"
+                ]
+            },
+            404
+        )
 
-    # Verifica usuario
-    if usuario and bcrypt.checkpw(contraseña.encode(), usuario.contraseña.encode()):
+    # Verifica paciente
+    if usuario and bcrypt.checkpw(
+        contraseña.encode(),
+        usuario.contraseña.encode()
+    ):
         token = RefreshToken.for_user(usuario)
-        token['tipo'] = 'usuario'  # ← nuevo: marca el tipo de cuenta en el token
+        token["tipo"] = "usuario"
+
         serializer = UsuarioSerializer(usuario)
+
         return token, serializer.data, 200
 
-    # Verifica medico
-    if medico and bcrypt.checkpw(contraseña.encode(), medico.contraseña.encode()):
+    # Verifica médico
+    if medico and bcrypt.checkpw(
+        contraseña.encode(),
+        medico.contraseña.encode()
+    ):
         token = RefreshToken.for_user(medico)
-        token['tipo'] = 'medico'  # ← nuevo: marca el tipo de cuenta en el token
+        token["tipo"] = "medico"
+
         serializer = MedicoSerializer(medico)
+
         return token, serializer.data, 200
 
-    return None, {"general": ["Credenciales incorrectas"]}, 401
+    # El correo existe, pero la contraseña es incorrecta
+    return (
+        None,
+        {
+            "general": [
+                "Credenciales incorrectas"
+            ]
+        },
+        401
+    )
+    
+def refreshTokenService(refresh_token):
+    try:
+        refresh = RefreshToken(refresh_token)
 
+        nuevo_access_token = refresh.access_token
+
+        return nuevo_access_token, None, 200
+
+    except TokenError:
+        return (
+            None,
+            {
+                "general": [
+                    "La sesión ha expirado. Inicia sesión nuevamente."
+                ]
+            },
+            401
+        )
+        
 def solicitarCambioService(correo):
     # Busca en ambas tablas
     usuario = Usuario.objects.filter(correo=correo).first()

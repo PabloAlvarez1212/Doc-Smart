@@ -1,125 +1,151 @@
-import axios from 'axios'
-import api from './api'
-const API_URL = 'http://localhost:8000/api/'
+import api from "./api";
 
-//Metodos post
+// ===========================ROLES===========================
 
-//===========================ROLES===========================
+export const crearRolService = async function (formData) {
+    const response = await api.post(
+        "/catalogos/roles/",
+        formData
+    );
 
-//Crear rol 
-export const crearRolService = async function (formData){
-    const response = await api.post(`${API_URL}catalogos/roles/`, formData)
-    return response.data
-}
-// Obtener todos los roles
+    return response.data;
+};
+
 export const getRolesService = async function () {
-    const response = await api.get(`${API_URL}catalogos/roles/`)
-    return response.data
-}
+    const response = await api.get(
+        "/catalogos/roles/"
+    );
 
-// Editar un rol
+    return response.data;
+};
+
 export const editarRolService = async function (id, formData) {
-    const response = await api.put(`${API_URL}catalogos/roles/${id}/`, formData)
-    return response.data
-}
+    const response = await api.put(
+        `/catalogos/roles/${id}/`,
+        formData
+    );
 
-// Eliminar un rol
+    return response.data;
+};
+
 export const eliminarRolService = async function (id) {
-    const response = await api.delete(`${API_URL}catalogos/roles/${id}/`)
-    return response.data
-}
+    const response = await api.delete(
+        `/catalogos/roles/${id}/`
+    );
 
+    return response.data;
+};
 
+// ===========================ESTADOS===========================
 
+export const crearEstadosService = async function (formData) {
+    const response = await api.post(
+        "/catalogos/estados/",
+        formData
+    );
 
+    return response.data;
+};
 
-//===========================ESTADOS===========================
-//crear estado
-export const crearEstadosService = async function (formData){
-    const response = await api.post(`${API_URL}catalogos/estados/`, formData)
-    return response.data
-}
-
-// obtener todos los estados
 export const getEstadosService = async function () {
-    const response = await api.get(`${API_URL}catalogos/estados/`);
+    const response = await api.get(
+        "/catalogos/estados/"
+    );
+
     return response.data;
 };
 
-// editar un estado
 export const editarEstadosService = async function (id, formData) {
-    const response = await api.put(`${API_URL}catalogos/estados/${id}/`, formData);
+    const response = await api.put(
+        `/catalogos/estados/${id}/`,
+        formData
+    );
+
     return response.data;
 };
 
-// eliminar un estado
 export const eliminarEstadosService = async function (id) {
-    const response = await api.delete(`${API_URL}catalogos/estados/${id}/`);
+    const response = await api.delete(
+        `/catalogos/estados/${id}/`
+    );
+
     return response.data;
 };
 
+// ===========================MEDIOS===========================
 
+export const crearMediosService = async function (formData) {
+    const response = await api.post(
+        "/catalogos/medios/",
+        formData
+    );
 
+    return response.data;
+};
 
-
-//===========================MEDIOS===========================
-// crear medio
-export const crearMediosService = async function (formData){
-    const response = await api.post(`${API_URL}catalogos/medios/`, formData)
-    return response.data
-}
-// obtener todos los medios
 export const getMediosService = async function () {
-    const response = await api.get(`${API_URL}catalogos/medios/`);
+    const response = await api.get(
+        "/catalogos/medios/"
+    );
+
     return response.data;
 };
 
-// actualizar un medio
 export const editarMediosService = async function (id, formData) {
-    const response = await api.put(`${API_URL}catalogos/medios/${id}/`, formData);
+    const response = await api.put(
+        `/catalogos/medios/${id}/`,
+        formData
+    );
+
     return response.data;
 };
 
-// eliminar un medio
 export const eliminarMediosService = async function (id) {
-    const response = await api.delete(`${API_URL}catalogos/medios/${id}/`);
+    const response = await api.delete(
+        `/catalogos/medios/${id}/`
+    );
+
     return response.data;
 };
 
+// ===========================CIUDADES===========================
 
-
-
-
-//===========================CIUDADES===========================
-
-// Obtener todas las ciudades
-// Obtener todas las ciudades (paginado)
 export const getCiudadesService = async function (page = 1, search = "") {
-    const response = await axios.get(`${API_URL}catalogos/ciudades/`, {
-        params: { page, page_size: 10, search: search || undefined },
-    });
+    const response = await api.get(
+        "/catalogos/ciudades/",
+        {
+            params: {
+                page,
+                page_size: 10,
+                search: search || undefined,
+            },
+        }
+    );
+
     return response.data;
 };
 
-// Obtener ciudades por departamento
 export const getCiudadesPorDepartamentoService = async function (idDepartamento) {
-    const response = await axios.get(
-        `${API_URL}catalogos/departamentos/${idDepartamento}/ciudades/`
+    const response = await api.get(
+        `/catalogos/departamentos/${idDepartamento}/ciudades/`
     );
 
     return response.data.data;
 };
 
+// ===========================DEPARTAMENTOS===========================
 
-
-//===========================DEPARTAMENTOS===========================
 export const getDepartamentosService = async (page, search) => {
-    const response = await api.get(`${API_URL}catalogos/departamentos/`, {
-        params: {
-            page,
-            page_size: page ? 10 : undefined,
-            search: search || undefined,
-        },
-    })
-    return response.data
-}
+    const response = await api.get(
+        "/catalogos/departamentos/",
+        {
+            params: {
+                page,
+                page_size: page ? 10 : undefined,
+                search: search || undefined,
+            },
+        }
+    );
+
+    return response.data;
+};
