@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from utils import IsMedico,IsPaciente,IsPacienteOrMedico,IsAdmin
 from rest_framework.permissions import IsAuthenticated
 from citas.services import (
     listarCitasService,
@@ -38,6 +39,7 @@ def respuesta_serializer_invalido(errors):
 
 #!Metodo-administrador
 class CitaListView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
     def get(self, request):
         try:
             resultado, status_code = listarCitasService()
@@ -48,7 +50,7 @@ class CitaListView(APIView):
 
 #!Metodo para crear cita - paciente
 class RegistroCitaView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsPaciente]
     def post(self, request):
         serializer = CrearCitaSerializer(data=request.data)
         if not serializer.is_valid():
@@ -69,7 +71,7 @@ class RegistroCitaView(APIView):
 
 
 class CitaPacienteView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsPaciente]
     # Paciente lista sus propias citas
     def get(self, request):
         try:
@@ -94,7 +96,7 @@ class CitaPacienteView(APIView):
 
 
 class CitaMedicoView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsMedico]
     # Médico lista sus propias citas
     def get(self, request):
         try:
@@ -109,11 +111,11 @@ class CitaMedicoView(APIView):
 
 
 class CitaDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsPacienteOrMedico]
     #!Medico o usuario obtienen una cita por id
     def get(self, request, pk):
         try:
-            resultado, status_code = obtenerCitaService(pk,request.user.id )
+            resultado, status_code = obtenerCitaService(pk,request.user )
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(data=resultado)
@@ -127,7 +129,7 @@ class CitaDetailView(APIView):
             return respuesta_serializer_invalido(serializer.errors)
 
         try:
-            usuario_id = request.user.id
+            usuario_id = request.user
             resultado, status_code = editarCitaService(
                 pk,
                 serializer.validated_data,
@@ -142,11 +144,11 @@ class CitaDetailView(APIView):
 
 
 class CitaCancelarView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsPacienteOrMedico]
     #! Paciente o medico cancelan su cita
     def put(self, request, pk):
         try:
-            usuario_id = request.user.id
+            usuario_id = request.user
             resultado, status_code = cancelarCitaService(pk, usuario_id)
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)
@@ -157,7 +159,7 @@ class CitaCancelarView(APIView):
 
 
 class CitaCompletarView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsMedico]
     # Médico completa la cita
     def put(self, request, pk):
         try:
@@ -171,7 +173,7 @@ class CitaCompletarView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 class CitaConfirmarView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsMedico]
     #Medico confirma la cita
     def put(self, request, pk):
         try:
