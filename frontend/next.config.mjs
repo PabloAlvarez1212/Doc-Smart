@@ -28,9 +28,9 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: "/api/:path*",
+        source: "/api/:path*/",
         destination:
-          "https://doc-smart-production.up.railway.app/api/:path*",
+          "https://doc-smart-production.up.railway.app/api/:path*/",
       },
     ];
   },
