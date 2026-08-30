@@ -103,7 +103,7 @@ CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         "CORS_ALLOWED_ORIGINS",
-        "http://localhost:5173"
+        "https://doc-smart-six.vercel.app"
     ).split(",")
     if origin.strip()
 ]
@@ -114,7 +114,7 @@ CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         "CSRF_TRUSTED_ORIGINS",
-        "http://localhost:3000"
+        "https://doc-smart-six.vercel.app"
     ).split(",")
     if origin.strip()
 ]
