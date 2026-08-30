@@ -3,6 +3,9 @@
 const nextConfig = {
   reactCompiler: true,
 
+  // Evita que Next/Vercel quite el "/" final
+  skipTrailingSlashRedirect: true,
+
   images: {
     remotePatterns: [
       {
@@ -22,7 +25,6 @@ const nextConfig = {
     dangerouslyAllowLocalIP: true,
   },
 
-  // Proxy Vercel -> Railway
   async rewrites() {
     return [
       {
