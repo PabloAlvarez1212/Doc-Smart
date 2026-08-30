@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 let mostrandoSesionExpirada = false;
 
 const api = axios.create({
-    baseURL: "http://localhost:8000/api",
+    baseURL: `${process.env.NEXT_PUBLIC_API_URL}/api`,
     withCredentials: true,
 });
 

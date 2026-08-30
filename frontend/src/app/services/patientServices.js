@@ -1,28 +1,47 @@
-import api from "./api"
-const API_URL = 'http://localhost:8000/api/'
+import api from "./api";
+
 export const obtenerDashboardPacienteInicioService = async function () {
-    const response = await api.get(`${API_URL}dashboard/inicio/paciente/`)
-    return response.data
-}
-export const obtenerPerfilPacienteService = async function () {
-    const response = await api.get(`${API_URL}perfil/`)
-    return response.data
-}
-export const eliminarPacienteService = async function () {
-    const response = await api.delete(`${API_URL}perfil/`)
-    return response.data
-}
-export const actualizarPerfilPacienteService = async function (formData) {
-    const response = await api.put(`${API_URL}perfil/`,formData)
-    return response.data
-}
-export const actualizarFotoPerfilPacienteService = async (archivo) => {
-    const formData = new FormData();
-    formData.append("foto_perfil", archivo);
-    const response = await api.patch("/perfil/foto/",formData);
+    const response = await api.get(
+        "/dashboard/inicio/paciente/"
+    );
     return response.data;
 };
+
+export const obtenerPerfilPacienteService = async function () {
+    const response = await api.get("/perfil/");
+    return response.data;
+};
+
+export const eliminarPacienteService = async function () {
+    const response = await api.delete("/perfil/");
+    return response.data;
+};
+
+export const actualizarPerfilPacienteService = async function (formData) {
+    const response = await api.put(
+        "/perfil/",
+        formData
+    );
+    return response.data;
+};
+
+export const actualizarFotoPerfilPacienteService = async (archivo) => {
+    const formData = new FormData();
+
+    formData.append("foto_perfil", archivo);
+
+    const response = await api.patch(
+        "/perfil/foto/",
+        formData
+    );
+
+    return response.data;
+};
+
 export const eliminarFotoPerfilPacienteService = async () => {
-    const response = await api.delete("/perfil/foto/");
+    const response = await api.delete(
+        "/perfil/foto/"
+    );
+
     return response.data;
 };
