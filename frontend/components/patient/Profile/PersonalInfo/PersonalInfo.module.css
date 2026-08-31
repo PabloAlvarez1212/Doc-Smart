@@ -54,4 +54,9 @@
     display: flex;
     justify-content: center;
     margin-bottom: 20px;
-}
+}.containerPersonalInfo { padding: 32px; gap: 32px; }
+.containerPersonalInfo .inputs { transform: none; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.containerPersonalInfo .itemInput { min-width: 0; align-items: stretch; }
+.containerPersonalInfo .itemInput input { width: 100%; }
+@media (max-width: 1400px) { .containerPersonalInfo .inputs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .containerPersonalInfo { padding: 24px 16px; } .containerPersonalInfo .inputs { grid-template-columns: minmax(0, 1fr); } .containerPersonalInfo .title { margin-bottom: 24px; } }

@@ -87,4 +87,7 @@
 .containerSidebar .infoProfile .itemList p {
     margin: 0;
     word-break: break-word;
-}
+}.containerSidebar { min-width: 0; padding-bottom: 24px; }
+.containerSidebar .infoProfile .itemList { min-width: 0; gap: 12px; }
+.itemList svg { flex-shrink: 0; }
+@media (hover: none) { .containerSidebar .fotoPerfil .containerImage .icon { display: flex; } }

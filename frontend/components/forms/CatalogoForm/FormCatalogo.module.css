@@ -35,4 +35,7 @@
 
 .containerSelect{
     width: 300px !important;
-}
+}.containerForm { width: 100%; flex-wrap: wrap; gap: 16px; padding: 16px; }
+.containerForm > div { flex: 1 1 200px; }
+.containerForm button { min-height: 44px; height: auto; }
+.containerSelect { width: 100% !important; }

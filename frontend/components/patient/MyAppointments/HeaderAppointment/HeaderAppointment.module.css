@@ -37,3 +37,6 @@
 .filtros:hover{
     box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25);
 }
+.filtros { flex-wrap: wrap; gap: 8px; padding: 12px; }
+.filtros p { min-height: 44px; display: flex; align-items: center; }
+@media (max-width: 640px) { .filtros { font-size: 1rem; } }

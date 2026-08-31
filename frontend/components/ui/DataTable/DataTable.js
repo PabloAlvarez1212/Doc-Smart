@@ -85,7 +85,7 @@ export default function DataTable({
       </div>
 
       {/* Tabla */}
-      <div className={styles.tableWrapper}>
+      <div className={styles.tableWrapper} role="region" aria-label={`${titulo}: tabla desplazable`} tabIndex={0}>
         <table className={styles.table}>
           <thead>
             <tr>

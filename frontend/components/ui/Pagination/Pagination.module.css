@@ -11,4 +11,5 @@
     font-size: 14px;
     color: #4b5563;
     white-space: nowrap;
-}
+}.wrapper { flex-wrap: wrap; padding-inline: 12px; gap: 12px; }
+.info { white-space: normal; text-align: center; }

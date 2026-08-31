@@ -40,4 +40,6 @@
     padding: 0.55rem 0.7rem;
     border: 1px solid #d1d5db;
     border-radius: 8px;
-}
+}.rangoFechas { flex-wrap: wrap; }
+.campoFecha { min-width: 0; flex-wrap: wrap; }
+@media (max-width: 640px) { .rangoFechas { justify-content: flex-start; gap: 12px; } .campoFecha { flex: 1 1 180px; } .campoFecha input { width: 100%; } }

@@ -2,4 +2,5 @@
     background-color: #F8FAFC;
     min-height: 100vh;
     padding-top: 120px;
-}
+}.main main { min-width: 0; padding-top: 180px; padding-bottom: 120px; }
+@media (max-width: 1100px) { .main main { padding-top: 0; min-height: calc(100svh - 120px); } }

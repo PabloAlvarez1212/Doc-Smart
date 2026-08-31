@@ -24,3 +24,6 @@
   font-size: 1rem;
   color: #64748b;
 }
+.hero { width: 100%; }
+.content { flex-wrap: wrap; gap: 16px; }
+@media (max-width: 640px) { .hero { padding: 20px 16px; } .title { font-size: 1.6rem; } }

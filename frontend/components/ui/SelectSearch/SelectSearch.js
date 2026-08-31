@@ -4,7 +4,7 @@ export default function SelectSearch({ opciones, value, onChange, placeholder,cl
     const valorSeleccionado = opciones.find(op => op.value === value) || null
 
     return (
-        <div className={className} style={{ width: '30%' }}>
+        <div className={`${styles.wrapper} ${className || ''}`}>
             <Select
                 options={opciones}
                 value={valorSeleccionado}

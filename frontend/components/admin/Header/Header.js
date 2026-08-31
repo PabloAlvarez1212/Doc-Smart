@@ -34,7 +34,7 @@ export default function Header() {
                     <h2><span>Doc</span>Smart</h2>
                 </div>
                 <div className={Styles.icons}>
-                    <Button onClick={logoutFunction} size="sm"><LogOutIcon size={30} className={Styles.icon} /></Button>
+                    <Button onClick={logoutFunction} size="sm" aria-label="Cerrar sesión"><LogOutIcon size={30} className={Styles.icon} /></Button>
 
                 </div>
             </div>

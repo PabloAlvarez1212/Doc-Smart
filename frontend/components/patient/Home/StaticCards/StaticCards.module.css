@@ -28,4 +28,7 @@
 }
 .itemCard{
     border: none !important;
-}
+}.containerCards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.card { min-width: 0; padding: 12px; text-align: center; }
+@media (max-width: 1000px) { .containerCards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .containerCards { grid-template-columns: 1fr; } }

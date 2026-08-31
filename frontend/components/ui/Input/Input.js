@@ -23,7 +23,7 @@ export default function Input({ type = 'text', placeholder, className = '', id, 
                 step={step}
             />
             {isPassword && (
-                <button className={styles.eyeButton} type='button' onClick={() => setShowPassword(!showPassword)}>
+                <button aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} aria-pressed={showPassword} className={styles.eyeButton} type='button' onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <Eye size={30} /> : <EyeOff size={30} />}
                 </button>
             )}

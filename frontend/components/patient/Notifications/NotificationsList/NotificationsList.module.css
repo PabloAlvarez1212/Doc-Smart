@@ -95,4 +95,15 @@
     display: flex;
     flex-direction: column;
     gap: 7px;
+}.containerMan .containerCard .card .containerText { min-width: 0; }
+.containerMan .containerCard .card .containerTitle { flex-wrap: wrap; gap: 8px; }
+@media (max-width: 768px) {
+  .containerMan { padding-top: 32px; }
+  .containerMan .containerCard .card { flex-direction: column; align-items: stretch; padding: 20px; }
+  .containerMan .containerCard .card .container { align-items: flex-start; gap: 12px; }
+  .containerMan .containerCard .card .container > svg { flex-shrink: 0; }
+  .containerMan .containerCard .card .containerAcciones { width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  .containerMan .containerCard .card .containerAcciones p { position: static; }
+  .containerMan .containerCard .card .containerAcciones .btns .btn { width: 44px; height: 44px; padding: 8px; }
+  .containerMan .containerCard .card h3 { font-size: 1.2rem; }
 }

@@ -20,4 +20,5 @@
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-}
+}.actions { flex-wrap: wrap; }
+.form input { width: 100%; }

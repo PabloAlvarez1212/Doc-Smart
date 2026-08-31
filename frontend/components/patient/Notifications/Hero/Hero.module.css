@@ -103,4 +103,8 @@
     padding: 0.55rem 0.7rem;
     border: 1px solid #d1d5db;
     border-radius: 8px;
-}
+}.containerHero { flex-wrap: wrap; gap: 24px; }
+.containerHero .Header h2 { font-size: clamp(1.75rem, 5vw, 2.5rem); }
+.accionesGlobales { gap: 12px; }
+.rangoFechas, .campoFecha { flex-wrap: wrap; }
+@media (max-width: 640px) { .containerHero { padding-top: 28px; } .accionesGlobales { width: 100%; } .accionesGlobales > * { flex: 1 1 200px; } }

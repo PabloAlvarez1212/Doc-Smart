@@ -51,4 +51,9 @@
 }
 .Swal{
     z-index: 100000;
+}@media (max-width: 640px) {
+  .containerMain .cards .card { width: 100%; padding: 16px 12px; gap: 8px; }
+  .containerMain .cards .card .titleContainer { gap: 12px; min-width: 0; }
+  .containerMain .cards .card .textContainer { min-width: 0; }
+  .card svg { flex-shrink: 0; }
 }

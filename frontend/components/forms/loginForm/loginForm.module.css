@@ -20,4 +20,5 @@
     margin: -1.7rem;
    font-size: clamp(0.6rem,1.2vw,1.3rem);
 
-}
+}.formLogin { width: 100%; gap: 24px; }
+.error { margin: 0; font-size: 0.9rem; text-align: center; }

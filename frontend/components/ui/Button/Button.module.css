@@ -73,4 +73,5 @@
     to {
         transform: rotate(360deg);
     }
-}
+}.btn { min-height: 44px; white-space: normal; gap: 6px; }
+.btn svg { flex-shrink: 0; }

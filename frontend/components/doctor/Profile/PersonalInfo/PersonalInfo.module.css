@@ -60,4 +60,8 @@
     background-color: #22c55e !important; /* verde */
     color: white;
     border: none;
-}
+}.infoSection .inputs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.infoSection .itemInput { min-width: 0; align-items: stretch; }
+.infoSection .itemInput input { width: 100%; }
+@media (max-width: 1400px) { .infoSection .inputs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .infoSection { padding: 24px 16px; } .infoSection .inputs { grid-template-columns: minmax(0, 1fr); } .infoSection .title { margin-bottom: 24px; } }

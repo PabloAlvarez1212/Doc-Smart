@@ -63,3 +63,12 @@
 
 
 
+.containerText { min-width: 0; }
+.saludo { gap: 24px; }
+.img { flex-shrink: 0; }
+@media (max-width: 640px) {
+  .saludo { padding: 24px 20px; flex-direction: column-reverse; align-items: flex-start; gap: 16px; }
+  .img { width: 88px; height: 88px; }
+  .saludo h2 { font-size: 1.5rem; }
+  .saludo button { max-width: 100%; }
+}

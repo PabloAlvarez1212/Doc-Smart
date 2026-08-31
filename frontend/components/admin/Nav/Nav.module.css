@@ -60,4 +60,12 @@
 .containerNavMain {
     margin: 0 auto;
     width: 200px;
+}.containerNav nav ul li .link, .activar { display: inline-flex; min-height: 44px; align-items: center; }
+@media (max-width: 1100px) {
+  .containerNav nav ul { padding-top: 0; align-items: stretch; font-size: 1rem; }
+  .containerNav nav ul li { padding-block: 4px; }
+  .containerNavMain, .catalogos { width: 100%; }
+  .containerNavMain { display: flex; flex-wrap: wrap; gap: 8px; }
+  .item { gap: 8px; width: auto; }
+  .btn { margin-top: 8px; justify-content: flex-start; }
 }

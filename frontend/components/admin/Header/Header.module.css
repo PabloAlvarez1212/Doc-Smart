@@ -37,4 +37,6 @@
 .logo img{
     width: clamp(5rem,6.5vw,6rem);
     height: auto;
-}
+}.containerHeader { height: auto; min-height: 76px; }
+.container { margin-block: 0; min-height: 76px; }
+@media (max-width: 640px) { .logo img { width: 52px; } .logo h2 { font-size: 1.25rem; } }

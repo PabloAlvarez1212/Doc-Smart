@@ -1,6 +1,7 @@
 "use client";
 import Styles from "./Header.module.css";
 import Image from "next/image";
+import ResponsiveNav from "../../../ui/ResponsiveNav/ResponsiveNav";
 import useLogout from "../../../hooks/useLogout";
 import usePatient from "../../usePatient";
 import { useState } from "react";
@@ -26,11 +27,11 @@ export default function Header() {
                     <Image src='/images/logo.png' width='130' height='100' alt="logo" />
                     <h2><span>Doc</span>Smart</h2>
                 </div>
-                <div className={Styles.icon}>
-                    <SettingsIcon onClick={() => setModal(true)} className={Styles.iconSettings} />
-                </div>
+                <button type="button" aria-label="Abrir ajustes" className={Styles.settingsButton} onClick={() => setModal(true)}>
+                    <SettingsIcon className={Styles.iconSettings} />
+                </button>
             </div>
-            <div className={Styles.containerNav}>
+            <ResponsiveNav className={Styles.containerNav} id="patient-navigation">
                 <nav>
                     <ul>
                         <li><Link href='/patient/home' className={activateLink('/patient/home')} >Inicio</Link></li>
@@ -41,7 +42,7 @@ export default function Header() {
                         <li><Link href='/patient/notifications' className={activateLink('/patient/notifications')}>Notificaciones&nbsp;&nbsp;({noLeidas ?? 0})</Link></li>
                     </ul>
                 </nav>
-            </div>
+            </ResponsiveNav>
             <Modal
                 titulo="Acciones"
                 abierto={modal}

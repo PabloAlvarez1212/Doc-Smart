@@ -106,3 +106,9 @@
     margin: 0 !important;
 }
 
+@media (max-width: 640px) {
+  .section { padding: 40px 16px; }
+  .header { margin-bottom: 28px; }
+  .cardContainer { grid-template-columns: minmax(0, 1fr); }
+  .card { padding: 28px 20px !important; }
+}

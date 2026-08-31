@@ -132,4 +132,9 @@
 
 .footerLink:hover {
     color: rgba(255, 255, 255, 0.75);
+}@media (max-width: 640px) {
+  .container { margin: 12px; padding: 36px 20px; }
+  .title { font-size: clamp(1.65rem, 7vw, 2.1rem); }
+  .stats, .footerLinks { gap: 20px; }
+  .cta { width: 100%; justify-content: center; padding: 14px 16px; }
 }

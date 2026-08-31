@@ -15,3 +15,5 @@
 .container p{
     font-size: 20px;
 }
+.container h2 { font-size: clamp(1.75rem, 5vw, 2.375rem); }
+@media (max-width: 640px) { .containerMain { padding-top: 28px; } }

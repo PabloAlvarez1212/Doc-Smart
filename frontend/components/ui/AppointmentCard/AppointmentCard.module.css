@@ -104,3 +104,7 @@
     color: #686F78;
 }
 
+.card, .info { min-width: 0; }
+.info > img, .infoCita svg, .containerFooter svg { flex-shrink: 0; }
+.containerHeader, .btns, .containerFooter .fecha { flex-wrap: wrap; gap: 12px; }
+@media (max-width: 480px) { .card { padding: 16px; } .info { flex-wrap: wrap; } .textInfo, .textInfoDireccion { align-items: flex-start; gap: 8px; } .btns button { flex: 1 1 130px; min-height: 44px; } }

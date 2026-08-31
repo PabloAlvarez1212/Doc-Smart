@@ -105,4 +105,8 @@
     transform: translateY(0);
     opacity: 1;
   }
-}
+}.modal { display: flex; flex-direction: column; max-height: calc(100dvh - 40px); }
+.header { flex-shrink: 0; gap: 12px; }
+.body { min-height: 0; max-height: none; overscroll-behavior: contain; }
+.cerrar { width: 44px; height: 44px; flex-shrink: 0; }
+@media (max-width: 640px) { .overlay { padding: 12px; } .modal { max-height: calc(100dvh - 24px); } .header, .body { padding: 20px 16px; } .titulo { font-size: 1.3rem; } }

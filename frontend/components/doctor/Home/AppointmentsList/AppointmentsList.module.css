@@ -208,4 +208,13 @@
     padding: 40px 0;
     color: #6b7280;
     font-size: 18px;
+}.header { flex-wrap: wrap; gap: 16px; }
+.card { grid-template-columns: 75px minmax(0, 1fr) auto; }
+.patientInfo, .infoItem { min-width: 0; }
+.infoItem svg { flex-shrink: 0; }
+@media (max-width: 768px) {
+  .container { padding: 24px 16px; margin-top: 32px; }
+  .card { grid-template-columns: 60px minmax(0, 1fr); padding: 16px; gap: 12px; }
+  .avatar img { width: 60px; height: 60px; }
+  .statusContainer { grid-column: 1 / -1; justify-content: flex-start; }
 }

@@ -50,4 +50,12 @@
 }
 .text{
     font-size: 20px;
+}.description { min-width: 0; }
+.item > svg { flex-shrink: 0; }
+.header { gap: 16px; flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .container { padding: 24px 16px; margin-top: 32px; }
+  .header { align-items: flex-start; margin-bottom: 20px; }
+  .item { gap: 12px; }
+  .text { font-size: 1rem; }
 }

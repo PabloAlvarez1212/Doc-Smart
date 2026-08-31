@@ -68,3 +68,8 @@
     height: 80px;
   }
 }
+.mainLogin { width: 100%; height: auto; min-height: 100svh; padding: 24px 16px; }
+.container { width: min(100%, 640px); padding: clamp(20px, 4vw, 48px); border-radius: 24px; transform: none; margin: auto; }
+@media (max-width: 640px) { .container { gap: 20px; } }
+.link, .link:hover { font-size: 1rem; min-height: 44px; display: inline-flex; align-items: center; text-align: center; }
+.containerLinks { gap: 4px; }

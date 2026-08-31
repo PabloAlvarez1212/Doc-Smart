@@ -11,4 +11,25 @@ body{
 }
 html {
     scrollbar-gutter: stable;
+    -webkit-text-size-adjust: 100%;
+}
+
+/* Shared sizing rules keep content readable without hiding overflow. */
+body { min-width: 0; overflow-wrap: anywhere; }
+main, section, article, form { min-width: 0; }
+img, video, canvas { max-width: 100%; }
+input, select, textarea { min-width: 0; max-width: 100%; }
+button, a, input, select, textarea { touch-action: manipulation; }
+button { max-width: 100%; }
+:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+@media (max-width: 768px) {
+    input, select, textarea { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

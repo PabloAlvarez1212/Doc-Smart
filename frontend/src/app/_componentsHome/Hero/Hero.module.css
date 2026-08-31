@@ -210,4 +210,14 @@
     font-size: 11px;
     color: rgba(255, 255, 255, 0.55);
     text-align: center;
+}@media (max-width: 768px) {
+  .container { margin: 12px; padding: 40px 20px 0; }
+  .previewGrid { margin: 0 -20px; padding: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .heading { font-size: clamp(2rem, 7vw, 3rem); letter-spacing: -1px; }
+  .trustBar { gap: 12px; }
+}
+@media (max-width: 480px) {
+  .previewGrid { grid-template-columns: 1fr; }
+  .actions { flex-direction: column; }
+  .ctaMain, .ctaGhost { justify-content: center; width: 100%; min-height: 44px; }
 }

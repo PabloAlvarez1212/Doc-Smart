@@ -87,4 +87,18 @@
     color: #16A34A;
     border-radius: 8px;
     padding: 5px 10px;
+}.containerHeader { height: auto; padding-bottom: 12px; }
+.containerNav nav ul { flex-wrap: wrap; justify-content: center; gap: 8px 16px; }
+.containerNav nav ul li a { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
+.settingsButton { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: inherit; cursor: pointer; }
+@media (max-width: 1100px) {
+  .containerHeader { position: sticky; top: 0; left: auto; transform: none; width: 100%; border-radius: 0 0 20px 20px; padding: 8px 16px 12px; }
+  .container { width: 100%; margin: 0 0 8px; }
+  .logo img { width: 48px; }
+  .logo h2 { font-size: 1.25rem; }
+  .containerNav nav ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; font-size: 1rem; }
+  .containerNav nav ul li a { width: 100%; padding: 10px; }
 }
+@media (max-width: 400px) { .containerNav nav ul { grid-template-columns: 1fr; } }
+.container { margin-top: 16px; margin-bottom: 8px; }
+@media (max-width: 1100px) { .container { margin-top: 0; } .containerNav { display: block; } }

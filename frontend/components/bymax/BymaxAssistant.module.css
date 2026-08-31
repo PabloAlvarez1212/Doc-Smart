@@ -822,3 +822,26 @@ width:min(86vw,310px)}
 
 @media(prefers-reduced-motion:reduce){
 .launcherListening .launcherGlow,.shell{animation:none!important}}
+/* Constrain the assistant to the viewport, including short landscape screens. */
+.shell { min-height: 0; max-height: calc(100dvh - 32px); }
+.composer textarea { min-width: 0; }
+.quickReplies { flex-wrap: wrap; }
+.resultGrid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+.resultCard, .resultCard > div { min-width: 0; }
+.resultIcon { flex-shrink: 0; }
+.headerActions { flex-wrap: wrap; }
+@media (max-width: 800px) {
+  .shell { bottom: max(8px, env(safe-area-inset-bottom)); height: calc(100dvh - 24px); min-height: 0; max-height: calc(100dvh - 24px); }
+  .chatPanel { grid-template-rows: auto minmax(0, 1fr) auto; }
+  .shell .header { flex-wrap: wrap; gap: 8px; padding: 10px; }
+  .assistant { min-width: 0; }
+  .assistant small { font-size: 11px; }
+  .composer { flex-wrap: wrap; }
+  .composer textarea { flex: 1 1 100px; font-size: 16px; }
+  .composerArea { padding-bottom: max(9px, env(safe-area-inset-bottom)); }
+  .voiceActions { flex-wrap: wrap; }
+}
+@media (hover: none) { .chatItem svg { opacity: 1; } }
+@media (max-height: 500px) { .shell { height: calc(100dvh - 16px); bottom: 8px; max-height: calc(100dvh - 16px); } .disclaimer { display: none; } }
+@media (max-width: 800px) { .launcher:has(~ .shell) { visibility: hidden; } }
+@media (min-width: 801px) and (max-width: 1000px) { .shell .language { display: none; } }
