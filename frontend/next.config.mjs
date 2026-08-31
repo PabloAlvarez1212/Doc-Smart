@@ -1,17 +1,10 @@
 /** @type {import('next').NextConfig} */
 
-const backendUrl =
-  process.env.BACKEND_URL || "http://localhost:8000";
-
 const nextConfig = {
   reactCompiler: true,
 
+  // Evita que Next/Vercel quite el "/" final
   skipTrailingSlashRedirect: true,
-
-  allowedDevOrigins: [
-    "localhost",
-    "127.0.0.1",
-  ],
 
   images: {
     remotePatterns: [
@@ -21,6 +14,7 @@ const nextConfig = {
         port: "8000",
         pathname: "/media/**",
       },
+
       {
         protocol: "https",
         hostname: "res.cloudinary.com",
@@ -35,7 +29,8 @@ const nextConfig = {
     return [
       {
         source: "/api/:path*/",
-        destination: `${backendUrl}/api/:path*/`,
+        destination:
+          "https://doc-smart-production.up.railway.app/api/:path*/",
       },
     ];
   },
