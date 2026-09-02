@@ -8,7 +8,7 @@ from django.db import transaction
 
 from storage_app.models import Archivo
 from storage_app.validators import validar_archivo
-import storage_app.utils
+from storage_app.utils import construir_ruta
 
 
 def obtener_cliente_s3():
@@ -18,9 +18,7 @@ def obtener_cliente_s3():
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         endpoint_url=settings.AWS_S3_ENDPOINT_URL,
         region_name=settings.AWS_S3_REGION_NAME,
-        config=Config(
-            signature_version="s3v4",
-        ),
+        config=Config(signature_version="s3v4"),
     )
 
 
@@ -30,21 +28,9 @@ def subir_archivo(
     usuario_id=None,
     referencia_id=None,
 ):
-    """
-    Sube un archivo al Object Storage de Railway.
-
-    Retorna:
-    {
-        "key": "...",
-        "nombre": "...",
-        "tipo": "...",
-        "tamano": 12345
-    }
-    """
-
     validar_archivo(archivo)
 
-    storage_key = storage_app.utils.construir_ruta(
+    storage_key = construir_ruta(
         categoria=categoria,
         nombre_archivo=archivo.name,
         usuario_id=usuario_id,
@@ -53,29 +39,25 @@ def subir_archivo(
 
     cliente = obtener_cliente_s3()
 
-    extra_args = {
-        "ContentType": getattr(
-            archivo,
-            "content_type",
-            "application/octet-stream",
-        )
-    }
+    content_type = getattr(
+        archivo,
+        "content_type",
+        "application/octet-stream",
+    )
 
     cliente.upload_fileobj(
         archivo,
         settings.AWS_STORAGE_BUCKET_NAME,
         storage_key,
-        ExtraArgs=extra_args,
+        ExtraArgs={
+            "ContentType": content_type,
+        },
     )
 
     return {
         "key": storage_key,
         "nombre": archivo.name,
-        "tipo": getattr(
-            archivo,
-            "content_type",
-            None,
-        ),
+        "tipo": content_type,
         "tamano": archivo.size,
     }
 
@@ -84,12 +66,6 @@ def generar_url_firmada(
     storage_key,
     expiracion=600,
 ):
-    """
-    Genera una URL temporal.
-
-    expiracion=600 -> 10 minutos
-    """
-
     cliente = obtener_cliente_s3()
 
     try:
@@ -102,7 +78,11 @@ def generar_url_firmada(
             ExpiresIn=expiracion,
         )
 
-    except ClientError:
+    except ClientError as error:
+        print(
+            "Error generando URL firmada:",
+            error,
+        )
         return None
 
 
@@ -114,10 +94,13 @@ def eliminar_archivo(storage_key):
             Bucket=settings.AWS_STORAGE_BUCKET_NAME,
             Key=storage_key,
         )
-
         return True
 
-    except ClientError:
+    except ClientError as error:
+        print(
+            "Error eliminando archivo:",
+            error,
+        )
         return False
 
 
@@ -129,7 +112,6 @@ def archivo_existe(storage_key):
             Bucket=settings.AWS_STORAGE_BUCKET_NAME,
             Key=storage_key,
         )
-
         return True
 
     except ClientError:
@@ -146,19 +128,20 @@ def obtener_metadata(storage_key):
         )
 
         return {
-            "tamano": respuesta.get(
-                "ContentLength"
-            ),
-            "tipo": respuesta.get(
-                "ContentType"
-            ),
+            "tamano": respuesta.get("ContentLength"),
+            "tipo": respuesta.get("ContentType"),
             "fecha_modificacion": respuesta.get(
                 "LastModified"
             ),
         }
 
-    except ClientError:
+    except ClientError as error:
+        print(
+            "Error obteniendo metadata:",
+            error,
+        )
         return None
+
 
 def probar_conexion_storage():
     cliente = obtener_cliente_s3()
@@ -167,12 +150,15 @@ def probar_conexion_storage():
         cliente.head_bucket(
             Bucket=settings.AWS_STORAGE_BUCKET_NAME
         )
-
         return True
 
     except ClientError as error:
-        print("Error conectando al Object Storage:", error)
+        print(
+            "Error conectando al Object Storage:",
+            error,
+        )
         return False
+
 
 def determinar_tipo_archivo(content_type):
     if not content_type:
@@ -204,6 +190,13 @@ def guardar_archivo_usuario(
     categoria="general",
     referencia_id=None,
 ):
+    """
+    Flujo:
+    1. Sube archivo a Object Storage.
+    2. Guarda metadatos en MySQL.
+    3. Si MySQL falla, elimina el archivo del bucket.
+    """
+
     resultado = subir_archivo(
         archivo=archivo,
         categoria=categoria,
@@ -227,12 +220,19 @@ def guardar_archivo_usuario(
         return registro
 
     except Exception:
-        eliminar_archivo(resultado["key"])
+        eliminar_archivo(
+            resultado["key"]
+        )
         raise
 
 
 @transaction.atomic
 def eliminar_archivo_usuario(archivo):
+    """
+    Elimina el archivo físico y marca
+    el registro como inactivo en MySQL.
+    """
+
     eliminado = eliminar_archivo(
         archivo.storage_key
     )
@@ -241,6 +241,9 @@ def eliminar_archivo_usuario(archivo):
         return False
 
     archivo.activo = False
-    archivo.save(update_fields=["activo"])
+
+    archivo.save(
+        update_fields=["activo"]
+    )
 
     return True
