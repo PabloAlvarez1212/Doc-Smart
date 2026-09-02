@@ -3,6 +3,7 @@ import logging
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
 from django.http import parse_cookie
+
 from utils import CustomJWTAuthentication
 
 
@@ -13,9 +14,13 @@ logger = logging.getLogger(__name__)
 def _usuario_desde_token(token):
     autenticacion = CustomJWTAuthentication()
 
-    token_validado = autenticacion.get_validated_token(token)
+    token_validado = autenticacion.get_validated_token(
+        token
+    )
 
-    return autenticacion.get_user(token_validado)
+    return autenticacion.get_user(
+        token_validado
+    )
 
 
 class JwtCookieAuthMiddleware:
@@ -24,12 +29,19 @@ class JwtCookieAuthMiddleware:
     def __init__(self, inner):
         self.inner = inner
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(
+        self,
+        scope,
+        receive,
+        send
+    ):
         scope = dict(scope)
 
         scope["user"] = AnonymousUser()
 
-        headers = dict(scope.get("headers", []))
+        headers = dict(
+            scope.get("headers", [])
+        )
 
         cookie_header = headers.get(
             b"cookie",
@@ -40,21 +52,10 @@ class JwtCookieAuthMiddleware:
             cookie_header
         ).get("token")
 
-        # No mostramos el JWT por seguridad.
-        logger.info(
-            "WS AUTH - cookie token recibida: %s",
-            bool(token)
-        )
-
         if token:
             try:
-                scope["user"] = await _usuario_desde_token(token)
-
-                logger.info(
-                    "WS AUTH - autenticacion correcta - tipo=%s id=%s authenticated=%s",
-                    type(scope["user"]).__name__,
-                    getattr(scope["user"], "id", None),
-                    getattr(scope["user"], "is_authenticated", False),
+                scope["user"] = await _usuario_desde_token(
+                    token
                 )
 
             except Exception:
@@ -67,7 +68,7 @@ class JwtCookieAuthMiddleware:
 
         else:
             logger.warning(
-                "WS AUTH - WebSocket recibido sin cookie token"
+                "WS AUTH - conexión WebSocket recibida sin cookie token"
             )
 
         return await self.inner(
