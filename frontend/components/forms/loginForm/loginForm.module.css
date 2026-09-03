@@ -11,8 +11,16 @@
     padding: 10px !important;
     margin-top: 0.5rem;
 }
-.input{
-    font-size: clamp(1.2rem,2vw,1.4rem) !important;
+.input {
+    font-size: clamp(1.2rem,2vw,1.3rem) !important;
+    margin: 0 auto;
+}
+.inputs{
+    display: flex;
+    align-items: center ;
+    flex-direction: column;
+    gap: 44px;
+    width: 70%;
 }
 .error {
     color: red;
@@ -20,5 +28,9 @@
     margin: -1.7rem;
    font-size: clamp(0.6rem,1.2vw,1.3rem);
 
-}.formLogin { width: 100%; gap: 24px; }
-.error { margin: 0; font-size: 0.9rem; text-align: center; }
+}.formLogin { width: 100%; gap: 25px; }
+@media (max-width: 640px){
+    .formLogin { width: 100%; gap: 25px; }
+    .inputs{width: 80%; gap: 30px;}
+}
+

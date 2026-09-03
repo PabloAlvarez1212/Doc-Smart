@@ -6,15 +6,16 @@ import styles from "./loginForm.module.css"
 
 export default function LoginForm() {
     const { formData, errors, handleChange, handleSubmit } = useLogin()
-    
+
     return (
         <form className={styles.formLogin} onSubmit={handleSubmit}>
-            <Input type="email" placeholder="Correo:" name="correo" id="correo" className={styles.input} value={formData.correo} onChange={handleChange} />
-            {errors.correo && <p className={styles.error}>{errors.correo}</p>}
+            <div className={styles.inputs}>
+                <Input type="email" placeholder="Correo:" name="correo" id="correo" className={styles.input} value={formData.correo} onChange={handleChange} />
+                {errors.correo && <p className={styles.error}>{errors.correo}</p>}
 
-            <Input type="password" placeholder="         Contraseña:" name="contraseña" id="contraseña" className={styles.input} value={formData.contraseña} onChange={handleChange} />
-            {errors.contraseña && <p className={styles.error}>{errors.contraseña}</p>}
-
+                <Input type="password" placeholder="Contraseña:" sizeEye={26} name="contraseña" id="contraseña" className={styles.input} value={formData.contraseña} onChange={handleChange} />
+                {errors.contraseña && <p className={styles.error}>{errors.contraseña}</p>}
+            </div>
             <Button type="submit" className={styles.btn} >Entrar</Button>
         </form>
     )
