@@ -12,7 +12,7 @@ export default function LoginForm() {
             <Input type="email" placeholder="Correo:" name="correo" id="correo" className={styles.input} value={formData.correo} onChange={handleChange} />
             {errors.correo && <p className={styles.error}>{errors.correo}</p>}
 
-            <Input type="password" placeholder="Contraseña:" name="contraseña" id="contraseña" className={styles.input} value={formData.contraseña} onChange={handleChange} />
+            <Input type="password" placeholder="         Contraseña:" name="contraseña" id="contraseña" className={styles.input} value={formData.contraseña} onChange={handleChange} />
             {errors.contraseña && <p className={styles.error}>{errors.contraseña}</p>}
 
             <Button type="submit" className={styles.btn} >Entrar</Button>
