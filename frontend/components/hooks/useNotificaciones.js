@@ -83,7 +83,7 @@ export const useNotificaciones = () => {
 
         if (!WS_URL) {
             console.error(
-                "WS NOTIFICACIONES - NEXT_PUBLIC_WS_URL no está configurada"
+                "NEXT_PUBLIC_WS_URL no está configurada"
             )
             return
         }
@@ -97,12 +97,10 @@ export const useNotificaciones = () => {
 
         const conectar = () => {
             if (desmontado) {
-                console.log(
-                    "WS NOTIFICACIONES - componente desmontado, no se conecta"
-                )
                 return
             }
 
+            // Evitar conexiones duplicadas
             if (
                 socket &&
                 (
@@ -110,66 +108,41 @@ export const useNotificaciones = () => {
                     socket.readyState === WebSocket.CONNECTING
                 )
             ) {
-                console.log(
-                    "WS NOTIFICACIONES - ya existe una conexión abierta o en proceso"
-                )
                 return
             }
 
             const websocketUrl =
                 `${WS_URL}/ws/notificaciones/`
 
-            console.log(
-                "WS NOTIFICACIONES - intentando conectar a:",
-                websocketUrl
-            )
-
-            socket = new WebSocket(
-                websocketUrl
-            )
-
+            socket = new WebSocket(websocketUrl)
             ws.current = socket
 
+            // Conexión exitosa
             socket.onopen = () => {
-                console.log(
-                    "WS NOTIFICACIONES - conexión abierta correctamente"
-                )
-
                 intentos = 0
             }
 
+            // Mensajes recibidos
             socket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data)
 
-                    console.log(
-                        "WS NOTIFICACIONES - mensaje recibido:",
-                        data.type
-                    )
-
+                    // Cantidad inicial
                     if (data.type === "count_initial") {
-                        console.log(
-                            "WS NOTIFICACIONES - cantidad inicial:",
-                            data.count
-                        )
-
                         setNoLeidas(data.count)
-
                         return
                     }
 
+                    // Nueva notificación o actualización
                     if (data.type === "notification_update") {
-                        console.log(
-                            "WS NOTIFICACIONES - actualización recibida"
-                        )
-
                         setNoLeidas(data.count)
 
                         if (data.notificacion) {
                             setNotificaciones(prev => {
                                 const existe = prev.some(
                                     notificacion =>
-                                        notificacion.id === data.notificacion.id
+                                        notificacion.id ===
+                                        data.notificacion.id
                                 )
 
                                 if (existe) {
@@ -202,56 +175,30 @@ export const useNotificaciones = () => {
 
                 } catch (error) {
                     console.error(
-                        "WS NOTIFICACIONES - error procesando mensaje:",
+                        "Error procesando mensaje WebSocket:",
                         error
                     )
                 }
             }
 
-            socket.onerror = (event) => {
-                console.error(
-                    "WS NOTIFICACIONES - error:",
-                    {
-                        type: event.type,
-                        readyState: socket?.readyState,
-                        url: websocketUrl
-                    }
-                )
-            }
+            // El cierre manejará la reconexión.
+            socket.onerror = () => { }
 
             socket.onclose = (event) => {
-                console.warn(
-                    "WS NOTIFICACIONES - conexión cerrada:",
-                    {
-                        code: event.code,
-                        reason: event.reason,
-                        wasClean: event.wasClean,
-                        readyState: socket?.readyState
-                    }
-                )
-
                 if (ws.current === socket) {
                     ws.current = null
                 }
 
+                // No reconectar si el componente fue desmontado
                 if (desmontado) {
-                    console.log(
-                        "WS NOTIFICACIONES - cierre provocado por desmontaje"
-                    )
                     return
                 }
 
-                if (event.code === 4401) {
-                    console.warn(
-                        "WS NOTIFICACIONES - 4401: usuario no autenticado"
-                    )
-                    return
-                }
-
-                if (event.code === 4403) {
-                    console.warn(
-                        "WS NOTIFICACIONES - 4403: usuario no autorizado"
-                    )
+                // No reconectar ante errores de autenticación/autorización
+                if (
+                    event.code === 4401 ||
+                    event.code === 4403
+                ) {
                     return
                 }
 
@@ -260,10 +207,6 @@ export const useNotificaciones = () => {
                 const delay = Math.min(
                     2000 * Math.pow(2, intentos - 1),
                     MAX_DELAY
-                )
-
-                console.warn(
-                    `WS NOTIFICACIONES - reconectando en ${delay / 1000}s. Intento ${intentos}`
                 )
 
                 reconnectTimer = setTimeout(() => {
@@ -275,18 +218,10 @@ export const useNotificaciones = () => {
         conectar()
 
         return () => {
-            console.log(
-                "WS NOTIFICACIONES - desmontando conexión"
-            )
-
             desmontado = true
 
             if (reconnectTimer) {
                 clearTimeout(reconnectTimer)
-
-                console.log(
-                    "WS NOTIFICACIONES - temporizador de reconexión cancelado"
-                )
             }
 
             if (socket) {
@@ -299,10 +234,6 @@ export const useNotificaciones = () => {
                     socket.readyState === WebSocket.OPEN ||
                     socket.readyState === WebSocket.CONNECTING
                 ) {
-                    console.log(
-                        "WS NOTIFICACIONES - cerrando socket manualmente"
-                    )
-
                     socket.close()
                 }
             }

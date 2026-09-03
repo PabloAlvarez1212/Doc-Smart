@@ -25,7 +25,7 @@ export default function SettingsComponent({ data, eliminarCuenta, cerrarSesion }
     return (
         <div className={Style.containerMain}>
             <div className={Style.cards}>
-                <div className={Style.card} onClick={() => navegation()}>
+                <div className={Style.card} /*onClick={() => navegation()}*/>
                     <div className={Style.titleContainer}>
                         <div className={Style.containerllaveIcon}>
                             <KeyIcon color="#6188DC" className={Style.llaveIcon} />
