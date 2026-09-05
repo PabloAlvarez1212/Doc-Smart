@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from utils import IsAdmin,IsMedico
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from medicos.services import (
     listarMedicosService,
     obtenerMedicoService,
@@ -56,6 +56,9 @@ def respuesta_serializer_invalido(errors):
 
 # Vista pública: permite registrar un nuevo médico sin autenticación
 class RegistrarMedicoView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
     def post(self, request):
         try:
             serializer = RegistrarMedicoSerializer(data=request.data)
@@ -130,7 +133,7 @@ class MedicoDetailView(APIView):
 class EspecialidadListView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
-            return []
+            return [AllowAny()]
         return [IsAdmin()] 
 
     def get(self, request):
@@ -167,7 +170,7 @@ class EspecialidadListView(APIView):
 class EspecialidadDetailView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
-            return []
+            return [AllowAny()]
         return [IsAdmin()] 
     # Retorna los datos de una especialidad específica
     def get(self, request, id_especialidad):

@@ -215,6 +215,9 @@ class CSRFTokenView(APIView):
         )
 
 class SolicitarCambioView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
     def post(self, request):
         serializer = SolicitarCambioSerializer(data=request.data)
         if not serializer.is_valid():
@@ -236,6 +239,9 @@ class SolicitarCambioView(APIView):
 
 
 class CambiarContraseñaView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
     def post(self, request):
         serializer = CambiarContraseñaSerializer(data=request.data)
         if not serializer.is_valid():
@@ -261,6 +267,9 @@ class CambiarContraseñaView(APIView):
 
 #!Registro - publico - NO REQUIERE TOKEN
 class RegistroView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
     def post(self,request):
         serializer = RegistrarUsuarioSerializer(data=request.data)
         if not serializer.is_valid():

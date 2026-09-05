@@ -1,5 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from utils import IsMedico, IsPaciente
 from historial_medico.services import (
     crearHistorialService,
     listarHistorialesPacienteService,
@@ -31,16 +33,17 @@ def respuesta_serializer_invalido(errors):
 
 
 class HistorialListView(APIView):
+    permission_classes = [IsAuthenticated, IsMedico]
+
     def post(self, request):
         serializer = CrearHistorialSerializer(data=request.data)
         if not serializer.is_valid():
             return respuesta_serializer_invalido(serializer.errors)
 
         try:
-            medico_id = request.user.id
             resultado, status_code = crearHistorialService(
                 serializer.validated_data,
-                medico_id
+                request.user
             )
 
             if status_code != 201:
@@ -58,10 +61,13 @@ class HistorialListView(APIView):
 
 
 class HistorialPacienteView(APIView):
+    permission_classes = [IsAuthenticated, IsPaciente]
+
     def get(self, request):
         try:
-            usuario_id = request.user.id
-            resultado, status_code = listarHistorialesPacienteService(usuario_id)
+            resultado, status_code = listarHistorialesPacienteService(
+                request.user
+            )
 
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)
@@ -74,10 +80,13 @@ class HistorialPacienteView(APIView):
 
 
 class HistorialMedicoView(APIView):
+    permission_classes = [IsAuthenticated, IsMedico]
+
     def get(self, request):
         try:
-            medico_id = request.user.id
-            resultado, status_code = listarHistorialesMedicoService(medico_id)
+            resultado, status_code = listarHistorialesMedicoService(
+                request.user
+            )
 
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)
@@ -90,13 +99,16 @@ class HistorialMedicoView(APIView):
 
 
 class HistorialDetailView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+        IsPaciente | IsMedico,
+    ]
+
     def get(self, request, historial_id):
         try:
-            es_medico = request.user.id_rol.nombre == 'medico'
             resultado, status_code = obtenerHistorialService(
                 historial_id,
-                request.user.id,
-                es_medico
+                request.user
             )
 
             if status_code != 200:
@@ -114,11 +126,10 @@ class HistorialDetailView(APIView):
             return respuesta_serializer_invalido(serializer.errors)
 
         try:
-            medico_id = request.user.id
             resultado, status_code = editarHistorialService(
                 historial_id,
                 serializer.validated_data,
-                medico_id
+                request.user
             )
 
             if status_code != 200:

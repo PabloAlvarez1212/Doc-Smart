@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from urllib3 import request
 from catalogos.serializers import CatalogoSerializer,CiudadInputSerializer
 from catalogos.services import (
@@ -154,6 +155,8 @@ class EstadoDetailView(APIView):
 # ─── DEPARTAMENTO ───────────────────────────────────────────────────────────────────
 
 class DepartamentoListView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         try:
             # OJO: sin valor por defecto en 'page' — si el frontend no lo manda
@@ -172,6 +175,8 @@ class DepartamentoListView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 class DepartamentoDetailView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request, id):
         try:
             resultado, status_code = obtenerDepartamentoService(id)
@@ -184,6 +189,8 @@ class DepartamentoDetailView(APIView):
 
 # ─── CIUDAD ───────────────────────────────────────────────────────────────────
 class CiudadListView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request, id_departamento):
         try:
             page = request.query_params.get('page')  # ← sin valor por defecto
@@ -204,7 +211,7 @@ class CiudadListView(APIView):
 class CiudadesDetailView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
-            return []
+            return [AllowAny()]
         return [IsAdmin()] 
     def get(self, request):
         try:
@@ -240,7 +247,7 @@ class CiudadesDetailView(APIView):
 class CiudadDetailView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
-            return []
+            return [AllowAny()]
         return [IsAdmin()] 
     def get(self,request,id):
         try:
