@@ -70,8 +70,11 @@ class LanguageService:
                 config=GenerateContentConfig(temperature=0, max_output_tokens=1200),
             )
             traducida = (response.text or protegida).strip()
-        except Exception:
-            logger.exception("No fue posible localizar la respuesta de Bymax")
+        except Exception as error:
+            logger.warning(
+                "No fue posible localizar la respuesta de Bymax tipo=%s",
+                type(error).__name__,
+            )
             traducida = protegida
         for token, valor in reemplazos.items():
             traducida = traducida.replace(token, valor)

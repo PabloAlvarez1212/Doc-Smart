@@ -5,7 +5,6 @@ from rest_framework.permissions import IsAuthenticated
 
 from chatbot.models import Chat, Mensaje
 from chatbot.ai.conversation_manager import ConversationManager
-import traceback
 from chatbot.services import (
     ChatService,
     MensajeService,
@@ -109,10 +108,12 @@ class ChatListView(APIView):
 
             return respuesta_ok(data=chats)
 
-        except Exception as e:
-
-            print(f"Error: {e}")
-
+        except Exception as error:
+            logger.error(
+                "Error listando chats tipo=%s actor_id=%s",
+                type(error).__name__,
+                getattr(request.user, "id", None),
+            )
             return respuesta_error(
                 "Error interno del servidor",
                 status=500
@@ -132,10 +133,12 @@ class ChatListView(APIView):
                 status=201
             )
 
-        except Exception as e:
-
-            print(f"Error: {e}")
-
+        except Exception as error:
+            logger.error(
+                "Error creando chat tipo=%s actor_id=%s",
+                type(error).__name__,
+                getattr(request.user, "id", None),
+            )
             return respuesta_error(
                 "Error interno del servidor",
                 status=500
@@ -166,10 +169,13 @@ class ChatDetailView(APIView):
                 mensaje="Chat eliminado correctamente."
             )
 
-        except Exception as e:
-
-            print(f"Error: {e}")
-
+        except Exception as error:
+            logger.error(
+                "Error eliminando chat tipo=%s chat_id=%s actor_id=%s",
+                type(error).__name__,
+                id_chat,
+                getattr(request.user, "id", None),
+            )
             return respuesta_error(
                 "Error interno del servidor",
                 status=500
@@ -203,10 +209,13 @@ class MensajeListView(APIView):
             mensajes = MensajeService.listar_mensajes(chat)
 
             return respuesta_ok(data=mensajes)
-        except Exception as e:
-
-            print(f"Error: {e}")
-
+        except Exception as error:
+            logger.error(
+                "Error listando mensajes tipo=%s chat_id=%s actor_id=%s",
+                type(error).__name__,
+                id_chat,
+                getattr(request.user, "id", None),
+            )
             return respuesta_error(
                 "Error interno del servidor",
                 status=500
@@ -250,10 +259,13 @@ class MensajeListView(APIView):
                 status=201
             )
 
-        except Exception as e:
-
-            print(f"Error: {e}")
-
+        except Exception as error:
+            logger.error(
+                "Error creando mensaje tipo=%s chat_id=%s actor_id=%s",
+                type(error).__name__,
+                id_chat,
+                getattr(request.user, "id", None),
+            )
             return respuesta_error(
                 "Error interno del servidor",
                 status=500
@@ -346,12 +358,15 @@ class ChatbotResponderView(APIView):
 
 
 
-        except Exception as e:
-
-            traceback.print_exc()
-
+        except Exception as error:
+            logger.error(
+                "Error procesando respuesta de Bymax tipo=%s chat_id=%s actor_id=%s",
+                type(error).__name__,
+                id_chat,
+                getattr(request.user, "id", None),
+            )
             return respuesta_error(
-                str(e),
+                "No fue posible procesar la solicitud.",
                 status=500,
             )
 
@@ -418,13 +433,14 @@ class BymaxVoiceView(APIView):
 
         except ElevenLabsError as error:
             return respuesta_error(
-                str(error),
+                "No fue posible generar la voz de Bymax.",
                 status=error.status_code,
             )
 
-        except Exception:
-            logger.exception(
-                "Error inesperado generando la voz de Bymax"
+        except Exception as error:
+            logger.error(
+                "Error inesperado generando la voz de Bymax tipo=%s",
+                type(error).__name__,
             )
 
             return respuesta_error(

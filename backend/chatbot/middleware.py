@@ -58,9 +58,10 @@ class JwtCookieAuthMiddleware:
                     token
                 )
 
-            except Exception:
-                logger.exception(
-                    "WS AUTH - error validando el JWT"
+            except Exception as error:
+                logger.warning(
+                    "WS AUTH - error validando el JWT tipo=%s",
+                    type(error).__name__,
                 )
 
                 # El consumer rechazará la conexión con 4401.

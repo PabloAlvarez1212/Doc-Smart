@@ -7,6 +7,7 @@ from django.test import SimpleTestCase
 from chatbot.serializers import CrearMensajeSerializer
 from chatbot.ai.flow_manager import FlowManager
 from chatbot.ai.router_decision import RouterDecision
+from chatbot.ai.tool_manager import ToolManager
 from chatbot.tools.citas import (
     AgendarCitaTool,
     ConsultarDisponibilidadTool,
@@ -66,6 +67,113 @@ class BuscarMedicoToolTests(SimpleTestCase):
         )
 
         buscar_medicos.assert_called_once_with(**parametros)
+
+
+class ToolManagerPrivacyTests(SimpleTestCase):
+
+    @patch("chatbot.ai.tool_manager.ToolLog.objects.create")
+    @patch("chatbot.ai.tool_manager.ToolManager._localizar")
+    @patch("chatbot.ai.tool_manager.ejecutar_tool")
+    def test_toollog_guarda_solo_metadatos_de_respuesta_clinica(
+        self,
+        ejecutar,
+        localizar,
+        crear_log,
+    ):
+        secreto = "Diagnóstico privado con observación sensible"
+        respuesta = {
+            "success": True,
+            "message": "Historial clínico encontrado.",
+            "data": {
+                "historial": [
+                    {
+                        "diagnostico": secreto,
+                        "observaciones": "Dato clínico completo",
+                    }
+                ]
+            },
+        }
+        ejecutar.return_value = respuesta
+        localizar.return_value = respuesta
+
+        resultado = ToolManager.ejecutar(
+            nombre_tool="consultar_historial",
+            chat=SimpleNamespace(id_usuario=object()),
+            mensaje="Muéstrame mi historial",
+            parametros={
+                "limite": 5,
+                "diagnostico": secreto,
+                "token": "credencial-privada",
+            },
+        )
+
+        self.assertEqual(resultado, respuesta)
+        datos_log = crear_log.call_args.kwargs
+        self.assertEqual(
+            datos_log["parametros"],
+            {"claves_permitidas": ["limite"], "cantidad": 3},
+        )
+        self.assertEqual(
+            datos_log["respuesta"],
+            {
+                "tipo": "dict",
+                "correcto": True,
+                "requiere_confirmacion": False,
+                "requiere_seleccion": False,
+            },
+        )
+        contenido_log = str(datos_log)
+        self.assertNotIn(secreto, contenido_log)
+        self.assertNotIn("Dato clínico completo", contenido_log)
+        self.assertNotIn("credencial-privada", contenido_log)
+
+    @patch("chatbot.ai.tool_manager.ToolLog.objects.create")
+    @patch("chatbot.ai.tool_manager.ejecutar_tool")
+    def test_toollog_no_guarda_mensaje_de_excepcion(self, ejecutar, crear_log):
+        secreto = "token=secreto diagnóstico=privado"
+        ejecutar.side_effect = RuntimeError(secreto)
+
+        with self.assertRaises(RuntimeError):
+            ToolManager.ejecutar(
+                nombre_tool="consultar_historial",
+                chat=SimpleNamespace(id_usuario=object()),
+                mensaje="Consulta privada",
+                parametros={"limite": 5},
+            )
+
+        datos_log = crear_log.call_args.kwargs
+        self.assertEqual(
+            datos_log["respuesta"],
+            {"tipo": "error", "error_tipo": "RuntimeError"},
+        )
+        self.assertNotIn(secreto, str(datos_log))
+
+    @patch("chatbot.ai.tool_manager.ToolLog.objects.create")
+    @patch("chatbot.ai.tool_manager.ToolManager._localizar")
+    @patch("chatbot.ai.tool_manager.ejecutar_tool")
+    def test_fallo_del_log_no_expone_payload_ni_interrumpe_la_tool(
+        self,
+        ejecutar,
+        localizar,
+        crear_log,
+    ):
+        secreto = "credencial-y-diagnóstico-secreto"
+        respuesta = {"success": True, "message": "Resultado", "data": {}}
+        ejecutar.return_value = respuesta
+        localizar.return_value = respuesta
+        crear_log.side_effect = RuntimeError(secreto)
+
+        with self.assertLogs("chatbot.ai.tool_manager", level="ERROR") as logs:
+            resultado = ToolManager.ejecutar(
+                nombre_tool="consultar_historial",
+                chat=SimpleNamespace(id_usuario=object()),
+                mensaje="Consulta privada",
+                parametros={"limite": 5},
+            )
+
+        self.assertEqual(resultado, respuesta)
+        self.assertNotIn(secreto, "\n".join(logs.output))
+        self.assertIn("RuntimeError", "\n".join(logs.output))
 
 
 class IntencionesDeterministasTests(SimpleTestCase):

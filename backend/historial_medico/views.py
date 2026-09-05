@@ -1,6 +1,11 @@
+import logging
+
+from django.utils.cache import patch_cache_control, patch_vary_headers
+from rest_framework.exceptions import APIException
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from core.paginacion import PaginacionEstandar
 from utils import IsMedico, IsPaciente
 from historial_medico.services import (
     crearHistorialService,
@@ -11,8 +16,12 @@ from historial_medico.services import (
 )
 from historial_medico.serializers import (
     CrearHistorialSerializer,
-    EditarHistorialSerializer
+    EditarHistorialSerializer,
+    HistorialClinicoSerializer,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -31,8 +40,49 @@ def respuesta_serializer_invalido(errors):
     return respuesta_error('Datos inválidos', errores=errors, status=400)
 
 
+def registrar_error_seguro(operacion, error, request, historial_id=None):
+    usuario = getattr(request, 'user', None)
+    logger.error(
+        'Error interno en historial operacion=%s tipo=%s actor_tipo=%s '
+        'actor_id=%s historial_id=%s',
+        operacion,
+        type(error).__name__,
+        type(usuario).__name__ if usuario is not None else 'desconocido',
+        getattr(usuario, 'id', None),
+        historial_id,
+    )
 
-class HistorialListView(APIView):
+
+class HistorialSeguroAPIView(APIView):
+    """Evita que respuestas clínicas queden almacenadas en cachés intermedias."""
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        patch_cache_control(
+            response,
+            private=True,
+            no_cache=True,
+            no_store=True,
+            must_revalidate=True,
+        )
+        patch_vary_headers(response, ('Authorization', 'Cookie'))
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
+
+
+class HistorialPaginadoMixin:
+    pagination_class = PaginacionEstandar
+
+    def paginar(self, request, queryset):
+        paginator = self.pagination_class()
+        pagina = paginator.paginate_queryset(queryset, request, view=self)
+        datos = HistorialClinicoSerializer(pagina, many=True).data
+        return paginator.get_paginated_response(datos).data
+
+
+
+class HistorialListView(HistorialSeguroAPIView):
     permission_classes = [IsAuthenticated, IsMedico]
 
     def post(self, request):
@@ -55,50 +105,58 @@ class HistorialListView(APIView):
                 status=201
             )
 
-        except Exception as e:
-            print(e)
+        except APIException:
+            raise
+        except Exception as error:
+            registrar_error_seguro('crear', error, request)
             return respuesta_error('Error interno del servidor', status=500)
 
 
-class HistorialPacienteView(APIView):
+class HistorialPacienteView(HistorialPaginadoMixin, HistorialSeguroAPIView):
     permission_classes = [IsAuthenticated, IsPaciente]
 
     def get(self, request):
         try:
             resultado, status_code = listarHistorialesPacienteService(
-                request.user
+                request.user,
+                request.query_params.get('ordering'),
             )
 
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)
 
-            return respuesta_ok(data=resultado)
+            return respuesta_ok(data=self.paginar(request, resultado))
 
-        except Exception as e:
-            print(e)
+        except APIException:
+            raise
+        except Exception as error:
+            registrar_error_seguro('listar_paciente', error, request)
             return respuesta_error('Error interno del servidor', status=500)
 
 
-class HistorialMedicoView(APIView):
+class HistorialMedicoView(HistorialPaginadoMixin, HistorialSeguroAPIView):
     permission_classes = [IsAuthenticated, IsMedico]
 
     def get(self, request):
         try:
             resultado, status_code = listarHistorialesMedicoService(
-                request.user
+                request.user,
+                request.query_params.get('ordering'),
             )
 
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)
 
-            return respuesta_ok(data=resultado)
+            return respuesta_ok(data=self.paginar(request, resultado))
 
-        except Exception as e:
-            print(e)
+        except APIException:
+            raise
+        except Exception as error:
+            registrar_error_seguro('listar_medico', error, request)
             return respuesta_error('Error interno del servidor', status=500)
 
 
-class HistorialDetailView(APIView):
+class HistorialDetailView(HistorialSeguroAPIView):
     permission_classes = [
         IsAuthenticated,
         IsPaciente | IsMedico,
@@ -122,8 +180,10 @@ class HistorialDetailView(APIView):
 
             return respuesta_ok(data=resultado)
 
-        except Exception as e:
-            print(e)
+        except APIException:
+            raise
+        except Exception as error:
+            registrar_error_seguro('obtener', error, request, historial_id)
             return respuesta_error('Error interno del servidor', status=500)
 
     def patch(self, request, historial_id):
@@ -146,7 +206,9 @@ class HistorialDetailView(APIView):
                 mensaje='Historial actualizado correctamente'
             )
 
-        except Exception as e:
-            print(e)
+        except APIException:
+            raise
+        except Exception as error:
+            registrar_error_seguro('editar', error, request, historial_id)
             return respuesta_error('Error interno del servidor', status=500)
 

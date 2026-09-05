@@ -72,7 +72,10 @@ def generar_audio_bymax(texto, velocidad=0.96):
             "La voz de Bymax tardó demasiado en responder.", 504
         ) from error
     except requests.RequestException as error:
-        logger.exception("No fue posible conectar con ElevenLabs")
+        logger.error(
+            "No fue posible conectar con ElevenLabs tipo=%s",
+            type(error).__name__,
+        )
         raise ElevenLabsError(
             "El servicio de voz de Bymax no está disponible.", 503
         ) from error
@@ -88,7 +91,7 @@ def generar_audio_bymax(texto, velocidad=0.96):
             503,
         )
     if not response.ok:
-        logger.error("ElevenLabs HTTP %s: %s", response.status_code, response.text[:300])
+        logger.error("ElevenLabs rechazó la solicitud estado=%s", response.status_code)
         raise ElevenLabsError("No fue posible generar la voz de Bymax.", 503)
     if "audio" not in response.headers.get("Content-Type", ""):
         raise ElevenLabsError("El servicio de voz devolvió una respuesta inválida.", 503)

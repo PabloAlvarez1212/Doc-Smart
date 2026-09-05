@@ -2,15 +2,18 @@ from django.db import IntegrityError, transaction
 
 from citas.models import Cita
 from historial_medico.models import HistorialClinico, VersionHistorialClinico
-from historial_medico.serializers import (
-    HistorialClinicoDetalleSerializer,
-    HistorialClinicoSerializer,
-)
+from historial_medico.serializers import HistorialClinicoDetalleSerializer
 from medicos.models import Medico
 from users.models import Usuario
 
 
 ESTADO_CITA_COMPLETADA = 'completada'
+ORDENAMIENTOS_HISTORIAL = {
+    'fecha_creacion': ('fecha_creacion', 'id'),
+    '-fecha_creacion': ('-fecha_creacion', '-id'),
+    'version_actual': ('version_actual', 'id'),
+    '-version_actual': ('-version_actual', '-id'),
+}
 CAMPOS_CLINICOS = (
     'diagnostico_general',
     'observaciones',
@@ -20,6 +23,14 @@ CAMPOS_CLINICOS = (
 
 def _cita_esta_completada(cita):
     return cita.id_estado.nombre.strip().casefold() == ESTADO_CITA_COMPLETADA
+
+
+def _ordenar_historiales(queryset, ordenamiento):
+    campos = ORDENAMIENTOS_HISTORIAL.get(
+        ordenamiento,
+        ORDENAMIENTOS_HISTORIAL['-fecha_creacion'],
+    )
+    return queryset.order_by(*campos)
 
 
 def _crear_version(historial, version, medico_editor, motivo_cambio, valores=None):
@@ -81,34 +92,38 @@ def crearHistorialService(datos, medico):
     return serializer.data, 201
 
 
-def listarHistorialesPacienteService(usuario):
+def listarHistorialesPacienteService(usuario, ordenamiento=None):
     if not isinstance(usuario, Usuario):
         return 'No tienes permiso para consultar estos historiales', 403
 
-    historiales = HistorialClinico.objects.filter(usuario=usuario).select_related(
-        'usuario', 'medico'
+    historiales = _ordenar_historiales(
+        HistorialClinico.objects.filter(usuario=usuario).select_related(
+            'usuario', 'medico'
+        ),
+        ordenamiento,
     )
 
     if not historiales.exists():
         return 'No se encontraron historiales', 404
 
-    serializer = HistorialClinicoSerializer(historiales, many=True)
-    return serializer.data, 200
+    return historiales, 200
 
 
-def listarHistorialesMedicoService(medico):
+def listarHistorialesMedicoService(medico, ordenamiento=None):
     if not isinstance(medico, Medico):
         return 'No tienes permiso para consultar estos historiales', 403
 
-    historiales = HistorialClinico.objects.filter(medico=medico).select_related(
-        'usuario', 'medico'
+    historiales = _ordenar_historiales(
+        HistorialClinico.objects.filter(medico=medico).select_related(
+            'usuario', 'medico'
+        ),
+        ordenamiento,
     )
 
     if not historiales.exists():
         return 'No se encontraron historiales', 404
 
-    serializer = HistorialClinicoSerializer(historiales, many=True)
-    return serializer.data, 200
+    return historiales, 200
 
 
 def obtenerHistorialService(historial_id, solicitante):

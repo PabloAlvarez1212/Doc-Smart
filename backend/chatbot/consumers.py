@@ -127,8 +127,12 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
         except asyncio.CancelledError:
             await self.send_json({"tipo": "cancelado"})
             raise
-        except Exception:
-            logger.exception("Error transmitiendo la respuesta de Bymax")
+        except Exception as error:
+            logger.error(
+                "Error transmitiendo la respuesta de Bymax tipo=%s chat_id=%s",
+                type(error).__name__,
+                self.id_chat,
+            )
             await self.send_json({
                 "tipo": "error",
                 "mensaje": (

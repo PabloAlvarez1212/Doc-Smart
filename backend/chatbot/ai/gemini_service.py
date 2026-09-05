@@ -65,9 +65,10 @@ def preguntar_gemini(contents):
             ultimo_error = error
             mensaje_error = str(error).lower()
 
-            logger.exception(
-                "Error consultando Gemini. Intento %s",
+            logger.warning(
+                "Error consultando Gemini intento=%s tipo=%s",
                 intento + 1,
+                type(error).__name__,
             )
 
             # Estos errores no se solucionan repitiendo inmediatamente.
@@ -82,7 +83,10 @@ def preguntar_gemini(contents):
 
             time.sleep(2)
 
-    logger.error("Error definitivo de Gemini: %s", ultimo_error)
+    logger.error(
+        "Error definitivo de Gemini tipo=%s",
+        type(ultimo_error).__name__ if ultimo_error else "desconocido",
+    )
 
     return (
         "En este momento no puedo procesar tu solicitud con inteligencia "
@@ -122,8 +126,10 @@ def preguntar_gemini_stream(contents):
             raise RuntimeError("Gemini devolvió un stream vacío")
 
         except Exception as error:
-            logger.exception(
-                "Error en stream de Gemini. Intento %s", intento + 1
+            logger.warning(
+                "Error en stream de Gemini intento=%s tipo=%s",
+                intento + 1,
+                type(error).__name__,
             )
 
             # Reintentar después de haber emitido texto duplicaría la respuesta.

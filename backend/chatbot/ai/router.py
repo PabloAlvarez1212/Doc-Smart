@@ -248,8 +248,11 @@ def procesar_mensaje(historial, mensaje, streaming=False):
 
         decision = extraer_json(response.text or "")
 
-    except Exception:
-        logger.exception("No fue posible consultar el router de Gemini")
+    except Exception as error:
+        logger.error(
+            "No fue posible consultar el router de Gemini tipo=%s",
+            type(error).__name__,
+        )
 
         return RouterDecision(
             tool=False,

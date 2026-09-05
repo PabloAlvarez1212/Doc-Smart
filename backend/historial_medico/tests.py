@@ -1,5 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 from threading import Barrier
+from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, close_old_connections, transaction
@@ -139,7 +141,7 @@ class HistorialClinicoSecurityTests(APITestCase):
 
         self.assertEqual(patient_response.status_code, 200)
         self.assertEqual(
-            {item["id"] for item in patient_response.data["data"]},
+            {item["id"] for item in patient_response.data["data"]["results"]},
             {self.historial_paciente_uno.id},
         )
 
@@ -148,7 +150,7 @@ class HistorialClinicoSecurityTests(APITestCase):
 
         self.assertEqual(doctor_response.status_code, 200)
         self.assertEqual(
-            {item["id"] for item in doctor_response.data["data"]},
+            {item["id"] for item in doctor_response.data["data"]["results"]},
             {self.historial_medico_uno.id},
         )
 
@@ -177,7 +179,7 @@ class HistorialClinicoSecurityTests(APITestCase):
         response = self.client.get("/api/historial/paciente/")
 
         self.assertEqual(response.status_code, 200)
-        ids = {item["id"] for item in response.data["data"]}
+        ids = {item["id"] for item in response.data["data"]["results"]}
         self.assertEqual(ids, {self.historial_paciente_uno.id})
 
     def test_medico_solo_lista_los_historiales_que_creo(self):
@@ -185,7 +187,7 @@ class HistorialClinicoSecurityTests(APITestCase):
         response = self.client.get("/api/historial/medico/")
 
         self.assertEqual(response.status_code, 200)
-        ids = {item["id"] for item in response.data["data"]}
+        ids = {item["id"] for item in response.data["data"]["results"]}
         self.assertEqual(ids, {self.historial_medico_uno.id})
 
     def test_colision_id_no_da_acceso_de_paciente_a_historial_del_medico(self):
@@ -458,6 +460,141 @@ class HistorialClinicoSecurityTests(APITestCase):
         self.assertIn("diagnostico_general", texto_largo.errors)
         self.assertFalse(control_invalido.is_valid())
         self.assertIn("diagnostico_general", control_invalido.errors)
+
+    def test_listado_esta_paginado_y_admite_ordenamiento_controlado(self):
+        fecha_base = timezone.now()
+        historiales = []
+        for indice in range(2):
+            cita = Cita.objects.create(
+                fecha_programada=fecha_base - timedelta(days=indice + 1),
+                fecha_final=fecha_base,
+                id_estado=self.estado_completado,
+                id_usuario=self.paciente_uno,
+                id_medico=self.medico_dos,
+            )
+            historiales.append(
+                HistorialClinico.objects.create(
+                    diagnostico_general=f"Diagnóstico {indice}",
+                    observaciones="",
+                    motivo_consulta="Control",
+                    cita=cita,
+                    usuario=self.paciente_uno,
+                    medico=self.medico_dos,
+                )
+            )
+
+        HistorialClinico.objects.filter(
+            id=historiales[0].id
+        ).update(fecha_creacion=fecha_base - timedelta(days=2))
+        HistorialClinico.objects.filter(
+            id=historiales[1].id
+        ).update(fecha_creacion=fecha_base + timedelta(days=2))
+        HistorialClinico.objects.filter(
+            id=self.historial_paciente_uno.id
+        ).update(fecha_creacion=fecha_base)
+        self.authenticate(self.paciente_uno)
+
+        primera = self.client.get(
+            "/api/historial/paciente/?ordering=fecha_creacion&page_size=2&page=1"
+        )
+        segunda = self.client.get(
+            "/api/historial/paciente/?ordering=fecha_creacion&page_size=2&page=2"
+        )
+        orden_invalido = self.client.get(
+            "/api/historial/paciente/?ordering=diagnostico_general&page_size=3"
+        )
+
+        self.assertEqual(primera.status_code, 200)
+        self.assertEqual(primera.data["data"]["count"], 3)
+        self.assertEqual(primera.data["data"]["total_pages"], 2)
+        self.assertEqual(primera.data["data"]["current_page"], 1)
+        self.assertEqual(
+            [item["id"] for item in primera.data["data"]["results"]],
+            [historiales[0].id, self.historial_paciente_uno.id],
+        )
+        self.assertEqual(
+            [item["id"] for item in segunda.data["data"]["results"]],
+            [historiales[1].id],
+        )
+        self.assertEqual(
+            [item["id"] for item in orden_invalido.data["data"]["results"]],
+            [
+                historiales[1].id,
+                self.historial_paciente_uno.id,
+                historiales[0].id,
+            ],
+        )
+
+    def test_respuestas_clinicas_impiden_almacenamiento_en_cache(self):
+        self.authenticate(self.paciente_uno)
+        respuestas = [
+            self.client.get("/api/historial/paciente/"),
+            self.client.get(
+                f"/api/historial/{self.historial_paciente_uno.id}/"
+            ),
+            self.client.get("/api/historial/999999/"),
+        ]
+        cita = Cita.objects.create(
+            fecha_programada=timezone.now(),
+            fecha_final=timezone.now(),
+            id_estado=self.estado_completado,
+            id_usuario=self.paciente_uno,
+            id_medico=self.medico_uno,
+        )
+        self.authenticate(self.medico_uno)
+        respuestas.extend([
+            self.client.get("/api/historial/medico/"),
+            self.client.post(
+                "/api/historial/",
+                {
+                    "cita_id": cita.id,
+                    "diagnostico_general": "Diagnóstico",
+                    "motivo_consulta": "Control",
+                },
+                format="json",
+            ),
+            self.client.patch(
+                f"/api/historial/{self.historial_medico_uno.id}/",
+                {
+                    "observaciones": "Observación actualizada",
+                    "motivo_cambio": "Actualización clínica",
+                },
+                format="json",
+            ),
+        ])
+
+        for response in respuestas:
+            with self.subTest(status=response.status_code):
+                cache_control = response.headers["Cache-Control"]
+                self.assertIn("no-store", cache_control)
+                self.assertIn("private", cache_control)
+                self.assertIn("must-revalidate", cache_control)
+                self.assertEqual(response.headers["Pragma"], "no-cache")
+                self.assertEqual(response.headers["Expires"], "0")
+                self.assertIn("Cookie", response.headers["Vary"])
+                self.assertIn("Authorization", response.headers["Vary"])
+
+    def test_excepcion_interna_no_expone_contenido_sensible(self):
+        secreto = "diagnóstico-secreto token-super-secreto"
+        self.authenticate(self.paciente_uno)
+
+        with patch(
+            "historial_medico.views.obtenerHistorialService",
+            side_effect=RuntimeError(secreto),
+        ):
+            with self.assertLogs("historial_medico.views", level="ERROR") as logs:
+                response = self.client.get(
+                    f"/api/historial/{self.historial_paciente_uno.id}/"
+                )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            response.data["errores"]["detalle"],
+            "Error interno del servidor",
+        )
+        self.assertNotIn(secreto, str(response.data))
+        self.assertNotIn(secreto, "\n".join(logs.output))
+        self.assertIn("RuntimeError", "\n".join(logs.output))
 
     def test_excepciones_publicas_necesarias_siguen_accesibles(self):
         self.client.force_authenticate(user=None)

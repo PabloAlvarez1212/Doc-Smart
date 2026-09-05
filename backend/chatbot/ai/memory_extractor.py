@@ -102,8 +102,11 @@ def extraer_y_guardar_memoria(chat, mensaje):
             ),
         )
         nuevos_datos = json.loads(response.text or "{}")
-    except Exception:
-        logger.exception("No fue posible actualizar la memoria de Bymax")
+    except Exception as error:
+        logger.warning(
+            "No fue posible actualizar la memoria de Bymax tipo=%s",
+            type(error).__name__,
+        )
         return {}
 
     if not isinstance(nuevos_datos, dict):
