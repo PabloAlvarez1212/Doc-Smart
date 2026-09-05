@@ -2,12 +2,15 @@ from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from django.test import SimpleTestCase
+from django.core.cache import cache
+from django.test import SimpleTestCase, override_settings
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from chatbot.serializers import CrearMensajeSerializer
 from chatbot.ai.flow_manager import FlowManager
 from chatbot.ai.router_decision import RouterDecision
 from chatbot.ai.tool_manager import ToolManager
+from chatbot.models import Chat
 from chatbot.tools.citas import (
     AgendarCitaTool,
     ConsultarDisponibilidadTool,
@@ -174,6 +177,45 @@ class ToolManagerPrivacyTests(SimpleTestCase):
         self.assertEqual(resultado, respuesta)
         self.assertNotIn(secreto, "\n".join(logs.output))
         self.assertIn("RuntimeError", "\n".join(logs.output))
+
+
+@override_settings(
+    CACHES={
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "bymax-throttle-tests",
+        },
+    },
+)
+class BymaxThrottleTests(SimpleTestCase):
+
+    def setUp(self):
+        cache.clear()
+        self.factory = APIRequestFactory()
+        self.usuario = SimpleNamespace(is_authenticated=True, pk=501, id=501)
+
+    @patch("chatbot.views.Chat.objects.get", side_effect=Chat.DoesNotExist)
+    def test_bymax_permite_uso_normal_y_limita_exceso(self, obtener_chat):
+        from chatbot.views import ChatbotResponderView
+
+        respuestas = []
+        for _ in range(31):
+            request = self.factory.post(
+                "/api/chatbot/1/responder/",
+                {"mensaje": "Consulta"},
+                format="json",
+            )
+            force_authenticate(request, user=self.usuario)
+            respuestas.append(ChatbotResponderView.as_view()(request, id_chat=1))
+
+        self.assertTrue(all(
+            respuesta.status_code == 404
+            for respuesta in respuestas[:30]
+        ))
+        self.assertEqual(respuestas[-1].status_code, 429)
+        self.assertIn("Retry-After", respuestas[-1].headers)
+        self.assertIn("no-store", respuestas[-1].headers["Cache-Control"])
+        self.assertEqual(obtener_chat.call_count, 30)
 
 
 class IntencionesDeterministasTests(SimpleTestCase):

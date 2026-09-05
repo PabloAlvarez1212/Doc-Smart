@@ -1,11 +1,13 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from threading import Barrier
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
+from django.core.cache import cache
 from django.db import IntegrityError, close_old_connections, transaction
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.settings import api_settings
@@ -13,6 +15,8 @@ from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from catalogos.models import Ciudad, Departamento, Estado, Rol
+from chatbot.ai.tool_executor import ejecutar_tool
+from chatbot.services.historial_service import HistorialService
 from citas.models import Cita
 from historial_medico.models import HistorialClinico, VersionHistorialClinico
 from historial_medico.serializers import CrearHistorialSerializer, EditarHistorialSerializer
@@ -21,6 +25,15 @@ from medicos.models import Especialidad, Medico
 from users.models import Usuario
 
 
+TEST_CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'historial-tests',
+    },
+}
+
+
+@override_settings(CACHES=TEST_CACHES)
 class HistorialClinicoSecurityTests(APITestCase):
     """Verifica separación de roles y ownership, incluso con IDs colisionados."""
 
@@ -122,6 +135,9 @@ class HistorialClinicoSecurityTests(APITestCase):
             usuario=cls.paciente_uno,
             medico=cls.medico_dos,
         )
+
+    def setUp(self):
+        cache.clear()
 
     def authenticate(self, user):
         self.client.force_authenticate(user=user)
@@ -595,6 +611,86 @@ class HistorialClinicoSecurityTests(APITestCase):
         self.assertNotIn(secreto, str(response.data))
         self.assertNotIn(secreto, "\n".join(logs.output))
         self.assertIn("RuntimeError", "\n".join(logs.output))
+
+    def test_throttle_limita_lecturas_sin_colisionar_roles(self):
+        self.authenticate(self.paciente_uno)
+
+        for _ in range(60):
+            response = self.client.get("/api/historial/paciente/")
+            self.assertEqual(response.status_code, 200)
+
+        limitada = self.client.get("/api/historial/paciente/")
+        self.assertEqual(limitada.status_code, 429)
+        self.assertIn("no-store", limitada.headers["Cache-Control"])
+        self.assertIn("Retry-After", limitada.headers)
+
+        # paciente_uno y medico_uno tienen la misma PK, pero cuotas separadas.
+        self.authenticate(self.medico_uno)
+        respuesta_medico = self.client.get("/api/historial/medico/")
+        self.assertEqual(respuesta_medico.status_code, 200)
+
+    def test_throttle_limita_escrituras_y_permite_uso_normal(self):
+        cita = Cita.objects.create(
+            fecha_programada=timezone.now(),
+            fecha_final=timezone.now(),
+            id_estado=self.estado_completado,
+            id_usuario=self.paciente_uno,
+            id_medico=self.medico_uno,
+        )
+        self.authenticate(self.medico_uno)
+        payload = {
+            "cita_id": cita.id,
+            "diagnostico_general": "Diagnóstico autorizado",
+            "motivo_consulta": "Control",
+        }
+
+        permitida = self.client.post("/api/historial/", payload, format="json")
+        self.assertEqual(permitida.status_code, 201)
+
+        for _ in range(9):
+            duplicada = self.client.post(
+                "/api/historial/",
+                payload,
+                format="json",
+            )
+            self.assertEqual(duplicada.status_code, 400)
+
+        limitada = self.client.post("/api/historial/", payload, format="json")
+        self.assertEqual(limitada.status_code, 429)
+        self.assertIn("Retry-After", limitada.headers)
+        self.assertIn("no-store", limitada.headers["Cache-Control"])
+
+    def test_bymax_consulta_los_campos_reales_del_historial_con_ownership(self):
+        resultado = ejecutar_tool(
+            nombre_tool="consultar_historial",
+            chat=SimpleNamespace(id_usuario=self.paciente_uno),
+            mensaje="Muéstrame mi historial clínico",
+            parametros={"limite": 5},
+        )
+
+        self.assertTrue(resultado["success"])
+        registros = resultado["data"]["historial"]
+        self.assertEqual(len(registros), 1)
+        self.assertEqual(
+            registros[0]["diagnostico_general"],
+            self.historial_paciente_uno.diagnostico_general,
+        )
+        self.assertEqual(
+            registros[0]["motivo_consulta"],
+            self.historial_paciente_uno.motivo_consulta,
+        )
+        self.assertEqual(registros[0]["version"], 1)
+        self.assertEqual(registros[0]["medico"], "Médico Dos")
+        self.assertNotIn("tratamiento", registros[0])
+        self.assertNotIn(
+            self.historial_medico_uno.diagnostico_general,
+            str(registros),
+        )
+
+    def test_bymax_normaliza_limites_invalidos_y_excesivos(self):
+        self.assertEqual(HistorialService.normalizar_limite("invalido"), 5)
+        self.assertEqual(HistorialService.normalizar_limite(0), 1)
+        self.assertEqual(HistorialService.normalizar_limite(999), 10)
 
     def test_excepciones_publicas_necesarias_siguen_accesibles(self):
         self.client.force_authenticate(user=None)

@@ -19,6 +19,10 @@ from historial_medico.serializers import (
     EditarHistorialSerializer,
     HistorialClinicoSerializer,
 )
+from historial_medico.throttles import (
+    HistorialEscrituraThrottle,
+    HistorialLecturaThrottle,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -84,6 +88,7 @@ class HistorialPaginadoMixin:
 
 class HistorialListView(HistorialSeguroAPIView):
     permission_classes = [IsAuthenticated, IsMedico]
+    throttle_classes = [HistorialEscrituraThrottle]
 
     def post(self, request):
         serializer = CrearHistorialSerializer(data=request.data)
@@ -114,6 +119,7 @@ class HistorialListView(HistorialSeguroAPIView):
 
 class HistorialPacienteView(HistorialPaginadoMixin, HistorialSeguroAPIView):
     permission_classes = [IsAuthenticated, IsPaciente]
+    throttle_classes = [HistorialLecturaThrottle]
 
     def get(self, request):
         try:
@@ -136,6 +142,7 @@ class HistorialPacienteView(HistorialPaginadoMixin, HistorialSeguroAPIView):
 
 class HistorialMedicoView(HistorialPaginadoMixin, HistorialSeguroAPIView):
     permission_classes = [IsAuthenticated, IsMedico]
+    throttle_classes = [HistorialLecturaThrottle]
 
     def get(self, request):
         try:
@@ -167,6 +174,12 @@ class HistorialDetailView(HistorialSeguroAPIView):
         if self.request.method == 'PATCH':
             permission_classes = [IsAuthenticated, IsMedico]
         return [permission() for permission in permission_classes]
+
+    def get_throttles(self):
+        throttle_classes = [HistorialLecturaThrottle]
+        if self.request.method == 'PATCH':
+            throttle_classes = [HistorialEscrituraThrottle]
+        return [throttle() for throttle in throttle_classes]
 
     def get(self, request, historial_id):
         try:

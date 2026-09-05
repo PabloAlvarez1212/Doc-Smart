@@ -1,4 +1,5 @@
 import logging
+from django.utils.cache import patch_cache_control, patch_vary_headers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -279,6 +280,22 @@ class MensajeListView(APIView):
 class ChatbotResponderView(APIView):
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "bymax_chat"
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        patch_cache_control(
+            response,
+            private=True,
+            no_cache=True,
+            no_store=True,
+            must_revalidate=True,
+        )
+        patch_vary_headers(response, ("Authorization", "Cookie"))
+        response["Pragma"] = "no-cache"
+        response["Expires"] = "0"
+        return response
 
     def post(self, request, id_chat):
 

@@ -46,18 +46,20 @@ class ConsultarHistorialTool(BaseTool):
 
             registros.append({
 
-                "fecha": registro.fecha,
+                "fecha": registro.fecha_creacion.isoformat(),
 
                 "medico": (
-                    f"{registro.id_medico.nombre} "
-                    f"{registro.id_medico.apellido}"
+                    f"{registro.medico.nombre} "
+                    f"{registro.medico.apellido}"
                 ),
 
-                "diagnostico": registro.diagnostico,
+                "diagnostico_general": registro.diagnostico_general,
 
-                "tratamiento": registro.tratamiento,
+                "motivo_consulta": registro.motivo_consulta,
 
-                "observaciones": registro.observaciones
+                "observaciones": registro.observaciones,
+
+                "version": registro.version_actual,
 
             })
 
