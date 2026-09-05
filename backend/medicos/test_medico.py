@@ -10,14 +10,16 @@ import bcrypt
 from catalogos.models import Rol
 from medicos.models import Medico, Especialidad
 
-rol, created = Rol.objects.get_or_create(nombre='doctor')
-especialidad, created = Especialidad.objects.get_or_create(nombre='Cardiología')
+def crear_medico_prueba():
+    """Crea el registro manual sólo al ejecutar este script directamente."""
+    rol, _ = Rol.objects.get_or_create(nombre='doctor')
+    especialidad, _ = Especialidad.objects.get_or_create(nombre='Cardiología')
+    contraseña = bcrypt.hashpw('1234'.encode(), bcrypt.gensalt()).decode()
 
-contraseña = bcrypt.hashpw('1234'.encode(), bcrypt.gensalt()).decode()
+    if Medico.objects.filter(correo='miguelangelracero05@gmail.com').exists():
+        print('El médico ya existe')
+        return
 
-if Medico.objects.filter(correo='miguelangelracero05@gmail.com').exists():
-    print('El médico ya existe')
-else:
     medico = Medico.objects.create(
         nombre='Carlos',
         apellido='García',
@@ -31,3 +33,7 @@ else:
         direccion='Calle 123',
     )
     print(f'✅ Médico creado: {medico}')
+
+
+if __name__ == '__main__':
+    crear_medico_prueba()

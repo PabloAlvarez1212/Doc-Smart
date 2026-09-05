@@ -3,14 +3,16 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from chatbot.serializers import CrearMensajeSerializer
 from chatbot.ai.flow_manager import FlowManager
 from chatbot.ai.router_decision import RouterDecision
 from chatbot.ai.tool_manager import ToolManager
-from chatbot.models import Chat
+from chatbot.models import Chat, ToolLog
+from catalogos.models import Rol
+from users.models import Usuario
 from chatbot.tools.citas import (
     AgendarCitaTool,
     ConsultarDisponibilidadTool,
@@ -177,6 +179,81 @@ class ToolManagerPrivacyTests(SimpleTestCase):
         self.assertEqual(resultado, respuesta)
         self.assertNotIn(secreto, "\n".join(logs.output))
         self.assertIn("RuntimeError", "\n".join(logs.output))
+
+
+class ToolManagerPrivacyPersistenceTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        rol = Rol.objects.create(nombre="paciente")
+        cls.usuario = Usuario.objects.create(
+            nombre="Paciente",
+            apellido="Auditoria",
+            fecha_nacimiento="1990-01-01",
+            estatura=1.70,
+            peso=70,
+            correo="patient.audit@example.com",
+            contraseña="hash",
+            cedula="audit-patient-1",
+            telefono="3000000010",
+            id_rol=rol,
+        )
+
+    @patch("chatbot.ai.tool_manager.ToolManager._localizar")
+    @patch("chatbot.ai.tool_manager.ejecutar_tool")
+    def test_toollog_persistido_no_contiene_payload_clinico_ni_credenciales(
+        self,
+        ejecutar,
+        localizar,
+    ):
+        secreto = "diagnostico-privado-de-prueba"
+        credencial = "token-ficticio-no-persistible"
+        respuesta = {
+            "success": True,
+            "message": "Historial encontrado",
+            "data": {
+                "historial": [
+                    {
+                        "diagnostico_general": secreto,
+                        "observaciones": "observacion clinica ficticia",
+                    }
+                ]
+            },
+        }
+        ejecutar.return_value = respuesta
+        localizar.return_value = respuesta
+
+        resultado = ToolManager.ejecutar(
+            nombre_tool="consultar_historial",
+            chat=SimpleNamespace(id_usuario=self.usuario),
+            mensaje="Consulta clinica ficticia",
+            parametros={
+                "limite": 5,
+                "diagnostico": secreto,
+                "token": credencial,
+            },
+        )
+
+        self.assertEqual(resultado, respuesta)
+        registro = ToolLog.objects.get(usuario=self.usuario)
+        self.assertEqual(registro.nombre_tool, "consultar_historial")
+        self.assertEqual(
+            registro.parametros,
+            {"claves_permitidas": ["limite"], "cantidad": 3},
+        )
+        self.assertEqual(
+            registro.respuesta,
+            {
+                "tipo": "dict",
+                "correcto": True,
+                "requiere_confirmacion": False,
+                "requiere_seleccion": False,
+            },
+        )
+        contenido_persistido = f"{registro.parametros} {registro.respuesta}"
+        self.assertNotIn(secreto, contenido_persistido)
+        self.assertNotIn(credencial, contenido_persistido)
+        self.assertNotIn("observacion clinica ficticia", contenido_persistido)
 
 
 @override_settings(
@@ -493,7 +570,12 @@ class RespuestaApiTests(SimpleTestCase):
         self.assertEqual(texto, "Encontré disponibilidad.")
         self.assertEqual(
             resultado,
-            {"success": True, "data": {"id_medico": 8}},
+            {
+                "success": True,
+                "data": {"id_medico": 8},
+                "requires_confirmation": False,
+                "requires_selection": False,
+            },
         )
 
 

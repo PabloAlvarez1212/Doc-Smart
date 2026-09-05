@@ -20,7 +20,7 @@ from chatbot.services.historial_service import HistorialService
 from citas.models import Cita
 from historial_medico.models import HistorialClinico, VersionHistorialClinico
 from historial_medico.serializers import CrearHistorialSerializer, EditarHistorialSerializer
-from historial_medico.services import crearHistorialService
+from historial_medico.services import crearHistorialService, editarHistorialService
 from medicos.models import Especialidad, Medico
 from users.models import Usuario
 
@@ -41,6 +41,7 @@ class HistorialClinicoSecurityTests(APITestCase):
     def setUpTestData(cls):
         rol_paciente = Rol.objects.create(nombre="paciente")
         rol_medico = Rol.objects.create(nombre="doctor")
+        rol_admin = Rol.objects.create(nombre="admin")
         estado = Estado.objects.create(nombre="completada")
         cls.estado_completado = estado
         departamento = Departamento.objects.create(api_id=1, nombre="Antioquia")
@@ -72,6 +73,19 @@ class HistorialClinicoSecurityTests(APITestCase):
             cedula="1002",
             telefono="3000000002",
             id_rol=rol_paciente,
+        )
+        cls.usuario_admin = Usuario.objects.create(
+            id=103,
+            nombre="Usuario",
+            apellido="Administrativo",
+            fecha_nacimiento="1992-01-01",
+            estatura=1.68,
+            peso=65,
+            correo="admin.history@example.com",
+            contraseña="hash",
+            cedula="1003",
+            telefono="3000000003",
+            id_rol=rol_admin,
         )
         cls.medico_uno = Medico.objects.create(
             id=101,
@@ -206,6 +220,72 @@ class HistorialClinicoSecurityTests(APITestCase):
         ids = {item["id"] for item in response.data["data"]["results"]}
         self.assertEqual(ids, {self.historial_medico_uno.id})
 
+    def test_matriz_de_acceso_a_detalle_respeta_rol_y_ownership(self):
+        escenarios = [
+            (self.paciente_uno, self.historial_paciente_uno, 200),
+            (self.paciente_dos, self.historial_paciente_uno, 404),
+            (self.medico_uno, self.historial_medico_uno, 200),
+            (self.medico_dos, self.historial_medico_uno, 404),
+            (self.usuario_admin, self.historial_paciente_uno, 403),
+        ]
+
+        for actor, historial, estado_esperado in escenarios:
+            with self.subTest(actor=type(actor).__name__, actor_id=actor.id):
+                self.authenticate(actor)
+                response = self.client.get(f"/api/historial/{historial.id}/")
+                self.assertEqual(response.status_code, estado_esperado)
+
+    def test_usuario_autenticado_sin_rol_clinico_no_accede_a_endpoints(self):
+        self.authenticate(self.usuario_admin)
+        endpoints = [
+            ("get", "/api/historial/paciente/", None),
+            ("get", "/api/historial/medico/", None),
+            ("get", f"/api/historial/{self.historial_paciente_uno.id}/", None),
+            (
+                "post",
+                "/api/historial/",
+                {
+                    "cita_id": self.cita_paciente_uno.id,
+                    "diagnostico_general": "Dato ficticio",
+                    "motivo_consulta": "Control",
+                },
+            ),
+            (
+                "patch",
+                f"/api/historial/{self.historial_paciente_uno.id}/",
+                {
+                    "diagnostico_general": "Dato ficticio modificado",
+                    "motivo_cambio": "Prueba de permisos",
+                },
+            ),
+        ]
+
+        for method, url, payload in endpoints:
+            with self.subTest(method=method, url=url):
+                response = getattr(self.client, method)(url, payload, format="json")
+                self.assertEqual(response.status_code, 403)
+
+    def test_paciente_no_puede_modificar_ni_siquiera_su_historial(self):
+        diagnostico_original = self.historial_paciente_uno.diagnostico_general
+        self.authenticate(self.paciente_uno)
+
+        response = self.client.patch(
+            f"/api/historial/{self.historial_paciente_uno.id}/",
+            {
+                "diagnostico_general": "Intento de cambio del paciente",
+                "motivo_cambio": "Prueba de permisos",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.historial_paciente_uno.refresh_from_db()
+        self.assertEqual(
+            self.historial_paciente_uno.diagnostico_general,
+            diagnostico_original,
+        )
+        self.assertFalse(self.historial_paciente_uno.versiones.exists())
+
     def test_colision_id_no_da_acceso_de_paciente_a_historial_del_medico(self):
         self.authenticate(self.paciente_uno)
 
@@ -251,6 +331,45 @@ class HistorialClinicoSecurityTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+
+    def test_medico_no_puede_crear_historial_desde_cita_ajena(self):
+        self.authenticate(self.medico_uno)
+
+        response = self.client.post(
+            "/api/historial/",
+            {
+                "cita_id": self.cita_paciente_uno.id,
+                "diagnostico_general": "Intento sobre cita ajena",
+                "motivo_consulta": "Prueba de ownership",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            HistorialClinico.objects.filter(cita=self.cita_paciente_uno).count(),
+            1,
+        )
+
+    def test_creacion_rechaza_cita_inexistente_sin_revelar_datos(self):
+        secreto = "dato-clinico-que-no-debe-aparecer"
+        self.authenticate(self.medico_uno)
+
+        response = self.client.post(
+            "/api/historial/",
+            {
+                "cita_id": 999999,
+                "diagnostico_general": secreto,
+                "motivo_consulta": "Prueba",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertNotIn(secreto, str(response.data))
+        self.assertFalse(
+            HistorialClinico.objects.filter(diagnostico_general=secreto).exists()
+        )
 
     def test_medico_puede_crear_y_editar_solo_su_historial(self):
         cita_nueva = Cita.objects.create(
@@ -321,6 +440,59 @@ class HistorialClinicoSecurityTests(APITestCase):
         self.assertEqual(version.diagnostico_general, "Diagnóstico inicial")
         self.assertEqual(response.data["data"]["versiones"][0]["version"], 1)
 
+    def test_creacion_duplicada_por_api_no_genera_otro_historial_ni_version(self):
+        cita = Cita.objects.create(
+            fecha_programada=timezone.now(),
+            fecha_final=timezone.now(),
+            id_estado=self.estado_completado,
+            id_usuario=self.paciente_uno,
+            id_medico=self.medico_uno,
+        )
+        self.authenticate(self.medico_uno)
+        payload = {
+            "cita_id": cita.id,
+            "diagnostico_general": "Diagnostico ficticio",
+            "motivo_consulta": "Control ficticio",
+        }
+
+        primera = self.client.post("/api/historial/", payload, format="json")
+        duplicada = self.client.post("/api/historial/", payload, format="json")
+
+        self.assertEqual(primera.status_code, 201)
+        self.assertEqual(duplicada.status_code, 400)
+        self.assertEqual(HistorialClinico.objects.filter(cita=cita).count(), 1)
+        historial = HistorialClinico.objects.get(cita=cita)
+        self.assertEqual(historial.versiones.count(), 1)
+
+    def test_creacion_revierte_historial_si_falla_la_version_inicial(self):
+        cita = Cita.objects.create(
+            fecha_programada=timezone.now(),
+            fecha_final=timezone.now(),
+            id_estado=self.estado_completado,
+            id_usuario=self.paciente_uno,
+            id_medico=self.medico_uno,
+        )
+        secreto = "fallo-interno-con-dato-clinico"
+        self.authenticate(self.medico_uno)
+
+        with patch(
+            "historial_medico.services._crear_version",
+            side_effect=RuntimeError(secreto),
+        ):
+            response = self.client.post(
+                "/api/historial/",
+                {
+                    "cita_id": cita.id,
+                    "diagnostico_general": "Diagnostico transaccional",
+                    "motivo_consulta": "Control",
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(HistorialClinico.objects.filter(cita=cita).exists())
+        self.assertNotIn(secreto, str(response.data))
+
     def test_no_crea_historial_para_cita_no_completada(self):
         estado_pendiente = Estado.objects.create(nombre="pendiente")
         cita = Cita.objects.create(
@@ -344,6 +516,30 @@ class HistorialClinicoSecurityTests(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertFalse(HistorialClinico.objects.filter(cita=cita).exists())
 
+    def test_ningun_estado_no_completado_permite_crear_historial(self):
+        self.authenticate(self.medico_uno)
+
+        for nombre_estado in ("programada", "cancelada", "en curso"):
+            with self.subTest(estado=nombre_estado):
+                estado = Estado.objects.create(nombre=nombre_estado)
+                cita = Cita.objects.create(
+                    fecha_programada=timezone.now(),
+                    id_estado=estado,
+                    id_usuario=self.paciente_uno,
+                    id_medico=self.medico_uno,
+                )
+                response = self.client.post(
+                    "/api/historial/",
+                    {
+                        "cita_id": cita.id,
+                        "diagnostico_general": "No debe persistirse",
+                        "motivo_consulta": "Cita no completada",
+                    },
+                    format="json",
+                )
+                self.assertEqual(response.status_code, 400)
+                self.assertFalse(HistorialClinico.objects.filter(cita=cita).exists())
+
     def test_restriccion_de_base_de_datos_impide_duplicado_por_cita(self):
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
@@ -354,6 +550,29 @@ class HistorialClinicoSecurityTests(APITestCase):
                     cita=self.cita_medico_uno,
                     usuario=self.paciente_dos,
                     medico=self.medico_uno,
+                )
+
+    def test_restriccion_de_base_de_datos_impide_version_duplicada(self):
+        VersionHistorialClinico.objects.create(
+            historial=self.historial_medico_uno,
+            version=1,
+            diagnostico_general="Version inicial",
+            observaciones="",
+            motivo_consulta="Control",
+            motivo_cambio="Creacion inicial",
+            medico_editor=self.medico_uno,
+        )
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                VersionHistorialClinico.objects.create(
+                    historial=self.historial_medico_uno,
+                    version=1,
+                    diagnostico_general="Version duplicada",
+                    observaciones="",
+                    motivo_consulta="Control",
+                    motivo_cambio="Duplicado",
+                    medico_editor=self.medico_uno,
                 )
 
     def test_patch_conserva_version_anterior_y_registra_la_nueva(self):
@@ -388,6 +607,122 @@ class HistorialClinicoSecurityTests(APITestCase):
             versiones[0].delete()
         versiones[0].refresh_from_db()
         self.assertEqual(versiones[0].diagnostico_general, diagnostico_anterior)
+
+    def test_patch_parcial_conserva_campos_y_encadena_versiones_completas(self):
+        diagnostico_inicial = self.historial_medico_uno.diagnostico_general
+        motivo_inicial = self.historial_medico_uno.motivo_consulta
+        self.authenticate(self.medico_uno)
+
+        primera = self.client.patch(
+            f"/api/historial/{self.historial_medico_uno.id}/",
+            {
+                "observaciones": "Primera observacion ficticia",
+                "motivo_cambio": "Se agrega observacion",
+            },
+            format="json",
+        )
+        segunda = self.client.patch(
+            f"/api/historial/{self.historial_medico_uno.id}/",
+            {
+                "diagnostico_general": "Diagnostico ficticio actualizado",
+                "motivo_cambio": "Se precisa el diagnostico",
+            },
+            format="json",
+        )
+
+        self.assertEqual(primera.status_code, 200)
+        self.assertEqual(segunda.status_code, 200)
+        self.historial_medico_uno.refresh_from_db()
+        versiones = list(self.historial_medico_uno.versiones.all())
+        self.assertEqual([version.version for version in versiones], [1, 2, 3])
+        self.assertEqual(versiones[0].diagnostico_general, diagnostico_inicial)
+        self.assertEqual(versiones[1].diagnostico_general, diagnostico_inicial)
+        self.assertEqual(versiones[1].observaciones, "Primera observacion ficticia")
+        self.assertEqual(versiones[2].observaciones, "Primera observacion ficticia")
+        self.assertEqual(versiones[2].motivo_consulta, motivo_inicial)
+        self.assertEqual(
+            self.historial_medico_uno.diagnostico_general,
+            "Diagnostico ficticio actualizado",
+        )
+
+    def test_patch_noop_no_crea_version(self):
+        self.authenticate(self.medico_uno)
+
+        response = self.client.patch(
+            f"/api/historial/{self.historial_medico_uno.id}/",
+            {
+                "diagnostico_general": self.historial_medico_uno.diagnostico_general,
+                "motivo_cambio": "No existe un cambio real",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(self.historial_medico_uno.versiones.exists())
+        self.assertEqual(self.historial_medico_uno.version_actual, 1)
+
+    def test_patch_no_permite_reasignar_ownership_cita_ni_version_actual(self):
+        self.authenticate(self.medico_uno)
+        usuario_id = self.historial_medico_uno.usuario_id
+        medico_id = self.historial_medico_uno.medico_id
+        cita_id = self.historial_medico_uno.cita_id
+
+        response = self.client.patch(
+            f"/api/historial/{self.historial_medico_uno.id}/",
+            {
+                "observaciones": "Observacion autorizada",
+                "motivo_cambio": "Actualizacion de observacion",
+                "usuario": self.paciente_uno.id,
+                "medico": self.medico_dos.id,
+                "cita_id": self.cita_paciente_uno.id,
+                "version_actual": 99,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.historial_medico_uno.refresh_from_db()
+        self.assertEqual(self.historial_medico_uno.usuario_id, usuario_id)
+        self.assertEqual(self.historial_medico_uno.medico_id, medico_id)
+        self.assertEqual(self.historial_medico_uno.cita_id, cita_id)
+        self.assertEqual(self.historial_medico_uno.version_actual, 2)
+
+    def test_edicion_revierte_cambios_si_falla_la_nueva_version(self):
+        diagnostico_original = self.historial_medico_uno.diagnostico_general
+        VersionHistorialClinico.objects.create(
+            historial=self.historial_medico_uno,
+            version=1,
+            diagnostico_general=diagnostico_original,
+            observaciones=self.historial_medico_uno.observaciones,
+            motivo_consulta=self.historial_medico_uno.motivo_consulta,
+            motivo_cambio="Version inicial ficticia",
+            medico_editor=self.medico_uno,
+        )
+        secreto = "error-interno-clinico-no-expuesto"
+        self.authenticate(self.medico_uno)
+
+        with patch(
+            "historial_medico.services._crear_version",
+            side_effect=RuntimeError(secreto),
+        ):
+            response = self.client.patch(
+                f"/api/historial/{self.historial_medico_uno.id}/",
+                {
+                    "diagnostico_general": "Cambio que debe revertirse",
+                    "motivo_cambio": "Prueba de rollback",
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 500)
+        self.historial_medico_uno.refresh_from_db()
+        self.assertEqual(
+            self.historial_medico_uno.diagnostico_general,
+            diagnostico_original,
+        )
+        self.assertEqual(self.historial_medico_uno.version_actual, 1)
+        self.assertEqual(self.historial_medico_uno.versiones.count(), 1)
+        self.assertNotIn(secreto, str(response.data))
 
     def test_no_modifica_historial_si_la_cita_deja_de_estar_completada(self):
         estado_pendiente = Estado.objects.create(nombre="pendiente")
@@ -477,6 +812,46 @@ class HistorialClinicoSecurityTests(APITestCase):
         self.assertFalse(control_invalido.is_valid())
         self.assertIn("diagnostico_general", control_invalido.errors)
 
+    def test_serializers_normalizan_unicode_y_validan_patch(self):
+        crear = CrearHistorialSerializer(
+            data={
+                "cita_id": 1,
+                "diagnostico_general": "Cafe\u0301 clinico",
+                "observaciones": "  observacion segura  ",
+                "motivo_consulta": "Control",
+            }
+        )
+        editar = EditarHistorialSerializer(
+            data={
+                "observaciones": "",
+                "motivo_cambio": "Correccion valida",
+            }
+        )
+
+        self.assertTrue(crear.is_valid(), crear.errors)
+        self.assertEqual(crear.validated_data["diagnostico_general"], "Café clinico")
+        self.assertEqual(crear.validated_data["observaciones"], "observacion segura")
+        self.assertTrue(editar.is_valid(), editar.errors)
+        self.assertEqual(editar.validated_data["observaciones"], "")
+
+    def test_errores_de_serializer_no_reflejan_contenido_clinico(self):
+        secreto = "diagnostico-privado-irrepetible"
+        self.authenticate(self.medico_uno)
+
+        response = self.client.post(
+            "/api/historial/",
+            {
+                "cita_id": self.cita_medico_uno.id,
+                "diagnostico_general": f"{secreto}\x00",
+                "motivo_consulta": "Control",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertNotIn(secreto, str(response.data))
+        self.assertIn("no-store", response.headers["Cache-Control"])
+
     def test_listado_esta_paginado_y_admite_ordenamiento_controlado(self):
         fecha_base = timezone.now()
         historiales = []
@@ -540,6 +915,38 @@ class HistorialClinicoSecurityTests(APITestCase):
                 historiales[0].id,
             ],
         )
+
+    def test_paginacion_limita_page_size_y_maneja_pagina_invalida(self):
+        for indice in range(50):
+            cita = Cita.objects.create(
+                fecha_programada=timezone.now() - timedelta(minutes=indice),
+                fecha_final=timezone.now(),
+                id_estado=self.estado_completado,
+                id_usuario=self.paciente_uno,
+                id_medico=self.medico_dos,
+            )
+            HistorialClinico.objects.create(
+                diagnostico_general=f"Diagnostico paginado {indice}",
+                observaciones="",
+                motivo_consulta="Control",
+                cita=cita,
+                usuario=self.paciente_uno,
+                medico=self.medico_dos,
+            )
+        self.authenticate(self.paciente_uno)
+
+        primera = self.client.get("/api/historial/paciente/?page_size=999&page=1")
+        segunda = self.client.get("/api/historial/paciente/?page_size=999&page=2")
+        invalida = self.client.get("/api/historial/paciente/?page=desconocida")
+
+        self.assertEqual(primera.status_code, 200)
+        self.assertEqual(primera.data["data"]["count"], 51)
+        self.assertEqual(primera.data["data"]["page_size"], 50)
+        self.assertEqual(len(primera.data["data"]["results"]), 50)
+        self.assertEqual(segunda.status_code, 200)
+        self.assertEqual(len(segunda.data["data"]["results"]), 1)
+        self.assertEqual(invalida.status_code, 404)
+        self.assertIn("no-store", invalida.headers["Cache-Control"])
 
     def test_respuestas_clinicas_impiden_almacenamiento_en_cache(self):
         self.authenticate(self.paciente_uno)
@@ -612,6 +1019,24 @@ class HistorialClinicoSecurityTests(APITestCase):
         self.assertNotIn(secreto, "\n".join(logs.output))
         self.assertIn("RuntimeError", "\n".join(logs.output))
 
+    def test_denegaciones_cruzadas_no_exponen_contenido_del_recurso(self):
+        secreto_paciente = self.historial_paciente_uno.diagnostico_general
+        secreto_medico = self.historial_medico_uno.diagnostico_general
+
+        self.authenticate(self.paciente_dos)
+        respuesta_paciente = self.client.get(
+            f"/api/historial/{self.historial_paciente_uno.id}/"
+        )
+        self.authenticate(self.medico_dos)
+        respuesta_medico = self.client.get(
+            f"/api/historial/{self.historial_medico_uno.id}/"
+        )
+
+        self.assertEqual(respuesta_paciente.status_code, 404)
+        self.assertEqual(respuesta_medico.status_code, 404)
+        self.assertNotIn(secreto_paciente, str(respuesta_paciente.data))
+        self.assertNotIn(secreto_medico, str(respuesta_medico.data))
+
     def test_throttle_limita_lecturas_sin_colisionar_roles(self):
         self.authenticate(self.paciente_uno)
 
@@ -659,6 +1084,58 @@ class HistorialClinicoSecurityTests(APITestCase):
         self.assertEqual(limitada.status_code, 429)
         self.assertIn("Retry-After", limitada.headers)
         self.assertIn("no-store", limitada.headers["Cache-Control"])
+
+    def test_throttle_de_escritura_comparte_cuota_entre_post_y_patch(self):
+        cita = Cita.objects.create(
+            fecha_programada=timezone.now(),
+            fecha_final=timezone.now(),
+            id_estado=self.estado_completado,
+            id_usuario=self.paciente_uno,
+            id_medico=self.medico_uno,
+        )
+        otra_cita = Cita.objects.create(
+            fecha_programada=timezone.now(),
+            fecha_final=timezone.now(),
+            id_estado=self.estado_completado,
+            id_usuario=self.paciente_uno,
+            id_medico=self.medico_uno,
+        )
+        self.authenticate(self.medico_uno)
+        creada = self.client.post(
+            "/api/historial/",
+            {
+                "cita_id": cita.id,
+                "diagnostico_general": "Diagnostico inicial",
+                "motivo_consulta": "Control",
+            },
+            format="json",
+        )
+        historial_id = creada.data["data"]["id"]
+
+        for indice in range(9):
+            response = self.client.patch(
+                f"/api/historial/{historial_id}/",
+                {
+                    "observaciones": f"Observacion {indice}",
+                    "motivo_cambio": f"Cambio ficticio {indice}",
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, 200)
+
+        limitada = self.client.post(
+            "/api/historial/",
+            {
+                "cita_id": otra_cita.id,
+                "diagnostico_general": "No debe crearse",
+                "motivo_consulta": "Control",
+            },
+            format="json",
+        )
+
+        self.assertEqual(limitada.status_code, 429)
+        self.assertFalse(HistorialClinico.objects.filter(cita=otra_cita).exists())
+        self.assertIn("Retry-After", limitada.headers)
 
     def test_bymax_consulta_los_campos_reales_del_historial_con_ownership(self):
         resultado = ejecutar_tool(
@@ -778,3 +1255,54 @@ class HistorialClinicoConcurrencyTests(TransactionTestCase):
             VersionHistorialClinico.objects.filter(historial=historial).count(),
             1,
         )
+
+    def test_ediciones_concurrentes_conservan_ambas_versiones_sin_perdidas(self):
+        _, estado_creacion = crearHistorialService(
+            {
+                "cita_id": self.cita.id,
+                "diagnostico_general": "Diagnostico inicial concurrente",
+                "observaciones": "Observacion inicial",
+                "motivo_consulta": "Control concurrente",
+            },
+            self.medico,
+        )
+        self.assertEqual(estado_creacion, 201)
+        historial = HistorialClinico.objects.get(cita=self.cita)
+        barrera = Barrier(2)
+
+        def editar_desde_conexion_independiente(indice):
+            close_old_connections()
+            try:
+                medico = Medico.objects.get(id=self.medico.id)
+                barrera.wait(timeout=10)
+                _, status_code = editarHistorialService(
+                    historial.id,
+                    {
+                        "diagnostico_general": f"Diagnostico concurrente {indice}",
+                        "motivo_cambio": f"Edicion concurrente {indice}",
+                    },
+                    medico,
+                )
+                return status_code
+            finally:
+                close_old_connections()
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            resultados = list(
+                executor.map(editar_desde_conexion_independiente, (1, 2))
+            )
+
+        self.assertEqual(resultados, [200, 200])
+        historial.refresh_from_db()
+        versiones = list(historial.versiones.all())
+        self.assertEqual(historial.version_actual, 3)
+        self.assertEqual([version.version for version in versiones], [1, 2, 3])
+        diagnosticos_concurrentes = {
+            "Diagnostico concurrente 1",
+            "Diagnostico concurrente 2",
+        }
+        self.assertEqual(
+            {version.diagnostico_general for version in versiones[1:]},
+            diagnosticos_concurrentes,
+        )
+        self.assertEqual(historial.diagnostico_general, versiones[-1].diagnostico_general)
