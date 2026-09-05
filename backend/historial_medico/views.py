@@ -104,6 +104,12 @@ class HistorialDetailView(APIView):
         IsPaciente | IsMedico,
     ]
 
+    def get_permissions(self):
+        permission_classes = self.permission_classes
+        if self.request.method == 'PATCH':
+            permission_classes = [IsAuthenticated, IsMedico]
+        return [permission() for permission in permission_classes]
+
     def get(self, request, historial_id):
         try:
             resultado, status_code = obtenerHistorialService(
@@ -120,7 +126,7 @@ class HistorialDetailView(APIView):
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
 
-    def put(self, request, historial_id):
+    def patch(self, request, historial_id):
         serializer = EditarHistorialSerializer(data=request.data)
         if not serializer.is_valid():
             return respuesta_serializer_invalido(serializer.errors)
