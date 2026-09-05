@@ -1,0 +1,19 @@
+.detail { color: #263247; }
+.dateBand { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: -8px 0 22px; padding: 13px 15px; border-radius: 10px; color: #1733a4; background: #edf5ff; }
+.dateBand div { display: flex; align-items: center; gap: 7px; }
+.dateBand span { color: #53627a; font-size: .85rem; }
+.doctor { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding-bottom: 21px; border-bottom: 1px solid #e6eaf0; }
+.doctor > span { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; color: #fff; background: var(--color-dark); }
+.doctor div { min-width: 0; }
+.doctor strong { color: #172033; }
+.doctor p { margin-top: 3px; color: #667085; font-size: .84rem; }
+.doctor small { padding: 5px 8px; border-radius: 7px; color: #53627a; background: #f1f5f9; white-space: nowrap; }
+.sections { display: flex; flex-direction: column; gap: 0; }
+.sections div { padding: 20px 0; border-bottom: 1px solid #e6eaf0; }
+.sections dt { margin-bottom: 8px; color: #1733a4; font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.sections dd { margin: 0; color: #364154; line-height: 1.65; }
+.note { display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 13px; border-left: 3px solid #2b7fff; color: #566174; background: #f8fafc; font-size: .84rem; line-height: 1.5; }
+.note svg { flex-shrink: 0; color: #2b7fff; }
+.print { width: 100%; margin-top: 20px; border: 1px solid #cfd7e4 !important; color: #1733a4 !important; }
+@media (max-width: 480px) { .dateBand { align-items: flex-start; flex-direction: column; } .doctor { grid-template-columns: auto 1fr; } .doctor small { grid-column: 2; justify-self: start; } }
+@media print { .print, .note { display: none; } }

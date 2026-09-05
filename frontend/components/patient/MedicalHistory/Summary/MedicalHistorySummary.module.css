@@ -1,0 +1,8 @@
+.summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 22px 0 34px; border: 1px solid #e4e9f1; border-radius: 14px; background: #fff; overflow: hidden; }
+.item { display: flex; align-items: center; gap: 13px; min-width: 0; padding: 18px 22px; }
+.item + .item { border-left: 1px solid #e4e9f1; }
+.icon { display: grid; place-items: center; flex: 0 0 42px; height: 42px; border-radius: 11px; color: #245dcb; background: #edf5ff; }
+.item div { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
+.item div span { color: #6b7280; font-size: .82rem; }
+.item strong { color: #172033; font-size: 1.08rem; overflow-wrap: normal; }
+@media (max-width: 760px) { .summary { grid-template-columns: 1fr; } .item + .item { border-left: 0; border-top: 1px solid #e4e9f1; } }

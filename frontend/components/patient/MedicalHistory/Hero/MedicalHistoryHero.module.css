@@ -1,0 +1,13 @@
+.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; margin-bottom: 28px; }
+.heading { display: flex; align-items: flex-start; gap: 18px; }
+.icon { display: grid; place-items: center; flex: 0 0 58px; height: 58px; color: #fff; background: var(--color-white); border-radius: 18px 18px 18px 5px; box-shadow: 0 10px 24px rgba(23, 51, 164, .2); }
+.icon svg { width: 28px; height: 28px; }
+.eyebrow { margin-bottom: 5px; color: #2b7fff; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.heading h1 { font-size: clamp(2rem, 4vw, 2.55rem); line-height: 1.05; color: #111827; }
+.description { max-width: 650px; margin-top: 10px; color: #566174; font-size: 1.05rem; line-height: 1.6; }
+.recordCount { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; padding: 14px 18px; border: 1px solid #dbeafe; border-radius: 12px; color: #1733a4; background: #f6faff; }
+.recordCount div { display: flex; flex-direction: column; gap: 2px; }
+.recordCount strong { font-size: .95rem; }
+.recordCount span { color: #667085; font-size: .78rem; }
+@media (max-width: 760px) { .hero { align-items: flex-start; flex-direction: column; gap: 20px; } .recordCount { width: 100%; } }
+@media (max-width: 480px) { .heading { gap: 12px; } .icon { flex-basis: 48px; height: 48px; border-radius: 14px 14px 14px 4px; } .icon svg { width: 23px; } }
