@@ -1,5 +1,5 @@
 .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; margin-bottom: 28px; }
-.heading { display: flex; align-items: flex-start; gap: 18px; }
+.heading { display: flex; align-items: flex-start;  }
 .icon { display: grid; place-items: center; flex: 0 0 58px; height: 58px; color: #fff; background: var(--color-white); border-radius: 18px 18px 18px 5px; box-shadow: 0 10px 24px rgba(23, 51, 164, .2); }
 .icon svg { width: 28px; height: 28px; }
 .eyebrow { margin-bottom: 5px; color: #2b7fff; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }

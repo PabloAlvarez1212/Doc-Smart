@@ -3,7 +3,11 @@ import Button from "../../../ui/Button/Button";
 import styles from "./MedicalHistoryFilters.module.css";
 
 export default function MedicalHistoryFilters({ filters, doctors, onChange, onReset }) {
-    const hasFilters = Object.values(filters).some((value) => value !== "" && value !== "all");
+    const hasFilters = filters.search !== ""
+        || filters.period !== "all"
+        || filters.doctor !== "all"
+        || filters.ordering !== "-fecha_creacion";
+
     return (
         <section className={styles.filters} aria-label="Filtros del historial clínico">
             <label className={styles.search}>
@@ -19,8 +23,17 @@ export default function MedicalHistoryFilters({ filters, doctors, onChange, onRe
             <label className={styles.field}>
                 <span>Profesional</span>
                 <select value={filters.doctor} onChange={(event) => onChange("doctor", event.target.value)}>
-                    <option value="all">Todos los médicos</option>
+                    <option value="all">Todos en esta página</option>
                     {doctors.map((doctor) => <option key={doctor} value={doctor}>{doctor}</option>)}
+                </select>
+            </label>
+            <label className={styles.field}>
+                <span>Ordenar por</span>
+                <select value={filters.ordering} onChange={(event) => onChange("ordering", event.target.value)}>
+                    <option value="-fecha_creacion">Más recientes</option>
+                    <option value="fecha_creacion">Más antiguos</option>
+                    <option value="-version_actual">Mayor versión</option>
+                    <option value="version_actual">Menor versión</option>
                 </select>
             </label>
             <Button className={styles.reset} variant="secundary" onClick={onReset} disabled={!hasFilters}><RotateCcw size={17} aria-hidden="true" /> Limpiar</Button>

@@ -1,4 +1,9 @@
 .detail { color: #263247; }
+.detailLoading, .detailError { display: flex; min-height: 280px; align-items: center; justify-content: center; flex-direction: column; gap: 12px; padding: 30px; color: #566174; text-align: center; }
+.detailError svg { color: #a33a34; }
+.detailError h3 { color: #172033; }
+.detailError p { max-width: 430px; line-height: 1.55; }
+.spinner { width: 34px; height: 34px; border: 3px solid #dbeafe; border-top-color: #2b7fff; border-radius: 50%; animation: detail-spin .8s linear infinite; }
 .dateBand { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: -8px 0 22px; padding: 13px 15px; border-radius: 10px; color: #1733a4; background: #edf5ff; }
 .dateBand div { display: flex; align-items: center; gap: 7px; }
 .dateBand span { color: #53627a; font-size: .85rem; }
@@ -16,4 +21,6 @@
 .note svg { flex-shrink: 0; color: #2b7fff; }
 .print { width: 100%; margin-top: 20px; border: 1px solid #cfd7e4 !important; color: #1733a4 !important; }
 @media (max-width: 480px) { .dateBand { align-items: flex-start; flex-direction: column; } .doctor { grid-template-columns: auto 1fr; } .doctor small { grid-column: 2; justify-self: start; } }
+@keyframes detail-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 @media print { .print, .note { display: none; } }

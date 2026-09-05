@@ -1,16 +1,25 @@
 import { CalendarDays, Stethoscope, TimerReset } from "lucide-react";
 import styles from "./MedicalHistorySummary.module.css";
+import { formatMedicalHistoryDate } from "../medicalHistoryFormatters";
 
-const formatShortDate = (date) => new Intl.DateTimeFormat("es-CO", {
-    day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
-}).format(new Date(`${date}T12:00:00Z`));
-
-export default function MedicalHistorySummary({ records }) {
+export default function MedicalHistorySummary({ records, total, latestRecord, loading = false }) {
     const professionals = new Set(records.map((record) => record.medico)).size;
     const items = [
-        { icon: CalendarDays, label: "Consultas registradas", value: records.length },
-        { icon: TimerReset, label: "Última consulta", value: formatShortDate(records[0].fecha_creacion) },
-        { icon: Stethoscope, label: "Profesionales", value: professionals },
+        { icon: CalendarDays, label: "Consultas registradas", value: loading ? "—" : total },
+        {
+            icon: TimerReset,
+            label: "Última consulta",
+            value: loading
+                ? "Cargando…"
+                : latestRecord
+                    ? formatMedicalHistoryDate(latestRecord.fecha_creacion, true)
+                    : "Sin registros",
+        },
+        {
+            icon: Stethoscope,
+            label: "Profesionales en esta página",
+            value: loading ? "—" : professionals,
+        },
     ];
     return (
         <section className={styles.summary} aria-label="Resumen del historial">
