@@ -1,0 +1,73 @@
+.availability {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid #e2eaf5;
+    border-radius: 12px;
+    background: #f8fbff;
+}
+
+.statusRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.statusRow strong {
+    flex-shrink: 0;
+    color: #1e3a68;
+    font-size: .9rem;
+    text-transform: capitalize;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .76rem;
+    font-weight: 700;
+}
+
+.today { color: #157347; }
+.upcoming { color: #315a99; }
+
+.days {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.day {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+}
+
+.day span {
+    display: grid;
+    place-items: center;
+    min-height: 28px;
+    border-radius: 7px;
+    color: #fff;
+    background: #315a99;
+    font-size: .7rem;
+    font-weight: 700;
+}
+
+.day p {
+    color: #304157;
+    font-size: .78rem;
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+.days small { margin-left: 45px; color: #315a99; font-size: .74rem; font-weight: 700; }
+.noSlots { color: #6b7280; font-size: .82rem; line-height: 1.45; }
+
+@media (max-width: 420px) {
+    .statusRow { align-items: flex-start; flex-direction: column; gap: 7px; }
+}

@@ -1,0 +1,108 @@
+.schedule { display: flex; flex-direction: column; gap: 20px; }
+
+.doctorSummary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 15px;
+    border: 1px solid #dce8f7;
+    border-radius: 12px;
+    background: #f6faff;
+}
+
+.doctorSummary > span {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    height: 42px;
+    border-radius: 11px;
+    color: #fff;
+    background: #315a99;
+}
+
+.doctorSummary div { min-width: 0; }
+.doctorSummary strong { color: #1e3658; font-size: .94rem; }
+.doctorSummary p { display: flex; align-items: center; gap: 5px; margin-top: 4px; color: #65748a; font-size: .78rem; }
+
+.week {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e2e8f0;
+    border-radius: 13px;
+    overflow: hidden;
+}
+
+.dayRow {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px;
+    min-height: 62px;
+    padding: 11px 13px;
+    border-bottom: 1px solid #edf0f4;
+    background: #fff;
+}
+
+.dayRow:last-child { border-bottom: 0; }
+.dayRow.unavailable { background: #fafbfc; }
+
+.dayName {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.dayName span {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 29px;
+    border-radius: 7px;
+    color: #174c96;
+    background: #edf5ff;
+    font-size: .68rem;
+    font-weight: 800;
+}
+
+.dayName strong { color: #25364e; font-size: .84rem; }
+
+.blocks {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.blocks span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 6px 10px;
+    border: 1px solid #cfe0fa;
+    border-radius: 8px;
+    color: #174c96;
+    background: #f8fbff;
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.unavailable > p { color: #98a2b3; font-size: .8rem; font-style: italic; }
+
+.notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 12px 13px;
+    border-radius: 10px;
+    color: #58687d;
+    background: #f3f5f8;
+}
+
+.notice svg { flex: 0 0 auto; margin-top: 2px; color: #315a99; }
+.notice p { font-size: .76rem; line-height: 1.5; }
+
+@media (max-width: 520px) {
+    .dayRow { grid-template-columns: 1fr; gap: 8px; }
+    .dayName strong { font-size: .88rem; }
+}
