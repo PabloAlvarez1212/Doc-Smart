@@ -159,3 +159,32 @@ class EditarHistorialSerializer(serializers.Serializer):
                 'Debes enviar al menos un campo clínico para actualizar.'
             )
         return attrs
+
+
+class FiltrosHistorialSerializer(serializers.Serializer):
+    search = TextoClinicoField(
+        required=False,
+        allow_blank=True,
+        trim_whitespace=True,
+        max_length=100,
+        error_messages=msg('término de búsqueda'),
+    )
+    period = serializers.ChoiceField(
+        required=False,
+        default='all',
+        choices=('all', '3months', '6months', 'year'),
+        error_messages={
+            'invalid_choice': 'El periodo seleccionado no es válido.',
+        },
+    )
+    doctor = TextoClinicoField(
+        required=False,
+        allow_blank=True,
+        trim_whitespace=True,
+        max_length=200,
+        error_messages=msg('nombre del profesional'),
+    )
+
+
+class ProfesionalHistorialSerializer(serializers.Serializer):
+    nombre = serializers.CharField(read_only=True)

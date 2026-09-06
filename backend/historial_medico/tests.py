@@ -162,6 +162,39 @@ class HistorialClinicoSecurityTests(APITestCase):
         refresh["tipo"] = user_type
         self.client.cookies["token"] = str(refresh.access_token)
 
+    def crear_historial(
+        self,
+        *,
+        paciente=None,
+        medico=None,
+        diagnostico="Diagnostico ficticio",
+        motivo="Control ficticio",
+        fecha_creacion=None,
+    ):
+        paciente = paciente or self.paciente_uno
+        medico = medico or self.medico_dos
+        cita = Cita.objects.create(
+            fecha_programada=fecha_creacion or timezone.now(),
+            fecha_final=timezone.now(),
+            id_estado=self.estado_completado,
+            id_usuario=paciente,
+            id_medico=medico,
+        )
+        historial = HistorialClinico.objects.create(
+            diagnostico_general=diagnostico,
+            observaciones="",
+            motivo_consulta=motivo,
+            cita=cita,
+            usuario=paciente,
+            medico=medico,
+        )
+        if fecha_creacion is not None:
+            HistorialClinico.objects.filter(id=historial.id).update(
+                fecha_creacion=fecha_creacion
+            )
+            historial.refresh_from_db()
+        return historial
+
     def test_permiso_global_es_is_authenticated(self):
         self.assertIn(IsAuthenticated, api_settings.DEFAULT_PERMISSION_CLASSES)
 
@@ -187,6 +220,7 @@ class HistorialClinicoSecurityTests(APITestCase):
     def test_anonimo_no_puede_acceder_a_ningun_endpoint_de_historial(self):
         endpoints = [
             ("get", "/api/historial/paciente/", None),
+            ("get", "/api/historial/paciente/profesionales/", None),
             ("get", "/api/historial/medico/", None),
             ("get", f"/api/historial/{self.historial_paciente_uno.id}/", None),
             ("post", "/api/historial/", {
@@ -915,6 +949,181 @@ class HistorialClinicoSecurityTests(APITestCase):
                 historiales[0].id,
             ],
         )
+
+    def test_busqueda_filtra_por_profesional_diagnostico_y_motivo(self):
+        self.authenticate(self.paciente_uno)
+        nombre_medico = f"{self.medico_dos.nombre} {self.medico_dos.apellido}"
+
+        for termino in (
+            nombre_medico,
+            "privado del paciente uno",
+            "Seguimiento",
+        ):
+            with self.subTest(termino=termino):
+                response = self.client.get(
+                    "/api/historial/paciente/",
+                    {"search": termino},
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data["data"]["count"], 1)
+                self.assertEqual(
+                    response.data["data"]["results"][0]["id"],
+                    self.historial_paciente_uno.id,
+                )
+
+    def test_filtro_profesional_es_textual_y_respeta_ownership(self):
+        self.authenticate(self.paciente_uno)
+        medico_propio = f"{self.medico_dos.nombre} {self.medico_dos.apellido}"
+        medico_ajeno = f"{self.medico_uno.nombre} {self.medico_uno.apellido}"
+
+        propio = self.client.get(
+            "/api/historial/paciente/",
+            {"doctor": medico_propio},
+        )
+        ajeno = self.client.get(
+            "/api/historial/paciente/",
+            {"doctor": medico_ajeno},
+        )
+
+        self.assertEqual(propio.status_code, 200)
+        self.assertEqual(
+            {item["id"] for item in propio.data["data"]["results"]},
+            {self.historial_paciente_uno.id},
+        )
+        self.assertEqual(ajeno.status_code, 404)
+        self.assertNotIn(
+            self.historial_medico_uno.diagnostico_general,
+            str(ajeno.data),
+        )
+
+    def test_periodos_filtran_por_fecha_de_creacion(self):
+        ahora = timezone.now()
+        reciente = self.crear_historial(
+            diagnostico="Registro reciente",
+            fecha_creacion=ahora - timedelta(days=60),
+        )
+        semestre = self.crear_historial(
+            diagnostico="Registro semestral",
+            fecha_creacion=ahora - timedelta(days=120),
+        )
+        antiguo = self.crear_historial(
+            diagnostico="Registro antiguo",
+            fecha_creacion=ahora - timedelta(days=220),
+        )
+        registro_este_anio = self.crear_historial(
+            diagnostico="Registro de este anio",
+            fecha_creacion=ahora.replace(month=1, day=1),
+        )
+        anio_anterior = self.crear_historial(
+            diagnostico="Registro del anio anterior",
+            fecha_creacion=ahora.replace(year=ahora.year - 1, month=1, day=1),
+        )
+        self.authenticate(self.paciente_uno)
+
+        tres_meses = self.client.get(
+            "/api/historial/paciente/", {"period": "3months"}
+        )
+        seis_meses = self.client.get(
+            "/api/historial/paciente/", {"period": "6months"}
+        )
+        este_anio = self.client.get(
+            "/api/historial/paciente/", {"period": "year", "page_size": 50}
+        )
+
+        ids_tres_meses = {
+            item["id"] for item in tres_meses.data["data"]["results"]
+        }
+        ids_seis_meses = {
+            item["id"] for item in seis_meses.data["data"]["results"]
+        }
+        ids_este_anio = {
+            item["id"] for item in este_anio.data["data"]["results"]
+        }
+        self.assertIn(reciente.id, ids_tres_meses)
+        self.assertNotIn(semestre.id, ids_tres_meses)
+        self.assertIn(semestre.id, ids_seis_meses)
+        self.assertNotIn(antiguo.id, ids_seis_meses)
+        self.assertIn(registro_este_anio.id, ids_este_anio)
+        self.assertNotIn(anio_anterior.id, ids_este_anio)
+
+    def test_filtros_se_combinan_con_paginacion_y_ordenamiento(self):
+        ahora = timezone.now()
+        historiales = [
+            self.crear_historial(
+                diagnostico=f"Marcador combinado {indice}",
+                fecha_creacion=ahora - timedelta(days=dias),
+            )
+            for indice, dias in enumerate((20, 10, 5))
+        ]
+        nombre_medico = f"{self.medico_dos.nombre} {self.medico_dos.apellido}"
+        self.authenticate(self.paciente_uno)
+        parametros = {
+            "search": "Marcador combinado",
+            "period": "3months",
+            "doctor": nombre_medico,
+            "ordering": "fecha_creacion",
+            "page_size": 2,
+        }
+
+        primera = self.client.get(
+            "/api/historial/paciente/", {**parametros, "page": 1}
+        )
+        segunda = self.client.get(
+            "/api/historial/paciente/", {**parametros, "page": 2}
+        )
+
+        self.assertEqual(primera.status_code, 200)
+        self.assertEqual(primera.data["data"]["count"], 3)
+        self.assertEqual(primera.data["data"]["total_pages"], 2)
+        self.assertEqual(
+            [item["id"] for item in primera.data["data"]["results"]],
+            [historiales[0].id, historiales[1].id],
+        )
+        self.assertEqual(
+            [item["id"] for item in segunda.data["data"]["results"]],
+            [historiales[2].id],
+        )
+
+    def test_parametros_de_filtro_invalidos_se_rechazan_sin_reflejar_datos(self):
+        self.authenticate(self.paciente_uno)
+        secreto = "dato-clinico-que-no-debe-reflejarse"
+        casos = (
+            {"period": "trimestre-invalido"},
+            {"search": "x" * 101},
+            {"doctor": f"{secreto}\x00"},
+        )
+
+        for parametros in casos:
+            with self.subTest(parametros=parametros):
+                response = self.client.get(
+                    "/api/historial/paciente/", parametros
+                )
+                self.assertEqual(response.status_code, 400)
+                self.assertNotIn(secreto, str(response.data))
+                self.assertIn("no-store", response.headers["Cache-Control"])
+
+    def test_profesionales_lista_solo_nombres_del_historial_propio(self):
+        self.crear_historial(diagnostico="Segundo registro del mismo medico")
+        self.authenticate(self.paciente_uno)
+
+        response = self.client.get("/api/historial/paciente/profesionales/")
+
+        nombre_propio = f"{self.medico_dos.nombre} {self.medico_dos.apellido}"
+        nombre_ajeno = f"{self.medico_uno.nombre} {self.medico_uno.apellido}"
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"], [{"nombre": nombre_propio}])
+        self.assertNotIn(nombre_ajeno, str(response.data))
+        self.assertNotIn("id", response.data["data"][0])
+        self.assertIn("no-store", response.headers["Cache-Control"])
+
+    def test_profesionales_rechaza_roles_no_autorizados(self):
+        for actor in (self.medico_uno, self.usuario_admin):
+            with self.subTest(actor=type(actor).__name__):
+                self.authenticate(actor)
+                response = self.client.get(
+                    "/api/historial/paciente/profesionales/"
+                )
+                self.assertEqual(response.status_code, 403)
 
     def test_paginacion_limita_page_size_y_maneja_pagina_invalida(self):
         for indice in range(50):

@@ -2,7 +2,7 @@ import { RotateCcw, Search } from "lucide-react";
 import Button from "../../../ui/Button/Button";
 import styles from "./MedicalHistoryFilters.module.css";
 
-export default function MedicalHistoryFilters({ filters, doctors, onChange, onReset }) {
+export default function MedicalHistoryFilters({ filters, professionals, onChange, onReset }) {
     const hasFilters = filters.search !== ""
         || filters.period !== "all"
         || filters.doctor !== "all"
@@ -23,8 +23,12 @@ export default function MedicalHistoryFilters({ filters, doctors, onChange, onRe
             <label className={styles.field}>
                 <span>Profesional</span>
                 <select value={filters.doctor} onChange={(event) => onChange("doctor", event.target.value)}>
-                    <option value="all">Todos en esta página</option>
-                    {doctors.map((doctor) => <option key={doctor} value={doctor}>{doctor}</option>)}
+                    <option value="all">Todos los médicos</option>
+                    {professionals.map((professional) => (
+                        <option key={professional.nombre} value={professional.nombre}>
+                            {professional.nombre}
+                        </option>
+                    ))}
                 </select>
             </label>
             <label className={styles.field}>

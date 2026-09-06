@@ -3,10 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     listarHistorialPacienteService,
+    listarProfesionalesHistorialPacienteService,
     obtenerHistorialClinicoService,
 } from "@/app/services/medicalHistoryServices";
 
 const PAGE_SIZE = 6;
+const SEARCH_DEBOUNCE_MS = 350;
+const INITIAL_FILTERS = {
+    search: "",
+    period: "all",
+    doctor: "all",
+    ordering: "-fecha_creacion",
+};
 
 const getRequestError = (error, context = "list") => {
     const status = error.response?.status;
@@ -45,7 +53,10 @@ export default function useMedicalHistory() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRecords, setTotalRecords] = useState(0);
-    const [ordering, setOrdering] = useState("-fecha_creacion");
+    const [overallTotal, setOverallTotal] = useState(0);
+    const [filters, setFilters] = useState(INITIAL_FILTERS);
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [professionals, setProfessionals] = useState([]);
     const [latestRecord, setLatestRecord] = useState(null);
     const [reloadKey, setReloadKey] = useState(0);
 
@@ -55,6 +66,42 @@ export default function useMedicalHistory() {
 
     const listControllerRef = useRef(null);
     const detailControllerRef = useRef(null);
+
+    const hasFilters = filters.search.trim() !== ""
+        || filters.period !== "all"
+        || filters.doctor !== "all";
+    const requestHasFilters = debouncedSearch !== ""
+        || filters.period !== "all"
+        || filters.doctor !== "all";
+
+    useEffect(() => {
+        const timeoutId = setTimeout(
+            () => setDebouncedSearch(filters.search.trim()),
+            SEARCH_DEBOUNCE_MS
+        );
+
+        return () => clearTimeout(timeoutId);
+    }, [filters.search]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+
+        const loadProfessionals = async () => {
+            try {
+                const data = await listarProfesionalesHistorialPacienteService({
+                    signal: controller.signal,
+                });
+                setProfessionals(data);
+            } catch (requestError) {
+                if (requestError.code !== "ERR_CANCELED") {
+                    setProfessionals([]);
+                }
+            }
+        };
+
+        loadProfessionals();
+        return () => controller.abort();
+    }, []);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -69,7 +116,10 @@ export default function useMedicalHistory() {
                 const data = await listarHistorialPacienteService({
                     page,
                     pageSize: PAGE_SIZE,
-                    ordering,
+                    ordering: filters.ordering,
+                    search: debouncedSearch,
+                    period: filters.period,
+                    doctor: filters.doctor,
                     signal: controller.signal,
                 });
                 const nextRecords = Array.isArray(data?.results) ? data.results : [];
@@ -79,7 +129,15 @@ export default function useMedicalHistory() {
                 setTotalPages(Math.max(Number(data?.total_pages) || 1, 1));
                 setPage(Number(data?.current_page) || 1);
 
-                if (page === 1 && ordering === "-fecha_creacion") {
+                if (!requestHasFilters) {
+                    setOverallTotal(Number(data?.count) || 0);
+                }
+
+                if (
+                    page === 1
+                    && filters.ordering === "-fecha_creacion"
+                    && !requestHasFilters
+                ) {
                     setLatestRecord(nextRecords[0] ?? null);
                 }
             } catch (requestError) {
@@ -93,7 +151,10 @@ export default function useMedicalHistory() {
                     setRecords([]);
                     setTotalRecords(0);
                     setTotalPages(1);
-                    setLatestRecord(null);
+                    if (!requestHasFilters) {
+                        setLatestRecord(null);
+                        setOverallTotal(0);
+                    }
                     return;
                 }
 
@@ -109,7 +170,15 @@ export default function useMedicalHistory() {
         loadRecords();
 
         return () => controller.abort();
-    }, [ordering, page, reloadKey]);
+    }, [
+        debouncedSearch,
+        filters.doctor,
+        filters.ordering,
+        filters.period,
+        page,
+        requestHasFilters,
+        reloadKey,
+    ]);
 
     useEffect(() => () => detailControllerRef.current?.abort(), []);
 
@@ -118,9 +187,14 @@ export default function useMedicalHistory() {
         setPage(nextPage);
     }, [totalPages]);
 
-    const changeOrdering = useCallback((nextOrdering) => {
+    const changeFilter = useCallback((field, value) => {
         setPage(1);
-        setOrdering(nextOrdering);
+        setFilters((current) => ({ ...current, [field]: value }));
+    }, []);
+
+    const resetFilters = useCallback(() => {
+        setPage(1);
+        setFilters(INITIAL_FILTERS);
     }, []);
 
     const retry = useCallback(() => {
@@ -169,13 +243,17 @@ export default function useMedicalHistory() {
         page,
         totalPages,
         totalRecords,
-        ordering,
+        overallTotal,
+        filters,
+        professionals,
+        hasFilters,
         latestRecord,
         selectedRecord,
         detailLoading,
         detailError,
         changePage,
-        changeOrdering,
+        changeFilter,
+        resetFilters,
         retry,
         openDetail,
         closeDetail,

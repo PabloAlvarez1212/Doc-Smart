@@ -11,13 +11,16 @@ from historial_medico.services import (
     crearHistorialService,
     listarHistorialesPacienteService,
     listarHistorialesMedicoService,
+    listarProfesionalesHistorialPacienteService,
     obtenerHistorialService,
     editarHistorialService
 )
 from historial_medico.serializers import (
     CrearHistorialSerializer,
     EditarHistorialSerializer,
+    FiltrosHistorialSerializer,
     HistorialClinicoSerializer,
+    ProfesionalHistorialSerializer,
 )
 from historial_medico.throttles import (
     HistorialEscrituraThrottle,
@@ -122,10 +125,15 @@ class HistorialPacienteView(HistorialPaginadoMixin, HistorialSeguroAPIView):
     throttle_classes = [HistorialLecturaThrottle]
 
     def get(self, request):
+        serializer = FiltrosHistorialSerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+
         try:
             resultado, status_code = listarHistorialesPacienteService(
                 request.user,
                 request.query_params.get('ordering'),
+                serializer.validated_data,
             )
 
             if status_code != 200:
@@ -137,6 +145,27 @@ class HistorialPacienteView(HistorialPaginadoMixin, HistorialSeguroAPIView):
             raise
         except Exception as error:
             registrar_error_seguro('listar_paciente', error, request)
+            return respuesta_error('Error interno del servidor', status=500)
+
+
+class HistorialProfesionalesPacienteView(HistorialSeguroAPIView):
+    permission_classes = [IsAuthenticated, IsPaciente]
+    throttle_classes = [HistorialLecturaThrottle]
+
+    def get(self, request):
+        try:
+            resultado, status_code = listarProfesionalesHistorialPacienteService(
+                request.user
+            )
+            if status_code != 200:
+                return respuesta_error(resultado, status=status_code)
+
+            datos = ProfesionalHistorialSerializer(resultado, many=True).data
+            return respuesta_ok(data=datos)
+        except APIException:
+            raise
+        except Exception as error:
+            registrar_error_seguro('listar_profesionales', error, request)
             return respuesta_error('Error interno del servidor', status=500)
 
 

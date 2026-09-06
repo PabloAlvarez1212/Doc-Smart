@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Modal from "../../../../components/ui/Modal/Modal";
 import Pagination from "../../../../components/ui/Pagination/Pagination";
 import MedicalHistoryHero from "../../../../components/patient/MedicalHistory/Hero/MedicalHistoryHero";
@@ -9,18 +8,9 @@ import MedicalHistorySummary from "../../../../components/patient/MedicalHistory
 import MedicalHistoryTimeline from "../../../../components/patient/MedicalHistory/Timeline/MedicalHistoryTimeline";
 import MedicalHistoryDetail from "../../../../components/patient/MedicalHistory/Detail/MedicalHistoryDetail";
 import useMedicalHistory from "../../../../components/patient/MedicalHistory/useMedicalHistory";
-import { getMedicalHistoryTimestamp } from "../../../../components/patient/MedicalHistory/medicalHistoryFormatters";
 import styles from "./myMedicalHistory.module.css";
 
-const initialFilters = {
-    search: "",
-    period: "all",
-    doctor: "all",
-    ordering: "-fecha_creacion",
-};
-
 export default function MedicalHistory() {
-    const [filters, setFilters] = useState(initialFilters);
     const {
         records,
         loading,
@@ -28,81 +18,40 @@ export default function MedicalHistory() {
         page,
         totalPages,
         totalRecords,
+        overallTotal,
+        filters,
+        professionals,
+        hasFilters,
         latestRecord,
         selectedRecord,
         detailLoading,
         detailError,
         changePage,
-        changeOrdering,
+        changeFilter,
+        resetFilters,
         retry,
         openDetail,
         closeDetail,
         retryDetail,
     } = useMedicalHistory();
 
-    const doctors = useMemo(
-        () => [...new Set(records.map((record) => record.medico).filter(Boolean))],
-        [records]
-    );
-
-    const filteredRecords = useMemo(() => {
-        const today = new Date();
-        const query = filters.search.trim().toLocaleLowerCase("es");
-
-        return records.filter((record) => {
-            const recordDate = new Date(getMedicalHistoryTimestamp(record.fecha_creacion));
-            const monthsAgo = (today.getFullYear() - recordDate.getFullYear()) * 12
-                + today.getMonth() - recordDate.getMonth();
-
-            const matchesSearch = !query || [
-                record.medico,
-                record.motivo_consulta,
-                record.diagnostico_general,
-            ].some((value) => String(value ?? "").toLocaleLowerCase("es").includes(query));
-
-            const matchesDoctor = filters.doctor === "all"
-                || record.medico === filters.doctor;
-
-            const matchesPeriod = filters.period === "all"
-                || (filters.period === "3months" && monthsAgo >= 0 && monthsAgo <= 3)
-                || (filters.period === "6months" && monthsAgo >= 0 && monthsAgo <= 6)
-                || (filters.period === "year" && recordDate.getFullYear() === today.getFullYear());
-
-            return matchesSearch && matchesDoctor && matchesPeriod;
-        });
-    }, [filters, records]);
-
-    const handleFilterChange = (field, value) => {
-        setFilters((current) => ({ ...current, [field]: value }));
-        if (field === "ordering") changeOrdering(value);
-    };
-
-    const resetFilters = () => {
-        setFilters(initialFilters);
-        changeOrdering(initialFilters.ordering);
-    };
-
-    const hasFilters = filters.search !== ""
-        || filters.period !== "all"
-        || filters.doctor !== "all";
-
     return (
         <div className={styles.page}>
-            <MedicalHistoryHero total={totalRecords} loading={loading} />
+            <MedicalHistoryHero total={overallTotal} loading={loading} />
             <MedicalHistoryFilters
                 filters={filters}
-                doctors={doctors}
-                onChange={handleFilterChange}
+                professionals={professionals}
+                onChange={changeFilter}
                 onReset={resetFilters}
             />
             <MedicalHistorySummary
                 records={records}
-                total={totalRecords}
+                total={overallTotal}
                 latestRecord={latestRecord}
                 loading={loading}
             />
             <MedicalHistoryTimeline
-                records={filteredRecords}
+                records={records}
                 hasFilters={hasFilters}
                 loading={loading}
                 error={error}

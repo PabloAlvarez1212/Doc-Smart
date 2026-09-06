@@ -1,4 +1,9 @@
+from calendar import monthrange
+
 from django.db import IntegrityError, transaction
+from django.db.models import Q, Value
+from django.db.models.functions import Concat
+from django.utils import timezone
 
 from citas.models import Cita
 from historial_medico.models import HistorialClinico, VersionHistorialClinico
@@ -32,6 +37,53 @@ def _ordenar_historiales(queryset, ordenamiento):
     )
     return queryset.order_by(*campos)
 
+def _restar_meses(fecha, cantidad):
+    indice_mes = fecha.year * 12 + fecha.month - 1 - cantidad
+    anio, indice = divmod(indice_mes, 12)
+    mes = indice + 1
+    dia = min(fecha.day, monthrange(anio, mes)[1])
+    return fecha.replace(year=anio, month=mes, day=dia)
+
+
+def _filtrar_historiales(queryset, filtros=None):
+    filtros = filtros or {}
+    search = filtros.get('search', '').strip()
+    doctor = filtros.get('doctor', '').strip()
+    period = filtros.get('period', 'all')
+
+    if search or doctor:
+        queryset = queryset.annotate(
+            nombre_completo_medico=Concat(
+                'medico__nombre',
+                Value(' '),
+                'medico__apellido',
+            )
+        )
+
+    if search:
+        queryset = queryset.filter(
+            Q(nombre_completo_medico__icontains=search)
+            | Q(diagnostico_general__icontains=search)
+            | Q(motivo_consulta__icontains=search)
+        )
+
+    if doctor:
+        queryset = queryset.filter(nombre_completo_medico__iexact=doctor)
+
+    if period == '3months':
+        queryset = queryset.filter(
+            fecha_creacion__gte=_restar_meses(timezone.now(), 3)
+        )
+    elif period == '6months':
+        queryset = queryset.filter(
+            fecha_creacion__gte=_restar_meses(timezone.now(), 6)
+        )
+    elif period == 'year':
+        queryset = queryset.filter(
+            fecha_creacion__year=timezone.localdate().year
+        )
+
+    return queryset
 
 def _crear_version(historial, version, medico_editor, motivo_cambio, valores=None):
     valores = valores or {
@@ -92,16 +144,15 @@ def crearHistorialService(datos, medico):
     return serializer.data, 201
 
 
-def listarHistorialesPacienteService(usuario, ordenamiento=None):
+def listarHistorialesPacienteService(usuario, ordenamiento=None, filtros=None):
     if not isinstance(usuario, Usuario):
         return 'No tienes permiso para consultar estos historiales', 403
 
-    historiales = _ordenar_historiales(
-        HistorialClinico.objects.filter(usuario=usuario).select_related(
-            'usuario', 'medico'
-        ),
-        ordenamiento,
+    historiales = HistorialClinico.objects.filter(usuario=usuario).select_related(
+        'usuario', 'medico__id_especialidad'
     )
+    historiales = _filtrar_historiales(historiales, filtros)
+    historiales = _ordenar_historiales(historiales, ordenamiento)
 
     if not historiales.exists():
         return 'No se encontraron historiales', 404
@@ -115,7 +166,7 @@ def listarHistorialesMedicoService(medico, ordenamiento=None):
 
     historiales = _ordenar_historiales(
         HistorialClinico.objects.filter(medico=medico).select_related(
-            'usuario', 'medico'
+            'usuario', 'medico__id_especialidad'
         ),
         ordenamiento,
     )
@@ -124,6 +175,26 @@ def listarHistorialesMedicoService(medico, ordenamiento=None):
         return 'No se encontraron historiales', 404
 
     return historiales, 200
+
+
+def listarProfesionalesHistorialPacienteService(usuario):
+    if not isinstance(usuario, Usuario):
+        return 'No tienes permiso para consultar estos profesionales', 403
+
+    profesionales = (
+        HistorialClinico.objects.filter(usuario=usuario)
+        .annotate(
+            nombre=Concat(
+                'medico__nombre',
+                Value(' '),
+                'medico__apellido',
+            )
+        )
+        .values('nombre')
+        .distinct()
+        .order_by('nombre')
+    )
+    return profesionales, 200
 
 
 def obtenerHistorialService(historial_id, solicitante):

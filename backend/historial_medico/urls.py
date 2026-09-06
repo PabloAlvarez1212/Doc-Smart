@@ -2,6 +2,7 @@ from django.urls import path
 from historial_medico.views import (
     HistorialListView,
     HistorialPacienteView,
+    HistorialProfesionalesPacienteView,
     HistorialMedicoView,
     HistorialDetailView
 )
@@ -12,6 +13,12 @@ urlpatterns = [
 
     # Paciente lista sus historiales
     path('paciente/', HistorialPacienteView.as_view(), name='historial-paciente'),
+
+    path(
+        'paciente/profesionales/',
+        HistorialProfesionalesPacienteView.as_view(),
+        name='historial-paciente-profesionales',
+    ),
 
     # Médico lista los historiales que él creó
     path('medico/', HistorialMedicoView.as_view(), name='historial-medico'),
