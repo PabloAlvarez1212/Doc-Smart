@@ -7,7 +7,7 @@ import useBymaxViewport from "./useBymaxViewport";
 import BymaxLauncher from "./BymaxLauncher";
 import BymaxChatWindow from "./BymaxChatWindow";
 
-const SALUDO = "Hola, soy Bymax, tu asistente virtual de DocSmart. ¿En qué puedo ayudarte hoy?";
+const SALUDO = "Hola, soy Bymax, tu asistente virtual de DocSmart. ¿En qué puedo ayudarte el dia de hoy?";
 function normalizarMensaje(item) {
   return {
     id: item.id || crypto.randomUUID(),
