@@ -106,3 +106,8 @@ export const eliminarFotoPerfilMedicoService = async function () {
 
     return response.data;
 };
+
+export const listarMedicosDisponiblesServices = async function () {
+    const response = await api.get("/medicos/disponibles/")
+    return response.data;
+}

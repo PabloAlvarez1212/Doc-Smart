@@ -13,7 +13,7 @@ export default function AvailabilitySchedule({ doctor }) {
                 </div>
             </div>
 
-            <div className={styles.week} aria-label={`Agenda semanal de ${doctor.nombre}`}>
+            <div className={styles.week} aria-label={`Agenda semanal de ${doctor.nombre} ${doctor.apellido}`}>
                 {WEEK_DAYS.map((day) => {
                     const availability = doctor.disponibilidades.find(
                         (item) => item.dia === day.nombre
