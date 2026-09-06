@@ -8,6 +8,7 @@ from .views import (
     DashboardInicioMedicoView,
     PerfilMedicoView,
     FotoPerfilMedicoView,
+    MedicosDisponiblesView,
 )
 urlpatterns = [
     path('', MedicoListView.as_view(), name='medico-list'),
@@ -18,4 +19,6 @@ urlpatterns = [
     path("dashboard/inicio/",DashboardInicioMedicoView.as_view(),name="dashboard-medico"),
     path('perfil/', PerfilMedicoView.as_view(), name='perfil-medico'),
     path('perfil/foto/', FotoPerfilMedicoView.as_view(), name='foto-perfil-medico'),
+    #!Listar medicos disponibles
+    path('disponibles/',MedicosDisponiblesView.as_view(),name="medicos-disponibles")
 ]

@@ -14,6 +14,7 @@ from medicos.serializers import (
     EditarMedicoSerializer,
     RegistrarEspecialidadSerializer,
     EditarEspecialidadSerializer,
+    MedicosPublicosSerializer,
 )
 from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
@@ -27,6 +28,13 @@ def listarMedicosService():
     serializer = MedicoSerializer(medicos, many=True)
     return serializer.data, 200
 
+def listarMedicosPublicosService():
+    medicos = Medico.objects.select_related(
+        'id_especialidad',
+        'ciudad',
+        'ciudad__departamento').all()
+    serializer = MedicosPublicosSerializer(medicos,many=True)
+    return serializer.data, 200
 
 # Retorna los datos de un médico específico por su ID
 def obtenerMedicoService(id_medico):

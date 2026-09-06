@@ -12,7 +12,38 @@ class EspecialidadSerializer(serializers.ModelSerializer):
         model = Especialidad
         fields = '__all__'
 
-# Serializer simple para listar especialidades
+class MedicosPublicosSerializer(serializers.ModelSerializer):
+    especialidad = serializers.CharField(source='id_especialidad.nombre')
+    departamento = serializers.SerializerMethodField()
+    ciudad = serializers.SerializerMethodField()
+    foto_perfil = serializers.SerializerMethodField()
+    class Meta:
+        model = Medico
+        fields = [
+            'id',
+            'nombre',
+            'apellido',
+            'direccion',
+            'especialidad',
+            'departamento',
+            'ciudad',
+            'foto_perfil',
+        ]
+    def get_departamento(self, obj):
+        if obj.ciudad and obj.ciudad.departamento:
+            return obj.ciudad.departamento.nombre
+        return None
+
+    def get_ciudad(self, obj):
+        if obj.ciudad:
+            return obj.ciudad.nombre
+        return None
+
+    def get_foto_perfil(self, obj):
+        if obj.foto_perfil:
+            return obj.foto_perfil.url
+        return None
+        
 class MedicoPerfilSerializer(serializers.ModelSerializer):
 
     rol = serializers.CharField(

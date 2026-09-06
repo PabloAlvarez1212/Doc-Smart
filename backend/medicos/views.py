@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from utils import IsAdmin,IsMedico
+from utils import IsAdmin,IsMedico,IsPaciente
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from medicos.services import (
@@ -19,7 +19,7 @@ from medicos.services import (
     editarPerfilMedicoService,
     actualizarFotoPerfilMedicoService,
     eliminarFotoPerfilMedicoService,
-
+    listarMedicosPublicosService,
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
@@ -410,3 +410,12 @@ class FotoPerfilMedicoView(APIView):
                 "Error interno del servidor",
                 status=500
             )
+class MedicosDisponiblesView(APIView):
+    permission_classes = [IsAuthenticated,IsPaciente]
+    def get(self,request):
+        try:
+            respuesta,status_code = listarMedicosPublicosService()
+            return respuesta_ok(data=respuesta,mensaje="Lista de medicos publicos",status=status_code)
+        except Exception as e:
+            print("Error en el servidor: ",e)
+            return respuesta_error(mensaje="Error interno en el servidor",status=500)
