@@ -20,7 +20,6 @@ export default function BymaxComposer({ message, setMessage, image, setImage, er
     {!voice.active && voice.mic !== "ended" && <p className={styles.voiceNotice}>Activa el micrófono para esperar «Bymax». El navegador puede pedir permiso.</p>}
     {(error || voice.error) && <div className={styles.errorBanner} role="alert"><AlertCircle size={18}/><span>{error || voice.error}</span><button type="button" onClick={clearError} aria-label="Cerrar aviso"><X size={18}/></button></div>}
     {voice.notice && !voice.error && <p className={styles.voiceNotice} role="status">{voice.notice}</p>}
-    {confirmation && !sending && <div className={styles.quickReplies}><button type="button" onClick={() => onSend("Sí, confirmo")}>Sí, confirmar</button><button type="button" onClick={() => onSend("No, cancelar")}>No, cancelar</button></div>}
     {image && <div className={styles.preview}><Image src={image.preview} alt="Imagen adjunta" width={56} height={48} unoptimized/><span>{image.file.name}<small>Imagen médica · {(image.file.size / 1024 / 1024).toFixed(1)} MB</small></span><button type="button" onClick={() => setImage(null)} aria-label="Quitar imagen"><X size={18}/></button></div>}
     <div className={styles.composer}>
       <button type="button" onClick={() => fileRef.current?.click()} aria-label="Adjuntar imagen médica" title="Adjuntar imagen"><ImagePlus size={21}/></button>
