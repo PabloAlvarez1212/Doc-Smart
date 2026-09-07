@@ -19,8 +19,10 @@
 .sections dd { margin: 0; color: #364154; line-height: 1.65; }
 .note { display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 13px; border-left: 3px solid #2b7fff; color: #566174; background: #f8fafc; font-size: .84rem; line-height: 1.5; }
 .note svg { flex-shrink: 0; color: #2b7fff; }
-.print { width: 100%; margin-top: 20px; border: 1px solid #cfd7e4 !important; color: #1733a4 !important; }
+.documentAction { display: grid; gap: 7px; margin-top: 20px; }
+.download { width: 100%; border: 1px solid #d7dee8 !important; color: #53627a !important; background: #f8fafc !important; }
+.download:disabled { cursor: not-allowed; opacity: .72; transform: none; }
+.documentAction small { color: #7a8698; font-size: .75rem; line-height: 1.4; text-align: center; }
 @media (max-width: 480px) { .dateBand { align-items: flex-start; flex-direction: column; } .doctor { grid-template-columns: auto 1fr; } .doctor small { grid-column: 2; justify-self: start; } }
 @keyframes detail-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
-@media print { .print, .note { display: none; } }
