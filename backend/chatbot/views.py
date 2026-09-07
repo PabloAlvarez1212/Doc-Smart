@@ -459,18 +459,15 @@ class ChatbotResponderView(APIView):
             )
 
         except Exception as error:
-            logger.error(
+            logger.exception(
                 (
                     "Error procesando respuesta de Bymax "
-                    "tipo=%s chat_id=%s actor_id=%s"
+                    "tipo=%s chat_id=%s actor_id=%s detalle=%s"
                 ),
                 type(error).__name__,
                 id_chat,
-                getattr(
-                    request.user,
-                    "id",
-                    None,
-                ),
+                getattr(request.user, "id", None),
+                str(error),
             )
 
             return respuesta_error(
