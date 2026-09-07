@@ -18,8 +18,37 @@ def obtener_cliente_s3():
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         endpoint_url=settings.AWS_S3_ENDPOINT_URL,
         region_name=settings.AWS_S3_REGION_NAME,
-        config=Config(signature_version="s3v4"),
+        config=Config(
+            signature_version="s3v4",
+        ),
     )
+
+
+class ArchivoNoCerrable:
+    """
+    Impide que boto3 cierre el UploadedFile original.
+    """
+
+    def __init__(self, archivo):
+        self.archivo = archivo
+
+    def read(self, *args, **kwargs):
+        return self.archivo.read(*args, **kwargs)
+
+    def seek(self, *args, **kwargs):
+        return self.archivo.seek(*args, **kwargs)
+
+    def tell(self):
+        return self.archivo.tell()
+
+    def close(self):
+        return None
+
+    def __getattr__(self, nombre):
+        return getattr(
+            self.archivo,
+            nombre,
+        )
 
 
 def subir_archivo(
@@ -30,47 +59,55 @@ def subir_archivo(
 ):
     validar_archivo(archivo)
 
+    nombre_original = archivo.name
+    tamano = archivo.size
+
+    content_type = (
+        getattr(
+            archivo,
+            "content_type",
+            None,
+        )
+        or "application/octet-stream"
+    )
+
     storage_key = construir_ruta(
         categoria=categoria,
-        nombre_archivo=archivo.name,
+        nombre_archivo=nombre_original,
         usuario_id=usuario_id,
         referencia_id=referencia_id,
     )
 
     cliente = obtener_cliente_s3()
 
-    content_type = (
-        getattr(archivo, "content_type", None)
-        or "application/octet-stream"
+    posicion_inicial = archivo.tell()
+
+    archivo_protegido = ArchivoNoCerrable(
+        archivo
     )
 
-    posicion_inicial = (
-        archivo.tell()
-        if hasattr(archivo, "tell")
-        else 0
+    cliente.upload_fileobj(
+        archivo_protegido,
+        settings.AWS_STORAGE_BUCKET_NAME,
+        storage_key,
+        ExtraArgs={
+            "ContentType": content_type,
+        },
     )
 
-    try:
-        cliente.upload_fileobj(
-            archivo,
-            settings.AWS_STORAGE_BUCKET_NAME,
-            storage_key,
-            ExtraArgs={
-                "ContentType": content_type,
-            },
-        )
-    finally:
-        # Permite reutilizar la imagen para analizarla con Gemini.
-        if hasattr(archivo, "seek"):
-            archivo.seek(posicion_inicial)
+    if not getattr(
+        archivo,
+        "closed",
+        False,
+    ):
+        archivo.seek(posicion_inicial)
 
     return {
         "key": storage_key,
-        "nombre": archivo.name,
+        "nombre": nombre_original,
         "tipo": content_type,
-        "tamano": archivo.size,
+        "tamano": tamano,
     }
-
 
 def generar_url_firmada(
     storage_key,
