@@ -11,6 +11,12 @@ from chatbot.services import (
     MensajeService,
 )
 
+from django.db import transaction
+from storage_app.services import (
+    eliminar_archivo,
+    guardar_archivo_usuario,
+)
+
 from chatbot.serializers import CrearMensajeSerializer
 from chatbot.services.imagen_medica_service import (
     analizar_imagen_medica,
@@ -283,8 +289,20 @@ class ChatbotResponderView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "bymax_chat"
 
-    def finalize_response(self, request, response, *args, **kwargs):
-        response = super().finalize_response(request, response, *args, **kwargs)
+    def finalize_response(
+        self,
+        request,
+        response,
+        *args,
+        **kwargs,
+    ):
+        response = super().finalize_response(
+            request,
+            response,
+            *args,
+            **kwargs,
+        )
+
         patch_cache_control(
             response,
             private=True,
@@ -292,13 +310,21 @@ class ChatbotResponderView(APIView):
             no_store=True,
             must_revalidate=True,
         )
-        patch_vary_headers(response, ("Authorization", "Cookie"))
+
+        patch_vary_headers(
+            response,
+            (
+                "Authorization",
+                "Cookie",
+            ),
+        )
+
         response["Pragma"] = "no-cache"
         response["Expires"] = "0"
+
         return response
 
     def post(self, request, id_chat):
-
         mensaje = request.data.get("mensaje")
         imagen = request.FILES.get("imagen")
 
@@ -310,53 +336,112 @@ class ChatbotResponderView(APIView):
 
         if imagen:
             error_imagen = validar_imagen_medica(imagen)
+
             if error_imagen:
-                return respuesta_error(error_imagen, status=400)
+                return respuesta_error(
+                    error_imagen,
+                    status=400,
+                )
 
         try:
-
             chat = Chat.objects.get(
                 id=id_chat,
                 id_usuario=request.user,
+                estado="activo",
             )
 
         except Chat.DoesNotExist:
-
             return respuesta_error(
                 "Chat no encontrado.",
                 status=404,
             )
 
+        archivo_registro = None
+
         try:
-
-            # Guardar mensaje del usuario
-            contenido_usuario = mensaje or "Analiza esta imagen médica."
-            if imagen:
-                contenido_usuario = (
-                    f"{contenido_usuario}\n[Imagen adjunta: {imagen.name}]"
-                )
-
-            Mensaje.objects.create(
-                id_chat=chat,
-                contenido=contenido_usuario,
-                es_bot=False,
-                tipo="imagen" if imagen else "texto",
+            contenido_usuario = (
+                mensaje
+                or "Analiza esta imagen médica."
             )
 
-            if chat.titulo == "Nuevo chat":
-                chat.titulo = (mensaje or "Consulta con imagen")[:150]
-                chat.save(update_fields=["titulo", "ultima_interaccion"])
-
-            # Procesar conversación
             if imagen:
-                respuesta = analizar_imagen_medica(imagen, mensaje or "")
+                contenido_usuario = (
+                    f"{contenido_usuario}\n"
+                    f"[Imagen adjunta: {imagen.name}]"
+                )
+
+            try:
+                with transaction.atomic():
+                    if imagen:
+                        archivo_registro = (
+                            guardar_archivo_usuario(
+                                archivo=imagen,
+                                usuario_id=request.user.id,
+                                categoria="general/bymax",
+                                referencia_id=chat.id,
+                            )
+                        )
+
+                        # La subida a S3 puede dejar el cursor
+                        # al final del archivo.
+                        imagen.seek(0)
+
+                    Mensaje.objects.create(
+                        id_chat=chat,
+                        contenido=contenido_usuario,
+                        es_bot=False,
+                        tipo=(
+                            "imagen"
+                            if imagen
+                            else "texto"
+                        ),
+                        archivo=archivo_registro,
+                    )
+
+                    if chat.titulo == "Nuevo chat":
+                        chat.titulo = (
+                            mensaje
+                            or "Consulta con imagen"
+                        )[:150]
+
+                        chat.save(
+                            update_fields=[
+                                "titulo",
+                                "ultima_interaccion",
+                            ]
+                        )
+
+            except Exception:
+                # Si se subió el objeto pero falló MySQL,
+                # se elimina para evitar archivos huérfanos.
+                if archivo_registro:
+                    eliminar_archivo(
+                        archivo_registro.storage_key
+                    )
+
+                raise
+
+            if imagen:
+                # Gemini debe leer la imagen completa
+                # desde el primer byte.
+                imagen.seek(0)
+
+                respuesta = analizar_imagen_medica(
+                    imagen,
+                    mensaje or "",
+                )
+
             else:
                 respuesta = ConversationManager.procesar(
                     chat=chat,
                     mensaje=mensaje,
                 )
 
-            texto, resultado = normalizar_respuesta_bymax(respuesta)
+            texto, resultado = (
+                normalizar_respuesta_bymax(
+                    respuesta
+                )
+            )
 
             Mensaje.objects.create(
                 id_chat=chat,
@@ -373,21 +458,25 @@ class ChatbotResponderView(APIView):
                 }
             )
 
-
-
         except Exception as error:
             logger.error(
-                "Error procesando respuesta de Bymax tipo=%s chat_id=%s actor_id=%s",
+                (
+                    "Error procesando respuesta de Bymax "
+                    "tipo=%s chat_id=%s actor_id=%s"
+                ),
                 type(error).__name__,
                 id_chat,
-                getattr(request.user, "id", None),
+                getattr(
+                    request.user,
+                    "id",
+                    None,
+                ),
             )
+
             return respuesta_error(
                 "No fue posible procesar la solicitud.",
                 status=500,
             )
-
-
 # ──────────────────────────────────────────────────────────────────────────────
 # VOZ DE BYMAX
 # ──────────────────────────────────────────────────────────────────────────────
