@@ -7,12 +7,30 @@ import useFindDoctors from "../../../../components/patient/FindDoctors/useFindDo
 import styles from "./findDoctors.module.css";
 
 export default function FindDoctorsPage() {
-    const { doctores, loading, error, retry } = useFindDoctors();
+    const {
+        doctores,
+        especialidades,
+        departamentos,
+        ciudades,
+
+        departamentoSeleccionado,
+        cambiarDepartamento,
+
+        loading,
+        error,
+        retry
+    } = useFindDoctors()
 
     return (
         <div className={styles.page}>
             <FindDoctorsHero total={doctores.length} loading={loading} error={Boolean(error)} />
-            <DoctorsFilters />
+            <DoctorsFilters
+                especialidades={especialidades}
+                departamentos={departamentos}
+                ciudades={ciudades}
+                departamentoSeleccionado={departamentoSeleccionado}
+                cambiarDepartamento={cambiarDepartamento}
+            />
             <DoctorsList
                 doctores={doctores}
                 loading={loading}

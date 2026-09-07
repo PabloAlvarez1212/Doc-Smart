@@ -1,8 +1,49 @@
+"use client";
+
+import { useState } from "react";
 import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import Button from "../../../ui/Button/Button";
+import SelectSearch from "../../../ui/SelectSearch/SelectSearch";
 import styles from "./DoctorsFilters.module.css";
 
-export default function DoctorsFilters() {
+const INITIAL_FILTERS = {
+    search: "",
+    specialty: "",
+    department: "",
+    city: "",
+};
+
+const toSelectOptions = (items) => items.map((item) => ({
+    value: String(item.id ?? item.id_ciudad),
+    label: item.nombre || item.nombre_ciudad,
+}));
+
+export default function DoctorsFilters({
+    especialidades = [],
+    departamentos = [],
+    ciudades = [],
+    departamentoSeleccionado,
+    cambiarDepartamento,
+}) {
+    const [visualFilters, setVisualFilters] = useState(INITIAL_FILTERS);
+
+    const updateVisualFilter = (field, value) => {
+        setVisualFilters((current) => ({ ...current, [field]: value }));
+    };
+
+    const resetVisualFilters = () => {
+        setVisualFilters(INITIAL_FILTERS);
+        cambiarDepartamento("");
+    };
+
+    const specialtyOptions = toSelectOptions(especialidades);
+    const departmentOptions = toSelectOptions(departamentos);
+    const cityOptions = toSelectOptions(ciudades);
+    const handleDepartmentChange = (value) => {
+        updateVisualFilter("department", value)
+        updateVisualFilter("city", "")
+        cambiarDepartamento(value)
+    }
     return (
         <section className={styles.panel} aria-labelledby="doctor-filters-title">
             <div className={styles.panelHeading}>
@@ -33,32 +74,58 @@ export default function DoctorsFilters() {
                             name="doctor-search"
                             placeholder="Nombre del profesional"
                             autoComplete="off"
+                            value={visualFilters.search}
+                            onChange={(event) => updateVisualFilter("search", event.target.value)}
                         />
                     </span>
                 </label>
 
-                <label className={styles.field}>
-                    <span>Especialidad</span>
-                    <select name="specialty" defaultValue="" aria-label="Seleccionar especialidad">
-                        <option value="">Todas las especialidades</option>
-                    </select>
-                </label>
+                <div className={styles.field}>
+                    <label htmlFor="doctor-specialty-filter">Especialidad</label>
+                    <SelectSearch
+                        inputId="doctor-specialty-filter"
+                        ariaLabel="Seleccionar especialidad"
+                        opciones={specialtyOptions}
+                        value={visualFilters.specialty}
+                        onChange={(value) => updateVisualFilter("specialty", value)}
+                        placeholder="Todas las especialidades"
+                    />
+                </div>
 
-                <label className={styles.field}>
-                    <span>Departamento</span>
-                    <select name="department" defaultValue="" aria-label="Seleccionar departamento">
-                        <option value="">Todos los departamentos</option>
-                    </select>
-                </label>
+                <div className={styles.field}>
+                    <label htmlFor="doctor-department-filter">Departamento</label>
+                    <SelectSearch
+                        inputId="doctor-department-filter"
+                        ariaLabel="Seleccionar departamento"
+                        opciones={departmentOptions}
+                        value={visualFilters.department}
+                        onChange={handleDepartmentChange}
+                        placeholder="Todos los departamentos"
+                    />
+                </div>
 
-                <label className={styles.field}>
-                    <span>Ciudad</span>
-                    <select name="city" defaultValue="" aria-label="Seleccionar ciudad">
-                        <option value="">Todas las ciudades</option>
-                    </select>
-                </label>
+                <SelectSearch
+                    inputId="doctor-city-filter"
+                    ariaLabel="Seleccionar ciudad"
+                    opciones={cityOptions}
+                    value={visualFilters.city}
+                    onChange={(value) =>
+                        updateVisualFilter("city", value)
+                    }
+                    placeholder={
+                        departamentoSeleccionado
+                            ? "Todas las ciudades"
+                            : "Seleccione departamento"
+                    }
+                    disabled={!departamentoSeleccionado}
+                />
 
-                <Button className={styles.reset} variant="secundary" type="reset">
+                <Button
+                    className={styles.reset}
+                    variant="secundary"
+                    type="button"
+                    onClick={resetVisualFilters}
+                >
                     <RotateCcw size={17} aria-hidden="true" /> Limpiar filtros
                 </Button>
             </form>
