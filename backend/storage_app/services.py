@@ -39,20 +39,30 @@ def subir_archivo(
 
     cliente = obtener_cliente_s3()
 
-    content_type = getattr(
-        archivo,
-        "content_type",
-        "application/octet-stream",
+    content_type = (
+        getattr(archivo, "content_type", None)
+        or "application/octet-stream"
     )
 
-    cliente.upload_fileobj(
-        archivo,
-        settings.AWS_STORAGE_BUCKET_NAME,
-        storage_key,
-        ExtraArgs={
-            "ContentType": content_type,
-        },
+    posicion_inicial = (
+        archivo.tell()
+        if hasattr(archivo, "tell")
+        else 0
     )
+
+    try:
+        cliente.upload_fileobj(
+            archivo,
+            settings.AWS_STORAGE_BUCKET_NAME,
+            storage_key,
+            ExtraArgs={
+                "ContentType": content_type,
+            },
+        )
+    finally:
+        # Permite reutilizar la imagen para analizarla con Gemini.
+        if hasattr(archivo, "seek"):
+            archivo.seek(posicion_inicial)
 
     return {
         "key": storage_key,

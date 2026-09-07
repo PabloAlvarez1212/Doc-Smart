@@ -66,6 +66,14 @@ class Mensaje(models.Model):
         related_name="mensajes"
     )
 
+    archivo = models.ForeignKey(
+        "storage_app.Archivo",
+        on_delete=models.SET_NULL,
+        related_name="mensajes_chatbot",
+        null=True,
+        blank=True,
+    )
+
     contenido = models.TextField()
 
     es_bot = models.BooleanField(default=False)
