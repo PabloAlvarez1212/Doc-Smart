@@ -12,8 +12,8 @@ class MensajeService:
         tipo="texto",
         modelo=None,
         tool_ejecutada=None,
+        archivo=None,
     ):
-
         return Mensaje.objects.create(
             id_chat=chat,
             contenido=contenido,
@@ -21,16 +21,19 @@ class MensajeService:
             tipo=tipo,
             modelo=modelo,
             tool_ejecutada=tool_ejecutada,
+            archivo=archivo,
         )
 
     @staticmethod
     def listar_mensajes(chat):
-
         mensajes = (
             Mensaje.objects
-            .filter(
-                id_chat=chat
-            )
+            .filter(id_chat=chat)
+            .select_related("archivo")
             .order_by("fecha")
         )
-        return MensajesSerializer(mensajes, many=True).data
+
+        return MensajesSerializer(
+            mensajes,
+            many=True,
+        ).data
