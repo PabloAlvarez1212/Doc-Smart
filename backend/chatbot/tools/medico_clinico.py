@@ -1,5 +1,6 @@
 """Herramientas de lectura clínica; el actor procede siempre del chat autenticado."""
 from uuid import uuid4
+from datetime import datetime, time, timedelta
 from django.db import transaction
 from django.db.models.functions import Lower, Trim
 from django.utils import timezone
@@ -8,10 +9,22 @@ from chatbot.models import Chat
 from chatbot.tools.base_tool import BaseTool
 from citas.models import Cita
 from historial_medico.models import HistorialClinico
+from medicos.models import Medico
 from users.models import Usuario
 
 
 ESTADOS_PROXIMOS = ("pendiente", "confirmada", "reprogramada")
+ALCANCES_AGENDA = ("proximas", "pendientes", "hoy", "siguiente")
+
+
+def filtros_agenda(parametros):
+    """Solo enums operativos: también es la lista permitida para auditoría."""
+    parametros = parametros if isinstance(parametros, dict) else {}
+    alcance = parametros.get("alcance", "proximas")
+    estado = parametros.get("estado")
+    if alcance not in ALCANCES_AGENDA or (estado is not None and estado not in ESTADOS_PROXIMOS):
+        raise ValueError("Filtros de agenda no válidos")
+    return {"alcance": alcance, **({"estado": estado} if estado else {})}
 
 
 def resultado(message, data=None, success=True):
@@ -37,10 +50,25 @@ class BuscarProximosPacientesTool(BaseTool):
     category = "medico_clinico"
 
     def execute(self, chat, mensaje, parametros):
-        if not getattr(chat, "id_medico_id", None):
+        if not isinstance(chat, Chat) or not chat.pk or not chat.id_medico_id or chat.id_usuario_id:
             return resultado("Esta herramienta requiere una cuenta médica.", success=False)
+        # Verifica el modelo y la relación persistida, no un ID enviado por el cliente.
+        # Medico no tiene campo activo: la autenticación existente valida existencia.
+        medico = Medico.objects.only("id").filter(
+            pk=chat.id_medico_id, chats_bymax__pk=chat.pk,
+            chats_bymax__id_usuario__isnull=True,
+        ).first()
+        if not isinstance(medico, Medico) or not medico.is_authenticated:
+            return resultado("Médico no disponible para esta conversación.", success=False)
+        try:
+            filtros = filtros_agenda(parametros)
+        except ValueError:
+            return resultado("Filtros de agenda no válidos.", success=False)
+        alcance = filtros["alcance"]
+        ahora = timezone.now()
+        zona = timezone.get_default_timezone()
         citas = (
-            Cita.objects.filter(id_medico_id=chat.id_medico_id, fecha_programada__gte=timezone.now())
+            Cita.objects.filter(id_medico=medico)
             .annotate(estado_normalizado=Lower(Trim("id_estado__nombre")))
             .filter(estado_normalizado__in=ESTADOS_PROXIMOS)
             .select_related("id_usuario", "id_estado")
@@ -48,17 +76,40 @@ class BuscarProximosPacientesTool(BaseTool):
                   "id_usuario__nombre", "id_usuario__apellido", "id_estado__nombre")
             .order_by("fecha_programada", "id")
         )
+        if alcance in ("proximas", "siguiente"):
+            citas = citas.filter(fecha_programada__gte=ahora)
+        elif alcance == "hoy":
+            hoy = timezone.localtime(ahora, zona).date()
+            inicio = timezone.make_aware(datetime.combine(hoy, time.min), zona)
+            fin = timezone.make_aware(datetime.combine(hoy + timedelta(days=1), time.min), zona)
+            citas = citas.filter(fecha_programada__gte=inicio, fecha_programada__lt=fin)
+        if filtros.get("estado"):
+            citas = citas.filter(estado_normalizado=filtros["estado"])
+        if alcance == "siguiente":
+            citas = citas[:1]
         datos = [{
             "id_cita": cita.id,
-            "fecha_programada": timezone.localtime(cita.fecha_programada).isoformat(),
+            "fecha_programada": timezone.localtime(cita.fecha_programada, zona).isoformat(),
             "estado": cita.estado_normalizado,
+            "atrasada": cita.fecha_programada < ahora,
             "paciente": {"id": cita.id_usuario_id, "nombre": str(cita.id_usuario)},
         } for cita in citas]
-        return resultado(
-            "Estas son tus próximas citas. Selecciona un paciente para estudiar su caso."
-            if datos else "No tienes citas próximas pendientes, confirmadas o reprogramadas.",
-            {"citas": datos},
-        )
+        descripcion = {"proximas": "próximas", "pendientes": "pendientes por completar",
+                       "hoy": "para hoy", "siguiente": "próximas"}[alcance]
+        if filtros.get("estado"):
+            descripcion += f" (estado: {filtros['estado']})"
+        if not datos:
+            return resultado(f"No tienes citas {descripcion}.", {"citas": []})
+        lineas = [f"Encontré {len(datos)} cita(s) {descripcion}:"]
+        for indice, cita in enumerate(datos, 1):
+            fecha = datetime.fromisoformat(cita["fecha_programada"]).strftime("%d/%m/%Y, %H:%M")
+            lineas.append(
+                f"\n{indice}. {cita['paciente']['nombre']} (paciente #{cita['paciente']['id']})\n"
+                f"Fecha: {fecha}\nEstado: {cita['estado']}\n"
+                f"Situación: {'atrasada' if cita['atrasada'] else 'programada'}"
+            )
+        lineas.append("\nPuedes seleccionar un paciente para revisar su caso.")
+        return resultado("\n".join(lineas), {"citas": datos})
 
 
 class SeleccionarPacienteTool(BaseTool):

@@ -4,6 +4,7 @@ import time
 from chatbot.ai.language import LanguageService
 from chatbot.ai.tool_executor import ejecutar_tool
 from chatbot.models import ToolLog
+from chatbot.tools.medico_clinico import filtros_agenda
 
 
 logger = logging.getLogger(__name__)
@@ -112,6 +113,13 @@ class ToolManager:
     def ejecutar(nombre_tool, chat, mensaje, parametros):
         inicio = time.monotonic()
         actor = {"medico_id": chat.id_medico_id} if getattr(chat, "id_medico_id", None) else {"usuario": chat.id_usuario}
+        es_agenda = nombre_tool == "buscar_proximos_pacientes" and "medico_id" in actor
+        parametros_log = ToolManager._resumir_parametros(parametros)
+        if es_agenda:
+            try:
+                parametros_log = filtros_agenda(parametros)
+            except ValueError:
+                parametros_log = {"filtros_validos": False}
 
         try:
             respuesta = ejecutar_tool(
@@ -125,8 +133,9 @@ class ToolManager:
             ToolManager._registrar_log(
                 **actor,
                 nombre_tool=ToolManager._nombre_tool_auditable(nombre_tool),
-                parametros=ToolManager._resumir_parametros(parametros),
-                respuesta=ToolManager._resumir_respuesta(respuesta),
+                parametros=parametros_log,
+                respuesta=({"cantidad_resultados": len(respuesta.get("data", {}).get("citas", []))}
+                           if es_agenda else ToolManager._resumir_respuesta(respuesta)),
                 correcto=bool(respuesta.get("success", True)) if isinstance(respuesta, dict) else True,
                 latencia=time.monotonic() - inicio,
             )
@@ -136,8 +145,8 @@ class ToolManager:
             ToolManager._registrar_log(
                 **actor,
                 nombre_tool=ToolManager._nombre_tool_auditable(nombre_tool),
-                parametros=ToolManager._resumir_parametros(parametros),
-                respuesta={
+                parametros=parametros_log,
+                respuesta={"cantidad_resultados": 0} if es_agenda else {
                     'tipo': 'error',
                     'error_tipo': type(error).__name__,
                 },

@@ -23,7 +23,11 @@ from chatbot.tools.medico_clinico import (
 TOOLS = {
 
     "buscar_proximos_pacientes": ToolDefinition(
-        nombre="buscar_proximos_pacientes", descripcion="Consulta las próximas citas y pacientes del médico autenticado.",
+        nombre="buscar_proximos_pacientes", descripcion=(
+            "Consulta la agenda del médico autenticado sin paciente activo. Alcance: proximas "
+            "(predeterminado), pendientes (incluye atrasadas), hoy o siguiente. "
+            "Estado opcional: pendiente, confirmada o reprogramada. Nunca recibe el ID del médico."
+        ),
         funcion=BuscarProximosPacientesTool(), categoria="medico_clinico", solo_medicos=True,
     ),
     "seleccionar_paciente": ToolDefinition(

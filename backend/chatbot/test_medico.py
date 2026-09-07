@@ -1,18 +1,19 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as datetime_timezone
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from asgiref.sync import async_to_sync
 from channels.testing import WebsocketCommunicator
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from catalogos.models import Estado, Rol
 from citas.models import Cita
 from chatbot.ai.conversation_manager import ConversationManager
-from chatbot.ai.doctor_conversation import construir_contexto_medico, DOCTOR_SYSTEM_PROMPT
+from chatbot.ai.doctor_conversation import construir_contexto_medico, DOCTOR_SYSTEM_PROMPT, ejecutar as ejecutar_medico
 from chatbot.ai.tool_executor import ejecutar_tool
 from chatbot.ai.tool_manager import ToolManager
 from chatbot.consumers import BymaxConsumer
@@ -70,7 +71,7 @@ class BymaxMedicoTests(TestCase):
         force_authenticate(request, user=user)
         return view.as_view()(request, **kwargs)
 
-    def test_proximas_filtra_actor_fecha_estado_orden_y_una_consulta(self):
+    def test_proximas_filtra_actor_fecha_estado_orden_sin_n_mas_uno(self):
         ahora = timezone.now()
         Cita.objects.all().delete()
         primera = self.cita(self.medico, self.paciente, "pendiente", ahora)
@@ -80,11 +81,12 @@ class BymaxMedicoTests(TestCase):
         self.cita(self.medico, self.paciente, "cancelada")
         self.cita(self.medico, self.paciente, "completada")
         self.cita(self.otro, self.ajeno)
-        with patch("chatbot.tools.medico_clinico.timezone.now", return_value=ahora), self.assertNumQueries(1):
+        # Una consulta valida al propietario médico y otra carga todas las citas.
+        with patch("chatbot.tools.medico_clinico.timezone.now", return_value=ahora), self.assertNumQueries(2):
             resultado = BuscarProximosPacientesTool().execute(self.chat, "Mis citas", {"id_medico": self.otro.id})
         citas = resultado["data"]["citas"]
         self.assertEqual([item["id_cita"] for item in citas], [primera.id, segunda.id, tercera.id])
-        self.assertEqual(set(citas[0]), {"id_cita", "fecha_programada", "estado", "paciente"})
+        self.assertEqual(set(citas[0]), {"id_cita", "fecha_programada", "estado", "atrasada", "paciente"})
         self.assertEqual(set(citas[0]["paciente"]), {"id", "nombre"})
         self.assertTrue(citas[0]["fecha_programada"].endswith("-05:00"))
 
@@ -243,3 +245,179 @@ class BymaxMedicoTests(TestCase):
         respuesta = ToolManager.ejecutar("seleccionar_paciente", self.chat, "Seleccionar", {"paciente_id": self.ajeno.id})
         self.assertFalse(respuesta["success"])
         self.assertFalse(ToolLog.objects.get().correcto)
+
+    @patch("chatbot.ai.doctor_conversation.preguntar_gemini")
+    def test_frases_agenda_usan_herramienta_sin_paciente_y_sin_gemini(self, gemini):
+        consultas = {
+            "¿Qué citas tengo pendientes?": {"alcance": "pendientes"},
+            "¿Puedes decirme qué citas tengo pendientes por completar?": {"alcance": "pendientes"},
+            "¿Con qué usuarios tengo una cita pendiente?": {"alcance": "pendientes"},
+            "¿Con qué usuarios tengo cita?": {"alcance": "proximas"},
+            "¿Con qué usuarios tengo citas?": {"alcance": "proximas"},
+            "Muéstrame mis próximas citas.": {"alcance": "proximas"},
+            "¿Cuál es mi agenda?": {"alcance": "proximas"},
+            "¿Qué pacientes atiendo hoy?": {"alcance": "hoy"},
+            "¿Cuáles son mis pacientes programados?": {"alcance": "proximas"},
+            "¿A quién atiendo después?": {"alcance": "siguiente"},
+            "¿Quién sigue?": {"alcance": "siguiente"},
+            "Muéstrame mis citas confirmadas.": {"alcance": "proximas", "estado": "confirmada"},
+            "Quisiera ver las citas que tengo reprogramadas": {"alcance": "proximas", "estado": "reprogramada"},
+            "Necesito saber cuáles citas me quedan por completar": {"alcance": "pendientes"},
+            "Lista los pacientes de hoy": {"alcance": "hoy"},
+            "Mis próximas citas pendientes": {"alcance": "proximas"},
+        }
+        for mensaje, filtros in consultas.items():
+            for streaming in (False, True):
+                with self.subTest(mensaje=mensaje, streaming=streaming), patch(
+                    "chatbot.ai.doctor_conversation.ejecutar", wraps=ejecutar_medico,
+                ) as ejecutar:
+                    respuesta = ConversationManager.procesar(self.chat, mensaje, streaming=streaming)
+                    self.assertTrue(respuesta["success"])
+                    ejecutar.assert_called_once_with(self.chat, "buscar_proximos_pacientes", mensaje, filtros)
+                    self.assertEqual(self.chat.contexto_temporal, {})
+        gemini.assert_not_called()
+
+    def test_pendientes_incluyen_atrasadas_excluyen_ajenas_y_terminadas(self):
+        ahora = timezone.now()
+        propias = [self.cita(self.medico, self.paciente, estado, ahora - timedelta(days=indice + 1))
+                   for indice, estado in enumerate(("pendiente", "confirmada", "reprogramada"))]
+        ajena = self.cita(self.otro, self.ajeno, "pendiente", ahora - timedelta(days=5))
+        cancelada = self.cita(self.medico, self.paciente, "cancelada", ahora - timedelta(days=5))
+        completada = self.cita(self.medico, self.paciente, "completada", ahora - timedelta(days=5))
+        respuesta = self.tool("buscar_proximos_pacientes", {"alcance": "pendientes", "medico_id": self.otro.id})
+        datos = respuesta["data"]["citas"]
+        ids = [cita["id_cita"] for cita in datos]
+        self.assertEqual(ids[:3], [cita.id for cita in reversed(propias)])
+        self.assertTrue(all(cita["atrasada"] for cita in datos[:3]))
+        self.assertTrue(all(not cita["atrasada"] for cita in datos[3:]))
+        self.assertTrue({ajena.id, cancelada.id, completada.id}.isdisjoint(ids))
+        self.assertIn(self.paciente.nombre, respuesta["message"])
+        self.assertIn("Situación: atrasada", respuesta["message"])
+        self.assertIn("Estado: confirmada", respuesta["message"])
+
+    @override_settings(TIME_ZONE="America/Bogota")
+    def test_hoy_respeta_medianoche_bogota_y_no_el_dia_utc(self):
+        # A las 02:00 UTC del día 8 todavía es el día 7 en Bogotá.
+        ahora = datetime(2026, 9, 8, 2, tzinfo=datetime_timezone.utc)
+        inicio = datetime(2026, 9, 7, 5, tzinfo=datetime_timezone.utc)
+        fin = inicio + timedelta(days=1)
+        Cita.objects.all().delete()
+        self.cita(self.medico, self.paciente, fecha=inicio - timedelta(microseconds=1))
+        primera = self.cita(self.medico, self.paciente, fecha=inicio)
+        ultima = self.cita(self.medico, self.segundo, fecha=fin - timedelta(microseconds=1))
+        self.cita(self.medico, self.paciente, fecha=fin)
+        self.cita(self.otro, self.ajeno, fecha=inicio)
+        with patch("chatbot.tools.medico_clinico.timezone.now", return_value=ahora):
+            datos = self.tool("buscar_proximos_pacientes", {"alcance": "hoy"})["data"]["citas"]
+        self.assertEqual([cita["id_cita"] for cita in datos], [primera.id, ultima.id])
+        self.assertTrue(datos[0]["atrasada"])
+        self.assertFalse(datos[1]["atrasada"])
+        self.assertTrue(all(cita["fecha_programada"].startswith("2026-09-07") for cita in datos))
+
+    def test_siguiente_y_filtros_de_estado(self):
+        ahora = timezone.now()
+        self.cita(self.medico, self.paciente, fecha=ahora - timedelta(hours=1))
+        siguiente = self.cita(self.medico, self.segundo, "reprogramada", ahora + timedelta(hours=1))
+        datos = self.tool("buscar_proximos_pacientes", {"alcance": "siguiente"})["data"]["citas"]
+        self.assertEqual([cita["id_cita"] for cita in datos], [siguiente.id])
+        for estado in ("confirmada", "reprogramada"):
+            with self.subTest(estado=estado):
+                datos = self.tool("buscar_proximos_pacientes", {"estado": estado})["data"]["citas"]
+                self.assertTrue(datos)
+                self.assertTrue(all(cita["estado"] == estado for cita in datos))
+
+    def test_lista_pendientes_vacia_es_exito_http_200(self):
+        Cita.objects.filter(id_medico=self.medico).delete()
+        response = self.request(ChatbotResponderView, self.medico, "post",
+                                {"mensaje": "¿Qué citas tengo pendientes?"}, id_chat=self.chat.id)
+        self.assertEqual(response.status_code, 200)
+        resultado = response.data["data"]["resultado"]
+        self.assertTrue(resultado["success"])
+        self.assertEqual(resultado["data"], {"citas": []})
+        self.assertIn("No tienes citas pendientes", response.data["data"]["respuesta"])
+
+    @patch("chatbot.ai.doctor_conversation.preguntar_gemini")
+    def test_consultas_clinicas_individuales_exigen_contexto_autorizado(self, gemini):
+        for mensaje in ("Analiza el caso de Ana", "Resume su historia clínica", "Revisa sus medicamentos",
+                        "Compara sus resultados", "¿Qué diagnóstico diferencial considerarías?",
+                        "Resume la historia clínica del paciente de mi próxima cita"):
+            for streaming in (False, True):
+                with self.subTest(mensaje=mensaje, streaming=streaming):
+                    respuesta = ConversationManager.procesar(self.chat, mensaje, streaming=streaming)
+                    self.assertFalse(respuesta["success"])
+                    self.assertIn("paciente autorizado", respuesta["message"])
+        self.chat.contexto_temporal = {"clinico": {"paciente_id": self.ajeno.id}}
+        self.chat.save(update_fields=["contexto_temporal"])
+        self.assertFalse(ConversationManager.procesar(self.chat, "Analiza el caso de Ana")["success"])
+        gemini.assert_not_called()
+        self.assertFalse(ToolLog.objects.exists())
+
+    @patch("chatbot.ai.doctor_conversation.preguntar_gemini")
+    def test_agenda_no_lee_historial_ni_cambia_paciente_activo(self, gemini):
+        self.seleccionar(self.paciente)
+        contexto = dict(self.chat.contexto_temporal)
+        Mensaje.objects.create(id_chat=self.chat, contenido="Selecciona un paciente para revisar su historia.", es_bot=True)
+        with patch("chatbot.ai.doctor_conversation.construir_contexto_medico") as construir:
+            respuesta = ConversationManager.procesar(self.chat, "¿Con qué usuarios tengo una cita pendiente?")
+        self.assertTrue(respuesta["success"])
+        self.assertEqual(self.chat.contexto_temporal, contexto)
+        construir.assert_not_called()
+        gemini.assert_not_called()
+
+    def test_agenda_audita_solo_filtros_operativos_y_cantidad(self):
+        resultado = ToolManager.ejecutar("buscar_proximos_pacientes", self.chat, "Mis pendientes", {
+            "alcance": "pendientes", "estado": "confirmada", "medico_id": self.otro.id,
+            "correo": "secreto@example.com", "diagnostico": "secreto clínico",
+        })
+        log = ToolLog.objects.get()
+        self.assertEqual(log.medico_id, self.medico.id)
+        self.assertEqual(log.parametros, {"alcance": "pendientes", "estado": "confirmada"})
+        self.assertEqual(log.respuesta, {"cantidad_resultados": len(resultado["data"]["citas"])})
+        self.assertTrue(log.correcto)
+        self.assertGreaterEqual(log.latencia, 0)
+        for privado in (self.paciente.nombre, self.paciente.correo, "secreto", "medico_id"):
+            self.assertNotIn(privado, str(log.parametros) + str(log.respuesta))
+
+    def test_agenda_rechaza_filtros_invalidos_sin_guardar_su_contenido(self):
+        respuesta = ToolManager.ejecutar("buscar_proximos_pacientes", self.chat, "", {"alcance": "secreto"})
+        self.assertFalse(respuesta["success"])
+        log = ToolLog.objects.get()
+        self.assertFalse(log.correcto)
+        self.assertEqual(log.respuesta, {"cantidad_resultados": 0})
+        self.assertNotIn("secreto", str(log.parametros))
+
+    def test_agenda_verifica_medico_persistido_no_solo_id_numerico(self):
+        herramienta = BuscarProximosPacientesTool()
+        self.assertFalse(herramienta.execute(SimpleNamespace(id_medico_id=self.medico.id), "", {})["success"])
+        chat_paciente = Chat.objects.create(id_usuario=self.paciente)
+        self.assertEqual(self.paciente.id, self.medico.id)
+        self.assertFalse(herramienta.execute(chat_paciente, "", {})["success"])
+        self.chat.id_medico = self.otro  # No cambia el propietario persistido del chat.
+        self.assertFalse(herramienta.execute(self.chat, "", {})["success"])
+
+    def test_agenda_numero_consultas_constante_al_crecer_lista(self):
+        for cantidad in (1, 15):
+            for _ in range(cantidad):
+                self.cita(self.medico, self.paciente)
+            with self.assertNumQueries(2):
+                respuesta = self.tool("buscar_proximos_pacientes", {"alcance": "pendientes"})
+            for cita in respuesta["data"]["citas"]:
+                self.assertEqual(set(cita), {"id_cita", "fecha_programada", "estado", "atrasada", "paciente"})
+                self.assertEqual(set(cita["paciente"]), {"id", "nombre"})
+
+    @patch("chatbot.ai.conversation_manager.extraer_y_guardar_memoria")
+    @patch("chatbot.ai.conversation_manager.procesar_mensaje")
+    @patch("chatbot.ai.doctor_conversation.procesar_medico")
+    def test_consulta_de_paciente_conserva_router_y_herramienta_originales(self, medico, router, memoria):
+        from chatbot.ai.router_decision import RouterDecision
+        router.return_value = RouterDecision(tool=True, tool_name="consultar_disponibilidad", parametros={})
+        chat_paciente = Chat.objects.create(id_usuario=self.paciente)
+        with patch("chatbot.ai.tool_manager.ToolManager._localizar", side_effect=lambda respuesta, mensaje: respuesta):
+            respuesta = ConversationManager.procesar(chat_paciente, "Muéstrame mis próximas citas")
+        self.assertTrue(respuesta["success"])
+        self.assertTrue(respuesta["data"]["citas"])
+        self.assertIn("medico", respuesta["data"]["citas"][0])
+        self.assertNotIn("atrasada", respuesta["data"]["citas"][0])
+        medico.assert_not_called()
+        router.assert_called_once()
+        self.assertEqual(ToolLog.objects.get().nombre_tool, "consultar_disponibilidad")
