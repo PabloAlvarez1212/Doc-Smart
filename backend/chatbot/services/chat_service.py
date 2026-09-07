@@ -1,18 +1,32 @@
 from chatbot.models import Chat
 from chatbot.serializers import ChatSerializer
+from medicos.models import Medico
+from users.models import Usuario
 
 class ChatService:
 
     @staticmethod
+    def filtro_propietario(usuario):
+        if isinstance(usuario, Medico):
+            return {"id_medico": usuario, "id_usuario__isnull": True}
+        if isinstance(usuario, Usuario):
+            return {"id_usuario": usuario, "id_medico__isnull": True}
+        # Fail closed for unsupported authenticated principals.
+        return {"pk__in": []}
+
+    @staticmethod
     def crear_chat(usuario):
-        chat = Chat.objects.create(id_usuario=usuario)
+        if not isinstance(usuario, (Medico, Usuario)):
+            raise ValueError("Tipo de cuenta no permitido")
+        propietario = {"id_medico": usuario} if isinstance(usuario, Medico) else {"id_usuario": usuario}
+        chat = Chat.objects.create(**propietario)
         return ChatSerializer(chat).data
 
     @staticmethod
     def listar_chats(usuario):
         chats = (
             Chat.objects
-            .filter(id_usuario=usuario, estado="activo")
+            .filter(**ChatService.filtro_propietario(usuario), estado="activo")
             .order_by("-ultima_interaccion")
         )
         return ChatSerializer(chats, many=True).data
@@ -25,7 +39,7 @@ class ChatService:
         # como instancia real de Chat para pasarlo a otros servicios.
         return (
             Chat.objects
-            .filter(id=id_chat, id_usuario=usuario, estado="activo")
+            .filter(id=id_chat, **ChatService.filtro_propietario(usuario), estado="activo")
             .first()
         )
 

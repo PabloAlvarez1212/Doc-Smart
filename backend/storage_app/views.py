@@ -1,7 +1,8 @@
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from users.models import Usuario
 
 from storage_app.models import Archivo
 from storage_app.serializers import (
@@ -15,8 +16,14 @@ from storage_app.services import (
 )
 
 
+class IsArchivoUsuario(BasePermission):
+    """Este almacenamiento pertenece a Usuario; un ID de Medico no es equivalente."""
+    def has_permission(self, request, view):
+        return isinstance(request.user, Usuario)
+
+
 class ArchivoListaCrearView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsArchivoUsuario]
 
     def get(self, request):
         archivos = Archivo.objects.filter(
@@ -88,7 +95,7 @@ class ArchivoListaCrearView(APIView):
 
 
 class ArchivoDetalleView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsArchivoUsuario]
 
     def obtener_archivo(self, request, pk):
         try:
@@ -164,7 +171,7 @@ class ArchivoDetalleView(APIView):
 
 
 class ArchivoUrlView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsArchivoUsuario]
 
     def get(self, request, pk):
         try:

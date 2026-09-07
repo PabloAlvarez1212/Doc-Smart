@@ -18,3 +18,5 @@ class ToolDefinition:
     requiere_confirmacion: bool = False
 
     habilitada: bool = True
+
+    solo_medicos: bool = False

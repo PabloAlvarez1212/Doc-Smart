@@ -8,6 +8,8 @@ from django.db import close_old_connections
 from chatbot.ai.conversation_manager import ConversationManager
 from chatbot.ai.gemini_service import preguntar_gemini_stream
 from chatbot.models import Chat, Mensaje
+from chatbot.services.chat_service import ChatService
+from chatbot.ai.doctor_conversation import DOCTOR_SYSTEM_PROMPT
 
 
 logger = logging.getLogger(__name__)
@@ -45,7 +47,7 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4401)
             return
 
-        self.chat = await self._obtener_chat(usuario.id)
+        self.chat = await self._obtener_chat(usuario)
         if self.chat is None:
             await self.close(code=4404)
             return
@@ -92,6 +94,10 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
     async def _responder(self, mensaje):
         respuesta_completa = ""
         try:
+            self.chat = await self._obtener_chat(self.scope["user"])
+            if self.chat is None:
+                await self.close(code=4404)
+                return
             await self._guardar_mensaje_usuario(mensaje)
             await self.send_json({"tipo": "inicio"})
 
@@ -148,7 +154,8 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
         def producir():
             close_old_connections()
             try:
-                for fragmento in preguntar_gemini_stream(contents):
+                opciones = {"system_prompt": DOCTOR_SYSTEM_PROMPT} if self.chat.id_medico_id else {}
+                for fragmento in preguntar_gemini_stream(contents, **opciones):
                     loop.call_soon_threadsafe(
                         cola.put_nowait, ("texto", fragmento)
                     )
@@ -177,17 +184,14 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
         return "".join(partes).strip()
 
     @database_sync_to_async
-    def _obtener_chat(self, usuario_id):
-        return Chat.objects.filter(
-            id=self.id_chat,
-            id_usuario_id=usuario_id,
-            estado="activo",
-        ).first()
+    def _obtener_chat(self, usuario):
+        return ChatService.obtener_chat(self.id_chat, usuario)
 
     @database_sync_to_async
     def _guardar_mensaje_usuario(self, mensaje):
         Mensaje.objects.create(
             id_chat=self.chat,
+            contexto_clinico=self.chat.contexto_clinico_id,
             contenido=mensaje,
             es_bot=False,
             tipo="texto",
@@ -201,6 +205,7 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
     def _guardar_mensaje_bymax(self, respuesta):
         Mensaje.objects.create(
             id_chat=self.chat,
+            contexto_clinico=self.chat.contexto_clinico_id,
             contenido=respuesta,
             es_bot=True,
             tipo="texto",

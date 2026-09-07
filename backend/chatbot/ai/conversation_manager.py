@@ -39,6 +39,10 @@ class ConversationManager:
     @staticmethod
     def procesar(chat, mensaje, streaming=False):
 
+        if getattr(chat, "id_medico_id", None):
+            from chatbot.ai.doctor_conversation import procesar_medico
+            return procesar_medico(chat, mensaje, streaming=streaming)
+
         state = ConversationState()
 
         state.mensaje = limpiar_mensaje(mensaje)

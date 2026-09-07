@@ -16,6 +16,7 @@ class MensajeService:
     ):
         return Mensaje.objects.create(
             id_chat=chat,
+            contexto_clinico=chat.contexto_clinico_id,
             contenido=contenido,
             es_bot=es_bot,
             tipo=tipo,

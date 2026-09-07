@@ -5,6 +5,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from chatbot.models import Chat, Mensaje
+from utils import IsMedico
+from chatbot.ai.tool_manager import ToolManager
+from chatbot.tools.medico_clinico import contexto_activo
+from chatbot.ai.doctor_conversation import procesar_medico
 from chatbot.ai.conversation_manager import ConversationManager
 from chatbot.services import (
     ChatService,
@@ -346,7 +350,7 @@ class ChatbotResponderView(APIView):
         try:
             chat = Chat.objects.get(
                 id=id_chat,
-                id_usuario=request.user,
+                **ChatService.filtro_propietario(request.user),
                 estado="activo",
             )
 
@@ -376,8 +380,9 @@ class ChatbotResponderView(APIView):
                         archivo_registro = (
                             guardar_archivo_usuario(
                                 archivo=imagen,
-                                usuario_id=request.user.id,
-                                categoria="general/bymax",
+                                usuario_id=None if chat.id_medico_id else request.user.id,
+                                categoria=(f"general/bymax/medicos/{chat.id_medico_id}"
+                                           if chat.id_medico_id else "general/bymax"),
                                 referencia_id=chat.id,
                             )
                         )
@@ -388,6 +393,7 @@ class ChatbotResponderView(APIView):
 
                     Mensaje.objects.create(
                         id_chat=chat,
+                        contexto_clinico=chat.contexto_clinico_id,
                         contenido=contenido_usuario,
                         es_bot=False,
                         tipo=(
@@ -426,10 +432,10 @@ class ChatbotResponderView(APIView):
                 # desde el primer byte.
                 imagen.seek(0)
 
-                respuesta = analizar_imagen_medica(
-                    imagen,
-                    mensaje or "",
-                )
+                if chat.id_medico_id:
+                    respuesta = procesar_medico(chat, mensaje, imagen=imagen)
+                else:
+                    respuesta = analizar_imagen_medica(imagen, mensaje or "")
 
             else:
                 respuesta = ConversationManager.procesar(
@@ -445,6 +451,7 @@ class ChatbotResponderView(APIView):
 
             Mensaje.objects.create(
                 id_chat=chat,
+                contexto_clinico=chat.contexto_clinico_id,
                 contenido=texto,
                 es_bot=True,
                 tipo="texto",
@@ -459,15 +466,14 @@ class ChatbotResponderView(APIView):
             )
 
         except Exception as error:
-            logger.exception(
+            logger.error(
                 (
                     "Error procesando respuesta de Bymax "
-                    "tipo=%s chat_id=%s actor_id=%s detalle=%s"
+                    "tipo=%s chat_id=%s actor_id=%s"
                 ),
                 type(error).__name__,
                 id_chat,
                 getattr(request.user, "id", None),
-                str(error),
             )
 
             return respuesta_error(
@@ -477,6 +483,19 @@ class ChatbotResponderView(APIView):
 # ──────────────────────────────────────────────────────────────────────────────
 # VOZ DE BYMAX
 # ──────────────────────────────────────────────────────────────────────────────
+
+class ContextoMedicoView(APIView):
+    permission_classes = [IsAuthenticated, IsMedico]
+
+    def get(self, request, id_chat):
+        chat = ChatService.obtener_chat(id_chat, request.user)
+        if chat is None:
+            return respuesta_error("Chat no encontrado.", status=404)
+        proximos = ToolManager.ejecutar("buscar_proximos_pacientes", chat, "Mis próximas citas", {})
+        response = respuesta_ok(data={**proximos["data"], "paciente_activo": contexto_activo(chat)})
+        patch_cache_control(response, private=True, no_store=True)
+        return response
+
 
 class BymaxVoiceView(APIView):
 

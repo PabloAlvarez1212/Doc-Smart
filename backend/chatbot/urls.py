@@ -6,10 +6,12 @@ from chatbot.views import (
     ChatDetailView,
     ChatListView,
     MensajeListView,
+    ContextoMedicoView,
 )
 
 
 urlpatterns = [
+    path("chats/<int:id_chat>/contexto-medico/", ContextoMedicoView.as_view(), name="bymax-contexto-medico"),
     path(
         "chats/",
         ChatListView.as_view(),

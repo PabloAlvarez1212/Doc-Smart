@@ -25,6 +25,9 @@ def construir_herramientas():
 
     for nombre, tool in TOOLS.items():
 
+        if tool.solo_medicos:
+            continue
+
         texto += (
             f"- {nombre}: {tool.descripcion}\n"
         )

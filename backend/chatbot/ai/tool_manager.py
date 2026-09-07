@@ -22,6 +22,10 @@ CLAVES_PARAMETROS_AUDITABLES = {
     'tipo',
 }
 NOMBRES_TOOL_AUDITABLES = {
+    'buscar_proximos_pacientes',
+    'seleccionar_paciente',
+    'cerrar_contexto_paciente',
+    'consultar_historial_paciente',
     'agendar_cita',
     'buscar_medico',
     'cancelar_cita',
@@ -107,6 +111,7 @@ class ToolManager:
     @staticmethod
     def ejecutar(nombre_tool, chat, mensaje, parametros):
         inicio = time.monotonic()
+        actor = {"medico_id": chat.id_medico_id} if getattr(chat, "id_medico_id", None) else {"usuario": chat.id_usuario}
 
         try:
             respuesta = ejecutar_tool(
@@ -115,20 +120,21 @@ class ToolManager:
                 mensaje=mensaje,
                 parametros=parametros,
             )
-            respuesta = ToolManager._localizar(respuesta, mensaje)
+            if not getattr(chat, "id_medico_id", None):
+                respuesta = ToolManager._localizar(respuesta, mensaje)
             ToolManager._registrar_log(
-                usuario=chat.id_usuario,
+                **actor,
                 nombre_tool=ToolManager._nombre_tool_auditable(nombre_tool),
                 parametros=ToolManager._resumir_parametros(parametros),
                 respuesta=ToolManager._resumir_respuesta(respuesta),
-                correcto=True,
+                correcto=bool(respuesta.get("success", True)) if isinstance(respuesta, dict) else True,
                 latencia=time.monotonic() - inicio,
             )
             return respuesta
 
         except Exception as error:
             ToolManager._registrar_log(
-                usuario=chat.id_usuario,
+                **actor,
                 nombre_tool=ToolManager._nombre_tool_auditable(nombre_tool),
                 parametros=ToolManager._resumir_parametros(parametros),
                 respuesta={

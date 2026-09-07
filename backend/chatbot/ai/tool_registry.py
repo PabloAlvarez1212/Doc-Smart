@@ -15,8 +15,29 @@ from chatbot.tools.historial import (
     ConsultarHistorialTool
 )
 from chatbot.tools.usuarios import ConsultarPerfilTool
+from chatbot.tools.medico_clinico import (
+    BuscarProximosPacientesTool, SeleccionarPacienteTool,
+    CerrarContextoPacienteTool, ConsultarHistorialPacienteTool,
+)
 
 TOOLS = {
+
+    "buscar_proximos_pacientes": ToolDefinition(
+        nombre="buscar_proximos_pacientes", descripcion="Consulta las próximas citas y pacientes del médico autenticado.",
+        funcion=BuscarProximosPacientesTool(), categoria="medico_clinico", solo_medicos=True,
+    ),
+    "seleccionar_paciente": ToolDefinition(
+        nombre="seleccionar_paciente", descripcion="Selecciona un paciente vinculado al médico como contexto activo; requiere paciente_id.",
+        funcion=SeleccionarPacienteTool(), categoria="medico_clinico", solo_medicos=True,
+    ),
+    "cerrar_contexto_paciente": ToolDefinition(
+        nombre="cerrar_contexto_paciente", descripcion="Cierra el contexto del paciente activo.",
+        funcion=CerrarContextoPacienteTool(), categoria="medico_clinico", solo_medicos=True,
+    ),
+    "consultar_historial_paciente": ToolDefinition(
+        nombre="consultar_historial_paciente", descripcion="Lee exclusivamente historiales propios del paciente seleccionado.",
+        funcion=ConsultarHistorialPacienteTool(), categoria="medico_clinico", solo_medicos=True,
+    ),
 
     "consultar_perfil": ToolDefinition(
         nombre="consultar_perfil",

@@ -18,7 +18,7 @@ client = genai.Client(
 )
 
 
-def preguntar_gemini(contents):
+def preguntar_gemini(contents, system_prompt=SYSTEM_PROMPT):
     """
     Genera la respuesta conversacional de Bymax.
 
@@ -43,7 +43,7 @@ def preguntar_gemini(contents):
                 model=GEMINI_MODEL,
                 contents=contents,
                 config=GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
+                    system_instruction=system_prompt,
                     temperature=0.6,
                     max_output_tokens=1000,
                 ),
@@ -94,7 +94,7 @@ def preguntar_gemini(contents):
     )
 
 
-def preguntar_gemini_stream(contents):
+def preguntar_gemini_stream(contents, system_prompt=SYSTEM_PROMPT):
     """Entrega fragmentos de texto a medida que Gemini los genera."""
 
     contents = list(contents or [])
@@ -108,7 +108,7 @@ def preguntar_gemini_stream(contents):
                 model=GEMINI_MODEL,
                 contents=contents,
                 config=GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
+                    system_instruction=system_prompt,
                     temperature=0.6,
                     max_output_tokens=1000,
                 ),

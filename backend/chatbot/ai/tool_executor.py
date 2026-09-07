@@ -24,6 +24,10 @@ def ejecutar_tool(
             "data": {}
         }
 
+    es_medico = bool(getattr(chat, "id_medico_id", None))
+    if tool.solo_medicos != es_medico:
+        return {"success": False, "message": "Esta herramienta no está disponible para tu cuenta.", "data": {}}
+
     # Herramienta basada en clases
     if hasattr(tool.funcion, "execute"):
 

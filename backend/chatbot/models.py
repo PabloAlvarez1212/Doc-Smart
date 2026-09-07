@@ -16,7 +16,12 @@ class Chat(models.Model):
     id_usuario = models.ForeignKey(
         Usuario,
         on_delete=models.CASCADE,
-        related_name="chats"
+        related_name="chats", null=True, blank=True,
+    )
+
+    id_medico = models.ForeignKey(
+        "medicos.Medico", on_delete=models.CASCADE,
+        related_name="chats_bymax", null=True, blank=True,
     )
 
     titulo = models.CharField(
@@ -45,12 +50,23 @@ class Chat(models.Model):
 
     class Meta:
         ordering = ["-ultima_interaccion"]
+        constraints = [models.CheckConstraint(
+            condition=(models.Q(id_usuario__isnull=False, id_medico__isnull=True)
+                       | models.Q(id_usuario__isnull=True, id_medico__isnull=False)),
+            name="chat_un_solo_propietario",
+        )]
 
     def __str__(self):
         return self.titulo
 
+    @property
+    def contexto_clinico_id(self):
+        return self.contexto_temporal.get("clinico", {}).get("sesion_id", "") if self.id_medico_id else ""
+
 
 class Mensaje(models.Model):
+
+    contexto_clinico = models.CharField(max_length=32, blank=True, default="")
 
     TIPOS = (
         ("texto", "Texto"),
@@ -155,7 +171,12 @@ class ToolLog(models.Model):
     usuario = models.ForeignKey(
         Usuario,
         on_delete=models.CASCADE,
-        related_name="tool_logs"
+        related_name="tool_logs", null=True, blank=True,
+    )
+
+    medico = models.ForeignKey(
+        "medicos.Medico", on_delete=models.CASCADE,
+        related_name="tool_logs_bymax", null=True, blank=True,
     )
 
     nombre_tool = models.CharField(max_length=100)
@@ -191,6 +212,11 @@ class ToolLog(models.Model):
     class Meta:
         db_table = "chatbot_tool_log"
         ordering = ["-fecha"]
+        constraints = [models.CheckConstraint(
+            condition=(models.Q(usuario__isnull=False, medico__isnull=True)
+                       | models.Q(usuario__isnull=True, medico__isnull=False)),
+            name="toollog_un_solo_actor",
+        )]
 
     def __str__(self):
         return self.nombre_tool
