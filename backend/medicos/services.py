@@ -18,7 +18,7 @@ from medicos.serializers import (
 )
 from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
-
+from django.db.models import Q
 
 # ── SERVICIOS DE MÉDICOS ──────────────────────────────────────────────────────
 
@@ -28,11 +28,36 @@ def listarMedicosService():
     serializer = MedicoSerializer(medicos, many=True)
     return serializer.data, 200
 
-def listarMedicosPublicosService():
+def listarMedicosPublicosService(
+    search=None,
+    especialidad=None,
+    departamento=None,
+    ciudad=None
+):
     medicos = Medico.objects.select_related(
         'id_especialidad',
         'ciudad',
-        'ciudad__departamento').all()
+        'ciudad__departamento'
+    ).all()
+
+    if search:
+        terminos = search.strip().split()
+
+        for termino in terminos:
+            medicos = medicos.filter(
+                Q(nombre__icontains=termino) |
+                Q(apellido__icontains=termino)
+            )
+
+    if especialidad:
+        medicos = medicos.filter(id_especialidad_id=especialidad)
+
+    if departamento:
+        medicos = medicos.filter(ciudad__departamento_id=departamento)
+
+    if ciudad:
+        medicos = medicos.filter(ciudad_id=ciudad)
+        
     serializer = MedicosPublicosSerializer(medicos,many=True)
     return serializer.data, 200
 

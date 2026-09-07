@@ -411,11 +411,27 @@ class FotoPerfilMedicoView(APIView):
                 status=500
             )
 class MedicosDisponiblesView(APIView):
-    permission_classes = [IsAuthenticated,IsPaciente]
-    def get(self,request):
+    permission_classes = [
+        IsAuthenticated,
+        IsPaciente
+    ]
+
+    def get(self, request):
         try:
-            respuesta,status_code = listarMedicosPublicosService()
-            return respuesta_ok(data=respuesta,mensaje="Lista de medicos publicos",status=status_code)
+            search = request.query_params.get("search")
+            especialidad = request.query_params.get("especialidad")
+            departamento = request.query_params.get("departamento")
+            ciudad = request.query_params.get("ciudad")
+
+            respuesta, status_code = listarMedicosPublicosService(
+                search=search,
+                especialidad=especialidad,
+                departamento=departamento,
+                ciudad=ciudad
+            )
+
+            return respuesta_ok(data=respuesta,mensaje="Lista de médicos públicos",status=status_code)
+
         except Exception as e:
-            print("Error en el servidor: ",e)
+            print("Error en el servidor:", e)
             return respuesta_error(mensaje="Error interno en el servidor",status=500)
