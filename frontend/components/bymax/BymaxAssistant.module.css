@@ -1,4 +1,14 @@
 /* Styles are scoped to Bymax. No changes to application-wide layouts. */
+.doctorContext { padding: 12px 18px; border-bottom: 1px solid var(--bymax-line); background: #f1f8f5; max-height: 36%; overflow: auto; flex-shrink: 0; font-size: 13px; }
+.contextHeading, .contextControls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.contextHeading { justify-content: space-between; margin-bottom: 6px; }
+.contextControls select { flex: 1; min-width: 0; width: 100%; padding: 7px; border: 1px solid var(--bymax-line); border-radius: 6px; background: white; color: var(--bymax-ink); }
+.doctorContext button { border: 1px solid var(--bymax-line); border-radius: 6px; padding: 5px 8px; background: white; color: var(--bymax-green); }
+.doctorContext p { margin: 6px 0; }
+.doctorContext small { color: var(--bymax-muted); }
+.doctorContext summary { cursor: pointer; padding: 4px 0; }
+.clinicalAppointments { list-style: none; padding: 0; margin: 0; }
+.clinicalAppointments li { display: flex; gap: 8px; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--bymax-line); }
 .shell, .launcher {
   --bymax-green: #12745e;
   --bymax-ink: #203c35;

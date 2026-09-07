@@ -11,6 +11,10 @@ function datos(response) {
 }
 
 export const bymaxService = {
+  async obtenerContextoMedico(idChat) {
+    try { return datos(await api.get(`/chatbot/chats/${idChat}/contexto-medico/`)); }
+    catch (error) { throw new Error(detalleError(error, "No fue posible cargar el contexto clínico.")); }
+  },
   crearSocket(idChat) {
     const base = process.env.NEXT_PUBLIC_BYMAX_WS_URL ||
       `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8000`;

@@ -4,10 +4,11 @@ import Image from "next/image";
 import { AudioLines, Check, ChevronDown, Menu, Mic, Minus, Play, Plus, Settings2, ShieldCheck, Square, Trash2, Volume2, VolumeX, X } from "lucide-react";
 import BymaxMessage from "./BymaxMessage";
 import BymaxComposer from "./BymaxComposer";
+import BymaxDoctorContext from "./BymaxDoctorContext";
 import { DEFAULT_VOICE } from "./bymaxVoiceController.mjs";
 import styles from "./BymaxAssistant.module.css";
 
-export default function BymaxChatWindow({ open, close, status, label, chats, chatId, messages, loading, sending, streamingId, sidebar, setSidebar, loadChat, newChat, deleteChat, voice, viewportStyle, composer }) {
+export default function BymaxChatWindow({ open, close, status, label, chats, chatId, messages, loading, sending, streamingId, sidebar, setSidebar, loadChat, newChat, deleteChat, voice, viewportStyle, composer, modo = "paciente", onClinicalCommand }) {
   const [present, setPresent] = useState(open);
   const [settings, setSettings] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
@@ -84,11 +85,12 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
           <button ref={closeRef} type="button" onClick={close} aria-label="Minimizar chat" title="Minimizar chat"><Minus size={21}/></button>
         </div>
       </header>
+      {modo === "medico" && <BymaxDoctorContext chatId={chatId} sending={sending} loading={loading} onCommand={onClinicalCommand}/>}
       <div className={styles.conversation}>
         <div className={styles.messages} ref={scrollRef} role="log" aria-label="Mensajes de la conversación" aria-live="polite" aria-relevant="additions" aria-busy={sending}
           onScroll={event => { const element = event.currentTarget; setAtBottom(element.scrollHeight - element.scrollTop - element.clientHeight < 64); }}>
           {loading ? <div className={styles.loading} role="status"><span className={styles.typing}><i/><i/><i/></span>Cargando conversación…</div> : <>
-            {messages.length <= 1 && <div className={styles.welcome}><Image src="/icons/asistente_bymax.png" alt="Bymax" width={96} height={96}/><span>UN POCO DE AYUDA, CUANDO LA NECESITAS</span><h2>Hola, soy Bymax.</h2><p>Estoy aquí para orientarte y ayudarte a cuidar de ti.</p></div>}
+            {messages.length <= 1 && <div className={styles.welcome}><Image src="/icons/asistente_bymax.png" alt="Bymax" width={96} height={96}/><span>{modo === "medico" ? "APOYO PARA TU PRÁCTICA CLÍNICA" : "UN POCO DE AYUDA, CUANDO LA NECESITAS"}</span><h2>Hola, soy Bymax.</h2><p>{modo === "medico" ? "Revisemos tus casos y preparemos borradores para tu valoración." : "Estoy aquí para orientarte y ayudarte a cuidar de ti."}</p></div>}
             {messages.map(item => <BymaxMessage key={item.id} item={item} voice={voice} streaming={item.id === streamingId && sending}/>)}
             {sending && !streamingId && <div className={styles.loading} role="status"><span className={styles.typing}><i/><i/><i/></span>Bymax está preparando una respuesta…</div>}
           </>}

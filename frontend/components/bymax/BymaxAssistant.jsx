@@ -17,7 +17,8 @@ function normalizarMensaje(item) {
     resultado: item.resultado || null, imagen: item.imagen || null, error: Boolean(item.error),
   };
 }
-export default function BymaxAssistant() {
+export default function BymaxAssistant({ modo = "paciente" }) {
+  const saludo = modo === "medico" ? "Hola, soy Bymax Médico, tu copiloto clínico y operativo. Selecciona un paciente para revisar tus registros, estudiar diferenciales o preparar borradores para tu valoración." : SALUDO;
   const [ventanaAbierta, setVentanaAbierta] = useState(false);
   const [chats, setChats] = useState([]);
   const [chatId, setChatId] = useState(null);
@@ -73,11 +74,11 @@ export default function BymaxAssistant() {
       const data = await bymaxService.obtenerMensajes(id);
       if (epoch !== epochRef.current) return;
       setChatId(id);
-      setMensajes(data.length ? data.map(normalizarMensaje) : [normalizarMensaje({remitente:"bot", texto:SALUDO})]);
+      setMensajes(data.length ? data.map(normalizarMensaje) : [normalizarMensaje({remitente:"bot", texto:saludo})]);
       setSidebar(false);
     } catch (e) { if (epoch === epochRef.current) setError(e.message); }
     finally { if (epoch === epochRef.current) { setCargando(false); voiceRef.current?.completeTurn(); } }
-  }, [resetInteraction]);
+  }, [resetInteraction, saludo]);
   const nuevoChat = useCallback(async () => {
     resetInteraction();
     const epoch = epochRef.current;
@@ -88,11 +89,11 @@ export default function BymaxAssistant() {
       if (epoch !== epochRef.current) return;
       setChats(previous => [nuevo, ...previous.filter(chat => chat.id !== nuevo.id)]);
       setChatId(nuevo.id);
-      setMensajes([normalizarMensaje({remitente:"bot",texto:SALUDO})]);
+      setMensajes([normalizarMensaje({remitente:"bot",texto:saludo})]);
       setSidebar(false);
     } catch (e) { if (epoch === epochRef.current) setError(e.message); }
     finally { if (epoch === epochRef.current) { setCargando(false); voiceRef.current?.completeTurn(); } }
-  }, [resetInteraction]);
+  }, [resetInteraction, saludo]);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -162,13 +163,13 @@ export default function BymaxAssistant() {
     };
   }, [chatId]);
 
-  const enviarTexto = useCallback(async forced => {
+  const enviarTexto = useCallback(async (forced, soloTexto = false) => {
     const text = String(forced ?? mensaje).trim();
     if ((!text && !imagen) || sendingRef.current || !chatId || cargando) return;
     sendingRef.current = true;
     const epoch = epochRef.current;
-    const file = imagen?.file || null;
-    const temporal = normalizarMensaje({remitente:"usuario",texto:text || "Analiza esta imagen médica.",imagen:imagen?.preview || null});
+    const file = soloTexto ? null : imagen?.file || null;
+    const temporal = normalizarMensaje({remitente:"usuario",texto:text || "Analiza esta imagen médica.",imagen:soloTexto ? null : imagen?.preview || null});
     voice.beginTurn();
     voice.clearError();
     setMensajes(previous => [...previous, temporal]);
@@ -234,6 +235,7 @@ export default function BymaxAssistant() {
   return <>
     <BymaxLauncher {...draggable} status={status} label={label} open={ventanaAbierta} buttonRef={launcherRef}/>
     <BymaxChatWindow open={ventanaAbierta} close={close} status={status} label={label} chats={chats} chatId={chatId} messages={mensajes} loading={cargando} sending={enviando} streamingId={streamingId}
+      modo={modo} onClinicalCommand={command => enviarTexto(command, true)}
       sidebar={sidebar} setSidebar={setSidebar} loadChat={cargarChat} newChat={nuevoChat} deleteChat={eliminarChat} voice={voice} viewportStyle={viewportStyle}
       composer={{message:mensaje,setMessage:setMensaje,image:imagen,setImage:setImagen,error,clearError:() => {setError("");voice.clearError();},onSend:enviarTexto,onImage:seleccionarImagen,inputRef,fileRef,confirmation}}/>
   </>;

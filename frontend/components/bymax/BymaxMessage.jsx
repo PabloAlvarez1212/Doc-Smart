@@ -36,10 +36,12 @@ function TarjetasResultado({ resultado }) {
             {esMedico ? <Stethoscope size={18} /> : <CalendarDays size={18} />}
           </div>
           <div>
-            <strong>{item.nombre || item.medico || `Cita #${item.id}`}</strong>
+            <strong>{item.paciente?.nombre || item.nombre || item.medico || `Cita #${item.id_cita || item.id}`}</strong>
+            {item.paciente && <span>Paciente #{item.paciente.id}</span>}
             {item.especialidad && <span>{item.especialidad}</span>}
             {item.ciudad && <span>{item.ciudad}</span>}
             {item.fecha && <span>{fechaCorta(item.fecha)}</span>}
+            {item.fecha_programada && <span>{fechaCorta(item.fecha_programada)}</span>}
             {item.estado && <span className={styles.status}>{item.estado}</span>}
           </div>
         </article>
