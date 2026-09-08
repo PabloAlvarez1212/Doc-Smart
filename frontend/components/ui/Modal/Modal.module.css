@@ -39,7 +39,58 @@
   padding: 1.5rem 2rem;
 
   border-bottom: 1.5px solid #e2e8f0;
-  background-color: var(--color-dark);
+}
+
+.container{
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.default {
+    background-color: var(--color-dark);
+}
+
+.white{
+  background-color: var(--color-white);
+}
+
+.white .titulo{
+  color: black;
+}
+
+.white .cerrar{
+  color: black;
+}
+
+.white .cerrar:hover{
+  background: black;
+  color: white;
+}
+
+.yellow{
+  background-color: #F5B942;
+}
+
+.yellow .titulo{
+  color: #ffffff;
+}
+
+.yellow .cerrar{
+  color: black;
+}
+
+.yellow .cerrar:hover{
+  background: white;
+}
+
+.containerTitle{
+  display: flex;
+  flex-direction: column;
+}
+
+.containerTitle p{
+  font-size: clamp(0.7rem,3vw,1rem);
 }
 
 .titulo {

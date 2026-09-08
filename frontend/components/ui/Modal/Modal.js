@@ -13,7 +13,7 @@ import styles from "./Modal.module.css";
  * - titulo: string           → Título del modal
  * - children: ReactNode      → Contenido interno (el form)
  */
-export default function Modal({ abierto, onCerrar, titulo, children }) {
+export default function Modal({ abierto, onCerrar, titulo, children, headerVariant = "default", text = '', width = "480px", icon }) {
   const titleId = useId();
   const closeRef = useRef(null);
   const dialogRef = useRef(null);
@@ -59,11 +59,17 @@ export default function Modal({ abierto, onCerrar, titulo, children }) {
         role="dialog" aria-modal="true" aria-labelledby={titleId}
         onKeyDown={handleKeyDown}
         className={styles.modal}
+        style={{ width: "100%", maxWidth: width, }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={styles.header}>
-          <h2 id={titleId} className={styles.titulo}>{titulo}</h2>
-
+        <div className={`${styles.header} ${styles[headerVariant]}`}>
+          <div className={styles.container}>
+            {icon}
+            <div className={styles.containerTitle}>
+              <h2 id={titleId} className={styles.titulo}>{titulo}</h2>
+              <p>{text}</p>
+            </div>
+          </div>
           <button
             ref={closeRef} aria-label="Cerrar ventana"
             className={styles.cerrar}
