@@ -16,7 +16,7 @@ export const loginService = async (formData) =>
     (await api.post("/login/", formData)).data;
 
 export const resetPasswordService = async (formData) =>
-    (await api.post("/cambiar-contrasena/", formData)).data;
+    (await api.post("/cambiar-contraseña/", formData)).data;
 
 export const logoutService = async () => {
     const response = await api.post("/logout/");
