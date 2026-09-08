@@ -9,7 +9,7 @@ import { useChangePassword } from "./useResetPassword";
 import useLogout from "../../hooks/useLogout";
 export default function ResetPasswordFormComponent() {
     const { cambiarContraseña, loading } = useChangePassword()
-    const {logoutDirecto} = useLogout()
+    const { logoutDirecto } = useLogout()
     const [form, setForm] = useState({
         contraseña_actual: "",
         nueva_contraseña: "",
@@ -26,6 +26,21 @@ export default function ResetPasswordFormComponent() {
     const handleSubmit = async (event) => {
         event.preventDefault();
 
+        if (
+            !form.contraseña_actual.trim() ||
+            !form.nueva_contraseña.trim() ||
+            !form.confirmar_contraseña.trim()
+        ) {
+            await Swal.fire({
+                icon: "warning",
+                title: "Campos incompletos",
+                text: "Debes completar todos los campos.",
+                confirmButtonText: "Aceptar"
+            });
+
+            return;
+        }
+        
         if (form.nueva_contraseña !== form.confirmar_contraseña) {
             await Swal.fire({
                 icon: "warning",

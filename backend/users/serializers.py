@@ -330,13 +330,13 @@ class CambiarContraseñaAutenticadoSerializer(serializers.Serializer):
     contraseña_actual = serializers.CharField(
         write_only=True,
         error_messages={
-            **msg('contraseña')
+            **msg('contraseña','La')
         }
     )
     nueva_contraseña = serializers.CharField(
         min_length=8,
         error_messages={
-            **msg('contraseña'),
+            **msg('nueva contraseña','La'),
             'min_length': 'La contraseña debe tener al menos 8 caracteres'})
     def validate_nueva_contraseña(self, value):
         error = validarContraseña(value)
