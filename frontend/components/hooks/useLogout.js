@@ -1,10 +1,27 @@
 "use client"
+
 import Swal from "sweetalert2"
 import { useRouter } from "next/navigation"
 import { logoutService } from "@/app/services/authService"
+
 export default function useLogout() {
+
     const router = useRouter()
+
+    // Cierra sesión directamente, sin preguntar
+    const logoutDirecto = async () => {
+        try {
+            await logoutService()
+        } catch (error) {
+            console.error("Error al cerrar sesión:", error)
+        } finally {
+            router.push("/login")
+        }
+    }
+
+    // Cierre de sesión manual
     const logoutUser = async () => {
+
         const result = await Swal.fire({
             title: "¿Cerrar sesión?",
             text: "Se cerrará la sesión en este dispositivo.",
@@ -12,30 +29,29 @@ export default function useLogout() {
             showCancelButton: true,
             confirmButtonText: "Sí, continuar",
             cancelButtonText: "Cancelar",
-            reverseButtons: true,
+            reverseButtons: true
+        })
 
-            didOpen: () => {
-                Swal.getContainer().style.zIndex = "9999";
-            }
-        });
+        if (!result.isConfirmed) return
 
-        if (result.isConfirmed) {
-            try {
-                await logoutService();
-                await Swal.fire({
-                    title: "Éxito!",
-                    text: "Se a cerrado sesión correctamente.",
-                    icon: "success",
-                    didOpen: () => {
-                        Swal.getContainer().style.zIndex = "9999";
-                    }
-                });
-                router.push('/login')
-            } catch (e) {
-                console.log(e);
-                router.push('/login')
-            }
+        try {
+            await logoutService()
+
+            await Swal.fire({
+                title: "¡Éxito!",
+                text: "Se ha cerrado sesión correctamente.",
+                icon: "success"
+            })
+
+        } catch (error) {
+            console.error("Error al cerrar sesión:", error)
+        } finally {
+            router.push("/login")
         }
     }
-    return ({ logoutUser })
+
+    return {
+        logoutUser,
+        logoutDirecto
+    }
 }

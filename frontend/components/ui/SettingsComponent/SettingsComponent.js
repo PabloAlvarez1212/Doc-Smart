@@ -1,27 +1,6 @@
 import Style from "./SettingsComponent.module.css"
-import { useRouter } from "next/navigation"
 import { KeyIcon, ChevronRight, LogOutIcon, TrashIcon } from "lucide-react"
-import Swal from "sweetalert2";
 export default function SettingsComponent({abrirCambiarContrasena,eliminarCuenta, cerrarSesion }) {
-    const router = useRouter();
-    const navegation = async () => {
-        const result = await Swal.fire({
-            title: "¿Cambiar contraseña?",
-            text: "Serás redirigido a la página para cambiar tu contraseña.",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonText: "Sí, continuar",
-            cancelButtonText: "Cancelar",
-            reverseButtons: true,
-            customClass: {
-                container: Style.Swal
-            }
-        });
-
-        if (result.isConfirmed) {
-            router.push("/forgot-password");
-        }
-    };
     return (
         <div className={Style.containerMain}>
             <div className={Style.cards}>

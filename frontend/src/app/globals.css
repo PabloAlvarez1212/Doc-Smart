@@ -13,7 +13,9 @@ html {
     scrollbar-gutter: stable;
     -webkit-text-size-adjust: 100%;
 }
-
+.swal2-container {
+    z-index: 20000 !important;
+}
 /* Shared sizing rules keep content readable without hiding overflow. */
 body { min-width: 0; overflow-wrap: anywhere; }
 main, section, article, form { min-width: 0; }

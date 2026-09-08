@@ -1,19 +1,63 @@
 "use client";
-
-import {
-    LockKeyhole,
-    ShieldCheck
-} from "lucide-react";
-
+import Swal from "sweetalert2";
+import { LockKeyhole, ShieldCheck } from "lucide-react";
 import Input from "../Input/Input";
 import Button from "../Button/Button";
 import styles from "./ResetPasswordComponent.module.css";
-
+import { useState } from "react";
+import { useChangePassword } from "./useResetPassword";
+import useLogout from "../../hooks/useLogout";
 export default function ResetPasswordFormComponent() {
+    const { cambiarContraseña, loading } = useChangePassword()
+    const {logoutDirecto} = useLogout()
+    const [form, setForm] = useState({
+        contraseña_actual: "",
+        nueva_contraseña: "",
+        confirmar_contraseña: ""
+    });
+    const handleChange = (event) => {
+        const { name, value } = event.target;
+
+        setForm((current) => ({
+            ...current,
+            [name]: value
+        }));
+    };
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        if (form.nueva_contraseña !== form.confirmar_contraseña) {
+            await Swal.fire({
+                icon: "warning",
+                title: "Las contraseñas no coinciden",
+                text: "Verifica que la nueva contraseña y su confirmación sean iguales.",
+                confirmButtonText: "Aceptar",
+            });
+
+            return;
+        }
+
+        const data = {
+            contraseña_actual: form.contraseña_actual,
+            nueva_contraseña: form.nueva_contraseña
+        };
+
+        const ok = await cambiarContraseña(data);
+
+        if (ok) {
+            setForm({
+                contraseña_actual: "",
+                nueva_contraseña: "",
+                confirmar_contraseña: ""
+            });
+            logoutDirecto()
+        }
+    };
+
     return (
         <form
             className={styles.form}
-            onSubmit={(event) => event.preventDefault()}
+            onSubmit={handleSubmit}
         >
 
             <div className={styles.field}>
@@ -32,8 +76,11 @@ export default function ResetPasswordFormComponent() {
                         type="password"
                         placeholder="Ingresa tu contraseña actual"
                         autoComplete="current-password"
+                        name="contraseña_actual"
+                        value={form.contraseña_actual}
+                        onChange={handleChange}
                     />
-                    
+
                 </div>
             </div>
 
@@ -54,6 +101,9 @@ export default function ResetPasswordFormComponent() {
                         type="password"
                         placeholder="Ingresa tu nueva contraseña"
                         autoComplete="new-password"
+                        name="nueva_contraseña"
+                        value={form.nueva_contraseña}
+                        onChange={handleChange}
                     />
 
                 </div>
@@ -76,6 +126,9 @@ export default function ResetPasswordFormComponent() {
                         type="password"
                         placeholder="Confirma tu nueva contraseña"
                         autoComplete="new-password"
+                        name="confirmar_contraseña"
+                        value={form.confirmar_contraseña}
+                        onChange={handleChange}
                     />
 
                 </div>
@@ -105,9 +158,13 @@ export default function ResetPasswordFormComponent() {
             <div className={styles.actions}>
                 <Button
                     type="submit"
+                    disabled={loading}
                     className={styles.submitButton}
                 >
-                    Guardar cambios
+                    {loading
+                        ? "Guardando..."
+                        : "Guardar cambios"}
+
                 </Button>
             </div>
 

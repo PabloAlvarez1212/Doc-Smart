@@ -22,3 +22,8 @@ export const logoutService = async () => {
     const response = await api.post("/logout/");
     return response.data;
 };
+
+export const cambiarContraseñaAuthService = async (data) =>{
+    const response = await api.post('/cambiar-contraseña-auth/', data)
+    return response.data
+}
