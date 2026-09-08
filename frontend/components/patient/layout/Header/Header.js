@@ -2,24 +2,26 @@
 import Styles from "./Header.module.css";
 import Image from "next/image";
 import ResponsiveNav from "../../../ui/ResponsiveNav/ResponsiveNav";
+import ResetPasswordFormComponent from "../../../ui/ResetPasswordComponent/ResetPasswordComponent";
 import useLogout from "../../../hooks/useLogout";
 import usePatient from "../../usePatient";
 import { useState } from "react";
 import SettingsComponent from "../../../ui/SettingsComponent/SettingsComponent";
 import Modal from "../../../ui/Modal/Modal";
-import { SettingsIcon } from "lucide-react";
+import { SettingsIcon,KeyRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useNotificationsContext } from "../../../contex/NotificationsContext";
 export default function Header() {
-    const {noLeidas} = useNotificationsContext()
+    const { noLeidas } = useNotificationsContext()
     const [modal, setModal] = useState(false)
+    const [modalCambiarContrasena, setModalCambiarContrasena] = useState(false)
     const pathName = usePathname();
     const activateLink = function (route) {
         return pathName === route ? Styles.activar : Styles.link;
     }
-    const {logoutUser} = useLogout()
-    const {eliminarCuentaPaciente} = usePatient()
+    const { logoutUser } = useLogout()
+    const { eliminarCuentaPaciente } = usePatient()
     return (
         <div className={Styles.containerHeader}>
             <div className={Styles.container}>
@@ -47,11 +49,30 @@ export default function Header() {
                 titulo="Acciones"
                 abierto={modal}
                 onCerrar={() => setModal(false)}
+                headerVariant="white"
             >
                 <SettingsComponent
                     cerrarSesion={logoutUser}
                     eliminarCuenta={eliminarCuentaPaciente}
+                    abrirCambiarContrasena={() => {
+                        setModal(false)
+                        setModalCambiarContrasena(true)
+                    }}
                 />
+            </Modal>
+            <Modal
+                titulo="Cambiar contraseña"
+                abierto={modalCambiarContrasena}
+                onCerrar={() => {
+                    setModalCambiarContrasena(false)
+                    setModal(true)
+                }}
+                headerVariant="yellow"
+                text="Mantén tu cuenta segura con una contraseña fuerte"
+                width="500px"
+                icon={<KeyRound size={45}/>}
+            >
+                <ResetPasswordFormComponent/>
             </Modal>
         </div>
     )
