@@ -136,7 +136,9 @@ def solicitarCambioService(correo):
     
     if persona :
         # Envía el email
-        link = f'http://localhost:3000/reset-password?token={token}'
+        
+        frontend_url = os.getenv("CORS_ALLOWED_ORIGINS")
+        link = f"{frontend_url}/reset-password?token={token}"
         nombre = persona.nombre or 'Usuario'
         apellido = persona.apellido or ''
         html_content = render_to_string(
