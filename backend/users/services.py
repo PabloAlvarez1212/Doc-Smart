@@ -9,6 +9,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.core.mail import send_mail
 import os
+import resend
 from django.template.loader import render_to_string
 from django.core.paginator import Paginator
 from citas.models import Cita
@@ -19,6 +20,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
 logger = logging.getLogger(__name__)
+resend.api_key = os.getenv("RESEND_API_KEY")
 
 def loginService(correo, contraseña):
     correo = correo.strip().lower()
@@ -136,33 +138,43 @@ def solicitarCambioService(correo):
     
     if persona :
         # Envía el email
-        
-        frontend_url = os.getenv("CORS_ALLOWED_ORIGINS")
+        frontend_url = os.getenv("FRONTEND_URL", "").rstrip("/")
         link = f"{frontend_url}/reset-password?token={token}"
-        nombre = persona.nombre or 'Usuario'
-        apellido = persona.apellido or ''
+        nombre = persona.nombre or "Usuario"
+        apellido = persona.apellido or ""
         html_content = render_to_string(
-            'emails/reset_password.html',
-            {'link': link,
-            'nombre': nombre,
-            'apellido': apellido}
+            "emails/reset_password.html",
+            {
+                "link": link,
+                "nombre": nombre,
+                "apellido": apellido
+            }
         )
+
         try:
-            send_mail(
-                subject='Recupera tu contraseña - DocSmart',
-                message=f'Usa este enlace: {link}',
-                from_email=os.getenv('EMAIL_HOST_USER'),
-                recipient_list=[correo],
-                html_message=html_content,
-                fail_silently=False
-            )
+            email = resend.Emails.send({
+                "from": os.getenv("RESEND_FROM_EMAIL"),
+                "to": [correo],
+                "subject": "Recupera tu contraseña - DocSmart",
+                "html": html_content,
+            })
+
+            print("Email enviado:", email)
+
             persona.ultimo_envio = timezone.now()
             persona.save()
-            return 'Email enviado correctamente', 200
+
+            return "Email enviado correctamente", 200
 
         except Exception as e:
-            print("Error enviando correo:", e)
-            return {"general": ['Error enviando el correo']}, 500
+
+            print("Error enviando correo:", repr(e))
+
+            return {
+                "general": [
+                    "Error enviando el correo"
+                ]
+            }, 500
     
 def cambiarContraseñaService(token, nueva_contraseña):
     
