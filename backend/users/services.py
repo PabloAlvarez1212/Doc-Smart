@@ -194,6 +194,20 @@ def cambiarContraseñaService(token, nueva_contraseña):
 
     return 'Contraseña actualizada correctamente', 200
 
+def cambiarContraseñaAutenticadoService(persona,contraseña_actual,nueva_contraseña):
+    if not isinstance(persona, (Usuario, Medico)):
+        return 'Usuario no válido', 400
+    
+    if not bcrypt.checkpw(contraseña_actual.encode(),persona.contraseña.encode()):
+        return 'La contraseña ingresada no es correcta', 400
+
+    nuevaContraseñaHash = bcrypt.hashpw(nueva_contraseña.encode(),bcrypt.gensalt()).decode()
+
+    persona.contraseña = nuevaContraseñaHash
+    persona.save()
+
+    return 'Contraseña actualizada correctamente', 200
+        
 def registrarUsuarioService(datos):
 
     usuario_correo = Usuario.objects.filter(correo=datos.get('correo')).first()

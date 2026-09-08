@@ -20,6 +20,7 @@ from users.services import (
     actualizarFotoPerfilPacienteService,
     eliminarFotoPerfilPacienteService,
     refreshTokenService,
+    cambiarContraseñaAutenticadoService,
 )
 from users.serializers import (
     LoginSerializer,
@@ -28,6 +29,7 @@ from users.serializers import (
     RegistrarUsuarioSerializer,
     EditarUsuarioSerializer,
     FotoPerfilPacienteSerializer,
+    CambiarContraseñaAutenticadoSerializer,
 )
 
 
@@ -264,6 +266,24 @@ class CambiarContraseñaView(APIView):
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
+
+class CambiarContraseñaAutenticadoView(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self,request):
+        try:
+            serializer = CambiarContraseñaAutenticadoSerializer(data=request.data)
+            if not serializer.is_valid():
+                return respuesta_serializer_invalido(serializer.errors)
+            respuesta, status = cambiarContraseñaAutenticadoService(
+                persona=request.user,
+                contraseña_actual=serializer.validated_data["contraseña_actual"],
+                nueva_contraseña=serializer.validated_data["nueva_contraseña"])        
+            if status != 200:
+                return respuesta_error(respuesta,status=status)
+            return respuesta_ok(mensaje=respuesta,status=status)
+        except Exception as e:
+            print(e)
+            return respuesta_error("Error en el servidor",status=500)
 
 #!Registro - publico - NO REQUIERE TOKEN
 class RegistroView(APIView):

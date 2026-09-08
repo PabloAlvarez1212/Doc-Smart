@@ -325,3 +325,21 @@ class CambiarContraseñaSerializer(serializers.Serializer):
         if error:
             raise serializers.ValidationError(error)
         return value
+
+class CambiarContraseñaAutenticadoSerializer(serializers.Serializer):
+    contraseña_actual = serializers.CharField(
+        write_only=True,
+        error_messages={
+            **msg('contraseña')
+        }
+    )
+    nueva_contraseña = serializers.CharField(
+        min_length=8,
+        error_messages={
+            **msg('contraseña'),
+            'min_length': 'La contraseña debe tener al menos 8 caracteres'})
+    def validate_nueva_contraseña(self, value):
+        error = validarContraseña(value)
+        if error:
+            raise serializers.ValidationError(error)
+        return value

@@ -12,12 +12,14 @@ from .views import (
     FotoPerfilPacienteView,
     RefreshTokenView,
     CSRFTokenView,
+    CambiarContraseñaAutenticadoView,
 )
 
 urlpatterns = [
     path('login/', LoginView.as_view()),
     path('solicitar-cambio/', SolicitarCambioView.as_view()),
     path('cambiar-contraseña/', CambiarContraseñaView.as_view()),
+    path('cambiar-contraseña-auth/', CambiarContraseñaAutenticadoView.as_view()),
     path('usuarios/', UsuarioListView.as_view()),
     path('usuarios/registro/',RegistroView.as_view()),
     path('usuarios/<int:pk>/', UsuarioDetailView.as_view()),
