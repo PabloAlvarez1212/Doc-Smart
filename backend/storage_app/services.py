@@ -54,7 +54,8 @@ class ArchivoNoCerrable:
 def subir_archivo(
     archivo,
     categoria,
-    usuario_id=None,
+    propietario_tipo,
+    propietario_id,
     referencia_id=None,
 ):
     validar_archivo(archivo)
@@ -74,7 +75,8 @@ def subir_archivo(
     storage_key = construir_ruta(
         categoria=categoria,
         nombre_archivo=nombre_original,
-        usuario_id=usuario_id,
+        propietario_tipo=propietario_tipo,
+        propietario_id=propietario_id,
         referencia_id=referencia_id,
     )
 
@@ -247,7 +249,8 @@ def guardar_archivo_usuario(
     resultado = subir_archivo(
         archivo=archivo,
         categoria=categoria,
-        usuario_id=usuario_id,
+        propietario_tipo="usuario",
+        propietario_id=usuario_id,
         referencia_id=referencia_id,
     )
 
@@ -294,3 +297,37 @@ def eliminar_archivo_usuario(archivo):
     )
 
     return True
+
+@transaction.atomic
+def guardar_archivo_medico(
+    archivo,
+    medico_id,
+    categoria="general",
+    referencia_id=None,
+):
+    resultado = subir_archivo(
+        archivo=archivo,
+        categoria=categoria,
+        propietario_tipo="medico",
+        propietario_id=medico_id,
+        referencia_id=referencia_id,
+    )
+
+    try:
+        registro = Archivo.objects.create(
+            medico_id=medico_id,
+            nombre_original=resultado["nombre"],
+            storage_key=resultado["key"],
+            content_type=resultado["tipo"],
+            tamano=resultado["tamano"],
+            tipo=determinar_tipo_archivo(
+                resultado["tipo"]
+            ),
+            categoria=categoria,
+        )
+
+        return registro
+
+    except Exception:
+        eliminar_archivo(resultado["key"])
+        raise

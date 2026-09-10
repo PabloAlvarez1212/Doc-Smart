@@ -191,6 +191,46 @@ class RegistrarMedicoSerializer(serializers.Serializer):
         }
     )
 
+    def validate_fecha_nacimiento(self, value):
+        hoy = date.today()
+
+        if value > hoy:
+            raise serializers.ValidationError("La fecha de nacimiento no puede ser futura")
+
+        edad = hoy.year - value.year - (
+            (hoy.month, hoy.day) < (value.month, value.day)
+        )
+
+        if edad < 18:
+            raise serializers.ValidationError(
+                "Debes ser mayor de edad para registrarte como médico"
+            )
+
+        return value
+    
+    hoja_vida = serializers.FileField(
+        required=True,
+        error_messages={
+            "required": "La hoja de vida es obligatoria",
+            "invalid": "La hoja de vida enviada no es un archivo válido"
+        }
+    )
+
+    def validate_hoja_vida(self, value):
+        max_size = 5 * 1024 * 1024
+
+        if value.size > max_size:
+            raise serializers.ValidationError(
+                "La hoja de vida no puede superar los 5 MB"
+            )
+
+        if value.content_type != "application/pdf":
+            raise serializers.ValidationError(
+                "La hoja de vida debe estar en formato PDF"
+            )
+
+        return value
+
     telefono = serializers.CharField(
         max_length=20,
         trim_whitespace=True,

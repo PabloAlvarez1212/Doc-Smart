@@ -19,6 +19,7 @@ from medicos.serializers import (
 from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
 from django.db.models import Q
+from storage_app.services import guardar_archivo_medico
 
 # ── SERVICIOS DE MÉDICOS ──────────────────────────────────────────────────────
 
@@ -74,14 +75,7 @@ def obtenerMedicoService(id_medico):
 
 
 # Crea un nuevo médico tras validar datos, unicidad de correo/cédula y existencia de relaciones
-def crearMedicoService(data):
-
-    serializer = RegistrarMedicoSerializer(data=data)
-
-    if not serializer.is_valid():
-        return serializer.errors, 400
-
-    data_validada = serializer.validated_data
+def crearMedicoService(data_validada):
 
     # Verifica que el correo no esté en uso por otro médico o usuario
     if Usuario.objects.filter(
@@ -135,6 +129,8 @@ def crearMedicoService(data):
             'general': ['Rol médico no encontrado']
         }, 404
 
+    hoja_vida = data_validada["hoja_vida"]
+    
     # Encripta la contraseña
     password_encriptada = bcrypt.hashpw(
         data_validada['contraseña'].encode('utf-8'),
@@ -154,8 +150,28 @@ def crearMedicoService(data):
         ciudad=ciudad,
         id_rol=rol,
         direccion=data_validada.get('direccion', ''),
+        estado_validacion=Medico.EstadoValidacion.PENDIENTE,
     )
 
+    try:
+        guardar_archivo_medico(
+            archivo=hoja_vida,
+            medico_id=medico.id,
+            categoria="hoja_vida"
+        )
+
+    except Exception as error:
+
+        print(
+            "Error guardando hoja de vida:",
+            error
+        )
+
+        # Al lanzar excepción,
+        # transaction.atomic revierte
+        # la creación del médico.
+        raise
+    
     return MedicoPerfilSerializer(medico).data, 201
 
 

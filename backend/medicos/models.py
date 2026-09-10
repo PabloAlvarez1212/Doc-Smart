@@ -10,6 +10,12 @@ class Especialidad(models.Model):
 
 # Modelo principal que representa a un médico del sistema
 class Medico(models.Model):
+    
+    class EstadoValidacion(models.TextChoices):
+        PENDIENTE = "pendiente", "Pendiente"
+        APROBADO = "aprobado", "Aprobado"
+        RECHAZADO = "rechazado", "Rechazado"
+
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     cedula = models.CharField(max_length=20, unique=True)        # Documento de identidad único
@@ -30,6 +36,9 @@ class Medico(models.Model):
         null=True,
         blank=True
     )
+    estado_validacion = models.CharField(max_length=20,choices=EstadoValidacion.choices,default=EstadoValidacion.PENDIENTE)
+    motivo_rechazo = models.TextField(null=True,blank=True)
+    fecha_validacion = models.DateTimeField(null=True,blank=True)
 
     # Propiedad requerida por el sistema de autenticación: indica que el médico está autenticado
     @property

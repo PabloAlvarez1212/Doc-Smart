@@ -28,6 +28,7 @@ from medicos.serializers import (
     EditarEspecialidadSerializer,
     FotoPerfilMedicoSerializer,
 )
+from rest_framework.parsers import MultiPartParser, FormParser
 
 # ── HELPERS DE RESPUESTA ESTANDARIZADA ───────────────────────────────────────
 
@@ -58,20 +59,41 @@ def respuesta_serializer_invalido(errors):
 class RegistrarMedicoView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-
+    parser_classes = [MultiPartParser, FormParser]
     def post(self, request):
         try:
-            serializer = RegistrarMedicoSerializer(data=request.data)
+            serializer = RegistrarMedicoSerializer(
+                data=request.data
+            )
+
             if not serializer.is_valid():
-                return respuesta_serializer_invalido(serializer.errors)
-            data_validada = serializer.validated_data
-            respuesta, statusCode = crearMedicoService(data_validada)
-            if statusCode != 201:
-                return respuesta_error(respuesta, status=statusCode)
-            return respuesta_ok(data=respuesta, mensaje="Médico registrado correctamente", status=statusCode)
+                return respuesta_serializer_invalido(
+                    serializer.errors
+                )
+
+            respuesta, status_code = crearMedicoService(
+                serializer.validated_data
+            )
+
+            if status_code != 201:
+                return respuesta_error(
+                    respuesta,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=respuesta,
+                mensaje="Médico registrado correctamente. Tu solicitud está pendiente de validación.",
+                status=status_code
+            )
+
         except Exception as e:
-            print(e)
-            return respuesta_error("Error interno en el servidor", status=500)
+            print("Error registrando médico:", e)
+
+            return respuesta_error(
+                "Error interno en el servidor",
+                status=500
+            )
 
 
 # Vista admin: lista todos los médicos registrados

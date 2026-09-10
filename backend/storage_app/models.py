@@ -1,7 +1,7 @@
 from django.db import models
 
 from users.models import Usuario
-
+from medicos.models import Medico
 
 class Archivo(models.Model):
     TIPO_CHOICES = [
@@ -20,6 +20,14 @@ class Archivo(models.Model):
         blank=True,
     )
 
+    medico = models.ForeignKey(
+        Medico,
+        on_delete=models.CASCADE,
+        related_name="archivos",
+        null=True,
+        blank=True,
+    )
+    
     nombre_original = models.CharField(
         max_length=255
     )
