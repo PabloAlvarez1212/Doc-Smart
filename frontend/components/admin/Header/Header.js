@@ -1,31 +1,17 @@
 "use client"
-import Swal from "sweetalert2";
 import Styles from "./Header.module.css";
 import Image from "next/image";
-import Button from "../../ui/Button/Button";
-import { LogOutIcon } from "lucide-react";
-import useHeader from "./useHeader";
+import useLogout from "../../hooks/useLogout";
+import Modal from "../../ui/Modal/Modal";
+import SettingsComponent from "../../ui/SettingsComponent/SettingsComponent";
+import { useState } from "react";
+import { SettingsIcon,KeyRound } from "lucide-react";
+import ResetPasswordFormComponent from "../../ui/ResetPasswordComponent/ResetPasswordComponent";
+
 export default function Header() {
-    const {logout} = useHeader();
-    const logoutFunction = () => {
-        Swal.fire({
-            title: "Estas seguro que quieres cerrar sesión?",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#3085d6",
-            cancelButtonColor: "#d33",
-            confirmButtonText: "Si, cerrar sesión",
-            cancelButtonText: "Cancelar",
-        }).then(async(result) => {
-            if (result.isConfirmed)
-                await logout()
-                Swal.fire({
-                title: "Éxito!",
-                text: "Se a cerrado sesión correctamente.",
-                icon: "success"
-            });
-        });
-    }
+    const [modal, setModal] = useState(false);
+    const [modalCambiarContrasena, setModalCambiarContrasena] = useState(false)
+    const { logoutUser } = useLogout();
     return (
         <div className={Styles.containerHeader}>
             <div className={Styles.container}>
@@ -34,10 +20,40 @@ export default function Header() {
                     <h2><span>Doc</span>Smart</h2>
                 </div>
                 <div className={Styles.icons}>
-                    <Button onClick={logoutFunction} size="sm" aria-label="Cerrar sesión"><LogOutIcon size={30} className={Styles.icon} /></Button>
+                    <button type="button" aria-label="Abrir ajustes" className={Styles.settingsButton} onClick={() => setModal(true)}>
+                        <SettingsIcon className={Styles.iconSettings} />
+                    </button>
 
                 </div>
             </div>
+            <Modal
+                titulo="Acciones"
+                abierto={modal}
+                headerVariant="white"
+                onCerrar={() => setModal(false)}
+            >
+                <SettingsComponent
+                    cerrarSesion={logoutUser}
+                    abrirCambiarContrasena={() => {
+                        setModal(false)
+                        setModalCambiarContrasena(true)
+                    }}
+                />
+            </Modal>
+            <Modal
+                titulo="Cambiar contraseña"
+                abierto={modalCambiarContrasena}
+                onCerrar={() => {
+                    setModalCambiarContrasena(false)
+                    setModal(true)
+                }}
+                headerVariant="yellow"
+                text="Mantén tu cuenta segura con una contraseña fuerte"
+                width="500px"
+                icon={<KeyRound size={45} />}
+            >
+                <ResetPasswordFormComponent />
+            </Modal>
         </div>
     )
 }

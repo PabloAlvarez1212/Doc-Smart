@@ -1,6 +1,6 @@
 import Style from "./SettingsComponent.module.css"
 import { KeyIcon, ChevronRight, LogOutIcon, TrashIcon } from "lucide-react"
-export default function SettingsComponent({abrirCambiarContrasena,eliminarCuenta, cerrarSesion }) {
+export default function SettingsComponent({ abrirCambiarContrasena, eliminarCuenta, cerrarSesion }) {
     return (
         <div className={Style.containerMain}>
             <div className={Style.cards}>
@@ -31,18 +31,20 @@ export default function SettingsComponent({abrirCambiarContrasena,eliminarCuenta
                     </div>
                     <ChevronRight size={28} />
                 </div>
-                <div className={Style.card} onClick={() => eliminarCuenta()}>
-                    <div className={Style.titleContainer}>
-                        <div className={Style.containerEliminarIcon}>
-                            <TrashIcon color="#E05362" />
+                {eliminarCuenta && (
+                    <div className={Style.card} onClick={() => eliminarCuenta()}>
+                        <div className={Style.titleContainer}>
+                            <div className={Style.containerEliminarIcon}>
+                                <TrashIcon color="#E05362" />
+                            </div>
+                            <div className={Style.textContainer}>
+                                <h3 className={Style.textEliminar}>Eliminar cuenta</h3>
+                                <p>Elimina permanentemente tu cuenta</p>
+                            </div>
                         </div>
-                        <div className={Style.textContainer}>
-                            <h3 className={Style.textEliminar}>Eliminar cuenta</h3>
-                            <p>Elimina permanentemente tu cuenta</p>
-                        </div>
+                        <ChevronRight size={28} />
                     </div>
-                    <ChevronRight size={28} />
-                </div>
+                )}
             </div>
         </div>
     )
