@@ -1,8 +1,15 @@
 'use client'
+import { CheckCircle2, FileText, FileUp, RefreshCw } from 'lucide-react'
 import Input from '../../ui/Input/Input.js'
 import Button from '../../ui/Button/Button.js'
 import styles from './RegisterForm.module.css'
 import { useRegister } from './UseRegister'
+
+const formatFileSize = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
 
 // Componente de formulario de registro por pasos, adaptado según el rol (paciente o médico)
 export default function RegisterForm({ role, setRole }) {
@@ -191,6 +198,53 @@ export default function RegisterForm({ role, setRole }) {
 
                                 <Input type="password" name="confirmar_contraseña" placeholder="Confirmar contraseña" onChange={handleChange} value={form.confirmar_contraseña} />
                                 {errors.confirmar_contraseña && <p className={styles.error}>{errors.confirmar_contraseña}</p>}
+
+                                <div className={styles.resumeUpload}>
+                                    <input
+                                        id="hoja-vida"
+                                        className={styles.fileInput}
+                                        type="file"
+                                        name="hoja_vida"
+                                        accept="application/pdf"
+                                        onChange={handleChange}
+                                        aria-describedby="hoja-vida-help"
+                                        aria-invalid={Boolean(errors.hoja_vida)}
+                                        aria-errormessage={errors.hoja_vida ? "hoja-vida-error" : undefined}
+                                    />
+
+                                    {form.hoja_vida ? (
+                                        <div className={`${styles.uploadSurface} ${styles.selectedFile}`}>
+                                            <span className={styles.fileIcon} aria-hidden="true">
+                                                <FileText size={25} />
+                                            </span>
+                                            <div className={styles.fileDetails}>
+                                                <div className={styles.fileNameRow}>
+                                                    <strong title={form.hoja_vida.name}>{form.hoja_vida.name}</strong>
+                                                    <CheckCircle2 size={17} aria-label="Archivo seleccionado" />
+                                                </div>
+                                                <span id="hoja-vida-help">{formatFileSize(form.hoja_vida.size)} · PDF</span>
+                                            </div>
+                                            <label className={styles.changeFile} htmlFor="hoja-vida">
+                                                <RefreshCw size={15} aria-hidden="true" /> Cambiar PDF
+                                            </label>
+                                        </div>
+                                    ) : (
+                                        <div className={styles.uploadSurface}>
+                                            <span className={styles.uploadIcon} aria-hidden="true">
+                                                <FileUp size={28} />
+                                            </span>
+                                            <div className={styles.uploadCopy}>
+                                                <strong>Adjunta tu hoja de vida</strong>
+                                                <p>Selecciona un archivo PDF con tu información profesional.</p>
+                                            </div>
+                                            <label className={styles.selectFile} htmlFor="hoja-vida">
+                                                <FileUp size={17} aria-hidden="true" /> Seleccionar PDF
+                                            </label>
+                                            <small id="hoja-vida-help">PDF · máximo 5 MB</small>
+                                        </div>
+                                    )}
+                                </div>
+                                {errors.hoja_vida && <p id="hoja-vida-error" className={styles.error}>{errors.hoja_vida}</p>}
 
                                 <div className={styles.buttons}>
                                     {/* Retrocede 2 pasos para volver al paso 1 */}
