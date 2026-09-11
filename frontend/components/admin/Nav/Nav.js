@@ -1,76 +1,83 @@
 "use client";
-import Styles from "./Nav.module.css";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User } from "lucide-react";
-import { Stethoscope, MapPinned, Map, Shield, BadgeCheck, Phone, LayoutDashboard } from "lucide-react";
-import { BadgePlus } from "lucide-react";
+import {
+    BadgeCheck,
+    BadgePlus,
+    ChevronDown,
+    CircleUserRound,
+    LayoutDashboard,
+    Map,
+    MapPinned,
+    Phone,
+    Settings2,
+    Shield,
+    Stethoscope,
+} from "lucide-react";
 import { useState } from "react";
-import Button from "../../ui/Button/Button";
-import { ChevronUp, ChevronDown } from 'lucide-react'
+import styles from "./Nav.module.css";
 
+const primaryItems = [
+    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/patients", label: "Pacientes", icon: CircleUserRound },
+    { href: "/admin/doctors", label: "Médicos", icon: Stethoscope },
+];
+
+const catalogItems = [
+    { href: "/admin/specialties", label: "Especialidades", icon: BadgePlus },
+    { href: "/admin/departments", label: "Departamentos", icon: Map },
+    { href: "/admin/cities", label: "Ciudades", icon: MapPinned },
+    { href: "/admin/states", label: "Estados", icon: BadgeCheck },
+    { href: "/admin/roles", label: "Roles", icon: Shield },
+    { href: "/admin/channel", label: "Medios", icon: Phone },
+];
 
 export default function Nav() {
-    const pathName = usePathname();
-    const activarLink = function (route) {
-        return pathName === route ? Styles.activar : Styles.link;
-    }
-    const [catalogoAbierto, setCatalogoAbierto] = useState(false);
+    const pathname = usePathname();
+    const catalogRouteActive = catalogItems.some(({ href }) => pathname === href || pathname.startsWith(`${href}/`));
+    const [catalogOpen, setCatalogOpen] = useState(catalogRouteActive);
+
+    const renderLink = ({ href, label, icon: Icon }) => {
+        const active = pathname === href || pathname.startsWith(`${href}/`);
+        return (
+            <li key={href}>
+                <Link href={href} className={`${styles.link} ${active ? styles.active : ""}`} aria-current={active ? "page" : undefined}>
+                    <Icon size={19} strokeWidth={1.9} />
+                    <span>{label}</span>
+                </Link>
+            </li>
+        );
+    };
 
     return (
-        <div className={Styles.containerNav}>
-            <nav>
-                <ul>
-                    <div className={Styles.containerNavMain}>
-                        <div className={Styles.item}>
-                            <LayoutDashboard size={32} />
-                            <li><Link href={'/admin/dashboard'} className={activarLink('/admin/dashboard')}>Dashboard</Link></li>
-                        </div>
-                        <div className={Styles.item}>
-                            <User size={32} />
-                            <li><Link href={'/admin/patients'} className={activarLink('/admin/patients')}>Pacientes</Link></li>
-                        </div>
-                        <div className={Styles.item}>
-                            <Stethoscope size={32} />
-                            <li><Link href={'/admin/doctors'} className={activarLink('/admin/doctors')}>Medicos</Link></li>
-                        </div>
-                    </div>
-                    <div className={Styles.catalogos}>
-                        <div className={Styles.btn}>
+        <nav className={styles.nav} aria-label="Navegación administrativa">
+            <div>
+                <p className={styles.groupLabel}>Principal</p>
+                <ul className={styles.list}>{primaryItems.map(renderLink)}</ul>
+            </div>
 
-                            <Button size="sm" onClick={() => setCatalogoAbierto(!catalogoAbierto)}>Catalogos    {catalogoAbierto ? <ChevronUp color="white" size={25} /> : <ChevronDown color="white" size={25} />}</Button>
-                        </div>
-                        {catalogoAbierto && (
-                            <div>
-                                <div className={Styles.item}>
-                                    <BadgePlus size={32} />
-                                    <li><Link href={'/admin/specialties'} className={activarLink('/admin/specialties')}>Especialidades</Link></li>
-                                </div>
-                                <div className={Styles.item}>
-                                    <MapPinned size={32} />
-                                    <li><Link href={'/admin/cities'} className={activarLink('/admin/cities')}>Ciudades</Link></li>
-                                </div>
-                                <div className={Styles.item}>
-                                    <Map size={32} />
-                                    <li><Link href={'/admin/departments'} className={activarLink('/admin/departments')}>Departamentos</Link></li>
-                                </div>
-                                <div className={Styles.item}>
-                                    <Shield size={32} />
-                                    <li><Link href={'/admin/roles'} className={activarLink('/admin/roles')}>Roles</Link></li>
-                                </div>
-                                <div className={Styles.item}>
-                                    <BadgeCheck size={32} />
-                                    <li><Link href={'/admin/states'} className={activarLink('/admin/states')}>Estados</Link></li>
-                                </div>
-                                <div className={Styles.item}>
-                                    <Phone size={32} />
-                                    <li><Link href={'/admin/channel'} className={activarLink('/admin/channel')}>Medios</Link></li>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+            <div className={styles.group}>
+                <p className={styles.groupLabel}>Configuración</p>
+                <button
+                    type="button"
+                    className={`${styles.groupButton} ${catalogRouteActive ? styles.groupActive : ""}`}
+                    aria-expanded={catalogOpen}
+                    aria-controls="admin-catalogs"
+                    onClick={() => setCatalogOpen((current) => !current)}
+                >
+                    <span><Settings2 size={19} strokeWidth={1.9} /> Catálogos</span>
+                    <ChevronDown className={catalogOpen ? styles.chevronOpen : ""} size={18} />
+                </button>
+                <ul id="admin-catalogs" className={`${styles.list} ${styles.sublist} ${catalogOpen ? styles.sublistOpen : ""}`}>
+                    {catalogItems.map(renderLink)}
                 </ul>
-            </nav>
-        </div>
-    )
+            </div>
+
+            <div className={styles.footer}>
+                <Shield size={16} />
+                <span><strong>DocSmart Admin</strong><small>Gestión del sistema</small></span>
+            </div>
+        </nav>
+    );
 }

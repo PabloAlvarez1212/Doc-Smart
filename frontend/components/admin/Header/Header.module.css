@@ -1,64 +1,47 @@
-.containerHeader{
-    width: 100%;
-    position: sticky;
-    height: 70px;
-}
-.container{
-    display: flex;
+.header {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
-    width: 95%;
-    margin: 0 auto;
-    margin-top: 1rem;
-    margin-bottom: 1.5rem;
+    min-height: 72px;
+    padding-right: clamp(18px, 3vw, 40px);
 }
-.iconSettings{
-    width: 32px;
-    height: 32px;
-}
-.iconSettings:hover{
+.logo { display: flex; align-items: center; gap: 8px; padding: 0 24px; }
+.logo img { width: 48px; height: 42px; object-fit: contain; }
+.wordmark { color: #2563eb; font-size: 1.25rem; font-weight: 700; letter-spacing: -.035em; }
+.wordmark strong { color: #172033; }
+.context { display: flex; align-items: center; gap: 10px; min-width: 0; padding-left: clamp(20px, 3vw, 40px); }
+.contextIcon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: #edf4ff; color: #2563eb; }
+.context > span:last-child { display: grid; min-width: 0; gap: 1px; }
+.context small { color: #7a8699; font-size: .7rem; font-weight: 650; letter-spacing: .055em; text-transform: uppercase; }
+.context strong { overflow: hidden; color: #27364d; font-size: .92rem; text-overflow: ellipsis; white-space: nowrap; }
+.settingsButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    border: 1px solid #dfe6ef;
+    border-radius: 10px;
+    padding: 0 13px;
+    background: #fff;
+    color: #344054;
+    font: inherit;
+    font-size: .86rem;
+    font-weight: 650;
     cursor: pointer;
-    opacity: 70%;
-    width: 34px;
-    height: 34px;
+    transition: border-color .16s ease, background-color .16s ease, color .16s ease;
 }
-.settingsButton { 
-    display: grid; 
-    place-items: center; 
-    flex-shrink: 0; 
-    width: 44px; 
-    height: 44px; 
-    border: 0; 
-    border-radius: 12px; 
-    background: transparent; 
-    color: inherit; 
-    cursor: pointer; 
+.settingsButton:hover { border-color: #b9c9df; background: #f6f9fe; color: #174c96; }
+
+@media (max-width: 1100px) {
+    .header { grid-template-columns: auto minmax(0, 1fr) auto; padding: 0 18px; }
+    .logo { padding: 0; }
+    .context { justify-self: center; padding-left: 0; }
 }
-.icons{
-    display: flex;
-    gap: 1rem;
-    align-items: center;
+@media (max-width: 640px) {
+    .header { min-height: 64px; padding: 0 12px; }
+    .logo img { width: 40px; height: 36px; }
+    .wordmark { font-size: 1.08rem; }
+    .context { display: none; }
+    .settingsButton { justify-self: end; width: 42px; padding: 0; justify-content: center; }
+    .settingsButton span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 }
-.icons button{
-    padding: 6px 8px ;
-}
-.icons .icon:hover{
-    opacity: 60%;
-}
-.logo{
-    display: flex;
-    align-items: center;
-}
-.logo h2{
-    font-size: clamp(1.3rem,3vw,1.6rem);
-    color: var(--color-dark);
-}
-.logo h2 span{
-    color: black;
-}
-.logo img{
-    width: clamp(5rem,6.5vw,6rem);
-    height: auto;
-}.containerHeader { height: auto; min-height: 76px; }
-.container { margin-block: 0; min-height: 76px; }
-@media (max-width: 640px) { .logo img { width: 52px; } .logo h2 { font-size: 1.25rem; } }

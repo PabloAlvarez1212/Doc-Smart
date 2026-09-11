@@ -5,15 +5,15 @@ import ResponsiveNav from "../../../components/ui/ResponsiveNav/ResponsiveNav"
 export default function AdminLayout({ children }) {
   return (
     <div className={Styles.containerMain}>
-      <div className={Styles.header}>
+      <header className={Styles.header}>
         <Header />
-      </div>
-      <div className={Styles.container}>
-        <div className={Styles.nav}>
+      </header>
+      <div className={Styles.workspace}>
+        <aside className={Styles.nav}>
           <ResponsiveNav id="admin-navigation" label="Menú de administración"><Nav /></ResponsiveNav>
-        </div>
+        </aside>
         <main className={Styles.main}>
-          {children}
+          <div className={Styles.content}>{children}</div>
         </main>
       </div>
     </div>

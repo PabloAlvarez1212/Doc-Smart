@@ -5,6 +5,8 @@ import Swal from "sweetalert2";
 
 import DataTable from "../../../../components/ui/DataTable/DataTable";
 import Pagination from "../../../../components/ui/Pagination/Pagination";
+import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
+import pageStyles from "../adminPages.module.css";
 
 import {
     getCiudadesService,
@@ -53,8 +55,6 @@ export default function Cities() {
                 ? await getCiudadesPorDepartamentoService(idDepartamento, paginaSolicitada)
                 : await getCiudadesService(paginaSolicitada);
 
-            console.log("Respuesta ciudades:", res); // <-- TEMPORAL: revisa esto en la consola
-
             const resultados = res?.data?.resultados ?? [];
             const meta = res?.data?.paginacion ?? {
                 total_pages: 1,
@@ -90,15 +90,17 @@ export default function Cities() {
     ];
 
     return (
-        <>
-            <div style={{ marginBottom: "20px", maxWidth: "300px" }}>
-                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600" }}>
+        <div className={pageStyles.page}>
+            <AdminPageHeader eyebrow="Catálogos" title="Ciudades" description="Consulta las ciudades disponibles y acota el listado por departamento." />
+            <div className={pageStyles.filterPanel}>
+                <div className={pageStyles.field}>
+                <label htmlFor="department-filter">
                     Departamento
                 </label>
                 <select
+                    id="department-filter"
                     value={departamentoSeleccionado}
                     onChange={cambiarDepartamento}
-                    style={{ width: "100%", padding: "10px", borderRadius: "8px" }}
                 >
                     <option value="">Todos los departamentos</option>
                     {departamentos.map((dep) => (
@@ -107,8 +109,10 @@ export default function Cities() {
                         </option>
                     ))}
                 </select>
+                </div>
             </div>
 
+            <section className={pageStyles.tableSection} aria-label="Listado de ciudades">
             <DataTable
                 titulo="Ciudades"
                 columnas={columnas}
@@ -118,6 +122,7 @@ export default function Cities() {
                 placeholderBusqueda="Buscar ciudad..."
                 mostrarBotonNuevo={false}
                 mostrarAcciones={false}
+                mostrarEncabezado={false}
             />
 
             <Pagination
@@ -126,7 +131,9 @@ export default function Cities() {
                 totalRegistros={totalRegistros}
                 onCambiarPagina={setPagina}
                 cargando={cargando}
+                variant="admin"
             />
-        </>
+            </section>
+        </div>
     );
 }

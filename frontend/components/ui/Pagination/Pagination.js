@@ -19,11 +19,12 @@ export default function Pagination({
     totalRegistros,
     onCambiarPagina,
     cargando = false,
+    variant = "default",
 }) {
     if (totalPaginas <= 1) return null;
 
     return (
-        <div className={styles.wrapper}>
+        <div className={`${styles.wrapper} ${variant === "admin" ? styles.admin : ""}`}>
             <Button
                 type="button"
                 variant="primary"

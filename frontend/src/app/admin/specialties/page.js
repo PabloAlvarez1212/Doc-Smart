@@ -5,6 +5,10 @@ import { useCrud } from "../../../../components/hooks/useCrud";
 import DataTable from "../../../../components/ui/DataTable/DataTable";
 import Pagination from "../../../../components/ui/Pagination/Pagination";
 import Modal from "../../../../components/ui/Modal/Modal";
+import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
+import Button from "../../../../components/ui/Button/Button";
+import { Plus } from "lucide-react";
+import pageStyles from "../adminPages.module.css";
 
 import {
     crearEspecialidadService,
@@ -34,7 +38,9 @@ export default function Especialidad() {
     ];
 
     return (
-        <>
+        <div className={pageStyles.page}>
+            <AdminPageHeader eyebrow="Catálogos" title="Especialidades" description="Administra las especialidades disponibles para los profesionales de DocSmart." action={<Button size="sm" onClick={crud.abrirModalNuevo}><Plus size={17} /> Nueva especialidad</Button>} />
+            <section className={pageStyles.tableSection} aria-label="Listado de especialidades">
             <DataTable
                 titulo="Especialidades"
                 columnas={columnas}
@@ -43,6 +49,8 @@ export default function Especialidad() {
                 onNuevo={crud.abrirModalNuevo}
                 onEditar={crud.abrirModalEditar}
                 onEliminar={crud.eliminar}
+                mostrarEncabezado={false}
+                placeholderBusqueda="Buscar especialidad..."
             />
 
             <Pagination
@@ -51,7 +59,9 @@ export default function Especialidad() {
                 totalRegistros={crud.paginacion.count}
                 onCambiarPagina={crud.setPagina}
                 cargando={crud.cargando}
+                variant="admin"
             />
+            </section>
 
             <Modal
                 abierto={crud.modalAbierto}
@@ -70,6 +80,6 @@ export default function Especialidad() {
                     guardando={crud.guardando}
                 />
             </Modal>
-        </>
+        </div>
     );
 }

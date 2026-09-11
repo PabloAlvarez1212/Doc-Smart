@@ -1,0 +1,32 @@
+.page { display: flex; min-width: 0; flex-direction: column; gap: 24px; }
+.tableSection { min-width: 0; }
+.filterPanel {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid #e3e9f2;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(27, 52, 91, .045);
+}
+.field { display: grid; width: min(100%, 320px); gap: 7px; }
+.field label { color: #344054; font-size: .82rem; font-weight: 650; }
+.field select {
+    min-height: 44px;
+    width: 100%;
+    border: 1px solid #d7dfeb;
+    border-radius: 10px;
+    padding: 0 38px 0 12px;
+    background: #fff;
+    color: #24324a;
+    font: inherit;
+    cursor: pointer;
+}
+.field select:hover { border-color: #aebdd1; }
+.field select:focus-visible { border-color: #2563eb; outline: 3px solid rgba(37, 99, 235, .14); outline-offset: 0; }
+
+@media (max-width: 640px) {
+    .page { gap: 20px; }
+    .filterPanel, .field { width: 100%; }
+}
