@@ -1,0 +1,44 @@
+.detail { display: grid; gap: 20px; color: #344054; }
+.summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding-bottom: 18px; border-bottom: 1px solid #e7ecf3; }
+.avatar { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 13px; background: #eaf3ff; color: #2563eb; }
+.identity { min-width: 0; }
+.identity > span { color: #2563eb; font-size: .66rem; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }
+.identity h2 { margin-top: 3px; overflow: hidden; color: #202f46; font-size: 1.2rem; text-overflow: ellipsis; white-space: nowrap; }
+.identity p { margin-top: 3px; color: #7a8699; font-size: .79rem; }
+.currentStatus { display: grid; justify-items: end; gap: 6px; }
+.currentStatus small { color: #8491a3; font-size: .67rem; }
+.sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.section { min-width: 0; border: 1px solid #e3e9f2; border-radius: 13px; padding: 16px; background: #fbfcfe; }
+.section:last-child { grid-column: 1 / -1; }
+.sectionTitle { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; color: #2762a5; }
+.sectionTitle h3 { color: #2e3c52; font-size: .83rem; font-weight: 720; }
+.fieldsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 18px; }
+.field { min-width: 0; }
+.field dt { color: #8994a5; font-size: .66rem; font-weight: 650; }
+.field dd { margin-top: 4px; overflow: hidden; color: #344054; font-size: .79rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.documentCard { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; border: 1px solid #dfe7f1; border-radius: 11px; padding: 12px; background: #fff; }
+.documentIcon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #edf4fd; color: #2563eb; }
+.documentCopy { display: grid; min-width: 0; gap: 3px; }
+.documentCopy strong { overflow: hidden; color: #2d3b51; font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
+.documentCopy span { color: #8491a3; font-size: .7rem; }
+.documentCard button, .actions button { min-height: 40px; padding: 0 14px; font-size: .78rem; font-weight: 700; }
+.documentCard button { border: 1px solid #dbe3ed; }
+.rejectPanel { display: grid; gap: 8px; border: 1px solid #f0cfd4; border-radius: 12px; padding: 15px; background: #fff8f8; }
+.rejectPanel h3 { color: #8f2735; font-size: .86rem; }
+.rejectPanel label { color: #6d5b60; font-size: .72rem; }
+.rejectPanel textarea { width: 100%; resize: vertical; border: 1px solid #dfc7cb; border-radius: 9px; padding: 10px 12px; background: #fff; color: #344054; font: inherit; font-size: .8rem; }
+.actions { display: flex; align-items: center; justify-content: flex-end; gap: 9px; padding-top: 2px; }
+
+@media (max-width: 720px) {
+    .summary { grid-template-columns: auto minmax(0, 1fr); }
+    .currentStatus { grid-column: 2; justify-items: start; }
+    .sections { grid-template-columns: 1fr; }
+    .section:last-child { grid-column: auto; }
+    .documentCard { grid-template-columns: auto minmax(0, 1fr); }
+    .documentCard button { grid-column: 1 / -1; width: 100%; }
+}
+@media (max-width: 480px) {
+    .fieldsGrid { grid-template-columns: 1fr; }
+    .actions { align-items: stretch; flex-direction: column-reverse; }
+    .actions button { width: 100%; }
+}

@@ -14,6 +14,7 @@ const sectionNames = {
     "/admin/dashboard": "Resumen",
     "/admin/patients": "Pacientes",
     "/admin/doctors": "Médicos",
+    "/admin/doctor-requests": "Solicitudes médicas",
     "/admin/specialties": "Especialidades",
     "/admin/cities": "Ciudades",
     "/admin/departments": "Departamentos",

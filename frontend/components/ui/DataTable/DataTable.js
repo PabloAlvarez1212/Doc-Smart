@@ -59,6 +59,8 @@ export default function DataTable({
   descripcion,
   error,
   onReintentar,
+  emptyTitle,
+  emptyDescription,
 }) {
   const [busqueda, setBusqueda] = useState("");
 
@@ -157,8 +159,8 @@ export default function DataTable({
                 <td colSpan={totalColumnas} className={styles.empty}>
                   <div className={styles.emptyContent} role="status">
                     <span className={styles.emptyIcon}><Inbox size={22} /></span>
-                    <strong>{busqueda ? "Sin coincidencias" : "Aún no hay registros"}</strong>
-                    <span>{busqueda ? "Prueba con otro término de búsqueda." : "Los registros aparecerán aquí cuando estén disponibles."}</span>
+                    <strong>{busqueda ? "Sin coincidencias" : (emptyTitle ?? "Aún no hay registros")}</strong>
+                    <span>{busqueda ? "Prueba con otro término de búsqueda." : (emptyDescription ?? "Los registros aparecerán aquí cuando estén disponibles.")}</span>
                   </div>
                 </td>
               </tr>

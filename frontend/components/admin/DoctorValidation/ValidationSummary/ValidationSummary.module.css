@@ -1,0 +1,26 @@
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.item {
+    --state-color: #8a5a0a;
+    --state-background: #fff8e8;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    min-width: 0;
+    min-height: 74px;
+    gap: 11px;
+    border: 1px solid #e2e8f1;
+    border-radius: 13px;
+    padding: 13px 14px;
+    background: #fff;
+    box-shadow: 0 7px 20px rgba(28, 54, 92, .04);
+}
+.icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--state-background); color: var(--state-color); }
+.copy { display: grid; min-width: 0; gap: 3px; }
+.copy strong { color: #2b394f; font-size: .82rem; }
+.copy small { overflow: hidden; color: #7a8699; font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
+.count { display: grid; place-items: center; min-width: 30px; min-height: 30px; border-radius: 9px; padding: 4px 8px; background: var(--state-background); color: var(--state-color); font-size: .8rem; font-weight: 760; white-space: nowrap; }
+.approved { --state-color: #176b50; --state-background: #edf9f4; }
+.rejected { --state-color: #a52a3b; --state-background: #fff1f2; }
+
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+@media (max-width: 420px) { .item { grid-template-columns: auto minmax(0, 1fr); } .count { grid-column: 2; justify-self: start; } }

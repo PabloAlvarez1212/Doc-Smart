@@ -14,6 +14,7 @@ import {
     Settings2,
     Shield,
     Stethoscope,
+    UserRoundCheck,
 } from "lucide-react";
 import { useState } from "react";
 import styles from "./Nav.module.css";
@@ -31,6 +32,10 @@ const catalogItems = [
     { href: "/admin/states", label: "Estados", icon: BadgeCheck },
     { href: "/admin/roles", label: "Roles", icon: Shield },
     { href: "/admin/channel", label: "Medios", icon: Phone },
+];
+
+const validationItems = [
+    { href: "/admin/doctor-requests", label: "Solicitudes médicas", icon: UserRoundCheck },
 ];
 
 export default function Nav() {
@@ -55,6 +60,11 @@ export default function Nav() {
             <div>
                 <p className={styles.groupLabel}>Principal</p>
                 <ul className={styles.list}>{primaryItems.map(renderLink)}</ul>
+            </div>
+
+            <div>
+                <p className={styles.groupLabel}>Validación</p>
+                <ul className={styles.list}>{validationItems.map(renderLink)}</ul>
             </div>
 
             <div className={styles.group}>

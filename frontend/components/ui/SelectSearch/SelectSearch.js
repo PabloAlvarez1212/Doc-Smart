@@ -17,6 +17,7 @@ export default function SelectSearch({
     return (
         <div className={`${styles.wrapper} ${className}`}>
             <Select
+                instanceId={inputId}
                 options={opciones}
                 value={valorSeleccionado}
                 onChange={(opcion) => onChange(opcion?.value ?? "")}
