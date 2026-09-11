@@ -3,14 +3,13 @@ import calendar
 from django.utils import timezone
 from citas.models import Cita
 from notificaciones.models import Notificacion
-from medicos.models import Medico, Especialidad
+from medicos.models import Medico, Especialidad,SolicitudValidacionMedico
 from users.models import Usuario
 from historial_medico.models import HistorialClinico
 from catalogos.models import Rol, Ciudad
 from medicos.serializers import (
     EspecialidadSerializer,
     MedicoPerfilSerializer,
-    RegistrarMedicoSerializer,
     EditarMedicoSerializer,
     RegistrarEspecialidadSerializer,
     EditarEspecialidadSerializer,
@@ -20,6 +19,7 @@ from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
 from django.db.models import Q
 from storage_app.services import guardar_archivo_medico
+from django.db import transaction
 
 # ── SERVICIOS DE MÉDICOS ──────────────────────────────────────────────────────
 
@@ -75,6 +75,7 @@ def obtenerMedicoService(id_medico):
 
 
 # Crea un nuevo médico tras validar datos, unicidad de correo/cédula y existencia de relaciones
+@transaction.atomic
 def crearMedicoService(data_validada):
 
     # Verifica que el correo no esté en uso por otro médico o usuario
@@ -150,20 +151,26 @@ def crearMedicoService(data_validada):
         ciudad=ciudad,
         id_rol=rol,
         direccion=data_validada.get('direccion', ''),
-        estado_validacion=Medico.EstadoValidacion.PENDIENTE,
     )
 
     try:
-        guardar_archivo_medico(
+        # Guarda PDF y retorna el registro Archivo
+        archivo_hoja_vida = guardar_archivo_medico(
             archivo=hoja_vida,
             medico_id=medico.id,
             categoria="hoja_vida"
+        )
+        
+        # Crear primera solicitud
+        SolicitudValidacionMedico.objects.create(
+            medico=medico,
+            hoja_vida=archivo_hoja_vida
         )
 
     except Exception as error:
 
         print(
-            "Error guardando hoja de vida:",
+            "Error creando solicitud de validación médica:",
             error
         )
 
