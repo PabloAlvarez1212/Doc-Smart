@@ -11,6 +11,7 @@ export default function useDoctorValidation() {
     const [ciudadSeleccionada, setCiudadSeleccionada] = useState("")
     const [estadoSeleccionado, setEstadoSeleccionado] = useState("")
     const [especialidadSeleccionada, setEspecialidadSeleccionada] = useState("")
+    const [busqueda, setBusqueda] = useState("")
     const estados = [
         { value: "pendiente", label: "Pendiente" },
         { value: "rechazado", label: "Rechazado" },
@@ -55,6 +56,14 @@ export default function useDoctorValidation() {
         }
     }
 
+    const limpiarFiltros = () => {
+        setBusqueda("")
+        setEstadoSeleccionado("")
+        setEspecialidadSeleccionada("")
+        setDepartamentoSeleccionado("")
+        setCiudadSeleccionada("")
+    }
+
     useEffect(() => {
         cargarEspecialidades();
         cargarDepartamentos();
@@ -94,5 +103,10 @@ export default function useDoctorValidation() {
 
         especialidadSeleccionada,
         setEspecialidadSeleccionada,
+
+        busqueda,
+        setBusqueda,
+
+        limpiarFiltros,
     }
 }

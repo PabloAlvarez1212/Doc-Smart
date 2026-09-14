@@ -13,20 +13,23 @@ import useDoctorValidation from "../../../../components/admin/DoctorValidation/u
 
 export default function DoctorRequestsPage() {
     const [selectedRequest, setSelectedRequest] = useState(null);
-    const { 
-        estados, 
-        especialidades, 
-        departamentos, 
-        departamentoSeleccionado, 
-        setDepartamentoSeleccionado, 
-        ciudades, 
-        ciudadSeleccionada, 
+    const {
+        estados,
+        especialidades,
+        departamentos,
+        departamentoSeleccionado,
+        setDepartamentoSeleccionado,
+        ciudades,
+        ciudadSeleccionada,
         setCiudadSeleccionada,
         especialidadSeleccionada,
         estadoSeleccionado,
         setEspecialidadSeleccionada,
         setEstadoSeleccionado,
-     } = useDoctorValidation()
+        limpiarFiltros,
+        busqueda,
+        setBusqueda,
+    } = useDoctorValidation()
 
     return (
         <div className={styles.page}>
@@ -50,6 +53,9 @@ export default function DoctorRequestsPage() {
                 setEspecialidadSeleccionada={setEspecialidadSeleccionada}
                 estadoSeleccionado={estadoSeleccionado}
                 setEstadoSeleccionado={setEstadoSeleccionado}
+                limpiarFiltros={limpiarFiltros}
+                busqueda={busqueda}
+                setBusqueda={setBusqueda}
             />
 
             <section className={styles.requestsSection} aria-labelledby="requests-list-title">

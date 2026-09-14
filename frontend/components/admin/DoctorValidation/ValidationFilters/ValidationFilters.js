@@ -9,12 +9,15 @@ export default function ValidationFilters({
     estados,
     departamentos,
     ciudades,
-    estadoSeleccionado,setEstadoSeleccionado,
-    especialidadSelecionada,setEspecialidadSeleccionada,
-    departamentoSeleccionado,setDepartamentoSeleccionado,
-    ciudadSeleccionada,setCiudadSeleccionada
+    estadoSeleccionado, setEstadoSeleccionado,
+    especialidadSelecionada, setEspecialidadSeleccionada,
+    departamentoSeleccionado, setDepartamentoSeleccionado,
+    ciudadSeleccionada, setCiudadSeleccionada,
+    limpiarFiltros,
+    busqueda,
+    setBusqueda,
 }) {
-    
+
     return (
         <section className={styles.panel} aria-labelledby="validation-filters-title">
             <div className={styles.heading}>
@@ -30,7 +33,8 @@ export default function ValidationFilters({
                     <span>Buscar médico</span>
                     <span className={styles.searchControl}>
                         <Search size={17} aria-hidden="true" />
-                        <input type="search" placeholder="Nombre o cédula" readOnly aria-label="Buscar médico por nombre o cédula" />
+                        <input type="search" placeholder="Nombre o cédula" aria-label="Buscar médico por nombre o cédula" value={busqueda}
+                            onChange={(e) => setBusqueda(e.target.value)} />
                     </span>
                 </label>
 
@@ -63,7 +67,7 @@ export default function ValidationFilters({
                     />
                 </div>
 
-                <button type="button" className={styles.clearButton} disabled>
+                <button type="button" className={styles.clearButton} onClick={limpiarFiltros}>
                     <RotateCcw size={15} aria-hidden="true" />
                     Limpiar
                 </button>

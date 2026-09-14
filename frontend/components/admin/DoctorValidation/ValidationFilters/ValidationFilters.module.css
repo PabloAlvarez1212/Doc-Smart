@@ -18,7 +18,7 @@
 .searchControl:focus-within { border-color: #2b7fff; box-shadow: 0 0 0 3px rgba(43, 127, 255, .12); }
 .searchControl input { min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; color: #344054; font: inherit; font-size: .82rem; }
 .searchControl input::placeholder { color: #98a2b3; }
-.clearButton { display: inline-flex; align-items: center; justify-content: center; justify-self: start; min-width: 96px; min-height: 44px; gap: 6px; border: 1px solid #dfe5ee; border-radius: 10px; padding: 0 12px; background: #f8fafc; color: #8a95a5; font: inherit; font-size: .76rem; font-weight: 680; white-space: nowrap; }
+.clearButton { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; justify-self: start; min-width: 96px; min-height: 44px; gap: 6px; border: 1px solid #dfe5ee; border-radius: 10px; padding: 0 12px; background: #f8fafc; color: #8a95a5; font: inherit; font-size: .76rem; font-weight: 680; white-space: nowrap; }
 .clearButton:disabled { cursor: not-allowed; opacity: .72; }
 
 @media (max-width: 900px) { .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); } .searchField { grid-column: 1 / -1; } }
