@@ -3,7 +3,12 @@
 .headingIcon { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 auto; border-radius: 9px; background: #edf4fd; color: #2563eb; }
 .heading h2 { color: #2b394f; font-size: .9rem; font-weight: 720; }
 .heading p { margin-top: 2px; color: #8a95a5; font-size: .7rem; }
-.controls { display: grid; grid-template-columns: minmax(220px, 1.5fr) repeat(4, minmax(128px, .86fr)) auto; align-items: end; gap: 10px; }
+.controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    align-items: end;
+    gap: 10px;
+}
 .field { display: grid; min-width: 0; gap: 6px; }
 .field > label, .field > span:first-child { color: #4c5b72; font-size: .7rem; font-weight: 680; }
 .selectControl { min-width: 0; height: 44px; }
@@ -13,8 +18,8 @@
 .searchControl:focus-within { border-color: #2b7fff; box-shadow: 0 0 0 3px rgba(43, 127, 255, .12); }
 .searchControl input { min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; color: #344054; font: inherit; font-size: .82rem; }
 .searchControl input::placeholder { color: #98a2b3; }
-.clearButton { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; gap: 6px; border: 1px solid #dfe5ee; border-radius: 10px; padding: 0 12px; background: #f8fafc; color: #8a95a5; font: inherit; font-size: .76rem; font-weight: 680; }
+.clearButton { display: inline-flex; align-items: center; justify-content: center; justify-self: start; min-width: 96px; min-height: 44px; gap: 6px; border: 1px solid #dfe5ee; border-radius: 10px; padding: 0 12px; background: #f8fafc; color: #8a95a5; font: inherit; font-size: .76rem; font-weight: 680; white-space: nowrap; }
 .clearButton:disabled { cursor: not-allowed; opacity: .72; }
 
-@media (max-width: 1180px) { .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); } .searchField { grid-column: 1 / -1; } .clearButton { justify-self: start; } }
+@media (max-width: 900px) { .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); } .searchField { grid-column: 1 / -1; } }
 @media (max-width: 620px) { .panel { padding: 14px; } .controls { grid-template-columns: 1fr; } .searchField { grid-column: auto; } .clearButton { width: 100%; } }

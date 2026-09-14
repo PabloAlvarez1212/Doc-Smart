@@ -4,7 +4,17 @@ import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import SelectSearch from "../../../ui/SelectSearch/SelectSearch";
 import styles from "./ValidationFilters.module.css";
 
-export default function ValidationFilters({ departamentoSeleccionado = false }) {
+export default function ValidationFilters({
+    especialidades,
+    estados,
+    departamentos,
+    ciudades,
+    estadoSeleccionado,setEstadoSeleccionado,
+    especialidadSelecionada,setEspecialidadSeleccionada,
+    departamentoSeleccionado,setDepartamentoSeleccionado,
+    ciudadSeleccionada,setCiudadSeleccionada
+}) {
+    
     return (
         <section className={styles.panel} aria-labelledby="validation-filters-title">
             <div className={styles.heading}>
@@ -26,17 +36,17 @@ export default function ValidationFilters({ departamentoSeleccionado = false }) 
 
                 <div className={styles.field}>
                     <label htmlFor="request-specialty">Especialidad</label>
-                    <SelectSearch className={styles.selectControl} inputId="request-specialty" ariaLabel="Filtrar por especialidad" placeholder="Todas" opciones={[]} disabled />
+                    <SelectSearch className={styles.selectControl} inputId="request-specialty" ariaLabel="Filtrar por especialidad" placeholder="Todas" opciones={especialidades} onChange={setEspecialidadSeleccionada} value={especialidadSelecionada} />
                 </div>
 
                 <div className={styles.field}>
                     <label htmlFor="request-status">Estado</label>
-                    <SelectSearch className={styles.selectControl} inputId="request-status" ariaLabel="Filtrar por estado" placeholder="Todos" opciones={[]} disabled />
+                    <SelectSearch className={styles.selectControl} inputId="request-status" ariaLabel="Filtrar por estado" placeholder="Todos" opciones={estados} onChange={setEstadoSeleccionado} value={estadoSeleccionado} />
                 </div>
 
                 <div className={styles.field}>
                     <label htmlFor="request-department">Departamento</label>
-                    <SelectSearch className={styles.selectControl} inputId="request-department" ariaLabel="Filtrar por departamento" placeholder="Todos los departamentos" opciones={[]} disabled />
+                    <SelectSearch className={styles.selectControl} inputId="request-department" ariaLabel="Filtrar por departamento" placeholder="Todos los departamentos" opciones={departamentos} onChange={setDepartamentoSeleccionado} value={departamentoSeleccionado} />
                 </div>
 
                 <div className={styles.field}>
@@ -46,7 +56,9 @@ export default function ValidationFilters({ departamentoSeleccionado = false }) 
                         inputId="request-city"
                         ariaLabel="Filtrar por ciudad"
                         placeholder={departamentoSeleccionado ? "Todas las ciudades" : "Seleccione departamento"}
-                        opciones={[]}
+                        value={ciudadSeleccionada}
+                        opciones={ciudades}
+                        onChange={setCiudadSeleccionada}
                         disabled={!departamentoSeleccionado}
                     />
                 </div>

@@ -9,9 +9,24 @@ import ValidationSummary from "../../../../components/admin/DoctorValidation/Val
 import { MOCK_DOCTOR_REQUESTS } from "../../../../components/admin/DoctorValidation/mockDoctorRequests";
 import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
 import styles from "./doctorRequests.module.css";
+import useDoctorValidation from "../../../../components/admin/DoctorValidation/useDoctorValidation";
 
 export default function DoctorRequestsPage() {
     const [selectedRequest, setSelectedRequest] = useState(null);
+    const { 
+        estados, 
+        especialidades, 
+        departamentos, 
+        departamentoSeleccionado, 
+        setDepartamentoSeleccionado, 
+        ciudades, 
+        ciudadSeleccionada, 
+        setCiudadSeleccionada,
+        especialidadSeleccionada,
+        estadoSeleccionado,
+        setEspecialidadSeleccionada,
+        setEstadoSeleccionado,
+     } = useDoctorValidation()
 
     return (
         <div className={styles.page}>
@@ -22,7 +37,20 @@ export default function DoctorRequestsPage() {
             />
 
             <ValidationSummary requests={MOCK_DOCTOR_REQUESTS} />
-            <ValidationFilters />
+            <ValidationFilters
+                estados={estados}
+                especialidades={especialidades}
+                departamentos={departamentos}
+                departamentoSeleccionado={departamentoSeleccionado}
+                setDepartamentoSeleccionado={setDepartamentoSeleccionado}
+                ciudades={ciudades}
+                ciudadSeleccionada={ciudadSeleccionada}
+                setCiudadSeleccionada={setCiudadSeleccionada}
+                especialidadSelecionada={especialidadSeleccionada}
+                setEspecialidadSeleccionada={setEspecialidadSeleccionada}
+                estadoSeleccionado={estadoSeleccionado}
+                setEstadoSeleccionado={setEstadoSeleccionado}
+            />
 
             <section className={styles.requestsSection} aria-labelledby="requests-list-title">
                 <div className={styles.sectionHeading}>
