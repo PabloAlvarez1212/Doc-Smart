@@ -20,6 +20,7 @@ from medicos.services import (
     actualizarFotoPerfilMedicoService,
     eliminarFotoPerfilMedicoService,
     listarMedicosPublicosService,
+    listarSolicitudesValidacionService,
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
@@ -107,7 +108,31 @@ class MedicoListView(APIView):
             print(f'Error: {e}')
             return respuesta_error("Error interno en el servidor", status=500)
 
+#Vista admin: Lista los medicos que estan en pendientes y rechazados
+class ListarSolicitudesValidacionView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
 
+    def get(self, request):
+        busqueda = request.query_params.get("busqueda")
+        estado = request.query_params.get("estado")
+        especialidad = request.query_params.get("especialidad")
+        departamento = request.query_params.get("departamento")
+        ciudad = request.query_params.get("ciudad")
+
+        data, status_code = listarSolicitudesValidacionService(
+            busqueda=busqueda,
+            estado=estado,
+            especialidad=especialidad,
+            departamento=departamento,
+            ciudad=ciudad,
+        )
+
+        return respuesta_ok(
+            data=data,
+            mensaje="Solicitudes de validación obtenidas correctamente",
+            status=status_code
+        )
+        
 # Vista admin: obtiene, actualiza o elimina un médico por ID
 class MedicoDetailView(APIView):
     permission_classes = [IsAdmin]

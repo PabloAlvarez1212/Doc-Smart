@@ -14,10 +14,12 @@ from medicos.serializers import (
     RegistrarEspecialidadSerializer,
     EditarEspecialidadSerializer,
     MedicosPublicosSerializer,
+    SolicitudValidacionMedicoSerializer,
 )
 from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q,Value
+from django.db.models.functions import Concat
 from storage_app.services import guardar_archivo_medico
 from django.db import transaction
 
@@ -61,6 +63,72 @@ def listarMedicosPublicosService(
         
     serializer = MedicosPublicosSerializer(medicos,many=True)
     return serializer.data, 200
+
+def listarSolicitudesValidacionService(
+    busqueda=None,
+    estado=None,
+    especialidad=None,
+    departamento=None,
+    ciudad=None,
+):
+    solicitudes = (
+        SolicitudValidacionMedico.objects
+        .filter(
+            estado__in=[
+                SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE,
+                SolicitudValidacionMedico.EstadoSolicitud.RECHAZADO,
+            ]
+        )
+        .select_related(
+            "medico",
+            "medico__id_especialidad",
+            "medico__ciudad",
+            "medico__ciudad__departamento",
+            "hoja_vida",
+        )
+        .annotate(
+            nombre_completo=Concat(
+                "medico__nombre",
+                Value(" "),
+                "medico__apellido"
+            )
+        )
+        .order_by("-fecha_solicitud")
+    )
+
+    if busqueda:
+        busqueda = busqueda.strip()
+
+        solicitudes = solicitudes.filter(
+            Q(medico__nombre__icontains=busqueda) |
+            Q(medico__apellido__icontains=busqueda) |
+            Q(medico__cedula__icontains=busqueda) |
+            Q(nombre_completo__icontains=busqueda)
+        )
+
+    if estado:
+        solicitudes = solicitudes.filter(
+            estado=estado
+        )
+
+    if especialidad:
+        solicitudes = solicitudes.filter(
+            medico__id_especialidad_id=especialidad
+        )
+
+    if departamento:
+        solicitudes = solicitudes.filter(
+            medico__ciudad__departamento_id=departamento
+        )
+
+    if ciudad:
+        solicitudes = solicitudes.filter(
+            medico__ciudad_id=ciudad
+        )
+
+    data = SolicitudValidacionMedicoSerializer(solicitudes,many=True).data
+
+    return data, 200
 
 # Retorna los datos de un médico específico por su ID
 def obtenerMedicoService(id_medico):

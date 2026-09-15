@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Medico, Especialidad
+from .models import Medico, Especialidad,SolicitudValidacionMedico
 from utils import validarContraseña, validarNumber
 from datetime import date
 
@@ -11,6 +11,41 @@ class EspecialidadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Especialidad
         fields = '__all__'
+
+class SolicitudValidacionMedicoSerializer(serializers.ModelSerializer):
+    
+    medico_id = serializers.IntegerField(source="medico.id",read_only=True)
+    nombre = serializers.CharField(source="medico.nombre",read_only=True)
+    apellido = serializers.CharField(source="medico.apellido",read_only=True)
+    cedula = serializers.CharField(source="medico.cedula",read_only=True)
+    especialidad_id = serializers.IntegerField(source="medico.id_especialidad.id",read_only=True)
+    especialidad = serializers.CharField(source="medico.id_especialidad.nombre",read_only=True)
+    ciudad_id = serializers.IntegerField(source="medico.ciudad.id",read_only=True)
+    ciudad = serializers.CharField(source="medico.ciudad.nombre",read_only=True)
+    departamento_id = serializers.IntegerField(source="medico.ciudad.departamento.id",read_only=True)
+    departamento = serializers.CharField(source="medico.ciudad.departamento.nombre",read_only=True)
+    hoja_vida_id = serializers.IntegerField(source="hoja_vida.id",read_only=True)
+    hoja_vida_nombre = serializers.CharField(source="hoja_vida.nombre_original",read_only=True)
+
+    class Meta:
+        model = SolicitudValidacionMedico
+        fields = [
+            "id",
+            "medico_id",
+            "nombre",
+            "apellido",
+            "cedula",
+            "especialidad_id",
+            "especialidad",
+            "ciudad_id",
+            "ciudad",
+            "departamento_id",
+            "departamento",
+            "estado",
+            "fecha_solicitud",
+            "hoja_vida_id",
+            "hoja_vida_nombre",
+        ]
 
 class MedicosPublicosSerializer(serializers.ModelSerializer):
     especialidad = serializers.CharField(source='id_especialidad.nombre')
