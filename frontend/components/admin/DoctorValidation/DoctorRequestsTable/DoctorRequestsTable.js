@@ -1,24 +1,60 @@
 "use client";
 
-import { Eye, FileText } from "lucide-react";
+import { Eye } from "lucide-react";
 import DataTable from "../../../ui/DataTable/DataTable";
 import StatusBadge from "../StatusBadge/StatusBadge";
 import styles from "./DoctorRequestsTable.module.css";
+import formatearFecha from "@/app/utils/fechaFormaterUtils";
 
 function getDoctorName(request) {
-    if (request.nombre_completo) return request.nombre_completo;
-    return [request.nombre, request.apellido].filter(Boolean).join(" ") || "No disponible";
+    return [request.nombre, request.apellido]
+        .filter(Boolean)
+        .join(" ") || "No disponible";
 }
 
-export default function DoctorRequestsTable({ requests = [], loading = false, onViewRequest, onViewResume }) {
+export default function DoctorRequestsTable({
+    solicitudesDoctores = [],
+    loading = false,
+    onViewRequest,
+}) {
     const columns = [
-        { key: "medico", label: "Médico", render: (_, request) => <strong className={styles.doctorName}>{getDoctorName(request)}</strong> },
-        { key: "cedula", label: "Cédula" },
-        { key: "especialidad", label: "Especialidad" },
-        { key: "departamento", label: "Departamento" },
-        { key: "ciudad", label: "Ciudad" },
-        { key: "fecha_solicitud", label: "Fecha de solicitud" },
-        { key: "estado_validacion", label: "Estado", render: (status) => <StatusBadge status={status} /> },
+        {
+            key: "medico",
+            label: "Médico",
+            render: (_, request) => (
+                <strong className={styles.doctorName}>
+                    {getDoctorName(request)}
+                </strong>
+            ),
+        },
+        {
+            key: "cedula",
+            label: "Cédula",
+        },
+        {
+            key: "especialidad",
+            label: "Especialidad",
+        },
+        {
+            key: "departamento",
+            label: "Departamento",
+        },
+        {
+            key: "ciudad",
+            label: "Ciudad",
+        },
+        {
+            key: "fecha_solicitud",
+            label: "Fecha de solicitud",
+            render: (fecha) => formatearFecha(fecha).fecha
+        },
+        {
+            key: "estado",
+            label: "Estado",
+            render: (status) => (
+                <StatusBadge status={status} />
+            ),
+        },
         {
             key: "request_actions",
             label: "Acciones",
@@ -44,7 +80,7 @@ export default function DoctorRequestsTable({ requests = [], loading = false, on
         <DataTable
             titulo="Solicitudes de médicos"
             columnas={columns}
-            datos={requests}
+            datos={solicitudesDoctores}
             cargando={loading}
             mostrarEncabezado={false}
             mostrarBusqueda={false}

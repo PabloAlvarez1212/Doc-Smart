@@ -29,6 +29,7 @@ export default function DoctorRequestsPage() {
         limpiarFiltros,
         busqueda,
         setBusqueda,
+        solicitudesDoctores,
     } = useDoctorValidation()
 
     return (
@@ -68,8 +69,8 @@ export default function DoctorRequestsPage() {
                 </div>
 
                 <DoctorRequestsTable
-                    requests={MOCK_DOCTOR_REQUESTS}
                     onViewRequest={setSelectedRequest}
+                    solicitudesDoctores={solicitudesDoctores}
                 />
             </section>
 

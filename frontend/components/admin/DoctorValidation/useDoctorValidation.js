@@ -1,9 +1,10 @@
 "use client"
 import { useEffect, useState } from "react"
-import { getEspecialidadesService } from "@/app/services/doctorServices"
+import { getEspecialidadesService, listarSolicitudesMedicosValidacionService } from "@/app/services/doctorServices"
 import { getDepartamentosService } from "@/app/services/catalogs"
 import { getCiudadesByDepartamentoService } from "@/app/services/authService"
 export default function useDoctorValidation() {
+    const [busquedaDebounce, setBusquedaDebounce] = useState("")
     const [especialidades, setEspecialidades] = useState([])
     const [departamentos, setDepartamentos] = useState([])
     const [ciudades, setCiudades] = useState([])
@@ -11,6 +12,7 @@ export default function useDoctorValidation() {
     const [ciudadSeleccionada, setCiudadSeleccionada] = useState("")
     const [estadoSeleccionado, setEstadoSeleccionado] = useState("")
     const [especialidadSeleccionada, setEspecialidadSeleccionada] = useState("")
+    const [solicitudesDoctores, setsolicitudesDoctores] = useState([])
     const [busqueda, setBusqueda] = useState("")
     const estados = [
         { value: "pendiente", label: "Pendiente" },
@@ -56,6 +58,22 @@ export default function useDoctorValidation() {
         }
     }
 
+    const cargarSolicitudDoctores = async () => {
+        try {
+            const data = await listarSolicitudesMedicosValidacionService({
+                busqueda: busquedaDebounce,
+                estado: estadoSeleccionado,
+                especialidad: especialidadSeleccionada,
+                departamento: departamentoSeleccionado,
+                ciudad: ciudadSeleccionada,
+            })
+
+            setsolicitudesDoctores(data.data)
+        } catch (error) {
+            console.error("Error cargando solicitudes de médicos:", error)
+        }
+    }
+
     const limpiarFiltros = () => {
         setBusqueda("")
         setEstadoSeleccionado("")
@@ -63,6 +81,24 @@ export default function useDoctorValidation() {
         setDepartamentoSeleccionado("")
         setCiudadSeleccionada("")
     }
+
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            setBusquedaDebounce(busqueda)
+        }, 500)
+
+        return () => clearTimeout(timeout)
+    }, [busqueda])
+
+    useEffect(() => {
+        cargarSolicitudDoctores()
+    }, [
+        busquedaDebounce,
+        estadoSeleccionado,
+        especialidadSeleccionada,
+        departamentoSeleccionado,
+        ciudadSeleccionada,
+    ])
 
     useEffect(() => {
         cargarEspecialidades();
@@ -106,6 +142,8 @@ export default function useDoctorValidation() {
 
         busqueda,
         setBusqueda,
+
+        solicitudesDoctores,
 
         limpiarFiltros,
     }
