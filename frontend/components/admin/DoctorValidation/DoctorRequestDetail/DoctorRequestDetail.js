@@ -76,7 +76,7 @@ export default function DoctorRequestDetail({
                                 <strong>Hoja de vida</strong>
                                 <span>La vista del documento estará disponible al integrar el backend.</span>
                             </div>
-                            <Button size="sm" variant="secundary" disabled={!onViewResume} onClick={() => onViewResume?.(request)}>
+                            <Button size="sm" variant="secundary" disabled={!onViewResume} onClick={() => onViewResume?.(request.id)}>
                                 Ver hoja de vida
                             </Button>
                         </div>

@@ -31,6 +31,7 @@ export default function DoctorRequestsPage() {
         setBusqueda,
         solicitudesDoctores,
         metricas,
+        verHojaVida,
     } = useDoctorValidation()
 
     return (
@@ -79,6 +80,7 @@ export default function DoctorRequestsPage() {
                 request={selectedRequest}
                 open={Boolean(selectedRequest)}
                 onClose={() => setSelectedRequest(null)}
+                onViewResume={verHojaVida}
             />
         </div>
     );

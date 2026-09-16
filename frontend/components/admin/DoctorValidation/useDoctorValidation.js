@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { getEspecialidadesService } from "@/app/services/doctorServices"
-import { listarSolicitudesMedicosValidacionService, obtenerMetricasValidacionMedicosService } from "@/app/services/adminServices"
+import { listarSolicitudesMedicosValidacionService, obtenerMetricasValidacionMedicosService, obtenerHojaVidaSolicitudService } from "@/app/services/adminServices"
 import { getDepartamentosService } from "@/app/services/catalogs"
 import { getCiudadesByDepartamentoService } from "@/app/services/authService"
 export default function useDoctorValidation() {
@@ -89,6 +89,16 @@ export default function useDoctorValidation() {
         }
     }
 
+    const verHojaVida = async (solicitudId) => {
+        try {
+            const data = await obtenerHojaVidaSolicitudService(solicitudId)
+
+            window.open(data.data.url, "_blank")
+        } catch (error) {
+            console.error("Error obteniendo hoja de vida:", error)
+        }
+    }
+
     const limpiarFiltros = () => {
         setBusqueda("")
         setEstadoSeleccionado("")
@@ -161,6 +171,8 @@ export default function useDoctorValidation() {
 
         solicitudesDoctores,
         metricas,
+
+        verHojaVida,
         
         limpiarFiltros,
     }

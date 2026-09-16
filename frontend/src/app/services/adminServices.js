@@ -27,3 +27,11 @@ export const obtenerMetricasValidacionMedicosService = async () => {
 
     return response.data
 }
+
+export const obtenerHojaVidaSolicitudService = async (solicitudId) => {
+    const response = await api.get(
+        `/medicos/solicitudes-validacion/${solicitudId}/hoja-vida/`
+    )
+
+    return response.data
+}

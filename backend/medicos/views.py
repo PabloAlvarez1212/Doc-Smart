@@ -22,6 +22,7 @@ from medicos.services import (
     listarMedicosPublicosService,
     listarSolicitudesValidacionService,
     obtenerMetricasValidacionMedicosService,
+    obtenerHojaVidaSolicitudService,
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
@@ -154,7 +155,33 @@ class MetricasValidacionMedicosView(APIView):
                 errores={"detalle": str(e)},
                 status=500
             )
-        
+
+#Vista admin: Genera url de la hoja de vida
+class HojaVidaSolicitudValidacionView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    def get(self, request, solicitud_id):
+        try:
+            data, status_code = obtenerHojaVidaSolicitudService(solicitud_id)
+
+            if status_code == 404:
+                return respuesta_error(
+                    mensaje="Solicitud de validación no encontrada",
+                    status=404
+                )
+
+            return respuesta_ok(
+                data=data,
+                mensaje="Hoja de vida obtenida correctamente",
+                status=status_code
+            )
+
+        except Exception as e:
+            return respuesta_error(
+                mensaje="Error al obtener la hoja de vida",
+                errores={"detalle": str(e)},
+                status=500
+            )
+            
 # Vista admin: obtiene, actualiza o elimina un médico por ID
 class MedicoDetailView(APIView):
     permission_classes = [IsAdmin]

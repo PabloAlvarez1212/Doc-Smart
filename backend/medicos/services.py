@@ -22,6 +22,7 @@ from django.db.models import Q,Value,OuterRef, Subquery,Count
 from django.db.models.functions import Concat
 from storage_app.services import guardar_archivo_medico
 from django.db import transaction
+from storage_app.services import generar_url_firmada
 
 # ── SERVICIOS DE MÉDICOS ──────────────────────────────────────────────────────
 
@@ -165,6 +166,33 @@ def obtenerMetricasValidacionMedicosService():
     )
 
     return metricas, 200
+
+def obtenerHojaVidaSolicitudService(solicitud_id):
+    try:
+        solicitud = (
+            SolicitudValidacionMedico.objects
+            .select_related("hoja_vida")
+            .get(id=solicitud_id)
+        )
+
+        archivo = solicitud.hoja_vida
+
+        url = generar_url_firmada(
+            archivo.storage_key,
+            expiracion=600
+        )
+
+        data = {
+            "nombre": archivo.nombre_original,
+            "url": url,
+            "expiracion": 600,
+        }
+
+        return data, 200
+
+    except SolicitudValidacionMedico.DoesNotExist:
+        return None, 404
+    
 
 # Retorna los datos de un médico específico por su ID
 def obtenerMedicoService(id_medico):

@@ -11,6 +11,7 @@ from .views import (
     MedicosDisponiblesView,
     ListarSolicitudesValidacionView,
     MetricasValidacionMedicosView,
+    HojaVidaSolicitudValidacionView,
 )
 urlpatterns = [
     path('', MedicoListView.as_view(), name='medico-list'),
@@ -27,4 +28,6 @@ urlpatterns = [
     path("solicitudes-validacion/",ListarSolicitudesValidacionView.as_view(),name="listar-solicitudes-validacion"),
     #!Listar numero de medicos por estado
     path("solicitudes-validacion/metricas/",MetricasValidacionMedicosView.as_view(),name="metricas-validacion-medicos"),
+    #!Genera url de la hoja de vida
+    path("solicitudes-validacion/<int:solicitud_id>/hoja-vida/",HojaVidaSolicitudValidacionView.as_view(),name="hoja-vida-solicitud-validacion"),
 ]
