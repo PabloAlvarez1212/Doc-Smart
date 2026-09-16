@@ -18,7 +18,7 @@ from medicos.serializers import (
 )
 from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
-from django.db.models import Q,Value
+from django.db.models import Q,Value,OuterRef, Subquery,Count
 from django.db.models.functions import Concat
 from storage_app.services import guardar_archivo_medico
 from django.db import transaction
@@ -129,6 +129,42 @@ def listarSolicitudesValidacionService(
     data = SolicitudValidacionMedicoSerializer(solicitudes,many=True).data
 
     return data, 200
+
+def obtenerMetricasValidacionMedicosService():
+
+    ultima_solicitud = (
+        SolicitudValidacionMedico.objects
+        .filter(medico=OuterRef("pk"))
+        .order_by("-fecha_solicitud")
+        .values("estado")[:1]
+    )
+
+    medicos = Medico.objects.annotate(
+        estado_validacion=Subquery(ultima_solicitud)
+    )
+
+    metricas = medicos.aggregate(
+        pendientes=Count(
+            "id",
+            filter=Q(
+                estado_validacion=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE
+            )
+        ),
+        rechazados=Count(
+            "id",
+            filter=Q(
+                estado_validacion=SolicitudValidacionMedico.EstadoSolicitud.RECHAZADO
+            )
+        ),
+        aprobados=Count(
+            "id",
+            filter=Q(
+                estado_validacion=SolicitudValidacionMedico.EstadoSolicitud.APROBADO
+            )
+        ),
+    )
+
+    return metricas, 200
 
 # Retorna los datos de un médico específico por su ID
 def obtenerMedicoService(id_medico):

@@ -9,7 +9,8 @@ from .views import (
     PerfilMedicoView,
     FotoPerfilMedicoView,
     MedicosDisponiblesView,
-    ListarSolicitudesValidacionView
+    ListarSolicitudesValidacionView,
+    MetricasValidacionMedicosView,
 )
 urlpatterns = [
     path('', MedicoListView.as_view(), name='medico-list'),
@@ -24,4 +25,6 @@ urlpatterns = [
     path('disponibles/',MedicosDisponiblesView.as_view(),name="medicos-disponibles"),
     #!Listar medicos con estado pendiente y rechazados.
     path("solicitudes-validacion/",ListarSolicitudesValidacionView.as_view(),name="listar-solicitudes-validacion"),
+    #!Listar numero de medicos por estado
+    path("solicitudes-validacion/metricas/",MetricasValidacionMedicosView.as_view(),name="metricas-validacion-medicos"),
 ]

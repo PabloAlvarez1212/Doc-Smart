@@ -21,6 +21,7 @@ from medicos.services import (
     eliminarFotoPerfilMedicoService,
     listarMedicosPublicosService,
     listarSolicitudesValidacionService,
+    obtenerMetricasValidacionMedicosService,
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
@@ -132,6 +133,27 @@ class ListarSolicitudesValidacionView(APIView):
             mensaje="Solicitudes de validación obtenidas correctamente",
             status=status_code
         )
+
+#Vista admin: Muestra metricas del numero de medicos aprobados,rechazados y pendientes
+class MetricasValidacionMedicosView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        try:
+            data, status_code = obtenerMetricasValidacionMedicosService()
+
+            return respuesta_ok(
+                data=data,
+                mensaje="Métricas de validación obtenidas correctamente",
+                status=status_code
+            )
+
+        except Exception as e:
+            return respuesta_error(
+                mensaje="Error al obtener las métricas de validación",
+                errores={"detalle": str(e)},
+                status=500
+            )
         
 # Vista admin: obtiene, actualiza o elimina un médico por ID
 class MedicoDetailView(APIView):

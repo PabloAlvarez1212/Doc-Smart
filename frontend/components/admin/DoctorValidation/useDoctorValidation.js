@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
-import { getEspecialidadesService, listarSolicitudesMedicosValidacionService } from "@/app/services/doctorServices"
+import { getEspecialidadesService } from "@/app/services/doctorServices"
+import { listarSolicitudesMedicosValidacionService, obtenerMetricasValidacionMedicosService } from "@/app/services/adminServices"
 import { getDepartamentosService } from "@/app/services/catalogs"
 import { getCiudadesByDepartamentoService } from "@/app/services/authService"
 export default function useDoctorValidation() {
@@ -14,6 +15,7 @@ export default function useDoctorValidation() {
     const [especialidadSeleccionada, setEspecialidadSeleccionada] = useState("")
     const [solicitudesDoctores, setsolicitudesDoctores] = useState([])
     const [busqueda, setBusqueda] = useState("")
+    const [metricas, setMetricas] = useState(null)
     const estados = [
         { value: "pendiente", label: "Pendiente" },
         { value: "rechazado", label: "Rechazado" },
@@ -74,6 +76,19 @@ export default function useDoctorValidation() {
         }
     }
 
+    const cargarMetricas = async () => {
+        try {
+            const data = await obtenerMetricasValidacionMedicosService()
+
+            setMetricas(data.data)
+        } catch (error) {
+            console.error(
+                "Error cargando métricas de validación:",
+                error
+            )
+        }
+    }
+
     const limpiarFiltros = () => {
         setBusqueda("")
         setEstadoSeleccionado("")
@@ -103,6 +118,7 @@ export default function useDoctorValidation() {
     useEffect(() => {
         cargarEspecialidades();
         cargarDepartamentos();
+        cargarMetricas();
     }, [])
 
     useEffect(() => {
@@ -144,7 +160,8 @@ export default function useDoctorValidation() {
         setBusqueda,
 
         solicitudesDoctores,
-
+        metricas,
+        
         limpiarFiltros,
     }
 }

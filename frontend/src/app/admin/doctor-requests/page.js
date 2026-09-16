@@ -30,6 +30,7 @@ export default function DoctorRequestsPage() {
         busqueda,
         setBusqueda,
         solicitudesDoctores,
+        metricas,
     } = useDoctorValidation()
 
     return (
@@ -40,7 +41,7 @@ export default function DoctorRequestsPage() {
                 description="Revisa la información profesional y la documentación enviada antes de habilitar el acceso de un médico al sistema."
             />
 
-            <ValidationSummary requests={MOCK_DOCTOR_REQUESTS} />
+            <ValidationSummary metricas={metricas} />
             <ValidationFilters
                 estados={estados}
                 especialidades={especialidades}
