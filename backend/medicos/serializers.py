@@ -51,6 +51,8 @@ class SolicitudValidacionMedicoSerializer(serializers.ModelSerializer):
             "departamento",
             "estado",
             "fecha_solicitud",
+            "fecha_revision",
+            "motivo_rechazo",
             "hoja_vida_id",
             "hoja_vida_nombre",
         ]

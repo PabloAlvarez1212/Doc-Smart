@@ -4,6 +4,7 @@ import { FileText, ShieldCheck, Stethoscope, UserRound } from "lucide-react";
 import Button from "../../../ui/Button/Button";
 import Modal from "../../../ui/Modal/Modal";
 import StatusBadge from "../StatusBadge/StatusBadge";
+import formatearFecha from "@/app/utils/fechaFormaterUtils";
 import styles from "./DoctorRequestDetail.module.css";
 
 function DetailField({ label, value }) {
@@ -29,6 +30,9 @@ export default function DoctorRequestDetail({
     if (!request) return null;
 
     const fullName = (request.nombre_completo ?? [request.nombre, request.apellido].filter(Boolean).join(" ")) || "No disponible";
+    const reviewDate = request.fecha_revision && !Number.isNaN(new Date(request.fecha_revision).getTime())
+        ? formatearFecha(request.fecha_revision)
+        : null;
 
     return (
         <Modal abierto={open} onCerrar={onClose} titulo="Revisión de solicitud" headerVariant="white" width="900px">
@@ -45,6 +49,21 @@ export default function DoctorRequestDetail({
                         <StatusBadge status={request.estado} />
                     </div>
                 </header>
+
+                {request.estado === "rechazado" && (
+                    <section className={styles.rejectionSummary} aria-labelledby="rejection-summary-title">
+                        <h3 id="rejection-summary-title">Motivo del rechazo</h3>
+                        <p className={styles.rejectionText}>{request.motivo_rechazo?.trim() || "No disponible"}</p>
+                        <dl className={styles.rejectionMetadata}>
+                            <dt>Revisada el</dt>
+                            <dd>
+                                {reviewDate ? (
+                                    <time dateTime={request.fecha_revision}>{reviewDate.fecha}, {reviewDate.hora}</time>
+                                ) : "No disponible"}
+                            </dd>
+                        </dl>
+                    </section>
+                )}
 
                 <div className={styles.sections}>
                     <section className={styles.section} aria-labelledby="personal-information-title">
@@ -91,16 +110,16 @@ export default function DoctorRequestDetail({
                     </section>
                 )}
 
-                <footer className={styles.actions}>
-                    {request.estado === "pendiente" && (
+                {request.estado === "pendiente" && (
+                    <footer className={styles.actions}>
                         <Button size="sm" variant="danger" disabled={!onReject} onClick={() => onReject?.(request)}>
                             Rechazar solicitud
                         </Button>
-                    )}
-                    <Button size="sm" disabled={!onApprove} onClick={() => onApprove?.(request.id)}>
-                        <ShieldCheck size={17} /> Aprobar médico
-                    </Button>
-                </footer>
+                        <Button size="sm" disabled={!onApprove} onClick={() => onApprove?.(request.id)}>
+                            <ShieldCheck size={17} /> Aprobar médico
+                        </Button>
+                    </footer>
+                )}
             </article>
         </Modal>
     );
