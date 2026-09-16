@@ -42,7 +42,7 @@ export default function DoctorRequestDetail({
                     </div>
                     <div className={styles.currentStatus}>
                         <small>Estado de validación</small>
-                        <StatusBadge status={request.estado_validacion} />
+                        <StatusBadge status={request.estado} />
                     </div>
                 </header>
 
@@ -52,7 +52,7 @@ export default function DoctorRequestDetail({
                         <dl className={styles.fieldsGrid}>
                             <DetailField label="Nombre completo" value={fullName} />
                             <DetailField label="Cédula" value={request.cedula} />
-                            <DetailField label="Fecha de nacimiento" value={request.fecha_nacimiento} />
+                            <DetailField label="Fecha de nacimiento (año/mes/dia)" value={request.fecha_nacimiento} />
                             <DetailField label="Teléfono" value={request.telefono} />
                             <DetailField label="Correo" value={request.correo} />
                         </dl>

@@ -15,9 +15,13 @@ class EspecialidadSerializer(serializers.ModelSerializer):
 class SolicitudValidacionMedicoSerializer(serializers.ModelSerializer):
     
     medico_id = serializers.IntegerField(source="medico.id",read_only=True)
+    fecha_nacimiento = serializers.DateField(source="medico.fecha_nacimiento",read_only=True) 
     nombre = serializers.CharField(source="medico.nombre",read_only=True)
     apellido = serializers.CharField(source="medico.apellido",read_only=True)
     cedula = serializers.CharField(source="medico.cedula",read_only=True)
+    correo = serializers.EmailField(source="medico.correo",read_only=True)
+    telefono = serializers.CharField(source="medico.telefono",read_only=True)
+    direccion = serializers.CharField(source="medico.direccion",read_only=True)
     especialidad_id = serializers.IntegerField(source="medico.id_especialidad.id",read_only=True)
     especialidad = serializers.CharField(source="medico.id_especialidad.nombre",read_only=True)
     ciudad_id = serializers.IntegerField(source="medico.ciudad.id",read_only=True)
@@ -34,7 +38,11 @@ class SolicitudValidacionMedicoSerializer(serializers.ModelSerializer):
             "medico_id",
             "nombre",
             "apellido",
+            "fecha_nacimiento",
             "cedula",
+            "correo",
+            "telefono",
+            "direccion",
             "especialidad_id",
             "especialidad",
             "ciudad_id",
