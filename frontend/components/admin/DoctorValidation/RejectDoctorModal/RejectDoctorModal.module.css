@@ -1,0 +1,145 @@
+.headerIcon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    border-radius: 11px;
+    background: #fff1f2;
+    color: #b42335;
+}
+
+.form {
+    display: grid;
+    gap: 20px;
+}
+
+.introduction {
+    display: grid;
+    gap: 14px;
+}
+
+.introduction > p {
+    color: #5f6c80;
+    font-size: .88rem;
+    line-height: 1.55;
+}
+
+.doctor {
+    display: grid;
+    gap: 3px;
+    border: 1px solid #e2e8f1;
+    border-left: 3px solid #d04455;
+    border-radius: 10px;
+    padding: 11px 13px;
+    background: #fbfcfe;
+}
+
+.doctor span {
+    color: #8491a3;
+    font-size: .67rem;
+    font-weight: 680;
+    letter-spacing: .045em;
+    text-transform: uppercase;
+}
+
+.doctor strong {
+    overflow: hidden;
+    color: #2a374c;
+    font-size: .9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.field {
+    display: grid;
+    gap: 7px;
+}
+
+.labelRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.labelRow label {
+    color: #344054;
+    font-size: .8rem;
+    font-weight: 720;
+}
+
+.labelRow span {
+    color: #8491a3;
+    font-size: .7rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.field textarea {
+    width: 100%;
+    min-height: 126px;
+    resize: vertical;
+    border: 1px solid #d7dee9;
+    border-radius: 11px;
+    padding: 11px 12px;
+    outline: none;
+    background: #fff;
+    color: #29374d;
+    font: inherit;
+    font-size: .86rem;
+    line-height: 1.5;
+    transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.field textarea::placeholder {
+    color: #98a2b3;
+}
+
+.field textarea:focus {
+    border-color: #2b7fff;
+    box-shadow: 0 0 0 3px rgba(43, 127, 255, .12);
+}
+
+.field small {
+    color: #8491a3;
+    font-size: .7rem;
+    line-height: 1.4;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    padding-top: 2px;
+}
+
+.actions button {
+    min-height: 42px;
+    padding: 0 15px;
+    font-size: .78rem;
+    font-weight: 720;
+}
+
+.cancelButton {
+    border: 1px solid #d8e0eb !important;
+    color: #46566e !important;
+    background: #fff !important;
+}
+
+.rejectButton:disabled {
+    cursor: not-allowed;
+    opacity: .48;
+    transform: none;
+}
+
+@media (max-width: 520px) {
+    .actions {
+        align-items: stretch;
+        flex-direction: column-reverse;
+    }
+
+    .actions button {
+        width: 100%;
+    }
+}
