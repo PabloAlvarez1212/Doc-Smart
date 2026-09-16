@@ -1,6 +1,7 @@
 import bcrypt
 import calendar
 from django.utils import timezone
+from datetime import timedelta
 from citas.models import Cita
 from notificaciones.models import Notificacion
 from medicos.models import Medico, Especialidad,SolicitudValidacionMedico
@@ -221,6 +222,43 @@ def aprobarSolicitudValidacionService(solicitud_id):
             "medico_id": solicitud.medico_id,
             "estado": solicitud.estado,
             "fecha_revision": solicitud.fecha_revision,
+        }, 200
+
+    except SolicitudValidacionMedico.DoesNotExist:
+        return None, 404
+
+def rechazarSolicitudValidacionService(solicitud_id, motivo_rechazo):
+    try:
+        solicitud = SolicitudValidacionMedico.objects.get(
+            id=solicitud_id
+        )
+
+        if solicitud.estado != SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE:
+            return None, 400
+
+        ahora = timezone.now()
+
+        solicitud.estado = SolicitudValidacionMedico.EstadoSolicitud.RECHAZADO
+        solicitud.motivo_rechazo = motivo_rechazo
+        solicitud.fecha_revision = ahora
+        solicitud.puede_reintentar_desde = ahora + timedelta(days=30)
+
+        solicitud.save(
+            update_fields=[
+                "estado",
+                "motivo_rechazo",
+                "fecha_revision",
+                "puede_reintentar_desde",
+            ]
+        )
+
+        return {
+            "id": solicitud.id,
+            "medico_id": solicitud.medico_id,
+            "estado": solicitud.estado,
+            "motivo_rechazo": solicitud.motivo_rechazo,
+            "fecha_revision": solicitud.fecha_revision,
+            "puede_reintentar_desde": solicitud.puede_reintentar_desde,
         }, 200
 
     except SolicitudValidacionMedico.DoesNotExist:

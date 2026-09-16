@@ -17,12 +17,17 @@ function getDoctorName(request) {
 export default function RejectDoctorModal({
     request,
     open = false,
-    onClose = () => {},
+    onClose = () => { },
     onConfirm,
 }) {
     const [reason, setReason] = useState("");
     const trimmedReason = reason.trim();
-    const canSubmit = request?.id != null && trimmedReason.length > 0 && Boolean(onConfirm);
+    const [submitting, setSubmitting] = useState(false);
+    const canSubmit =
+        request?.id != null &&
+        trimmedReason.length > 0 &&
+        Boolean(onConfirm) &&
+        !submitting;
 
     useEffect(() => {
         setReason("");
@@ -33,15 +38,26 @@ export default function RejectDoctorModal({
         onClose();
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         if (!canSubmit) return;
 
-        onConfirm({
-            solicitudId: request.id,
-            motivo: trimmedReason,
-        });
+        try {
+            setSubmitting(true);
+
+            const rechazado = await onConfirm({
+                solicitudId: request.id,
+                motivo: trimmedReason,
+            });
+
+            if (!rechazado) return;
+
+            setReason("");
+
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -84,8 +100,14 @@ export default function RejectDoctorModal({
                     <Button type="button" size="sm" variant="secundary" className={styles.cancelButton} onClick={handleClose}>
                         Cancelar
                     </Button>
-                    <Button type="submit" size="sm" variant="danger" className={styles.rejectButton} disabled={!canSubmit}>
-                        Rechazar solicitud
+                    <Button
+                        type="submit"
+                        size="sm"
+                        variant="danger"
+                        className={styles.rejectButton}
+                        disabled={!canSubmit}
+                    >
+                        {submitting ? "Rechazando..." : "Rechazar solicitud"}
                     </Button>
                 </div>
             </form>

@@ -7,7 +7,6 @@ import DoctorRequestsTable from "../../../../components/admin/DoctorValidation/D
 import RejectDoctorModal from "../../../../components/admin/DoctorValidation/RejectDoctorModal/RejectDoctorModal";
 import ValidationFilters from "../../../../components/admin/DoctorValidation/ValidationFilters/ValidationFilters";
 import ValidationSummary from "../../../../components/admin/DoctorValidation/ValidationSummary/ValidationSummary";
-import { MOCK_DOCTOR_REQUESTS } from "../../../../components/admin/DoctorValidation/mockDoctorRequests";
 import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
 import styles from "./doctorRequests.module.css";
 import useDoctorValidation from "../../../../components/admin/DoctorValidation/useDoctorValidation";
@@ -35,6 +34,7 @@ export default function DoctorRequestsPage() {
         metricas,
         verHojaVida,
         aprobarSolicitud,
+        rechazarSolicitud,
     } = useDoctorValidation();
 
     const openRejectModal = (request) => {
@@ -48,12 +48,20 @@ export default function DoctorRequestsPage() {
         setIsRejectModalOpen(false);
     };
 
-    const handleRejectRequest = ({ solicitudId, motivo }) => {
-        if (solicitudId == null || !motivo.trim()) return;
+    const handleRejectRequest = async ({ solicitudId, motivo }) => {
+        if (solicitudId == null || !motivo.trim()) return false;
 
-        // TODO: conectar aquí el service de rechazo cuando exista el endpoint.
+        const rechazado = await rechazarSolicitud({
+            solicitudId,
+            motivo,
+        });
+
+        if (!rechazado) return false;
+
         setIsRejectModalOpen(false);
         setSelectedRequest(null);
+
+        return true;
     };
 
     return (

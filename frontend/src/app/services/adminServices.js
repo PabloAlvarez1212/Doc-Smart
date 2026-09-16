@@ -43,3 +43,17 @@ export const aprobarSolicitudValidacionService = async (solicitudId) => {
 
     return response.data
 }
+
+export const rechazarSolicitudValidacionService = async (
+    solicitudId,
+    motivo
+) => {
+    const response = await api.patch(
+        `/medicos/solicitudes-validacion/${solicitudId}/rechazar/`,
+        {
+            motivo_rechazo: motivo,
+        }
+    )
+
+    return response.data
+}

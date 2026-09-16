@@ -1,8 +1,9 @@
 "use client"
 import Swal from "sweetalert2"
+import { obtenerPrimerError } from "@/app/utils/errrorUtils"
 import { useEffect, useState } from "react"
 import { getEspecialidadesService } from "@/app/services/doctorServices"
-import { listarSolicitudesMedicosValidacionService, obtenerMetricasValidacionMedicosService, obtenerHojaVidaSolicitudService, aprobarSolicitudValidacionService } from "@/app/services/adminServices"
+import { listarSolicitudesMedicosValidacionService, obtenerMetricasValidacionMedicosService, obtenerHojaVidaSolicitudService, aprobarSolicitudValidacionService, rechazarSolicitudValidacionService } from "@/app/services/adminServices"
 import { getDepartamentosService } from "@/app/services/catalogs"
 import { getCiudadesByDepartamentoService } from "@/app/services/authService"
 export default function useDoctorValidation() {
@@ -137,6 +138,43 @@ export default function useDoctorValidation() {
         }
     }
 
+    const rechazarSolicitud = async ({ solicitudId, motivo }) => {
+        try {
+            await rechazarSolicitudValidacionService(
+                solicitudId,
+                motivo
+            )
+
+            await Promise.all([
+                cargarSolicitudDoctores(),
+                cargarMetricas(),
+            ])
+
+            await Swal.fire({
+                title: "Solicitud rechazada",
+                text: "La solicitud del médico fue rechazada correctamente.",
+                icon: "success",
+            })
+
+            return true
+
+        } catch (error) {
+            console.error("Error rechazando solicitud:", error)
+
+            const mensaje =
+                obtenerPrimerError(error) ||
+                "No fue posible rechazar la solicitud."
+
+            await Swal.fire({
+                title: "Error",
+                text: mensaje,
+                icon: "error",
+            })
+
+            return false
+        }
+    }
+
     const limpiarFiltros = () => {
         setBusqueda("")
         setEstadoSeleccionado("")
@@ -211,6 +249,7 @@ export default function useDoctorValidation() {
         metricas,
         verHojaVida,
         aprobarSolicitud,
+        rechazarSolicitud,
 
         limpiarFiltros,
     }

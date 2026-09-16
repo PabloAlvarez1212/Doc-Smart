@@ -24,6 +24,7 @@ from medicos.services import (
     obtenerMetricasValidacionMedicosService,
     obtenerHojaVidaSolicitudService,
     aprobarSolicitudValidacionService,
+    rechazarSolicitudValidacionService,
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
@@ -31,6 +32,7 @@ from medicos.serializers import (
     RegistrarEspecialidadSerializer,
     EditarEspecialidadSerializer,
     FotoPerfilMedicoSerializer,
+    RechazarSolicitudValidacionSerializer
 )
 from rest_framework.parsers import MultiPartParser, FormParser
 
@@ -216,7 +218,52 @@ class AprobarSolicitudValidacionView(APIView):
                 errores={"detalle": str(e)},
                 status=500
             )
-                       
+
+class RechazarSolicitudValidacionView(APIView):
+
+    def patch(self, request, solicitud_id):
+        try:
+            serializer = RechazarSolicitudValidacionSerializer(
+                data=request.data
+            )
+
+            if not serializer.is_valid():
+                return respuesta_serializer_invalido(
+                    serializer.errors
+                )
+
+            motivo_rechazo = serializer.validated_data["motivo_rechazo"]
+
+            data, status_code = rechazarSolicitudValidacionService(
+                solicitud_id,
+                motivo_rechazo
+            )
+
+            if status_code == 404:
+                return respuesta_error(
+                    mensaje="Solicitud de validación no encontrada",
+                    status=404
+                )
+
+            if status_code == 400:
+                return respuesta_error(
+                    mensaje="Solo se pueden rechazar solicitudes pendientes",
+                    status=400
+                )
+
+            return respuesta_ok(
+                data=data,
+                mensaje="Solicitud de validación rechazada correctamente",
+                status=status_code
+            )
+
+        except Exception as e:
+            return respuesta_error(
+                mensaje="Error al rechazar la solicitud de validación",
+                errores={"detalle": str(e)},
+                status=500
+            )
+                                   
 # Vista admin: obtiene, actualiza o elimina un médico por ID
 class MedicoDetailView(APIView):
     permission_classes = [IsAdmin]

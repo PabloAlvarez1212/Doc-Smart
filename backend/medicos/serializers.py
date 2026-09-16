@@ -513,3 +513,11 @@ class FotoPerfilMedicoSerializer(serializers.Serializer):
             )
 
         return value
+
+#Serializer de rechazo a solicitud de un medico
+class RechazarSolicitudValidacionSerializer(serializers.Serializer):
+    motivo_rechazo = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        trim_whitespace=True
+    )
