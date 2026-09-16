@@ -1,7 +1,8 @@
 "use client"
+import Swal from "sweetalert2"
 import { useEffect, useState } from "react"
 import { getEspecialidadesService } from "@/app/services/doctorServices"
-import { listarSolicitudesMedicosValidacionService, obtenerMetricasValidacionMedicosService, obtenerHojaVidaSolicitudService } from "@/app/services/adminServices"
+import { listarSolicitudesMedicosValidacionService, obtenerMetricasValidacionMedicosService, obtenerHojaVidaSolicitudService, aprobarSolicitudValidacionService } from "@/app/services/adminServices"
 import { getDepartamentosService } from "@/app/services/catalogs"
 import { getCiudadesByDepartamentoService } from "@/app/services/authService"
 export default function useDoctorValidation() {
@@ -99,6 +100,43 @@ export default function useDoctorValidation() {
         }
     }
 
+    const aprobarSolicitud = async (solicitudId) => {
+        const resultado = await Swal.fire({
+            title: "¿Aprobar médico?",
+            text: "El médico quedará habilitado después de aprobar su solicitud.",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Sí, aprobar",
+            cancelButtonText: "Cancelar",
+        })
+
+        if (!resultado.isConfirmed) return
+
+        try {
+            await aprobarSolicitudValidacionService(solicitudId)
+
+            await Promise.all([
+                cargarSolicitudDoctores(),
+                cargarMetricas(),
+            ])
+
+            Swal.fire({
+                title: "Solicitud aprobada",
+                text: "El médico ha sido aprobado correctamente.",
+                icon: "success",
+            })
+
+        } catch (error) {
+            console.error("Error aprobando solicitud:", error)
+
+            Swal.fire({
+                title: "Error",
+                text: "No fue posible aprobar la solicitud.",
+                icon: "error",
+            })
+        }
+    }
+
     const limpiarFiltros = () => {
         setBusqueda("")
         setEstadoSeleccionado("")
@@ -171,9 +209,9 @@ export default function useDoctorValidation() {
 
         solicitudesDoctores,
         metricas,
-
         verHojaVida,
-        
+        aprobarSolicitud,
+
         limpiarFiltros,
     }
 }

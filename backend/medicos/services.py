@@ -193,6 +193,38 @@ def obtenerHojaVidaSolicitudService(solicitud_id):
     except SolicitudValidacionMedico.DoesNotExist:
         return None, 404
     
+def aprobarSolicitudValidacionService(solicitud_id):
+    try:
+        solicitud = SolicitudValidacionMedico.objects.get(
+            id=solicitud_id
+        )
+
+        if solicitud.estado != SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE:
+            return None, 400
+
+        solicitud.estado = SolicitudValidacionMedico.EstadoSolicitud.APROBADO
+        solicitud.fecha_revision = timezone.now()
+        solicitud.motivo_rechazo = None
+        solicitud.puede_reintentar_desde = None
+
+        solicitud.save(
+            update_fields=[
+                "estado",
+                "fecha_revision",
+                "motivo_rechazo",
+                "puede_reintentar_desde",
+            ]
+        )
+
+        return {
+            "id": solicitud.id,
+            "medico_id": solicitud.medico_id,
+            "estado": solicitud.estado,
+            "fecha_revision": solicitud.fecha_revision,
+        }, 200
+
+    except SolicitudValidacionMedico.DoesNotExist:
+        return None, 404
 
 # Retorna los datos de un médico específico por su ID
 def obtenerMedicoService(id_medico):

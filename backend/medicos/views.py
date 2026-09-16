@@ -23,6 +23,7 @@ from medicos.services import (
     listarSolicitudesValidacionService,
     obtenerMetricasValidacionMedicosService,
     obtenerHojaVidaSolicitudService,
+    aprobarSolicitudValidacionService,
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
@@ -181,7 +182,41 @@ class HojaVidaSolicitudValidacionView(APIView):
                 errores={"detalle": str(e)},
                 status=500
             )
-            
+
+#Vista admin: Aprueba solicitudes de medicos.
+class AprobarSolicitudValidacionView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    def patch(self, request, solicitud_id):
+        try:
+            data, status_code = aprobarSolicitudValidacionService(
+                solicitud_id
+            )
+
+            if status_code == 404:
+                return respuesta_error(
+                    mensaje="Solicitud de validación no encontrada",
+                    status=404
+                )
+
+            if status_code == 400:
+                return respuesta_error(
+                    mensaje="Solo se pueden aprobar solicitudes pendientes",
+                    status=400
+                )
+
+            return respuesta_ok(
+                data=data,
+                mensaje="Solicitud de validación aprobada correctamente",
+                status=status_code
+            )
+
+        except Exception as e:
+            return respuesta_error(
+                mensaje="Error al aprobar la solicitud de validación",
+                errores={"detalle": str(e)},
+                status=500
+            )
+                       
 # Vista admin: obtiene, actualiza o elimina un médico por ID
 class MedicoDetailView(APIView):
     permission_classes = [IsAdmin]

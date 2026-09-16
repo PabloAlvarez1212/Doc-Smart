@@ -35,3 +35,11 @@ export const obtenerHojaVidaSolicitudService = async (solicitudId) => {
 
     return response.data
 }
+
+export const aprobarSolicitudValidacionService = async (solicitudId) => {
+    const response = await api.patch(
+        `/medicos/solicitudes-validacion/${solicitudId}/aprobar/`
+    )
+
+    return response.data
+}

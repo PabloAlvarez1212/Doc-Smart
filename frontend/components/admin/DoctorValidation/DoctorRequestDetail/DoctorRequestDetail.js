@@ -95,7 +95,7 @@ export default function DoctorRequestDetail({
                     <Button size="sm" variant="danger" disabled={!onReject} onClick={() => onReject?.(request)}>
                         Rechazar solicitud
                     </Button>
-                    <Button size="sm" disabled={!onApprove} onClick={() => onApprove?.(request)}>
+                    <Button size="sm" disabled={!onApprove} onClick={() => onApprove?.(request.id)}>
                         <ShieldCheck size={17} /> Aprobar médico
                     </Button>
                 </footer>

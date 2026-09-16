@@ -12,6 +12,7 @@ from .views import (
     ListarSolicitudesValidacionView,
     MetricasValidacionMedicosView,
     HojaVidaSolicitudValidacionView,
+    AprobarSolicitudValidacionView
 )
 urlpatterns = [
     path('', MedicoListView.as_view(), name='medico-list'),
@@ -30,4 +31,6 @@ urlpatterns = [
     path("solicitudes-validacion/metricas/",MetricasValidacionMedicosView.as_view(),name="metricas-validacion-medicos"),
     #!Genera url de la hoja de vida
     path("solicitudes-validacion/<int:solicitud_id>/hoja-vida/",HojaVidaSolicitudValidacionView.as_view(),name="hoja-vida-solicitud-validacion"),
+    #!Aprueba medicos
+    path("solicitudes-validacion/<int:solicitud_id>/aprobar/",AprobarSolicitudValidacionView.as_view(),name="aprobar-solicitud-validacion"),
 ]
