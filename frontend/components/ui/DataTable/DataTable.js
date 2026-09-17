@@ -61,6 +61,8 @@ export default function DataTable({
   onReintentar,
   emptyTitle,
   emptyDescription,
+  indiceInicial = 0,
+  textoConteo,
 }) {
   const [busqueda, setBusqueda] = useState("");
 
@@ -167,7 +169,7 @@ export default function DataTable({
             ) : (
               datosFiltrados.map((item, index) => (
                 <tr key={item.id ?? index} className={styles.row}>
-                  <td className={`${styles.td} ${styles.indexCell}`} data-label="#">{index + 1}</td>
+                  <td className={`${styles.td} ${styles.indexCell}`} data-label="#">{indiceInicial + index + 1}</td>
 
                   {columnas.map((col) => (
                     <td key={col.key} className={`${styles.td} ${getIdentifierClass(col.key)}`} data-label={col.label}>
@@ -208,9 +210,7 @@ export default function DataTable({
       {/* Footer */}
       {!cargando && !error && (
         <p className={styles.conteo}>
-          {datosFiltrados.length} registro
-          {datosFiltrados.length !== 1 ? "s" : ""}
-          {busqueda && ` encontrados para "${busqueda}"`}
+          {textoConteo ?? `${datosFiltrados.length} registro${datosFiltrados.length !== 1 ? "s" : ""}${busqueda ? ` encontrados para "${busqueda}"` : ""}`}
         </p>
       )}
     </div>

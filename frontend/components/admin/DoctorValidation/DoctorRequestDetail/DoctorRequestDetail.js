@@ -93,7 +93,6 @@ export default function DoctorRequestDetail({
                             <span className={styles.documentIcon}><FileText size={22} /></span>
                             <div className={styles.documentCopy}>
                                 <strong>Hoja de vida</strong>
-                                <span>La vista del documento estará disponible al integrar el backend.</span>
                             </div>
                             <Button size="sm" variant="secundary" disabled={!onViewResume} onClick={() => onViewResume?.(request.id)}>
                                 Ver hoja de vida

@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from utils import IsAdmin,IsMedico,IsPaciente
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -124,13 +125,17 @@ class ListarSolicitudesValidacionView(APIView):
         departamento = request.query_params.get("departamento")
         ciudad = request.query_params.get("ciudad")
 
-        data, status_code = listarSolicitudesValidacionService(
-            busqueda=busqueda,
-            estado=estado,
-            especialidad=especialidad,
-            departamento=departamento,
-            ciudad=ciudad,
-        )
+        try:
+            data, status_code = listarSolicitudesValidacionService(
+                request=request,
+                busqueda=busqueda,
+                estado=estado,
+                especialidad=especialidad,
+                departamento=departamento,
+                ciudad=ciudad,
+            )
+        except ValidationError as error:
+            return respuesta_serializer_invalido(error.detail)
 
         return respuesta_ok(
             data=data,

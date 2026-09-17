@@ -31,6 +31,15 @@ export default function DoctorRequestsPage() {
         busqueda,
         setBusqueda,
         solicitudesDoctores,
+        paginaActual,
+        totalPaginas,
+        totalRegistros,
+        pageSize,
+        cambiarPagina,
+        cargando,
+        errorSolicitudes,
+        refrescarSolicitudes,
+        hayFiltros,
         metricas,
         verHojaVida,
         aprobarSolicitud,
@@ -103,6 +112,15 @@ export default function DoctorRequestsPage() {
                 <DoctorRequestsTable
                     onViewRequest={setSelectedRequest}
                     solicitudesDoctores={solicitudesDoctores}
+                    paginaActual={paginaActual}
+                    totalPaginas={totalPaginas}
+                    totalRegistros={totalRegistros}
+                    pageSize={pageSize}
+                    onCambiarPagina={cambiarPagina}
+                    loading={cargando}
+                    error={errorSolicitudes}
+                    onReintentar={refrescarSolicitudes}
+                    hayFiltros={hayFiltros}
                 />
             </section>
 

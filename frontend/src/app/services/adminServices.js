@@ -12,9 +12,10 @@ export const getDoctoresService = async (page, search) =>
 export const deleteDoctorService = async (id) =>
     (await api.delete(`/medicos/${id}/`)).data
 
-export const listarSolicitudesMedicosValidacionService = async function (filtros = {}) {
+export const listarSolicitudesMedicosValidacionService = async function (filtros = {}, signal) {
     const response = await api.get("/medicos/solicitudes-validacion/", {
-        params: filtros
+        params: { page: 1, page_size: 10, ...filtros },
+        signal,
     });
 
     return response.data;

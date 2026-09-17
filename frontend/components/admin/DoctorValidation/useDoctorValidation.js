@@ -1,23 +1,52 @@
 "use client"
 import Swal from "sweetalert2"
 import { obtenerPrimerError } from "@/app/utils/errrorUtils"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { getEspecialidadesService } from "@/app/services/doctorServices"
 import { listarSolicitudesMedicosValidacionService, obtenerMetricasValidacionMedicosService, obtenerHojaVidaSolicitudService, aprobarSolicitudValidacionService, rechazarSolicitudValidacionService } from "@/app/services/adminServices"
 import { getDepartamentosService } from "@/app/services/catalogs"
 import { getCiudadesByDepartamentoService } from "@/app/services/authService"
+const consultaInicial = { page: 1, page_size: 10, busqueda: "", estado: "", especialidad: "", departamento: "", ciudad: "" }
+
 export default function useDoctorValidation() {
-    const [busquedaDebounce, setBusquedaDebounce] = useState("")
+    const [consulta, setConsulta] = useState(consultaInicial)
+    const consultaActual = useRef(consulta)
+    const peticionActual = useRef(null)
+    const ultimaConsulta = useRef(null)
+    const [totalPaginas, setTotalPaginas] = useState(1)
+    const [totalRegistros, setTotalRegistros] = useState(0)
+    const [cargando, setCargando] = useState(true)
+    const [errorSolicitudes, setErrorSolicitudes] = useState(null)
+    const {
+        page: paginaActual, page_size: pageSize,
+        departamento: departamentoSeleccionado, ciudad: ciudadSeleccionada,
+        estado: estadoSeleccionado, especialidad: especialidadSeleccionada,
+    } = consulta
     const [especialidades, setEspecialidades] = useState([])
     const [departamentos, setDepartamentos] = useState([])
     const [ciudades, setCiudades] = useState([])
-    const [departamentoSeleccionado, setDepartamentoSeleccionado] = useState("")
-    const [ciudadSeleccionada, setCiudadSeleccionada] = useState("")
-    const [estadoSeleccionado, setEstadoSeleccionado] = useState("")
-    const [especialidadSeleccionada, setEspecialidadSeleccionada] = useState("")
     const [solicitudesDoctores, setsolicitudesDoctores] = useState([])
-    const [busqueda, setBusqueda] = useState("")
+    const [busqueda, setBusquedaEntrada] = useState("")
     const [metricas, setMetricas] = useState(null)
+    const busquedaPendiente = busqueda.trim() !== consulta.busqueda
+    const hayFiltros = Boolean(busqueda.trim() || estadoSeleccionado || especialidadSeleccionada || departamentoSeleccionado || ciudadSeleccionada)
+    const setBusqueda = valor => {
+        setBusquedaEntrada(valor)
+        setConsulta(actual => actual.page === 1 ? actual : { ...actual, page: 1 })
+    }
+    const cambiarFiltro = (campo, valor) => setConsulta(actual => ({
+        ...actual, [campo]: valor, page: 1,
+        ...(campo === "departamento" ? { ciudad: "" } : {}),
+    }))
+    const setDepartamentoSeleccionado = valor => cambiarFiltro("departamento", valor)
+    const setCiudadSeleccionada = valor => cambiarFiltro("ciudad", valor)
+    const setEstadoSeleccionado = valor => cambiarFiltro("estado", valor)
+    const setEspecialidadSeleccionada = valor => cambiarFiltro("especialidad", valor)
+    const cambiarPagina = pagina => {
+        if (!cargando && !busquedaPendiente && Number.isInteger(pagina) && pagina >= 1 && pagina <= totalPaginas) {
+            setConsulta(actual => ({ ...actual, page: pagina }))
+        }
+    }
     const estados = [
         { value: "pendiente", label: "Pendiente" },
         { value: "rechazado", label: "Rechazado" },
@@ -46,7 +75,7 @@ export default function useDoctorValidation() {
             console.log("Error en el servidor: ", error);
         }
     }
-    const cargarCiudades = async (departamentoId) => {
+    const cargarCiudades = async (departamentoId, sigueVigente) => {
         try {
             const data = await getCiudadesByDepartamentoService(departamentoId)
 
@@ -55,28 +84,40 @@ export default function useDoctorValidation() {
                 label: ciudad.nombre_ciudad
             }))
 
-            setCiudades(opciones)
+            if (sigueVigente()) setCiudades(opciones)
 
         } catch (error) {
             console.log("Error cargando ciudades: ", error)
         }
     }
 
-    const cargarSolicitudDoctores = async () => {
+    const cargarSolicitudDoctores = useCallback(async (parametros) => {
+        peticionActual.current?.abort()
+        const controller = new AbortController()
+        peticionActual.current = controller
+        setCargando(true)
+        setErrorSolicitudes(null)
         try {
-            const data = await listarSolicitudesMedicosValidacionService({
-                busqueda: busquedaDebounce,
-                estado: estadoSeleccionado,
-                especialidad: especialidadSeleccionada,
-                departamento: departamentoSeleccionado,
-                ciudad: ciudadSeleccionada,
-            })
+            const { data } = await listarSolicitudesMedicosValidacionService(parametros, controller.signal)
+            if (controller.signal.aborted) return
 
-            setsolicitudesDoctores(data.data)
+            setsolicitudesDoctores(data.results)
+            setTotalPaginas(data.total_pages)
+            setTotalRegistros(data.count)
+            // El backend ya devuelve los registros de la última página válida.
+            ultimaConsulta.current = JSON.stringify({ ...parametros, page: data.current_page })
+            setConsulta(actual => actual.page === data.current_page ? actual : { ...actual, page: data.current_page })
         } catch (error) {
+            if (controller.signal.aborted) return
+            ultimaConsulta.current = null
+            setErrorSolicitudes(obtenerPrimerError(error) || "No fue posible cargar las solicitudes.")
             console.error("Error cargando solicitudes de médicos:", error)
+        } finally {
+            if (!controller.signal.aborted) setCargando(false)
         }
-    }
+    }, [])
+
+    const refrescarSolicitudes = () => cargarSolicitudDoctores(consultaActual.current)
 
     const cargarMetricas = async () => {
         try {
@@ -117,7 +158,7 @@ export default function useDoctorValidation() {
             await aprobarSolicitudValidacionService(solicitudId)
 
             await Promise.all([
-                cargarSolicitudDoctores(),
+                refrescarSolicitudes(),
                 cargarMetricas(),
             ])
 
@@ -146,7 +187,7 @@ export default function useDoctorValidation() {
             )
 
             await Promise.all([
-                cargarSolicitudDoctores(),
+                refrescarSolicitudes(),
                 cargarMetricas(),
             ])
 
@@ -177,29 +218,27 @@ export default function useDoctorValidation() {
 
     const limpiarFiltros = () => {
         setBusqueda("")
-        setEstadoSeleccionado("")
-        setEspecialidadSeleccionada("")
-        setDepartamentoSeleccionado("")
-        setCiudadSeleccionada("")
+        setConsulta(actual => ({ ...consultaInicial, page_size: actual.page_size }))
     }
 
     useEffect(() => {
         const timeout = setTimeout(() => {
-            setBusquedaDebounce(busqueda)
+            setConsulta(actual => actual.busqueda === busqueda.trim()
+                ? actual : { ...actual, busqueda: busqueda.trim(), page: 1 })
         }, 500)
 
         return () => clearTimeout(timeout)
     }, [busqueda])
 
     useEffect(() => {
-        cargarSolicitudDoctores()
-    }, [
-        busquedaDebounce,
-        estadoSeleccionado,
-        especialidadSeleccionada,
-        departamentoSeleccionado,
-        ciudadSeleccionada,
-    ])
+        consultaActual.current = consulta
+        if (!busquedaPendiente && ultimaConsulta.current !== JSON.stringify(consulta)) {
+            cargarSolicitudDoctores(consulta)
+        } else if (!busquedaPendiente) {
+            setCargando(false)
+        }
+        return () => peticionActual.current?.abort()
+    }, [consulta, busquedaPendiente, cargarSolicitudDoctores])
 
     useEffect(() => {
         cargarEspecialidades();
@@ -209,17 +248,14 @@ export default function useDoctorValidation() {
 
     useEffect(() => {
 
-        // si no hay departamento seleccionado
+        let vigente = true
+        setCiudades([])
         if (!departamentoSeleccionado) {
-            setCiudades([])
-            setCiudadSeleccionada("")
             return
         }
 
-        cargarCiudades(departamentoSeleccionado)
-
-        // al cambiar de departamento limpiamos la ciudad anterior
-        setCiudadSeleccionada("")
+        cargarCiudades(departamentoSeleccionado, () => vigente)
+        return () => { vigente = false }
 
     }, [departamentoSeleccionado])
 
@@ -246,6 +282,15 @@ export default function useDoctorValidation() {
         setBusqueda,
 
         solicitudesDoctores,
+        paginaActual,
+        totalPaginas,
+        totalRegistros,
+        pageSize,
+        cambiarPagina,
+        cargando: cargando || busquedaPendiente,
+        errorSolicitudes,
+        refrescarSolicitudes,
+        hayFiltros,
         metricas,
         verHojaVida,
         aprobarSolicitud,

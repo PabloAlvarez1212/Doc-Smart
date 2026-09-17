@@ -24,6 +24,7 @@ from django.db.models.functions import Concat
 from storage_app.services import guardar_archivo_medico
 from django.db import transaction
 from storage_app.services import generar_url_firmada
+from medicos.paginacion import PaginacionSolicitudesValidacion
 
 # ── SERVICIOS DE MÉDICOS ──────────────────────────────────────────────────────
 
@@ -67,6 +68,7 @@ def listarMedicosPublicosService(
     return serializer.data, 200
 
 def listarSolicitudesValidacionService(
+    request,
     busqueda=None,
     estado=None,
     especialidad=None,
@@ -95,7 +97,7 @@ def listarSolicitudesValidacionService(
                 "medico__apellido"
             )
         )
-        .order_by("-fecha_solicitud")
+        .order_by("-fecha_solicitud", "-id")
     )
 
     if busqueda:
@@ -128,9 +130,11 @@ def listarSolicitudesValidacionService(
             medico__ciudad_id=ciudad
         )
 
-    data = SolicitudValidacionMedicoSerializer(solicitudes,many=True).data
+    paginador = PaginacionSolicitudesValidacion()
+    pagina = paginador.paginate_queryset(solicitudes, request)
+    data = SolicitudValidacionMedicoSerializer(pagina, many=True).data
 
-    return data, 200
+    return paginador.get_paginated_response(data).data, 200
 
 def obtenerMetricasValidacionMedicosService():
 

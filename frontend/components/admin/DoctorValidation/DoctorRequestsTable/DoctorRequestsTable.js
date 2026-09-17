@@ -2,6 +2,7 @@
 
 import { Eye } from "lucide-react";
 import DataTable from "../../../ui/DataTable/DataTable";
+import Pagination from "../../../ui/Pagination/Pagination";
 import StatusBadge from "../StatusBadge/StatusBadge";
 import styles from "./DoctorRequestsTable.module.css";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
@@ -16,6 +17,14 @@ export default function DoctorRequestsTable({
     solicitudesDoctores = [],
     loading = false,
     onViewRequest,
+    paginaActual = 1,
+    totalPaginas = 1,
+    totalRegistros = 0,
+    pageSize = 10,
+    onCambiarPagina,
+    hayFiltros = false,
+    error,
+    onReintentar,
 }) {
     const columns = [
         {
@@ -77,17 +86,30 @@ export default function DoctorRequestsTable({
     ];
 
     return (
+        <>
         <DataTable
             titulo="Solicitudes de médicos"
             columnas={columns}
             datos={solicitudesDoctores}
             cargando={loading}
+            error={error}
+            onReintentar={onReintentar}
+            indiceInicial={(paginaActual - 1) * pageSize}
+            textoConteo={`Mostrando ${totalRegistros === 0 ? 0 : (paginaActual - 1) * pageSize + 1}-${Math.min(paginaActual * pageSize, totalRegistros)} de ${totalRegistros} solicitudes`}
             mostrarEncabezado={false}
             mostrarBusqueda={false}
             mostrarBotonNuevo={false}
             mostrarAcciones={false}
-            emptyTitle="No hay solicitudes médicas para revisar"
-            emptyDescription="Cuando un médico complete su registro y envíe su hoja de vida, aparecerá aquí."
+            emptyTitle={hayFiltros ? "No hay resultados para los filtros actuales" : "No hay solicitudes médicas para revisar"}
+            emptyDescription={hayFiltros ? "Prueba otros filtros o limpia la búsqueda." : "Cuando un médico complete su registro y envíe su hoja de vida, aparecerá aquí."}
         />
+        {!error && <Pagination
+            paginaActual={paginaActual}
+            totalPaginas={totalPaginas}
+            onCambiarPagina={onCambiarPagina}
+            cargando={loading}
+            variant="admin"
+        />}
+        </>
     );
 }
