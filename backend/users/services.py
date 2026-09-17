@@ -63,8 +63,18 @@ def loginService(correo, contraseña):
         contraseña.encode(),
         medico.contraseña.encode()
     ):
+        # Obtiene la última solicitud de validación del médico
+        ultima_solicitud = medico.ultima_solicitud_validacion
+
         token = RefreshToken.for_user(medico)
         token["tipo"] = "medico"
+
+        # Agrega el estado actual de validación al token
+        token["estado_validacion"] = (
+            ultima_solicitud.estado
+            if ultima_solicitud
+            else None
+        )
 
         serializer = MedicoSerializer(medico)
 

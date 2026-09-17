@@ -281,6 +281,47 @@ def rechazarSolicitudValidacionService(solicitud_id, motivo_rechazo):
     except SolicitudValidacionMedico.DoesNotExist:
         return None, 404
 
+
+def obtenerMiValidacionService(medico_id):
+    ultima_solicitud = (
+        SolicitudValidacionMedico.objects
+        .filter(medico_id=medico_id)
+        .order_by("-fecha_solicitud")
+        .first()
+    )
+
+    if not ultima_solicitud:
+        return {
+            "estado": None,
+            "motivo_rechazo": None,
+            "fecha_solicitud": None,
+            "fecha_revision": None,
+            "puede_reintentar_desde": None,
+            "puede_reintentar": False,
+        }, 200
+
+    puede_reintentar = False
+
+    if (
+        ultima_solicitud.estado
+        == SolicitudValidacionMedico.EstadoSolicitud.RECHAZADO
+        and ultima_solicitud.puede_reintentar_desde
+    ):
+        puede_reintentar = (
+            timezone.now()
+            >= ultima_solicitud.puede_reintentar_desde
+        )
+
+    return {
+        "id": ultima_solicitud.id,
+        "estado": ultima_solicitud.estado,
+        "motivo_rechazo": ultima_solicitud.motivo_rechazo,
+        "fecha_solicitud": ultima_solicitud.fecha_solicitud,
+        "fecha_revision": ultima_solicitud.fecha_revision,
+        "puede_reintentar_desde": ultima_solicitud.puede_reintentar_desde,
+        "puede_reintentar": puede_reintentar,
+    }, 200
+    
 # Retorna los datos de un médico específico por su ID
 def obtenerMedicoService(id_medico):
     medico = Medico.objects.filter(id=id_medico).first()

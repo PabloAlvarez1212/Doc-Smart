@@ -17,10 +17,18 @@ class MedicoSerializer(serializers.ModelSerializer):
     especialidad = serializers.CharField(source='id_especialidad.nombre')    # Nombre de la especialidad
     ciudad = serializers.CharField(source='ciudad.nombre')                   # Nombre de la ciudad
     departamento = serializers.CharField(source='ciudad.departamento.nombre') # Departamento de la ciudad
+    estado_validacion = serializers.SerializerMethodField()
     class Meta:
         model = Medico
-        fields = ['id', 'nombre', 'apellido', 'correo', 'rol','telefono','especialidad', 'ciudad', 'departamento', 'direccion','cedula']
+        fields = ['id', 'nombre', 'apellido', 'correo', 'rol','telefono','especialidad', 'ciudad', 'departamento', 'direccion','cedula','estado_validacion']
         
+    def get_estado_validacion(self, obj):
+        solicitud = obj.ultima_solicitud_validacion
+
+        if not solicitud:
+            return None
+
+        return solicitud.estado
 class UsuarioPerfilSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source='id_rol.nombre')
     edad = serializers.SerializerMethodField()

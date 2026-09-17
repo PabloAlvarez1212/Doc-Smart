@@ -4,6 +4,7 @@ from rest_framework.exceptions import ValidationError
 from utils import IsAdmin,IsMedico,IsPaciente
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from medicos.models import Medico
 from medicos.services import (
     listarMedicosService,
     obtenerMedicoService,
@@ -26,6 +27,7 @@ from medicos.services import (
     obtenerHojaVidaSolicitudService,
     aprobarSolicitudValidacionService,
     rechazarSolicitudValidacionService,
+    obtenerMiValidacionService,
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
@@ -268,7 +270,41 @@ class RechazarSolicitudValidacionView(APIView):
                 errores={"detalle": str(e)},
                 status=500
             )
-                                   
+
+class MiValidacionMedicoView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+        IsMedico,
+    ]
+
+    def get(self, request):
+        try:
+            resultado, status_code = obtenerMiValidacionService(
+                request.user.id
+            )
+
+            if status_code != 200:
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje="Estado de validación obtenido correctamente",
+                status=status_code
+            )
+
+        except Exception as e:
+            print(
+                f"Error al obtener estado de validación médica: {e}"
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+                              
 # Vista admin: obtiene, actualiza o elimina un médico por ID
 class MedicoDetailView(APIView):
     permission_classes = [IsAdmin]

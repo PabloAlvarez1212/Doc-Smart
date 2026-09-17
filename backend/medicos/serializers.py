@@ -126,6 +126,8 @@ class MedicoPerfilSerializer(serializers.ModelSerializer):
 
     foto_perfil = serializers.SerializerMethodField()
 
+    estado_validacion = serializers.SerializerMethodField()
+    
     def get_edad(self, obj):
 
         hoy = date.today()
@@ -150,6 +152,14 @@ class MedicoPerfilSerializer(serializers.ModelSerializer):
 
         return None
 
+    def get_estado_validacion(self, obj):
+        solicitud = obj.ultima_solicitud_validacion
+
+        if not solicitud:
+            return None
+
+        return solicitud.estado
+
     class Meta:
 
         model = Medico
@@ -173,7 +183,8 @@ class MedicoPerfilSerializer(serializers.ModelSerializer):
             'departamento',
 
             'direccion',
-            'foto_perfil'
+            'foto_perfil',
+            'estado_validacion',
         ]
 
 

@@ -114,3 +114,12 @@ export const listarMedicosDisponiblesServices = async function (filtros = {}) {
 
     return response.data;
 }
+
+export const obtenerMiValidacionMedicoService = async (signal) => {
+    const response = await api.get(
+        "/medicos/mi-validacion/",
+        { signal }
+    );
+
+    return response.data;
+};
