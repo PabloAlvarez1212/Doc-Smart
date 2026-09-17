@@ -25,6 +25,7 @@ from storage_app.services import guardar_archivo_medico
 from django.db import transaction
 from storage_app.services import generar_url_firmada
 from medicos.paginacion import PaginacionSolicitudesValidacion
+from utils import enviarCorreoMedicoAprobado,enviarCorreoMedicoRechazado
 
 # ── SERVICIOS DE MÉDICOS ──────────────────────────────────────────────────────
 
@@ -200,8 +201,10 @@ def obtenerHojaVidaSolicitudService(solicitud_id):
     
 def aprobarSolicitudValidacionService(solicitud_id):
     try:
-        solicitud = SolicitudValidacionMedico.objects.get(
-            id=solicitud_id
+        solicitud = (
+            SolicitudValidacionMedico.objects
+            .select_related("medico")
+            .get(id=solicitud_id)
         )
 
         if solicitud.estado != SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE:
@@ -221,6 +224,8 @@ def aprobarSolicitudValidacionService(solicitud_id):
             ]
         )
 
+        enviarCorreoMedicoAprobado(solicitud.medico)
+
         return {
             "id": solicitud.id,
             "medico_id": solicitud.medico_id,
@@ -228,13 +233,15 @@ def aprobarSolicitudValidacionService(solicitud_id):
             "fecha_revision": solicitud.fecha_revision,
         }, 200
 
-    except SolicitudValidacionMedico.DoesNotExist:
-        return None, 404
+    except Exception as e:
+        print("ERROR APROBANDO SOLICITUD")
 
 def rechazarSolicitudValidacionService(solicitud_id, motivo_rechazo):
     try:
-        solicitud = SolicitudValidacionMedico.objects.get(
-            id=solicitud_id
+        solicitud = (
+            SolicitudValidacionMedico.objects
+            .select_related("medico")
+            .get(id=solicitud_id)
         )
 
         if solicitud.estado != SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE:
@@ -254,6 +261,12 @@ def rechazarSolicitudValidacionService(solicitud_id, motivo_rechazo):
                 "fecha_revision",
                 "puede_reintentar_desde",
             ]
+        )
+
+        enviarCorreoMedicoRechazado(
+            solicitud.medico,
+            solicitud.motivo_rechazo,
+            solicitud.puede_reintentar_desde,
         )
 
         return {

@@ -7,6 +7,10 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 from datetime import date
 from users.models import Usuario
 from medicos.models import Medico
+import os
+import resend
+
+from django.template.loader import render_to_string
 
 def validarContraseña(contraseña):
     if len(contraseña) < 8:
@@ -138,3 +142,59 @@ def calcular_edad(fecha_nacimiento):
         edad -= 1
 
     return edad
+
+def enviarCorreoMedicoAprobado(medico):
+    frontend_url = os.getenv("FRONTEND_URL", "").rstrip("/")
+
+    html_content = render_to_string(
+        "emails/medico_aprobado.html",
+        {
+            "nombre": medico.nombre,
+            "apellido": medico.apellido,
+            "login_url": f"{frontend_url}/login",
+        }
+    )
+
+    try:
+        email = resend.Emails.send({
+            "from": os.getenv("RESEND_FROM_EMAIL"),
+            "to": [medico.correo],
+            "subject": "Tu solicitud fue aprobada - DocSmart",
+            "html": html_content,
+        })
+
+        print("Correo de aprobación enviado:", email)
+        return True
+
+    except Exception as e:
+        print("Error enviando correo de aprobación:", repr(e))
+        return False
+    
+def enviarCorreoMedicoRechazado(medico, motivo_rechazo, puede_reintentar_desde):
+    frontend_url = os.getenv("FRONTEND_URL", "").rstrip("/")
+
+    html_content = render_to_string(
+        "emails/medico_rechazado.html",
+        {
+            "nombre": medico.nombre,
+            "apellido": medico.apellido,
+            "motivo_rechazo": motivo_rechazo,
+            "puede_reintentar_desde": puede_reintentar_desde,
+            "login_url": f"{frontend_url}/login",
+        }
+    )
+
+    try:
+        email = resend.Emails.send({
+            "from": os.getenv("RESEND_FROM_EMAIL"),
+            "to": [medico.correo],
+            "subject": "Actualización sobre tu solicitud - DocSmart",
+            "html": html_content,
+        })
+
+        print("Correo de rechazo enviado:", email)
+        return True
+
+    except Exception as e:
+        print("Error enviando correo de rechazo:", repr(e))
+        return False
