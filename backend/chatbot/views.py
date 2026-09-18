@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from chatbot.models import Chat, Mensaje
-from utils import IsMedico
+from utils import IsMedicoAprobado, IsPacienteOrMedicoAprobado
 from chatbot.ai.tool_manager import ToolManager
 from chatbot.tools.medico_clinico import contexto_activo
 from chatbot.ai.doctor_conversation import procesar_medico
@@ -107,7 +107,7 @@ def normalizar_respuesta_bymax(respuesta):
 
 class ChatListView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsPacienteOrMedicoAprobado]
 
     def get(self, request):
 
@@ -158,7 +158,7 @@ class ChatListView(APIView):
 
 class ChatDetailView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsPacienteOrMedicoAprobado]
 
     def delete(self, request, id_chat):
 
@@ -199,7 +199,7 @@ class ChatDetailView(APIView):
 
 class MensajeListView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsPacienteOrMedicoAprobado]
 
     def get(self, request, id_chat):
 
@@ -289,7 +289,7 @@ class MensajeListView(APIView):
 
 class ChatbotResponderView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsPacienteOrMedicoAprobado]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "bymax_chat"
 
@@ -485,7 +485,7 @@ class ChatbotResponderView(APIView):
 # ──────────────────────────────────────────────────────────────────────────────
 
 class ContextoMedicoView(APIView):
-    permission_classes = [IsAuthenticated, IsMedico]
+    permission_classes = [IsAuthenticated, IsMedicoAprobado]
 
     def get(self, request, id_chat):
         chat = ChatService.obtener_chat(id_chat, request.user)

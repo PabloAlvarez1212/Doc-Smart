@@ -6,7 +6,7 @@ from asgiref.sync import async_to_sync
 from channels.testing import WebsocketCommunicator
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory, force_authenticate
 
@@ -22,12 +22,28 @@ from chatbot.services.chat_service import ChatService
 from chatbot.tools.medico_clinico import BuscarProximosPacientesTool, contexto_activo
 from chatbot.views import ChatListView, MensajeListView, ChatbotResponderView, ContextoMedicoView
 from historial_medico.models import HistorialClinico
-from medicos.models import Especialidad, Medico
+from medicos.models import Especialidad, Medico, SolicitudValidacionMedico
+from notificaciones.consumers import NotificacionConsumer
 from storage_app.views import ArchivoListaCrearView, ArchivoUrlView
 from storage_app.models import Archivo
 from users.models import Usuario
 
 
+TEST_CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "bymax-medico-tests",
+    },
+}
+
+TEST_CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
+
+
+@override_settings(CACHES=TEST_CACHES, CHANNEL_LAYERS=TEST_CHANNEL_LAYERS)
 class BymaxMedicoTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -44,6 +60,21 @@ class BymaxMedicoTests(TestCase):
             correo=f"m{i}@example.com", contraseña="hash", cedula=f"m{i}", telefono="000",
             id_rol=rol_medico, id_especialidad=especialidad, direccion="Prueba",
         ) for i in range(2)]
+        for indice, medico in enumerate(cls.medicos):
+            hoja_vida = Archivo.objects.create(
+                medico=medico,
+                nombre_original=f"hoja-vida-{indice}.pdf",
+                storage_key=f"pruebas/bymax/hoja-vida-{indice}.pdf",
+                content_type="application/pdf",
+                tamano=128,
+                tipo="documento",
+                categoria="hoja_vida",
+            )
+            SolicitudValidacionMedico.objects.create(
+                medico=medico,
+                hoja_vida=hoja_vida,
+                estado=SolicitudValidacionMedico.EstadoSolicitud.APROBADO,
+            )
         cls.estados = {nombre: Estado.objects.create(nombre=nombre) for nombre in
                        ("pendiente", "confirmada", "reprogramada", "completada", "cancelada")}
 
@@ -421,3 +452,129 @@ class BymaxMedicoTests(TestCase):
         medico.assert_not_called()
         router.assert_called_once()
         self.assertEqual(ToolLog.objects.get().nombre_tool, "consultar_disponibilidad")
+
+
+@override_settings(CACHES=TEST_CACHES, CHANNEL_LAYERS=TEST_CHANNEL_LAYERS)
+class BymaxApprovalConsumerTests(TransactionTestCase):
+    reset_sequences = True
+
+    def setUp(self):
+        rol_medico = Rol.objects.create(nombre="medico-ws")
+        rol_paciente = Rol.objects.create(nombre="paciente-ws")
+        especialidad = Especialidad.objects.create(nombre="Medicina WS")
+        self.medico = Medico.objects.create(
+            nombre="Médico",
+            apellido="WebSocket",
+            fecha_nacimiento="1980-01-01",
+            correo="medico.websocket@example.test",
+            contraseña="hash",
+            cedula="medico-websocket",
+            telefono="3000000000",
+            id_rol=rol_medico,
+            id_especialidad=especialidad,
+            direccion="Dirección de prueba",
+        )
+        hoja_vida = Archivo.objects.create(
+            medico=self.medico,
+            nombre_original="hoja-vida-websocket.pdf",
+            storage_key="pruebas/bymax/hoja-vida-websocket.pdf",
+            content_type="application/pdf",
+            tamano=128,
+            tipo="documento",
+            categoria="hoja_vida",
+        )
+        self.solicitud = SolicitudValidacionMedico.objects.create(
+            medico=self.medico,
+            hoja_vida=hoja_vida,
+            estado=SolicitudValidacionMedico.EstadoSolicitud.APROBADO,
+        )
+        self.chat = Chat.objects.create(id_medico=self.medico)
+        self.paciente = Usuario.objects.create(
+            nombre="Paciente",
+            apellido="WebSocket",
+            fecha_nacimiento="1990-01-01",
+            estatura=1.70,
+            peso=70,
+            correo="paciente.websocket@example.test",
+            contraseña="hash",
+            cedula="paciente-websocket",
+            telefono="3000000001",
+            id_rol=rol_paciente,
+        )
+        self.chat_paciente = Chat.objects.create(id_usuario=self.paciente)
+
+    def conectar(self):
+        async def ejecutar():
+            async def application(scope, receive, send):
+                scope = {
+                    **scope,
+                    "user": self.medico,
+                    "url_route": {"kwargs": {"id_chat": self.chat.id}},
+                }
+                await BymaxConsumer.as_asgi()(scope, receive, send)
+
+            socket = WebsocketCommunicator(
+                application,
+                f"/ws/chatbot/{self.chat.id}/",
+            )
+            conectado, codigo = await socket.connect()
+            if conectado:
+                await socket.receive_json_from()
+                await socket.disconnect()
+            return conectado, codigo
+
+        return async_to_sync(ejecutar)()
+
+    def test_medico_aprobado_puede_conectarse(self):
+        conectado, _ = self.conectar()
+        self.assertTrue(conectado)
+
+    def test_paciente_conserva_acceso_al_websocket_de_bymax(self):
+        medico_original = self.medico
+        chat_original = self.chat
+        self.medico = self.paciente
+        self.chat = self.chat_paciente
+        try:
+            conectado, _ = self.conectar()
+        finally:
+            self.medico = medico_original
+            self.chat = chat_original
+        self.assertTrue(conectado)
+
+    def test_medicos_no_aprobados_son_rechazados_antes_de_aceptar(self):
+        for estado in (
+            SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE,
+            SolicitudValidacionMedico.EstadoSolicitud.RECHAZADO,
+        ):
+            with self.subTest(estado=estado):
+                self.solicitud.estado = estado
+                self.solicitud.save(update_fields=["estado"])
+                conectado, codigo = self.conectar()
+                self.assertFalse(conectado)
+                self.assertEqual(codigo, 4403)
+
+        self.solicitud.delete()
+        conectado, codigo = self.conectar()
+        self.assertFalse(conectado)
+        self.assertEqual(codigo, 4403)
+
+    def test_notificaciones_siguen_disponibles_para_medico_pendiente(self):
+        self.solicitud.estado = SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE
+        self.solicitud.save(update_fields=["estado"])
+
+        async def ejecutar():
+            async def application(scope, receive, send):
+                scope = {**scope, "user": self.medico}
+                await NotificacionConsumer.as_asgi()(scope, receive, send)
+
+            socket = WebsocketCommunicator(application, "/ws/notificaciones/")
+            conectado, _ = await socket.connect()
+            if conectado:
+                mensaje = await socket.receive_json_from()
+                await socket.disconnect()
+                return mensaje
+            return None
+
+        mensaje = async_to_sync(ejecutar)()
+        self.assertIsNotNone(mensaje)
+        self.assertEqual(mensaje["type"], "count_initial")

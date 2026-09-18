@@ -3,7 +3,7 @@ import logging
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
-from utils import IsAdmin,IsMedico,IsPaciente
+from utils import IsAdmin,IsMedico,IsMedicoAprobado,IsPaciente
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from medicos.models import Medico
 from medicos.services import (
@@ -486,7 +486,7 @@ class EspecialidadDetailView(APIView):
 
 
 class DashboardInicioMedicoView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsMedicoAprobado]
 
     def get(self, request):
         try:
@@ -617,7 +617,7 @@ class PerfilMedicoView(APIView):
 
 class FotoPerfilMedicoView(APIView):
     parser_classes = [MultiPartParser, FormParser]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsMedico]
 
     def patch(self, request):
 

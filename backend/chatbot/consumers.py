@@ -10,6 +10,7 @@ from chatbot.ai.gemini_service import preguntar_gemini_stream
 from chatbot.models import Chat, Mensaje
 from chatbot.services.chat_service import ChatService
 from chatbot.ai.doctor_conversation import DOCTOR_SYSTEM_PROMPT
+from medicos.models import Medico
 
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,13 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
 
         if not usuario or not usuario.is_authenticated:
             await self.close(code=4401)
+            return
+
+        if (
+            isinstance(usuario, Medico)
+            and not await self._medico_aprobado(usuario)
+        ):
+            await self.close(code=4403)
             return
 
         self.chat = await self._obtener_chat(usuario)
@@ -186,6 +194,10 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def _obtener_chat(self, usuario):
         return ChatService.obtener_chat(self.id_chat, usuario)
+
+    @database_sync_to_async
+    def _medico_aprobado(self, medico):
+        return medico.esta_aprobado
 
     @database_sync_to_async
     def _guardar_mensaje_usuario(self, mensaje):

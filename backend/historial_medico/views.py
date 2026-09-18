@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from core.paginacion import PaginacionEstandar
-from utils import IsMedico, IsPaciente
+from utils import IsMedicoAprobado, IsPaciente
 from historial_medico.services import (
     crearHistorialService,
     listarHistorialesPacienteService,
@@ -90,7 +90,7 @@ class HistorialPaginadoMixin:
 
 
 class HistorialListView(HistorialSeguroAPIView):
-    permission_classes = [IsAuthenticated, IsMedico]
+    permission_classes = [IsAuthenticated, IsMedicoAprobado]
     throttle_classes = [HistorialEscrituraThrottle]
 
     def post(self, request):
@@ -170,7 +170,7 @@ class HistorialProfesionalesPacienteView(HistorialSeguroAPIView):
 
 
 class HistorialMedicoView(HistorialPaginadoMixin, HistorialSeguroAPIView):
-    permission_classes = [IsAuthenticated, IsMedico]
+    permission_classes = [IsAuthenticated, IsMedicoAprobado]
     throttle_classes = [HistorialLecturaThrottle]
 
     def get(self, request):
@@ -195,13 +195,13 @@ class HistorialMedicoView(HistorialPaginadoMixin, HistorialSeguroAPIView):
 class HistorialDetailView(HistorialSeguroAPIView):
     permission_classes = [
         IsAuthenticated,
-        IsPaciente | IsMedico,
+        IsPaciente | IsMedicoAprobado,
     ]
 
     def get_permissions(self):
         permission_classes = self.permission_classes
         if self.request.method == 'PATCH':
-            permission_classes = [IsAuthenticated, IsMedico]
+            permission_classes = [IsAuthenticated, IsMedicoAprobado]
         return [permission() for permission in permission_classes]
 
     def get_throttles(self):

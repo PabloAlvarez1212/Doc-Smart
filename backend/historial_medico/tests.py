@@ -21,7 +21,8 @@ from citas.models import Cita
 from historial_medico.models import HistorialClinico, VersionHistorialClinico
 from historial_medico.serializers import CrearHistorialSerializer, EditarHistorialSerializer
 from historial_medico.services import crearHistorialService, editarHistorialService
-from medicos.models import Especialidad, Medico
+from medicos.models import Especialidad, Medico, SolicitudValidacionMedico
+from storage_app.models import Archivo
 from users.models import Usuario
 
 
@@ -115,6 +116,22 @@ class HistorialClinicoSecurityTests(APITestCase):
             direccion="Consultorio 2",
             ciudad=ciudad,
         )
+
+        for indice, medico in enumerate((cls.medico_uno, cls.medico_dos)):
+            hoja_vida = Archivo.objects.create(
+                medico=medico,
+                nombre_original=f"hoja-vida-historial-{indice}.pdf",
+                storage_key=f"pruebas/historial/hoja-vida-{indice}.pdf",
+                content_type="application/pdf",
+                tamano=128,
+                tipo="documento",
+                categoria="hoja_vida",
+            )
+            SolicitudValidacionMedico.objects.create(
+                medico=medico,
+                hoja_vida=hoja_vida,
+                estado=SolicitudValidacionMedico.EstadoSolicitud.APROBADO,
+            )
 
         # paciente_uno.id == medico_uno.id, pero no comparten identidad.
         cls.cita_medico_uno = Cita.objects.create(

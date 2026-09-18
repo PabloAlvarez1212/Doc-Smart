@@ -108,6 +108,23 @@ class IsMedico(BasePermission):
             and isinstance(request.user, Medico)
         )
         
+class IsMedicoAprobado(BasePermission):
+
+    message = (
+        "Tu cuenta médica debe estar aprobada "
+        "para acceder a esta sección."
+    )
+
+    def has_permission(self, request, view):
+        if not (
+            request.user
+            and request.user.is_authenticated
+            and isinstance(request.user, Medico)
+        ):
+            return False
+
+        return request.user.esta_aprobado
+
 class IsPaciente(BasePermission):
     message = "No tienes permisos para acceder a esta sección."
 
@@ -132,7 +149,28 @@ class IsPacienteOrMedico(BasePermission):
                 or isinstance(request.user, Medico)
             )
         )
-        
+
+class IsPacienteOrMedicoAprobado(BasePermission):
+    message = "No tienes permisos para realizar esta acción."
+
+    def has_permission(self, request, view):
+        if not (
+            request.user
+            and request.user.is_authenticated
+        ):
+            return False
+
+        if isinstance(request.user, Usuario):
+            return bool(
+                request.user.id_rol
+                and request.user.id_rol.nombre == "paciente"
+            )
+
+        if isinstance(request.user, Medico):
+            return request.user.esta_aprobado
+
+        return False
+
 def calcular_edad(fecha_nacimiento):
     hoy = date.today()
 
