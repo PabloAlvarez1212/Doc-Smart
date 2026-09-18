@@ -345,7 +345,18 @@ class PerfilPacienteView(APIView):
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor',status=500)
-        
+
+class PerfilAdminView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
+    def get(self,request):
+        try:
+            respuesta,status_code = obtenerUsuarioService(request.user.id)
+            if status_code != 200:
+                return respuesta_error(mensaje=respuesta,status=status_code)
+            return respuesta_ok(data=respuesta,status=status_code)
+        except Exception as e:
+            print(f"Error interno en el servidor: {e}")
+                    
 class FotoPerfilPacienteView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     permission_classes = [IsAuthenticated]

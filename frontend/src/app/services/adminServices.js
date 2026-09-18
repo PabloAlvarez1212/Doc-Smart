@@ -58,3 +58,9 @@ export const rechazarSolicitudValidacionService = async (
 
     return response.data
 }
+
+export const obtenerPerfilAdmin = async () => {
+    const response = await api.get("/perfil/admin/");
+
+    return response.data;
+};
