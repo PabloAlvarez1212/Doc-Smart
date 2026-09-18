@@ -113,7 +113,7 @@ class RegistrarMedicoView(APIView):
 
 # Vista admin: lista todos los médicos registrados
 class MedicoListView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request):
         try:
             resultado, status_code = listarMedicosService()
@@ -233,7 +233,7 @@ class AprobarSolicitudValidacionView(APIView):
             )
 
 class RechazarSolicitudValidacionView(APIView):
-
+    permission_classes = [IsAuthenticated, IsAdmin]
     def patch(self, request, solicitud_id):
         try:
             serializer = RechazarSolicitudValidacionSerializer(
@@ -363,7 +363,7 @@ class ReintentarSolicitudValidacionView(APIView):
                               
 # Vista admin: obtiene, actualiza o elimina un médico por ID
 class MedicoDetailView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
     # Obtiene los datos de un médico específico
     def get(self, request, id_medico):
         try:
@@ -409,7 +409,7 @@ class EspecialidadListView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [AllowAny()]
-        return [IsAdmin()] 
+        return [IsAuthenticated(), IsAdmin()]
 
     def get(self, request):
         try:
@@ -446,7 +446,7 @@ class EspecialidadDetailView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [AllowAny()]
-        return [IsAdmin()] 
+        return [IsAuthenticated(), IsAdmin()]
     # Retorna los datos de una especialidad específica
     def get(self, request, id_especialidad):
         try:

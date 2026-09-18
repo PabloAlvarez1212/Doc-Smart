@@ -190,6 +190,7 @@ class CitaConfirmarView(APIView):
 
 #!Metodos admin
 class RecordatorioListView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
     #!Listar recordatorios
     def get(self, request):
         try:
@@ -212,6 +213,7 @@ class RecordatorioListView(APIView):
 
 
 class RecordatorioDetailView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
     #!Eliminar recordatorio
     def delete(self, request, pk):
         try:

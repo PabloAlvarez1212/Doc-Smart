@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from urllib3 import request
 from catalogos.serializers import CatalogoSerializer,CiudadInputSerializer
 from catalogos.services import (
@@ -31,7 +31,7 @@ def respuesta_serializer_invalido(errors):
 # ─── ROL ─────────────────────────────────────────────────────────────────────
 
 class RolListView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request):
         try:
             resultado, status_code = listarRolesService()
@@ -55,7 +55,7 @@ class RolListView(APIView):
 
 
 class RolDetailView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request, id):
         try:
             resultado, status_code = obtenerRolService(id)
@@ -93,7 +93,7 @@ class RolDetailView(APIView):
 # ─── ESTADO ──────────────────────────────────────────────────────────────────
 
 class EstadoListView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request):
         try:
             resultado, status_code = listarEstadosService()
@@ -117,7 +117,7 @@ class EstadoListView(APIView):
 
 
 class EstadoDetailView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request, id):
         try:
             resultado, status_code = obtenerEstadoService(id)
@@ -212,7 +212,7 @@ class CiudadesDetailView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [AllowAny()]
-        return [IsAdmin()] 
+        return [IsAuthenticated(), IsAdmin()]
     def get(self, request):
         try:
             page = request.query_params.get('page', 1)
@@ -248,7 +248,7 @@ class CiudadDetailView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [AllowAny()]
-        return [IsAdmin()] 
+        return [IsAuthenticated(), IsAdmin()]
     def get(self,request,id):
         try:
             resultado, status_code = obtenerCiudadService(id)
@@ -302,7 +302,7 @@ class CiudadDetailView(APIView):
 # ─── MEDIO ───────────────────────────────────────────────────────────────────
 
 class MedioListView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request):
         try:
             resultado, status_code = listarMediosService()
@@ -326,7 +326,7 @@ class MedioListView(APIView):
 
 
 class MedioDetailView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request, id):
         try:
             resultado, status_code = obtenerMedioService(id)

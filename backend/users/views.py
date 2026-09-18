@@ -359,7 +359,7 @@ class PerfilAdminView(APIView):
                     
 class FotoPerfilPacienteView(APIView):
     parser_classes = [MultiPartParser, FormParser]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsPaciente]
 
     def patch(self, request):
 
@@ -426,7 +426,7 @@ class FotoPerfilPacienteView(APIView):
         
 # ! Metodos para el Admin
 class UsuarioListView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request):
         try:
             page = request.query_params.get('page')
@@ -442,7 +442,7 @@ class UsuarioListView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 class UsuarioDetailView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request, pk):
         try:
             resultado, status_code = obtenerUsuarioService(pk)
@@ -480,7 +480,7 @@ class UsuarioDetailView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 class DashboardInicioPacienteView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsPaciente]
     def get(self,request):
         try:
             resultado, statusCode = obtenerDashboardPacienteInicioService(request.user.id)
