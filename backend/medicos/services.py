@@ -1,5 +1,6 @@
 import bcrypt
 import calendar
+import logging
 from django.utils import timezone
 from datetime import timedelta
 from citas.models import Cita
@@ -21,11 +22,14 @@ from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
 from django.db.models import Q,Value,OuterRef, Subquery,Count
 from django.db.models.functions import Concat
-from storage_app.services import guardar_archivo_medico
+from storage_app.services import guardar_archivo_medico,eliminar_archivo
 from django.db import transaction
 from storage_app.services import generar_url_firmada
 from medicos.paginacion import PaginacionSolicitudesValidacion
 from utils import enviarCorreoMedicoAprobado,enviarCorreoMedicoRechazado
+
+
+logger = logging.getLogger(__name__)
 
 # ── SERVICIOS DE MÉDICOS ──────────────────────────────────────────────────────
 
@@ -322,6 +326,109 @@ def obtenerMiValidacionService(medico_id):
         "puede_reintentar": puede_reintentar,
     }, 200
     
+def reintentarSolicitudValidacionService(
+    medico_id,
+    hoja_vida
+):
+    nuevo_archivo = None
+
+    try:
+        with transaction.atomic():
+            medico = (
+                Medico.objects
+                .select_for_update()
+                .filter(id=medico_id)
+                .first()
+            )
+
+            if not medico:
+                return {
+                    "general": [
+                        "Médico no encontrado."
+                    ]
+                }, 404
+
+            ultima_solicitud = (
+                SolicitudValidacionMedico.objects
+                .filter(medico_id=medico_id)
+                .order_by("-fecha_solicitud", "-id")
+                .first()
+            )
+
+            if not ultima_solicitud:
+                return {
+                    "general": [
+                        "No existe una solicitud anterior de validación."
+                    ]
+                }, 400
+
+            if (
+                ultima_solicitud.estado
+                != SolicitudValidacionMedico
+                .EstadoSolicitud
+                .RECHAZADO
+            ):
+                return {
+                    "general": [
+                        "La solicitud actual no permite "
+                        "realizar un reintento."
+                    ]
+                }, 400
+
+            if (
+                not ultima_solicitud.puede_reintentar_desde
+                or timezone.now()
+                < ultima_solicitud.puede_reintentar_desde
+            ):
+                return {
+                    "general": [
+                        "Aún no puedes enviar una nueva solicitud."
+                    ]
+                }, 400
+
+            nuevo_archivo = guardar_archivo_medico(
+                archivo=hoja_vida,
+                medico_id=medico_id,
+                categoria="hoja_vida",
+            )
+
+            nueva_solicitud = (
+                SolicitudValidacionMedico.objects.create(
+                    medico=medico,
+                    hoja_vida=nuevo_archivo,
+                    estado=(
+                        SolicitudValidacionMedico
+                        .EstadoSolicitud
+                        .PENDIENTE
+                    ),
+                )
+            )
+
+        return {
+            "id": nueva_solicitud.id,
+            "estado": nueva_solicitud.estado,
+            "fecha_solicitud": nueva_solicitud.fecha_solicitud,
+        }, 201
+
+    except Exception:
+        if nuevo_archivo:
+            try:
+                eliminado = eliminar_archivo(
+                    nuevo_archivo.storage_key
+                )
+                if not eliminado:
+                    logger.error(
+                        "No se pudo compensar el archivo de una solicitud "
+                        "de validación fallida."
+                    )
+            except Exception:
+                logger.exception(
+                    "Falló la compensación del archivo de una solicitud "
+                    "de validación después del rollback."
+                )
+
+        raise
+
 # Retorna los datos de un médico específico por su ID
 def obtenerMedicoService(id_medico):
     medico = Medico.objects.filter(id=id_medico).first()

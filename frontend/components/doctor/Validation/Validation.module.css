@@ -25,8 +25,23 @@
 .actions { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e7ecf3; }
 .action { min-height: 44px; padding: 11px 16px; font-size: .88rem; }
 .action:disabled { cursor: not-allowed; opacity: .55; transform: none; }
-.retryRequest { display: grid; justify-items: start; gap: 10px; margin-top: 24px; }
-.retryRequest p { color: #667085; font-size: .8rem; line-height: 1.5; }
+.retryRequest { display: grid; justify-items: stretch; gap: 14px; margin-top: 24px; border: 1px solid #dfe7f1; border-radius: 13px; padding: 18px; background: #fbfcfe; }
+.retryHeading h2 { color: #26344b; font-size: .95rem; }
+.retryHeading p { margin-top: 4px; color: #667085; font-size: .8rem; line-height: 1.5; }
+.fileInput { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
+.filePicker { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; min-width: 0; border: 1px dashed #cbd7e6; border-radius: 11px; padding: 12px; background: #fff; transition: border-color .16s ease, background-color .16s ease; }
+.filePicker:focus-within { border-color: #2b7fff; box-shadow: 0 0 0 3px rgba(43, 127, 255, .1); }
+.fileSelected { border-style: solid; border-color: #b9d5c9; background: #f8fcfa; }
+.filePickerIcon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #edf4fd; color: #2563eb; }
+.fileSelected .filePickerIcon { background: #eaf8f1; color: #197052; }
+.filePickerCopy { display: grid; min-width: 0; gap: 3px; }
+.filePickerCopy strong { overflow: hidden; color: #2c3a50; font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
+.filePickerCopy span { color: #7a8699; font-size: .7rem; }
+.filePickerAction { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; gap: 6px; border: 1px solid #d5e0ed; border-radius: 9px; padding: 0 10px; background: #fff; color: #285f9f; font-size: .74rem; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.filePickerAction:hover { background: #edf5ff; }
+.filePickerAction[aria-disabled="true"] { pointer-events: none; opacity: .55; }
+.retryError { color: #a52a3b; font-size: .78rem; line-height: 1.45; }
+.retryRequest > .action { justify-self: start; }
 .footer { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 22px; color: #667085; font-size: .78rem; line-height: 1.5; }
 .footer svg { flex-shrink: 0; }
 .spinner { animation: spin 1s linear infinite; }
@@ -42,4 +57,7 @@
     .card h1 { font-size: 1.5rem; }
     .action { width: 100%; }
     .retryRequest { justify-items: stretch; }
+    .filePicker { grid-template-columns: auto minmax(0, 1fr); }
+    .filePickerAction { grid-column: 1 / -1; width: 100%; }
+    .retryRequest > .action { justify-self: stretch; }
 }

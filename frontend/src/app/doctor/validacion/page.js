@@ -12,7 +12,15 @@ import styles from "../../../../components/doctor/Validation/Validation.module.c
 
 export default function DoctorValidationPage() {
     const router = useRouter();
-    const { validacion, loading, error, recargarValidacion } = useDoctorValidation();
+    const {
+        validacion,
+        loading,
+        error,
+        recargarValidacion,
+        enviarNuevaSolicitud,
+        enviandoSolicitud,
+        errorEnvio,
+    } = useDoctorValidation();
     const aprobado = validacion?.estado === "aprobado";
 
     useEffect(() => {
@@ -39,7 +47,14 @@ export default function DoctorValidationPage() {
     } else if (validacion?.estado === "pendiente") {
         contenido = <PendingValidation validacion={validacion} />;
     } else if (validacion?.estado === "rechazado") {
-        contenido = <RejectedValidation validacion={validacion} />;
+        contenido = (
+            <RejectedValidation
+                validacion={validacion}
+                enviarNuevaSolicitud={enviarNuevaSolicitud}
+                enviandoSolicitud={enviandoSolicitud}
+                errorEnvio={errorEnvio}
+            />
+        );
     } else {
         contenido = (
             <div role="status">

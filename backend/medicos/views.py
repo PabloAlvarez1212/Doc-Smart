@@ -1,8 +1,9 @@
+import logging
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from utils import IsAdmin,IsMedico,IsPaciente
-from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from medicos.models import Medico
 from medicos.services import (
@@ -28,6 +29,7 @@ from medicos.services import (
     aprobarSolicitudValidacionService,
     rechazarSolicitudValidacionService,
     obtenerMiValidacionService,
+    reintentarSolicitudValidacionService,
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
@@ -35,9 +37,13 @@ from medicos.serializers import (
     RegistrarEspecialidadSerializer,
     EditarEspecialidadSerializer,
     FotoPerfilMedicoSerializer,
-    RechazarSolicitudValidacionSerializer
+    RechazarSolicitudValidacionSerializer,
+    ReintentarSolicitudValidacionSerializer,
 )
 from rest_framework.parsers import MultiPartParser, FormParser
+
+
+logger = logging.getLogger(__name__)
 
 # ── HELPERS DE RESPUESTA ESTANDARIZADA ───────────────────────────────────────
 
@@ -298,6 +304,56 @@ class MiValidacionMedicoView(APIView):
         except Exception as e:
             print(
                 f"Error al obtener estado de validación médica: {e}"
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+class ReintentarSolicitudValidacionView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+        IsMedico,
+    ]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        serializer = ReintentarSolicitudValidacionSerializer(
+            data=request.data
+        )
+
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(
+                serializer.errors
+            )
+
+        try:
+            resultado, status_code = (
+                reintentarSolicitudValidacionService(
+                    request.user.id,
+                    serializer.validated_data["hoja_vida"]
+                )
+            )
+
+            if status_code != 201:
+                return respuesta_error(
+                    "No fue posible enviar la solicitud",
+                    errores=resultado,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje=(
+                    "Nueva solicitud enviada correctamente"
+                ),
+                status=status_code
+            )
+
+        except Exception:
+            logger.exception(
+                "Error interno al reenviar una solicitud de validación."
             )
 
             return respuesta_error(

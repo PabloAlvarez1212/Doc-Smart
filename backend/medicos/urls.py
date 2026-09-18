@@ -15,6 +15,7 @@ from .views import (
     AprobarSolicitudValidacionView,
     RechazarSolicitudValidacionView,
     MiValidacionMedicoView,
+    ReintentarSolicitudValidacionView,
 )
 urlpatterns = [
     path('', MedicoListView.as_view(), name='medico-list'),
@@ -39,4 +40,6 @@ urlpatterns = [
     path("solicitudes-validacion/<int:solicitud_id>/rechazar/",RechazarSolicitudValidacionView.as_view(),name="rechazar-solicitud-validacion"),
     #!Obtiene datos sobre la revision del medico
     path("mi-validacion/",MiValidacionMedicoView.as_view(),name="mi-validacion-medico"),
+    #!Enviar una nueva solicitud
+    path("mi-validacion/reintentar/",ReintentarSolicitudValidacionView.as_view(),name="reintentar-validacion-medico"),
 ]

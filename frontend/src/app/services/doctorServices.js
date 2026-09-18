@@ -123,3 +123,17 @@ export const obtenerMiValidacionMedicoService = async (signal) => {
 
     return response.data;
 };
+
+export const reintentarSolicitudValidacionService = async (archivo, signal) => {
+    const formData = new FormData();
+
+    formData.append("hoja_vida", archivo);
+
+    const response = await api.post(
+        "/medicos/mi-validacion/reintentar/",
+        formData,
+        { signal }
+    );
+
+    return response.data;
+};

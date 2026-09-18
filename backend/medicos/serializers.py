@@ -4,6 +4,23 @@ from utils import validarContraseña, validarNumber
 from datetime import date
 
 
+MAX_HOJA_VIDA_SIZE = 5 * 1024 * 1024
+
+
+def validar_hoja_vida_pdf(archivo):
+    if archivo.size > MAX_HOJA_VIDA_SIZE:
+        raise serializers.ValidationError(
+            "La hoja de vida no puede superar los 5 MB"
+        )
+
+    if archivo.content_type != "application/pdf":
+        raise serializers.ValidationError(
+            "La hoja de vida debe estar en formato PDF"
+        )
+
+    return archivo
+
+
 # ── SERIALIZERS DE SALIDA (lectura) ───────────────────────────────────────────
 
 # Serializer simple para listar especialidades
@@ -56,6 +73,20 @@ class SolicitudValidacionMedicoSerializer(serializers.ModelSerializer):
             "hoja_vida_id",
             "hoja_vida_nombre",
         ]
+
+class ReintentarSolicitudValidacionSerializer(
+    serializers.Serializer
+):
+    hoja_vida = serializers.FileField(
+        required=True,
+        error_messages={
+            "required": "La hoja de vida es obligatoria",
+            "invalid": "La hoja de vida enviada no es un archivo válido",
+        },
+    )
+
+    def validate_hoja_vida(self, archivo):
+        return validar_hoja_vida_pdf(archivo)
 
 class MedicosPublicosSerializer(serializers.ModelSerializer):
     especialidad = serializers.CharField(source='id_especialidad.nombre')
@@ -273,19 +304,7 @@ class RegistrarMedicoSerializer(serializers.Serializer):
     )
 
     def validate_hoja_vida(self, value):
-        max_size = 5 * 1024 * 1024
-
-        if value.size > max_size:
-            raise serializers.ValidationError(
-                "La hoja de vida no puede superar los 5 MB"
-            )
-
-        if value.content_type != "application/pdf":
-            raise serializers.ValidationError(
-                "La hoja de vida debe estar en formato PDF"
-            )
-
-        return value
+        return validar_hoja_vida_pdf(value)
 
     telefono = serializers.CharField(
         max_length=20,
