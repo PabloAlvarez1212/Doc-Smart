@@ -6,7 +6,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.exceptions import InvalidToken
 from datetime import date
 from users.models import Usuario
-from medicos.models import Medico
+from medicos.models import Medico,SolicitudValidacionMedico
+from django.db.models import OuterRef, Subquery
 import os
 import resend
 
@@ -236,3 +237,27 @@ def enviarCorreoMedicoRechazado(medico, motivo_rechazo, puede_reintentar_desde):
     except Exception as e:
         print("Error enviando correo de rechazo:", repr(e))
         return False
+
+def filtrarMedicosAprobados(queryset):
+    ultima_solicitud = (
+        SolicitudValidacionMedico.objects
+        .filter(medico=OuterRef("pk"))
+        .order_by("-fecha_solicitud")
+        .values("estado")[:1]
+    )
+
+    return (
+        queryset
+        .annotate(
+            estado_ultima_solicitud=Subquery(
+                ultima_solicitud
+            )
+        )
+        .filter(
+            estado_ultima_solicitud=(
+                SolicitudValidacionMedico
+                .EstadoSolicitud
+                .APROBADO
+            )
+        )
+    )

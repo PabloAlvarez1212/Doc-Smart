@@ -26,17 +26,19 @@ from storage_app.services import guardar_archivo_medico,eliminar_archivo
 from django.db import transaction
 from storage_app.services import generar_url_firmada
 from medicos.paginacion import PaginacionSolicitudesValidacion
-from utils import enviarCorreoMedicoAprobado,enviarCorreoMedicoRechazado
+from utils import enviarCorreoMedicoAprobado,enviarCorreoMedicoRechazado,filtrarMedicosAprobados
 
 
 logger = logging.getLogger(__name__)
 
 # ── SERVICIOS DE MÉDICOS ──────────────────────────────────────────────────────
 
-# Retorna la lista completa de médicos registrados
+# Retorna la lista completa de médicos aprobados.
 def listarMedicosService():
-    medicos = Medico.objects.all()
-    serializer = MedicoSerializer(medicos, many=True)
+    medicos = filtrarMedicosAprobados(Medico.objects.all())
+
+    serializer = MedicoSerializer(medicos,many=True)
+
     return serializer.data, 200
 
 def listarMedicosPublicosService(
@@ -45,11 +47,14 @@ def listarMedicosPublicosService(
     departamento=None,
     ciudad=None
 ):
-    medicos = Medico.objects.select_related(
-        'id_especialidad',
-        'ciudad',
-        'ciudad__departamento'
-    ).all()
+
+    medicos = filtrarMedicosAprobados(
+        Medico.objects.select_related(
+            'id_especialidad',
+            'ciudad',
+            'ciudad__departamento'
+        )
+    )
 
     if search:
         terminos = search.strip().split()
@@ -61,10 +66,14 @@ def listarMedicosPublicosService(
             )
 
     if especialidad:
-        medicos = medicos.filter(id_especialidad_id=especialidad)
+        medicos = medicos.filter(
+            id_especialidad_id=especialidad
+        )
 
     if departamento:
-        medicos = medicos.filter(ciudad__departamento_id=departamento)
+        medicos = medicos.filter(
+            ciudad__departamento_id=departamento
+        )
 
     if ciudad:
         medicos = medicos.filter(ciudad_id=ciudad)
