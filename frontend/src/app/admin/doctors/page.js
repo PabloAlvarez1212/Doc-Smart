@@ -55,7 +55,7 @@ export default function Doctors() {
 
   return (
     <div className={pageStyles.page}>
-      <AdminPageHeader eyebrow="Personas" title="Médicos" description="Consulta y administra los profesionales registrados en DocSmart." />
+      <AdminPageHeader eyebrow="Personas" title="Médicos" description="Consulta y administra los profesionales aprobados en DocSmart." />
       <section className={pageStyles.tableSection} aria-label="Listado de médicos">
         <DataTable
           centrarAcciones={true}
