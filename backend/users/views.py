@@ -21,6 +21,7 @@ from users.services import (
     eliminarFotoPerfilPacienteService,
     refreshTokenService,
     cambiarContraseñaAutenticadoService,
+    obtenerMetricasSistema,
 )
 from users.serializers import (
     LoginSerializer,
@@ -490,3 +491,17 @@ class DashboardInicioPacienteView(APIView):
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor',status=500)
+
+#vista admin: lista metricas necesarias para el dashboard del admin
+class MetricasSistemaView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
+    def get(self,request):
+        try:
+            data,status_code = obtenerMetricasSistema()
+            if(status_code != 200):
+                return respuesta_error('Error al cargar las metricas: ', status=status_code)
+            return respuesta_ok(data=data,mensaje='metricas traidas exitosamente',status=status_code)
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error en el servidor: ',status=500)
+        

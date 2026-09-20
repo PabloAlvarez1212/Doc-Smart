@@ -3,7 +3,7 @@ import styles from "./ValidationSummary.module.css";
 
 const states = [
     { key: "pendientes", label: "Pendientes", description: "En espera de revisión", icon: Clock3, tone: "pending" },
-    { key: "aprobados", label: "Aprobadas", description: "Validación completada", icon: BadgeCheck, tone: "approved" },
+    //{ key: "aprobados", label: "Aprobadas", description: "Validación completada", icon: BadgeCheck, tone: "approved" },
     { key: "rechazados", label: "Rechazadas", description: "Solicitudes no habilitadas", icon: CircleX, tone: "rejected" },
 ];
 

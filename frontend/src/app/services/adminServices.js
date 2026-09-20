@@ -64,3 +64,9 @@ export const obtenerPerfilAdmin = async () => {
 
     return response.data;
 };
+
+export const obtenerMetricasSistemaService = async () => {
+    const response = await api.get("/admin/dashboard/metricas/");
+
+    return response.data;
+};

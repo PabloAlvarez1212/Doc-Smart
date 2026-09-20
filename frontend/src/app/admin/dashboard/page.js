@@ -1,17 +1,20 @@
+"use client"
 import { CalendarDays, CircleUserRound, ClipboardClock, Stethoscope } from "lucide-react";
-import AdminMetricCard from "../../../../components/admin/Dashboard/AdminMetricCard";
-import DashboardMetricsState from "../../../../components/admin/Dashboard/DashboardMetricsState";
+import AdminMetricCard from "../../../../components/admin/Dashboard/AdminMetricCard/AdminMetricCard";
+import DashboardMetricsState from "../../../../components/admin/Dashboard/DashboardMetricsState/DashboardMetricsState";
 import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
 import styles from "./dashboard.module.css";
+import { useDashboard } from "../../../../components/admin/Dashboard/useDashboard";
 
 const metricDefinitions = [
-    { key: "doctors", label: "Total de médicos", icon: Stethoscope, tone: "blue" },
-    { key: "patients", label: "Total de pacientes", icon: CircleUserRound, tone: "teal" },
-    { key: "appointments", label: "Total de citas", icon: CalendarDays, tone: "amber" },
-    { key: "pendingRequests", label: "Solicitudes pendientes", icon: ClipboardClock, tone: "violet" },
+    { key: "total_medicos_aprobados", label: "Total de médicos", icon: Stethoscope, tone: "blue" },
+    { key: "total_pacientes", label: "Total de pacientes", icon: CircleUserRound, tone: "teal" },
+    { key: "total_citas", label: "Total de citas", icon: CalendarDays, tone: "amber" },
+    { key: "total_solicitudes_pendientes", label: "Solicitudes pendientes", icon: ClipboardClock, tone: "violet" },
 ];
 
 export default function Dashboard() {
+    const { metricasTarjetas } = useDashboard()
     return (
         <div className={styles.page}>
             <AdminPageHeader
@@ -26,12 +29,16 @@ export default function Dashboard() {
                         <span>Indicadores generales</span>
                         <h2 id="primary-metrics-title">Métricas principales</h2>
                     </div>
-                    <span className={styles.developmentBadge}>Módulo en desarrollo</span>
                 </div>
 
                 <div className={styles.metricsGrid}>
                     {metricDefinitions.map(({ key, ...metric }) => (
-                        <AdminMetricCard key={key} {...metric} status="unavailable" />
+                        <AdminMetricCard
+                            key={key}
+                            {...metric}
+                            value={metricasTarjetas?.[key]}
+                            status={metricasTarjetas ? "available" : "loading"}
+                        />
                     ))}
                 </div>
             </section>

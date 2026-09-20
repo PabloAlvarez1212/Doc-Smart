@@ -2,7 +2,7 @@ from catalogos.models import Rol
 import bcrypt
 from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import Usuario
-from medicos.models import Medico
+from medicos.models import Medico,SolicitudValidacionMedico
 from users.serializers import UsuarioSerializer, MedicoSerializer,UsuarioPerfilSerializer
 import secrets
 from django.utils import timezone
@@ -18,6 +18,7 @@ from notificaciones.models import Notificacion
 import logging
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from utils import filtrarMedicosAprobados
 
 logger = logging.getLogger(__name__)
 resend.api_key = os.getenv("RESEND_API_KEY")
@@ -459,4 +460,18 @@ def obtenerDashboardPacienteInicioService(id):
         },
     }
     
+    return data,200
+
+def obtenerMetricasSistema():
+    medicos = Medico.objects.all()
+    totalMedicosAprobados = filtrarMedicosAprobados(medicos).count()
+    totalPacientes = Usuario.objects.filter(id_rol__nombre__iexact = "paciente").count()
+    totalCitas = Cita.objects.all().count()
+    totalSolicitudesPendientes = SolicitudValidacionMedico.objects.filter(estado=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE).count()
+    data = {
+        "total_medicos_aprobados" : totalMedicosAprobados,
+        "total_pacientes" : totalPacientes,
+        "total_citas" : totalCitas,
+        "total_solicitudes_pendientes": totalSolicitudesPendientes,
+    }
     return data,200

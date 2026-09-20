@@ -14,6 +14,7 @@ from .views import (
     CSRFTokenView,
     CambiarContraseñaAutenticadoView,
     PerfilAdminView,
+    MetricasSistemaView,
 )
 
 urlpatterns = [
@@ -31,4 +32,5 @@ urlpatterns = [
     path("perfil/foto/",FotoPerfilPacienteView.as_view(),name="foto-perfil-paciente"),
     path("refresh/",RefreshTokenView.as_view(),name="refresh-token"),
     path("csrf/",CSRFTokenView.as_view(),name="csrf-token"),
+    path('admin/dashboard/metricas/',MetricasSistemaView.as_view(),name='metricas-sistema'),
 ]

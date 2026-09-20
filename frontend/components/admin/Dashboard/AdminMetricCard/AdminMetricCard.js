@@ -1,3 +1,4 @@
+"use client"
 import styles from "./AdminMetricCard.module.css";
 
 export default function AdminMetricCard({
@@ -37,13 +38,29 @@ export default function AdminMetricCard({
             <div className={styles.footer}>
                 {isAvailable && variation !== null && variation !== undefined ? (
                     <>
-                        <span className={variation >= 0 ? styles.positive : styles.negative}>
-                            {variation >= 0 ? "+" : ""}{variation}%
+                        <span
+                            className={
+                                variation >= 0
+                                    ? styles.positive
+                                    : styles.negative
+                            }
+                        >
+                            {variation >= 0 ? "+" : ""}
+                            {variation}%
                         </span>
-                        {comparisonLabel && <span>{comparisonLabel}</span>}
+
+                        {comparisonLabel && (
+                            <span>{comparisonLabel}</span>
+                        )}
                     </>
                 ) : (
-                    <span>Fuente de datos pendiente</span>
+                    <span>
+                        {isLoading
+                            ? "Cargando información"
+                            : isAvailable
+                                ? "Datos actuales"
+                                : "Dato no disponible"}
+                    </span>
                 )}
             </div>
         </article>
