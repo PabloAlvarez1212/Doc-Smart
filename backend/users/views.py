@@ -12,7 +12,7 @@ from users.services import (
     solicitarCambioService,
     cambiarContraseñaService,
     registrarUsuarioService,
-    listarUsuariosService,
+    listarPacientesService,
     obtenerUsuarioService,
     editarUsuarioService,
     eliminarUsuarioService,
@@ -434,7 +434,7 @@ class UsuarioListView(APIView):
             page_size = request.query_params.get('page_size', 10)
             search = request.query_params.get('search')
 
-            resultado, status_code = listarUsuariosService(
+            resultado, status_code = listarPacientesService(
                 page=page, page_size=page_size, search=search,
             )
             return respuesta_ok(data=resultado, status=status_code)

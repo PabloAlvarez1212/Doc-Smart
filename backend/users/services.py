@@ -278,8 +278,9 @@ def registrarUsuarioService(datos):
 
 
 
-def listarUsuariosService(page=None, page_size=10, search=None):
-    usuarios = Usuario.objects.all()
+def listarPacientesService(page=None, page_size=10, search=None):
+    usuarios = Usuario.objects.filter(id_rol__nombre__iexact = "paciente")
+    
     if search:
         usuarios = usuarios.filter(nombre__icontains=search)
     usuarios = usuarios.order_by('nombre')
