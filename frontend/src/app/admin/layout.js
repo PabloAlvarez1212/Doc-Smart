@@ -6,8 +6,9 @@ import Nav from "../../../components/admin/Nav/Nav"
 import Styles from "./layout.module.css"
 import ResponsiveNav from "../../../components/ui/ResponsiveNav/ResponsiveNav"
 import useProfile from "../../../components/admin/Profile/useProfile"
+import useInactivityLogout from "../../../components/hooks/useInactivityLogout"
 export default function AdminLayout({ children }) {
-
+    useInactivityLogout()
     const router = useRouter()
 
     const {

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-
+import useInactivityLogout from "../../../components/hooks/useInactivityLogout";
 import Header from "../../../components/patient/layout/Header/Header";
 import styles from "./layout.module.css";
 import useProfile from "../../../components/patient/Profile/useProfile";
@@ -10,6 +10,7 @@ import { NotificationsProvider } from "../../../components/contex/NotificationsC
 import BymaxAssistant from "../../../components/bymax/BymaxAssistant";
 
 export default function PacienteLayout({ children }) {
+    useInactivityLogout()
     const router = useRouter();
 
     const {

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-
+import useInactivityLogout from "../../../components/hooks/useInactivityLogout";
 import Header from "../../../components/doctor/layout/Header/Header";
 import styles from "./layout.module.css";
 import BymaxAssistant from "../../../components/bymax/BymaxAssistant";
@@ -10,6 +10,7 @@ import useProfile from "../../../components/doctor/Profile/useProfile";
 import { NotificationsProvider } from "../../../components/contex/NotificationsContext";
 
 export default function DoctorLayout({ children }) {
+    useInactivityLogout()
     const pathname = usePathname();
     const esPaginaValidacion = pathname === "/doctor/validacion";
 
