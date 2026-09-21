@@ -11,5 +11,14 @@
     font-size: 14px;
     color: #4b5563;
     white-space: nowrap;
-}.wrapper { flex-wrap: wrap; padding-inline: 12px; gap: 12px; }
+}
+.admin { justify-content: flex-end; margin-top: 14px; padding: 0; }
+.admin button { min-height: 38px; padding: 0 13px; font-size: .8rem; font-weight: 650; }
+.admin .info { color: #667085; font-size: .78rem; }
+.wrapper { flex-wrap: wrap; padding-inline: 12px; gap: 12px; }
 .info { white-space: normal; text-align: center; }
+
+@media (max-width: 640px) {
+    .admin { justify-content: space-between; padding: 0; }
+    .admin .info { order: -1; width: 100%; }
+}

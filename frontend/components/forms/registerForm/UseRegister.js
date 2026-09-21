@@ -45,6 +45,7 @@ export const useRegister = (role, setRole) => {
         confirmar_contraseña: '',
         estatura: '',            // Solo paciente
         peso: '',                // Solo paciente
+        hoja_vida: null
     })
 
     // Carga especialidades y departamentos cuando el rol es médico
@@ -74,17 +75,39 @@ export const useRegister = (role, setRole) => {
 
     // Actualiza el campo modificado en el formulario y limpia su error
     const handleChange = (e) => {
-        const { name, value } = e.target
+        const { name, value, files } = e.target
 
-        if (name === 'departamento_filtro') {
-            // Al cambiar departamento también se resetea la ciudad para evitar valores inválidos
-            setForm((prev) => ({ ...prev, departamento_filtro: value, id_ciudad: '' }))
-        } else {
-            setForm((prev) => ({ ...prev, [name]: value }))
+        if (name === "hoja_vida") {
+            setForm((prev) => ({
+                ...prev,
+                hoja_vida: files?.[0] ?? null,
+            }))
+
+            setErrors((prev) => ({
+                ...prev,
+                hoja_vida: "",
+            }))
+
+            return
         }
 
-        // Limpia el error del campo recién modificado
-        setErrors((prev) => ({ ...prev, [name]: '' }))
+        if (name === "departamento_filtro") {
+            setForm((prev) => ({
+                ...prev,
+                departamento_filtro: value,
+                id_ciudad: "",
+            }))
+        } else {
+            setForm((prev) => ({
+                ...prev,
+                [name]: value,
+            }))
+        }
+
+        setErrors((prev) => ({
+            ...prev,
+            [name]: "",
+        }))
     }
 
     // Valida el paso actual y avanza al siguiente si no hay errores
@@ -147,27 +170,36 @@ export const useRegister = (role, setRole) => {
                 }
                 await registerPacienteService(payload)
             } else {
-                // Construye el payload del médico convirtiendo IDs a entero
-                const payload = {
-                    nombre: form.nombre,
-                    apellido: form.apellido,
-                    correo: form.correo,
-                    contraseña: form.contraseña,
-                    cedula: form.cedula,
-                    fecha_nacimiento: form.fecha_nacimiento,
-                    telefono: form.telefono,
-                    direccion: form.direccion,
-                    ciudad: parseInt(form.id_ciudad),
-                    id_especialidad: parseInt(form.id_especialidad),
+                const formData = new FormData()
+
+                formData.append("nombre", form.nombre)
+                formData.append("apellido", form.apellido)
+                formData.append("correo", form.correo)
+                formData.append("contraseña", form.contraseña)
+                formData.append("cedula", form.cedula)
+                formData.append("fecha_nacimiento", form.fecha_nacimiento)
+                formData.append("telefono", form.telefono)
+                formData.append("direccion", form.direccion)
+                formData.append("ciudad", String(form.id_ciudad))
+                formData.append("id_especialidad", String(form.id_especialidad))
+
+                if (form.hoja_vida) {
+                    formData.append("hoja_vida", form.hoja_vida)
                 }
-                await registerMedicoService(payload)
+
+                await registerMedicoService(formData)
             }
 
             // Registro exitoso: notifica al usuario y redirige al login
             await Swal.fire({
                 icon: 'success',
-                title: '¡Registro exitoso!',
-                text: `Bienvenido ${form.nombre}, tu cuenta ha sido creada correctamente.`,
+                title: role === 'medico'
+                    ? '¡Solicitud enviada!'
+                    : '¡Registro exitoso!',
+                text: role === 'medico'
+                    ? `${form.nombre}, hemos recibido tu solicitud y hoja de vida. Nuestro equipo revisará tu información y, si tu perfil continúa en el proceso, nos pondremos en contacto contigo para coordinar una entrevista.`
+                    : `Bienvenido ${form.nombre}, tu cuenta ha sido creada correctamente.`,
+                confirmButtonText: 'Aceptar',
             })
 
             router.push('/login')
@@ -176,7 +208,7 @@ export const useRegister = (role, setRole) => {
             // Extrae el primer mensaje de error devuelto por la API
             console.log('error completo:', JSON.stringify(error.response?.data))
             const errores = error.response?.data?.errores;
-            let mensaje =error.response?.data?.mensaje ||'Error al conectar con el servidor';
+            let mensaje = error.response?.data?.mensaje || 'Error al conectar con el servidor';
             const errorExtraido = obtenerPrimerError(errores);
             if (errorExtraido) {
                 mensaje = errorExtraido;

@@ -1,0 +1,38 @@
+.header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 4px 0 2px;
+}
+
+.copy { min-width: 0; max-width: 720px; }
+.eyebrow {
+    display: block;
+    margin-bottom: 8px;
+    color: #2563eb;
+    font-size: .72rem;
+    font-weight: 750;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+.title {
+    color: #172033;
+    font-size: clamp(1.65rem, 3vw, 2.25rem);
+    font-weight: 720;
+    letter-spacing: -.035em;
+    line-height: 1.08;
+}
+.description {
+    margin-top: 9px;
+    color: #667085;
+    font-size: .96rem;
+    line-height: 1.55;
+}
+.action { flex: 0 0 auto; }
+.action button { min-height: 42px; padding: 0 15px; font-size: .86rem; font-weight: 700; }
+
+@media (max-width: 640px) {
+    .header { align-items: stretch; flex-direction: column; gap: 16px; }
+    .action > * { width: 100%; }
+}

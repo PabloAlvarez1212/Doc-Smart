@@ -1,7 +1,24 @@
 from rest_framework import serializers
-from .models import Medico, Especialidad
+from .models import Medico, Especialidad,SolicitudValidacionMedico
 from utils import validarContraseña, validarNumber
 from datetime import date
+
+
+MAX_HOJA_VIDA_SIZE = 5 * 1024 * 1024
+
+
+def validar_hoja_vida_pdf(archivo):
+    if archivo.size > MAX_HOJA_VIDA_SIZE:
+        raise serializers.ValidationError(
+            "La hoja de vida no puede superar los 5 MB"
+        )
+
+    if archivo.content_type != "application/pdf":
+        raise serializers.ValidationError(
+            "La hoja de vida debe estar en formato PDF"
+        )
+
+    return archivo
 
 
 # ── SERIALIZERS DE SALIDA (lectura) ───────────────────────────────────────────
@@ -11,6 +28,65 @@ class EspecialidadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Especialidad
         fields = '__all__'
+
+class SolicitudValidacionMedicoSerializer(serializers.ModelSerializer):
+    
+    medico_id = serializers.IntegerField(source="medico.id",read_only=True)
+    fecha_nacimiento = serializers.DateField(source="medico.fecha_nacimiento",read_only=True) 
+    nombre = serializers.CharField(source="medico.nombre",read_only=True)
+    apellido = serializers.CharField(source="medico.apellido",read_only=True)
+    cedula = serializers.CharField(source="medico.cedula",read_only=True)
+    correo = serializers.EmailField(source="medico.correo",read_only=True)
+    telefono = serializers.CharField(source="medico.telefono",read_only=True)
+    direccion = serializers.CharField(source="medico.direccion",read_only=True)
+    especialidad_id = serializers.IntegerField(source="medico.id_especialidad.id",read_only=True)
+    especialidad = serializers.CharField(source="medico.id_especialidad.nombre",read_only=True)
+    ciudad_id = serializers.IntegerField(source="medico.ciudad.id",read_only=True)
+    ciudad = serializers.CharField(source="medico.ciudad.nombre",read_only=True)
+    departamento_id = serializers.IntegerField(source="medico.ciudad.departamento.id",read_only=True)
+    departamento = serializers.CharField(source="medico.ciudad.departamento.nombre",read_only=True)
+    hoja_vida_id = serializers.IntegerField(source="hoja_vida.id",read_only=True)
+    hoja_vida_nombre = serializers.CharField(source="hoja_vida.nombre_original",read_only=True)
+
+    class Meta:
+        model = SolicitudValidacionMedico
+        fields = [
+            "id",
+            "medico_id",
+            "nombre",
+            "apellido",
+            "fecha_nacimiento",
+            "cedula",
+            "correo",
+            "telefono",
+            "direccion",
+            "especialidad_id",
+            "especialidad",
+            "ciudad_id",
+            "ciudad",
+            "departamento_id",
+            "departamento",
+            "estado",
+            "fecha_solicitud",
+            "fecha_revision",
+            "motivo_rechazo",
+            "hoja_vida_id",
+            "hoja_vida_nombre",
+        ]
+
+class ReintentarSolicitudValidacionSerializer(
+    serializers.Serializer
+):
+    hoja_vida = serializers.FileField(
+        required=True,
+        error_messages={
+            "required": "La hoja de vida es obligatoria",
+            "invalid": "La hoja de vida enviada no es un archivo válido",
+        },
+    )
+
+    def validate_hoja_vida(self, archivo):
+        return validar_hoja_vida_pdf(archivo)
 
 class MedicosPublicosSerializer(serializers.ModelSerializer):
     especialidad = serializers.CharField(source='id_especialidad.nombre')
@@ -81,6 +157,8 @@ class MedicoPerfilSerializer(serializers.ModelSerializer):
 
     foto_perfil = serializers.SerializerMethodField()
 
+    estado_validacion = serializers.SerializerMethodField()
+    
     def get_edad(self, obj):
 
         hoy = date.today()
@@ -105,6 +183,14 @@ class MedicoPerfilSerializer(serializers.ModelSerializer):
 
         return None
 
+    def get_estado_validacion(self, obj):
+        solicitud = obj.ultima_solicitud_validacion
+
+        if not solicitud:
+            return None
+
+        return solicitud.estado
+
     class Meta:
 
         model = Medico
@@ -128,7 +214,8 @@ class MedicoPerfilSerializer(serializers.ModelSerializer):
             'departamento',
 
             'direccion',
-            'foto_perfil'
+            'foto_perfil',
+            'estado_validacion',
         ]
 
 
@@ -190,6 +277,34 @@ class RegistrarMedicoSerializer(serializers.Serializer):
             'invalid': 'La fecha de nacimiento no tiene un formato válido'
         }
     )
+
+    def validate_fecha_nacimiento(self, value):
+        hoy = date.today()
+
+        if value > hoy:
+            raise serializers.ValidationError("La fecha de nacimiento no puede ser futura")
+
+        edad = hoy.year - value.year - (
+            (hoy.month, hoy.day) < (value.month, value.day)
+        )
+
+        if edad < 18:
+            raise serializers.ValidationError(
+                "Debes ser mayor de edad para registrarte como médico"
+            )
+
+        return value
+    
+    hoja_vida = serializers.FileField(
+        required=True,
+        error_messages={
+            "required": "La hoja de vida es obligatoria",
+            "invalid": "La hoja de vida enviada no es un archivo válido"
+        }
+    )
+
+    def validate_hoja_vida(self, value):
+        return validar_hoja_vida_pdf(value)
 
     telefono = serializers.CharField(
         max_length=20,
@@ -430,3 +545,11 @@ class FotoPerfilMedicoSerializer(serializers.Serializer):
             )
 
         return value
+
+#Serializer de rechazo a solicitud de un medico
+class RechazarSolicitudValidacionSerializer(serializers.Serializer):
+    motivo_rechazo = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        trim_whitespace=True
+    )

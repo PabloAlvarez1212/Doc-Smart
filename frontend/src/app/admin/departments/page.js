@@ -6,6 +6,8 @@ import Swal from "sweetalert2";
 import DataTable from "../../../../components/ui/DataTable/DataTable";
 import Pagination from "../../../../components/ui/Pagination/Pagination";
 import { getDepartamentosService } from "@/app/services/catalogs";
+import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
+import pageStyles from "../adminPages.module.css";
 
 export default function Departaments() {
     const [departamentos, setDepartamentos] = useState([]);
@@ -56,7 +58,9 @@ export default function Departaments() {
     ];
 
     return (
-        <>
+        <div className={pageStyles.page}>
+            <AdminPageHeader eyebrow="Catálogos" title="Departamentos" description="Consulta la cobertura territorial configurada en la plataforma." />
+            <section className={pageStyles.tableSection} aria-label="Listado de departamentos">
             <DataTable
                 titulo="Departamentos"
                 columnas={columnas}
@@ -66,6 +70,7 @@ export default function Departaments() {
                 placeholderBusqueda="Buscar departamento..."
                 mostrarBotonNuevo={false}
                 mostrarAcciones={false}
+                mostrarEncabezado={false}
             />
 
             <Pagination
@@ -74,7 +79,9 @@ export default function Departaments() {
                 totalRegistros={totalRegistros}
                 onCambiarPagina={setPagina}
                 cargando={cargando}
+                variant="admin"
             />
-        </>
+            </section>
+        </div>
     );
 }

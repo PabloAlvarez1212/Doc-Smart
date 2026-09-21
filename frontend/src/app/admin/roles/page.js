@@ -4,6 +4,10 @@ import FormCatalogo from "../../../../components/forms/CatalogoForm/FormCatalogo
 import { useCrud } from "../../../../components/hooks/useCrud";
 import DataTable from "../../../../components/ui/DataTable/DataTable";
 import Modal from "../../../../components/ui/Modal/Modal";
+import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
+import pageStyles from "../adminPages.module.css";
+import Button from "../../../../components/ui/Button/Button";
+import { Plus } from "lucide-react";
 
 import {
     getRolesService,
@@ -32,7 +36,9 @@ export default function Roles() {
     ];
 
     return (
-        <>
+        <div className={pageStyles.page}>
+            <AdminPageHeader eyebrow="Catálogos" title="Roles" description="Administra los perfiles de acceso definidos para DocSmart." action={<Button size="sm" onClick={crud.abrirModalNuevo}><Plus size={17} /> Nuevo rol</Button>} />
+            <section className={pageStyles.tableSection} aria-label="Listado de roles">
             <DataTable
                 titulo="Roles"
                 columnas={columnas}
@@ -41,7 +47,9 @@ export default function Roles() {
                 onNuevo={crud.abrirModalNuevo}
                 onEditar={crud.abrirModalEditar}
                 onEliminar={crud.eliminar}
+                mostrarEncabezado={false}
             />
+            </section>
 
             <Modal
                 abierto={crud.modalAbierto}
@@ -55,6 +63,6 @@ export default function Roles() {
                     modoEdicion={crud.modoEdicion}
                 />
             </Modal>
-        </>
+        </div>
     );
 }

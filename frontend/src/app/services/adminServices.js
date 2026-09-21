@@ -11,3 +11,62 @@ export const getDoctoresService = async (page, search) =>
 
 export const deleteDoctorService = async (id) =>
     (await api.delete(`/medicos/${id}/`)).data
+
+export const listarSolicitudesMedicosValidacionService = async function (filtros = {}, signal) {
+    const response = await api.get("/medicos/solicitudes-validacion/", {
+        params: { page: 1, page_size: 10, ...filtros },
+        signal,
+    });
+
+    return response.data;
+}
+
+export const obtenerMetricasValidacionMedicosService = async () => {
+    const response = await api.get(
+        "/medicos/solicitudes-validacion/metricas/"
+    )
+
+    return response.data
+}
+
+export const obtenerHojaVidaSolicitudService = async (solicitudId) => {
+    const response = await api.get(
+        `/medicos/solicitudes-validacion/${solicitudId}/hoja-vida/`
+    )
+
+    return response.data
+}
+
+export const aprobarSolicitudValidacionService = async (solicitudId) => {
+    const response = await api.patch(
+        `/medicos/solicitudes-validacion/${solicitudId}/aprobar/`
+    )
+
+    return response.data
+}
+
+export const rechazarSolicitudValidacionService = async (
+    solicitudId,
+    motivo
+) => {
+    const response = await api.patch(
+        `/medicos/solicitudes-validacion/${solicitudId}/rechazar/`,
+        {
+            motivo_rechazo: motivo,
+        }
+    )
+
+    return response.data
+}
+
+export const obtenerPerfilAdmin = async () => {
+    const response = await api.get("/perfil/admin/");
+
+    return response.data;
+};
+
+export const obtenerMetricasSistemaService = async () => {
+    const response = await api.get("/admin/dashboard/metricas/");
+
+    return response.data;
+};

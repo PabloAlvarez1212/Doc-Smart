@@ -1,9 +1,27 @@
 "use client";
 
-import { Pencil, Trash2, Search } from "lucide-react";
+import { Pencil, Trash2, Search, Inbox, RotateCcw } from "lucide-react";
 import styles from "./DataTable.module.css";
 import Button from "../Button/Button";
 import { useState } from "react";
+
+const getIdentifierClass = (key) => {
+  const normalizedKey = String(key ?? "").toLowerCase();
+
+  if (
+    normalizedKey === "id" ||
+    normalizedKey.startsWith("id_") ||
+    normalizedKey.endsWith("_id")
+  ) {
+    return styles.idColumn;
+  }
+
+  if (["cedula", "documento", "numero_documento"].includes(normalizedKey)) {
+    return styles.documentColumn;
+  }
+
+  return "";
+};
 
 /**
  * DataTable - Tabla genérica y reutilizable para el admin
@@ -35,7 +53,16 @@ export default function DataTable({
   mostrarBotonNuevo = true,
   mostrarAcciones = true,
   mostrarEditar = true,
-  centrarAcciones = false
+  centrarAcciones = false,
+  mostrarEncabezado = true,
+  mostrarBusqueda = true,
+  descripcion,
+  error,
+  onReintentar,
+  emptyTitle,
+  emptyDescription,
+  indiceInicial = 0,
+  textoConteo,
 }) {
   const [busqueda, setBusqueda] = useState("");
 
@@ -60,9 +87,12 @@ export default function DataTable({
 
   return (
     <div className={styles.wrapper}>
-      {/* Encabezado */}
+      {mostrarEncabezado && (
       <div className={styles.header}>
-        <h1 className={styles.titulo}>{titulo}</h1>
+        <div>
+          <h2 className={styles.titulo}>{titulo}</h2>
+          {descripcion && <p className={styles.descripcion}>{descripcion}</p>}
+        </div>
 
         {mostrarBotonNuevo && (
           <Button onClick={onNuevo} size="sm">
@@ -70,8 +100,9 @@ export default function DataTable({
           </Button>
         )}
       </div>
+      )}
 
-      {/* Buscador */}
+      {mostrarBusqueda && (
       <div className={styles.searchBar}>
         <Search size={18} className={styles.searchIcon} />
 
@@ -81,18 +112,20 @@ export default function DataTable({
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           className={styles.searchInput}
+          aria-label={placeholderBusqueda}
         />
       </div>
+      )}
 
       {/* Tabla */}
       <div className={styles.tableWrapper} role="region" aria-label={`${titulo}: tabla desplazable`} tabIndex={0}>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th className={styles.th}>#</th>
+              <th className={`${styles.th} ${styles.indexColumn}`}>#</th>
 
               {columnas.map((col) => (
-                <th key={col.key} className={styles.th}>
+                <th key={col.key} className={`${styles.th} ${getIdentifierClass(col.key)}`}>
                   {col.label}
                 </th>
               ))}
@@ -112,30 +145,46 @@ export default function DataTable({
                   </td>
                 </tr>
               ))
+            ) : error ? (
+              <tr>
+                <td colSpan={totalColumnas} className={styles.empty}>
+                  <div className={styles.emptyContent} role="alert">
+                    <span className={`${styles.emptyIcon} ${styles.errorIcon}`}><RotateCcw size={22} /></span>
+                    <strong>No pudimos cargar la información</strong>
+                    <span>{error}</span>
+                    {onReintentar && <button type="button" className={styles.retryButton} onClick={onReintentar}>Reintentar</button>}
+                  </div>
+                </td>
+              </tr>
             ) : datosFiltrados.length === 0 ? (
               <tr>
                 <td colSpan={totalColumnas} className={styles.empty}>
-                  No hay registros para mostrar.
+                  <div className={styles.emptyContent} role="status">
+                    <span className={styles.emptyIcon}><Inbox size={22} /></span>
+                    <strong>{busqueda ? "Sin coincidencias" : (emptyTitle ?? "Aún no hay registros")}</strong>
+                    <span>{busqueda ? "Prueba con otro término de búsqueda." : (emptyDescription ?? "Los registros aparecerán aquí cuando estén disponibles.")}</span>
+                  </div>
                 </td>
               </tr>
             ) : (
               datosFiltrados.map((item, index) => (
                 <tr key={item.id ?? index} className={styles.row}>
-                  <td className={styles.td}>{index + 1}</td>
+                  <td className={`${styles.td} ${styles.indexCell}`} data-label="#">{indiceInicial + index + 1}</td>
 
                   {columnas.map((col) => (
-                    <td key={col.key} className={styles.td}>
-                      {item[col.key] ?? "-"}
+                    <td key={col.key} className={`${styles.td} ${getIdentifierClass(col.key)}`} data-label={col.label}>
+                      {col.render ? col.render(item[col.key], item) : (item[col.key] ?? "-")}
                     </td>
                   ))}
                   {mostrarAcciones && (
-                    <td className={styles.td}>
+                    <td className={styles.td} data-label="Acciones">
                       <div className={`${styles.acciones} ${centrarAcciones ? styles.centrarAcciones : ''}`}>
                         {mostrarEditar && (
                           <button
                             className={`${styles.accionBtn} ${styles.editar}`}
                             onClick={() => onEditar?.(item)}
                             title="Editar"
+                            aria-label={`Editar ${item.nombre ?? "registro"}`}
                           >
                             <Pencil size={16} />
                           </button>
@@ -144,6 +193,7 @@ export default function DataTable({
                           className={`${styles.accionBtn} ${styles.eliminar}`}
                           onClick={() => onEliminar?.(item)}
                           title="Eliminar"
+                          aria-label={`Eliminar ${item.nombre ?? "registro"}`}
                         >
                           <Trash2 size={16} />
                         </button>
@@ -158,11 +208,9 @@ export default function DataTable({
       </div>
 
       {/* Footer */}
-      {!cargando && (
+      {!cargando && !error && (
         <p className={styles.conteo}>
-          {datosFiltrados.length} registro
-          {datosFiltrados.length !== 1 ? "s" : ""}
-          {busqueda && ` encontrados para "${busqueda}"`}
+          {textoConteo ?? `${datosFiltrados.length} registro${datosFiltrados.length !== 1 ? "s" : ""}${busqueda ? ` encontrados para "${busqueda}"` : ""}`}
         </p>
       )}
     </div>

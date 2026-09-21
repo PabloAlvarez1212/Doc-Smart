@@ -1,31 +1,44 @@
 import bcrypt
 import calendar
+import logging
 from django.utils import timezone
+from datetime import timedelta
 from citas.models import Cita
 from notificaciones.models import Notificacion
-from medicos.models import Medico, Especialidad
+from medicos.models import Medico, Especialidad,SolicitudValidacionMedico
 from users.models import Usuario
 from historial_medico.models import HistorialClinico
 from catalogos.models import Rol, Ciudad
 from medicos.serializers import (
     EspecialidadSerializer,
     MedicoPerfilSerializer,
-    RegistrarMedicoSerializer,
     EditarMedicoSerializer,
     RegistrarEspecialidadSerializer,
     EditarEspecialidadSerializer,
     MedicosPublicosSerializer,
+    SolicitudValidacionMedicoSerializer,
 )
 from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q,Value,OuterRef, Subquery,Count
+from django.db.models.functions import Concat
+from storage_app.services import guardar_archivo_medico,eliminar_archivo
+from django.db import transaction
+from storage_app.services import generar_url_firmada
+from medicos.paginacion import PaginacionSolicitudesValidacion
+from utils import enviarCorreoMedicoAprobado,enviarCorreoMedicoRechazado,filtrarMedicosAprobados
+
+
+logger = logging.getLogger(__name__)
 
 # ── SERVICIOS DE MÉDICOS ──────────────────────────────────────────────────────
 
-# Retorna la lista completa de médicos registrados
+# Retorna la lista completa de médicos aprobados.
 def listarMedicosService():
-    medicos = Medico.objects.all()
-    serializer = MedicoSerializer(medicos, many=True)
+    medicos = filtrarMedicosAprobados(Medico.objects.all())
+
+    serializer = MedicoSerializer(medicos,many=True)
+
     return serializer.data, 200
 
 def listarMedicosPublicosService(
@@ -34,11 +47,14 @@ def listarMedicosPublicosService(
     departamento=None,
     ciudad=None
 ):
-    medicos = Medico.objects.select_related(
-        'id_especialidad',
-        'ciudad',
-        'ciudad__departamento'
-    ).all()
+
+    medicos = filtrarMedicosAprobados(
+        Medico.objects.select_related(
+            'id_especialidad',
+            'ciudad',
+            'ciudad__departamento'
+        )
+    )
 
     if search:
         terminos = search.strip().split()
@@ -50,16 +66,377 @@ def listarMedicosPublicosService(
             )
 
     if especialidad:
-        medicos = medicos.filter(id_especialidad_id=especialidad)
+        medicos = medicos.filter(
+            id_especialidad_id=especialidad
+        )
 
     if departamento:
-        medicos = medicos.filter(ciudad__departamento_id=departamento)
+        medicos = medicos.filter(
+            ciudad__departamento_id=departamento
+        )
 
     if ciudad:
         medicos = medicos.filter(ciudad_id=ciudad)
         
     serializer = MedicosPublicosSerializer(medicos,many=True)
     return serializer.data, 200
+
+def listarSolicitudesValidacionService(
+    request,
+    busqueda=None,
+    estado=None,
+    especialidad=None,
+    departamento=None,
+    ciudad=None,
+):
+    solicitudes = (
+        SolicitudValidacionMedico.objects
+        .filter(
+            estado__in=[
+                SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE,
+                SolicitudValidacionMedico.EstadoSolicitud.RECHAZADO,
+            ]
+        )
+        .select_related(
+            "medico",
+            "medico__id_especialidad",
+            "medico__ciudad",
+            "medico__ciudad__departamento",
+            "hoja_vida",
+        )
+        .annotate(
+            nombre_completo=Concat(
+                "medico__nombre",
+                Value(" "),
+                "medico__apellido"
+            )
+        )
+        .order_by("-fecha_solicitud", "-id")
+    )
+
+    if busqueda:
+        busqueda = busqueda.strip()
+
+        solicitudes = solicitudes.filter(
+            Q(medico__nombre__icontains=busqueda) |
+            Q(medico__apellido__icontains=busqueda) |
+            Q(medico__cedula__icontains=busqueda) |
+            Q(nombre_completo__icontains=busqueda)
+        )
+
+    if estado:
+        solicitudes = solicitudes.filter(
+            estado=estado
+        )
+
+    if especialidad:
+        solicitudes = solicitudes.filter(
+            medico__id_especialidad_id=especialidad
+        )
+
+    if departamento:
+        solicitudes = solicitudes.filter(
+            medico__ciudad__departamento_id=departamento
+        )
+
+    if ciudad:
+        solicitudes = solicitudes.filter(
+            medico__ciudad_id=ciudad
+        )
+
+    paginador = PaginacionSolicitudesValidacion()
+    pagina = paginador.paginate_queryset(solicitudes, request)
+    data = SolicitudValidacionMedicoSerializer(pagina, many=True).data
+
+    return paginador.get_paginated_response(data).data, 200
+
+def obtenerMetricasValidacionMedicosService():
+
+    ultima_solicitud = (
+        SolicitudValidacionMedico.objects
+        .filter(medico=OuterRef("pk"))
+        .order_by("-fecha_solicitud")
+        .values("estado")[:1]
+    )
+
+    medicos = Medico.objects.annotate(
+        estado_validacion=Subquery(ultima_solicitud)
+    )
+
+    metricas = medicos.aggregate(
+        pendientes=Count(
+            "id",
+            filter=Q(
+                estado_validacion=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE
+            )
+        ),
+        rechazados=Count(
+            "id",
+            filter=Q(
+                estado_validacion=SolicitudValidacionMedico.EstadoSolicitud.RECHAZADO
+            )
+        ),
+        aprobados=Count(
+            "id",
+            filter=Q(
+                estado_validacion=SolicitudValidacionMedico.EstadoSolicitud.APROBADO
+            )
+        ),
+    )
+
+    return metricas, 200
+
+def obtenerHojaVidaSolicitudService(solicitud_id):
+    try:
+        solicitud = (
+            SolicitudValidacionMedico.objects
+            .select_related("hoja_vida")
+            .get(id=solicitud_id)
+        )
+
+        archivo = solicitud.hoja_vida
+
+        url = generar_url_firmada(
+            archivo.storage_key,
+            expiracion=600
+        )
+
+        data = {
+            "nombre": archivo.nombre_original,
+            "url": url,
+            "expiracion": 600,
+        }
+
+        return data, 200
+
+    except SolicitudValidacionMedico.DoesNotExist:
+        return None, 404
+    
+def aprobarSolicitudValidacionService(solicitud_id):
+    try:
+        solicitud = (
+            SolicitudValidacionMedico.objects
+            .select_related("medico")
+            .get(id=solicitud_id)
+        )
+
+        if solicitud.estado != SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE:
+            return None, 400
+
+        solicitud.estado = SolicitudValidacionMedico.EstadoSolicitud.APROBADO
+        solicitud.fecha_revision = timezone.now()
+        solicitud.motivo_rechazo = None
+        solicitud.puede_reintentar_desde = None
+
+        solicitud.save(
+            update_fields=[
+                "estado",
+                "fecha_revision",
+                "motivo_rechazo",
+                "puede_reintentar_desde",
+            ]
+        )
+
+        enviarCorreoMedicoAprobado(solicitud.medico)
+
+        return {
+            "id": solicitud.id,
+            "medico_id": solicitud.medico_id,
+            "estado": solicitud.estado,
+            "fecha_revision": solicitud.fecha_revision,
+        }, 200
+
+    except Exception as e:
+        print("ERROR APROBANDO SOLICITUD")
+
+def rechazarSolicitudValidacionService(solicitud_id, motivo_rechazo):
+    try:
+        solicitud = (
+            SolicitudValidacionMedico.objects
+            .select_related("medico")
+            .get(id=solicitud_id)
+        )
+
+        if solicitud.estado != SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE:
+            return None, 400
+
+        ahora = timezone.now()
+
+        solicitud.estado = SolicitudValidacionMedico.EstadoSolicitud.RECHAZADO
+        solicitud.motivo_rechazo = motivo_rechazo
+        solicitud.fecha_revision = ahora
+        solicitud.puede_reintentar_desde = ahora + timedelta(days=30)
+
+        solicitud.save(
+            update_fields=[
+                "estado",
+                "motivo_rechazo",
+                "fecha_revision",
+                "puede_reintentar_desde",
+            ]
+        )
+
+        enviarCorreoMedicoRechazado(
+            solicitud.medico,
+            solicitud.motivo_rechazo,
+            solicitud.puede_reintentar_desde,
+        )
+
+        return {
+            "id": solicitud.id,
+            "medico_id": solicitud.medico_id,
+            "estado": solicitud.estado,
+            "motivo_rechazo": solicitud.motivo_rechazo,
+            "fecha_revision": solicitud.fecha_revision,
+            "puede_reintentar_desde": solicitud.puede_reintentar_desde,
+        }, 200
+
+    except SolicitudValidacionMedico.DoesNotExist:
+        return None, 404
+
+
+def obtenerMiValidacionService(medico_id):
+    ultima_solicitud = (
+        SolicitudValidacionMedico.objects
+        .filter(medico_id=medico_id)
+        .order_by("-fecha_solicitud")
+        .first()
+    )
+
+    if not ultima_solicitud:
+        return {
+            "estado": None,
+            "motivo_rechazo": None,
+            "fecha_solicitud": None,
+            "fecha_revision": None,
+            "puede_reintentar_desde": None,
+            "puede_reintentar": False,
+        }, 200
+
+    puede_reintentar = False
+
+    if (
+        ultima_solicitud.estado
+        == SolicitudValidacionMedico.EstadoSolicitud.RECHAZADO
+        and ultima_solicitud.puede_reintentar_desde
+    ):
+        puede_reintentar = (
+            timezone.now()
+            >= ultima_solicitud.puede_reintentar_desde
+        )
+
+    return {
+        "id": ultima_solicitud.id,
+        "estado": ultima_solicitud.estado,
+        "motivo_rechazo": ultima_solicitud.motivo_rechazo,
+        "fecha_solicitud": ultima_solicitud.fecha_solicitud,
+        "fecha_revision": ultima_solicitud.fecha_revision,
+        "puede_reintentar_desde": ultima_solicitud.puede_reintentar_desde,
+        "puede_reintentar": puede_reintentar,
+    }, 200
+    
+def reintentarSolicitudValidacionService(
+    medico_id,
+    hoja_vida
+):
+    nuevo_archivo = None
+
+    try:
+        with transaction.atomic():
+            medico = (
+                Medico.objects
+                .select_for_update()
+                .filter(id=medico_id)
+                .first()
+            )
+
+            if not medico:
+                return {
+                    "general": [
+                        "Médico no encontrado."
+                    ]
+                }, 404
+
+            ultima_solicitud = (
+                SolicitudValidacionMedico.objects
+                .filter(medico_id=medico_id)
+                .order_by("-fecha_solicitud", "-id")
+                .first()
+            )
+
+            if not ultima_solicitud:
+                return {
+                    "general": [
+                        "No existe una solicitud anterior de validación."
+                    ]
+                }, 400
+
+            if (
+                ultima_solicitud.estado
+                != SolicitudValidacionMedico
+                .EstadoSolicitud
+                .RECHAZADO
+            ):
+                return {
+                    "general": [
+                        "La solicitud actual no permite "
+                        "realizar un reintento."
+                    ]
+                }, 400
+
+            if (
+                not ultima_solicitud.puede_reintentar_desde
+                or timezone.now()
+                < ultima_solicitud.puede_reintentar_desde
+            ):
+                return {
+                    "general": [
+                        "Aún no puedes enviar una nueva solicitud."
+                    ]
+                }, 400
+
+            nuevo_archivo = guardar_archivo_medico(
+                archivo=hoja_vida,
+                medico_id=medico_id,
+                categoria="hoja_vida",
+            )
+
+            nueva_solicitud = (
+                SolicitudValidacionMedico.objects.create(
+                    medico=medico,
+                    hoja_vida=nuevo_archivo,
+                    estado=(
+                        SolicitudValidacionMedico
+                        .EstadoSolicitud
+                        .PENDIENTE
+                    ),
+                )
+            )
+
+        return {
+            "id": nueva_solicitud.id,
+            "estado": nueva_solicitud.estado,
+            "fecha_solicitud": nueva_solicitud.fecha_solicitud,
+        }, 201
+
+    except Exception:
+        if nuevo_archivo:
+            try:
+                eliminado = eliminar_archivo(
+                    nuevo_archivo.storage_key
+                )
+                if not eliminado:
+                    logger.error(
+                        "No se pudo compensar el archivo de una solicitud "
+                        "de validación fallida."
+                    )
+            except Exception:
+                logger.exception(
+                    "Falló la compensación del archivo de una solicitud "
+                    "de validación después del rollback."
+                )
+
+        raise
 
 # Retorna los datos de un médico específico por su ID
 def obtenerMedicoService(id_medico):
@@ -74,14 +451,8 @@ def obtenerMedicoService(id_medico):
 
 
 # Crea un nuevo médico tras validar datos, unicidad de correo/cédula y existencia de relaciones
-def crearMedicoService(data):
-
-    serializer = RegistrarMedicoSerializer(data=data)
-
-    if not serializer.is_valid():
-        return serializer.errors, 400
-
-    data_validada = serializer.validated_data
+@transaction.atomic
+def crearMedicoService(data_validada):
 
     # Verifica que el correo no esté en uso por otro médico o usuario
     if Usuario.objects.filter(
@@ -135,6 +506,8 @@ def crearMedicoService(data):
             'general': ['Rol médico no encontrado']
         }, 404
 
+    hoja_vida = data_validada["hoja_vida"]
+    
     # Encripta la contraseña
     password_encriptada = bcrypt.hashpw(
         data_validada['contraseña'].encode('utf-8'),
@@ -156,6 +529,32 @@ def crearMedicoService(data):
         direccion=data_validada.get('direccion', ''),
     )
 
+    try:
+        # Guarda PDF y retorna el registro Archivo
+        archivo_hoja_vida = guardar_archivo_medico(
+            archivo=hoja_vida,
+            medico_id=medico.id,
+            categoria="hoja_vida"
+        )
+        
+        # Crear primera solicitud
+        SolicitudValidacionMedico.objects.create(
+            medico=medico,
+            hoja_vida=archivo_hoja_vida
+        )
+
+    except Exception as error:
+
+        print(
+            "Error creando solicitud de validación médica:",
+            error
+        )
+
+        # Al lanzar excepción,
+        # transaction.atomic revierte
+        # la creación del médico.
+        raise
+    
     return MedicoPerfilSerializer(medico).data, 201
 
 

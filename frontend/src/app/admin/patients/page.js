@@ -1,9 +1,9 @@
 "use client"
 
-import Hero from "../../../../components/admin/Paciente/Hero/Hero"
 import DataTable from "../../../../components/ui/DataTable/DataTable"
 import Pagination from "../../../../components/ui/Pagination/Pagination"
-import styles from "./patients.module.css"
+import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader"
+import pageStyles from "../adminPages.module.css"
 import { useCrud } from "../../../../components/hooks/useCrud";
 import { getPacientesService, deletePacienteService } from "@/app/services/adminServices";
 
@@ -40,9 +40,9 @@ export default function Patients() {
         },
     ];
     return (
-        <>
-            <Hero />
-            <div className={styles.containerTable}>
+        <div className={pageStyles.page}>
+            <AdminPageHeader eyebrow="Personas" title="Pacientes" description="Consulta las cuentas de pacientes y gestiona su permanencia en el sistema." />
+            <section className={pageStyles.tableSection} aria-label="Listado de pacientes">
                 <DataTable
                     titulo="Pacientes"
                     columnas={columnas}
@@ -53,6 +53,8 @@ export default function Patients() {
                     centrarAcciones={true}
                     onEliminar={crud.eliminar}
                     campoBusqueda="cedula"
+                    placeholderBusqueda="Buscar por cédula..."
+                    mostrarEncabezado={false}
                 />
 
                 <Pagination
@@ -61,9 +63,9 @@ export default function Patients() {
                     totalRegistros={crud.paginacion.count}
                     onCambiarPagina={crud.setPagina}
                     cargando={crud.cargando}
+                    variant="admin"
                 />
-            </div>
-
-        </>
+            </section>
+        </div>
     )
 }

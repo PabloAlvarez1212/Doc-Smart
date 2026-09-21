@@ -1,0 +1,5 @@
+.doctorName { color: #26344b; font-size: .84rem; font-weight: 700; }
+.actions { display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 6px; white-space: nowrap; }
+.actionButton { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; gap: 6px; flex: 0 0 auto; border: 1px solid #d7e2ef; border-radius: 9px; padding: 0 10px; background: #f8fbff; color: #245d9f; font: inherit; font-size: .72rem; font-weight: 680; white-space: nowrap; cursor: pointer; transition: background-color .15s ease, border-color .15s ease, transform .15s ease; }
+.actionButton:hover:not(:disabled) { border-color: #b8cce4; background: #eaf3ff; transform: translateY(-1px); }
+.actionButton:disabled { color: #9ba6b5; background: #f5f7fa; cursor: not-allowed; opacity: .72; }

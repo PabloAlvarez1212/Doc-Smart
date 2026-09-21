@@ -5,6 +5,7 @@ let mostrandoSesionExpirada = false;
 
 let refrescando = false;
 let cola = [];
+let cerrandoSesion = false;
 
 // CSRF
 let csrfToken = null;
@@ -98,6 +99,13 @@ const resolverCola = (error = null) => {
     cola = [];
 };
 
+export const iniciarCierreSesion = () => {
+    cerrandoSesion = true;
+
+    resolverCola(
+        new Error("La sesión se está cerrando")
+    );
+};
 
 // ======================================================
 // SESIÓN EXPIRADA
@@ -133,6 +141,10 @@ api.interceptors.response.use(
         const status = error.response?.status;
         const url = originalRequest?.url || "";
 
+        const esLogout =
+            url.includes("/logout/") ||
+            url.includes("/logout");
+
         const esLogin =
             url.includes("/login/") ||
             url.includes("/login");
@@ -155,7 +167,12 @@ api.interceptors.response.use(
             return Promise.reject(error);
         }
 
-
+        // Si estamos cerrando sesión,
+        // no intentamos hacer refresh.
+        if (cerrandoSesion || esLogout) {
+            return Promise.reject(error);
+        }
+        
         // Si falla el propio refresh,
         // ya no podemos renovar la sesión.
         if (esRefresh) {

@@ -1,71 +1,52 @@
-.containerNav nav ul li {
-    list-style: none;
-    text-decoration: none;
-    padding-top: 1.5rem;
-    padding-bottom: 1.5rem;
-}
-
-.containerNav nav ul li .link {
-    color: black;
-    text-decoration: none;
-    padding: 5px 10px;
-}
-
-.containerNav nav ul li .link:hover {
-    color: var(--color-dark);
-    background-color: #CAE1FF;
-    color: #2B7FFF;
-    border-radius: 8px;
-    padding: 5px 10px;
-}
-
-.activar {
-    color: var(--color-dark);
-    background-color: #CAE1FF;
-    color: #2B7FFF;
-    border-radius: 8px;
-    padding: 5px 10px;
-
-}
-
-.containerNav nav ul {
+.nav {
     display: flex;
+    height: 100%;
+    min-height: 0;
     flex-direction: column;
-    font-size: clamp(1rem, 3vw, 1.3rem);
-    padding-top: 2rem;
-    justify-content: center;
-    align-items: center;
+    gap: 24px;
+    padding: 24px 16px 18px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
-
-.item {
+.group { display: grid; gap: 7px; }
+.groupLabel { margin: 0 10px 8px; color: #98a2b3; font-size: .68rem; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; }
+.list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.link, .groupButton {
     display: flex;
-    gap: 1rem;
     align-items: center;
     width: 100%;
+    min-height: 44px;
+    border: 0;
+    border-radius: 10px;
+    padding: 0 12px;
+    color: #4b5870;
+    background: transparent;
+    font: inherit;
+    font-size: .89rem;
+    font-weight: 610;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .16s ease, color .16s ease, transform .16s ease;
 }
+.link { position: relative; gap: 11px; }
+.link:hover, .groupButton:hover { background: #f3f7fc; color: #174c96; }
+.link.active { background: #eaf3ff; color: #1759b3; font-weight: 700; }
+.link.active::before { content: ""; position: absolute; left: 0; width: 3px; height: 22px; border-radius: 0 4px 4px 0; background: #2b7fff; }
+.groupButton { justify-content: space-between; text-align: left; }
+.groupButton > span { display: flex; align-items: center; gap: 11px; }
+.groupActive { color: #1759b3; }
+.groupButton svg, .link svg { flex: 0 0 auto; }
+.groupButton > svg { transition: transform .18s ease; }
+.chevronOpen { transform: rotate(180deg); }
+.sublist { display: none; padding-left: 12px; }
+.sublistOpen { display: grid; }
+.sublist .link { min-height: 40px; font-size: .84rem; }
+.footer { display: flex; align-items: center; gap: 10px; margin-top: auto; padding: 14px 12px 0; border-top: 1px solid #edf0f5; color: #64748b; }
+.footer > span { display: grid; gap: 2px; }
+.footer strong { color: #344054; font-size: .76rem; }
+.footer small { font-size: .7rem; }
 
-.catalogos {
-    margin: 0 auto;
-    width: 200px;
-}
-
-.btn {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    justify-content: center;
-    margin-top: 1rem;
-}
-
-.containerNavMain {
-    margin: 0 auto;
-    width: 200px;
-}.containerNav nav ul li .link, .activar { display: inline-flex; min-height: 44px; align-items: center; }
 @media (max-width: 1100px) {
-  .containerNav nav ul { padding-top: 0; align-items: stretch; font-size: 1rem; }
-  .containerNav nav ul li { padding-block: 4px; }
-  .containerNavMain, .catalogos { width: 100%; }
-  .containerNavMain { display: flex; flex-wrap: wrap; gap: 8px; }
-  .item { gap: 8px; width: auto; }
-  .btn { margin-top: 8px; justify-content: flex-start; }
+    .nav { max-height: 62dvh; height: auto; padding: 16px 4px 6px; }
+    .footer { display: none; }
 }

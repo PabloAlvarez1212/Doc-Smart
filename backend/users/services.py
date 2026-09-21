@@ -2,7 +2,7 @@ from catalogos.models import Rol
 import bcrypt
 from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import Usuario
-from medicos.models import Medico
+from medicos.models import Medico,SolicitudValidacionMedico
 from users.serializers import UsuarioSerializer, MedicoSerializer,UsuarioPerfilSerializer
 import secrets
 from django.utils import timezone
@@ -18,6 +18,7 @@ from notificaciones.models import Notificacion
 import logging
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from utils import filtrarMedicosAprobados
 
 logger = logging.getLogger(__name__)
 resend.api_key = os.getenv("RESEND_API_KEY")
@@ -63,8 +64,18 @@ def loginService(correo, contraseña):
         contraseña.encode(),
         medico.contraseña.encode()
     ):
+        # Obtiene la última solicitud de validación del médico
+        ultima_solicitud = medico.ultima_solicitud_validacion
+
         token = RefreshToken.for_user(medico)
         token["tipo"] = "medico"
+
+        # Agrega el estado actual de validación al token
+        token["estado_validacion"] = (
+            ultima_solicitud.estado
+            if ultima_solicitud
+            else None
+        )
 
         serializer = MedicoSerializer(medico)
 
@@ -267,8 +278,9 @@ def registrarUsuarioService(datos):
 
 
 
-def listarUsuariosService(page=None, page_size=10, search=None):
-    usuarios = Usuario.objects.all()
+def listarPacientesService(page=None, page_size=10, search=None):
+    usuarios = Usuario.objects.filter(id_rol__nombre__iexact = "paciente")
+    
     if search:
         usuarios = usuarios.filter(nombre__icontains=search)
     usuarios = usuarios.order_by('nombre')
@@ -449,4 +461,18 @@ def obtenerDashboardPacienteInicioService(id):
         },
     }
     
+    return data,200
+
+def obtenerMetricasSistema():
+    medicos = Medico.objects.all()
+    totalMedicosAprobados = filtrarMedicosAprobados(medicos).count()
+    totalPacientes = Usuario.objects.filter(id_rol__nombre__iexact = "paciente").count()
+    totalCitas = Cita.objects.all().count()
+    totalSolicitudesPendientes = SolicitudValidacionMedico.objects.filter(estado=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE).count()
+    data = {
+        "total_medicos_aprobados" : totalMedicosAprobados,
+        "total_pacientes" : totalPacientes,
+        "total_citas" : totalCitas,
+        "total_solicitudes_pendientes": totalSolicitudesPendientes,
+    }
     return data,200

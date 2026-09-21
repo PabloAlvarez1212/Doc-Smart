@@ -9,18 +9,21 @@ export default function FormCatalogo({
     handleChange,
     onSubmit,
     modoEdicion,
+    guardando = false,
 }) {
     return (
-        <form onSubmit={onSubmit}>
+        <form onSubmit={onSubmit} className={styles.form}>
             <div className={styles.containerForm}>
+                <label htmlFor="catalog-name">Nombre</label>
                 <Input
-                    placeholder="Nombre"
+                    id="catalog-name"
+                    placeholder="Escribe un nombre"
                     value={formData.nombre}
                     onChange={handleChange}
                     name="nombre"
                 />
 
-                <Button type="submit" size="sm">
+                <Button type="submit" size="sm" loading={guardando}>
                     {modoEdicion ? "Actualizar" : "Crear"}
                 </Button>
             </div>

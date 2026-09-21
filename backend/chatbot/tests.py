@@ -269,7 +269,10 @@ class BymaxThrottleTests(SimpleTestCase):
     def setUp(self):
         cache.clear()
         self.factory = APIRequestFactory()
-        self.usuario = SimpleNamespace(is_authenticated=True, pk=501, id=501)
+        self.usuario = Usuario(
+            id=501,
+            id_rol=Rol(id=501, nombre="paciente"),
+        )
 
     @patch("chatbot.views.Chat.objects.get", side_effect=Chat.DoesNotExist)
     def test_bymax_permite_uso_normal_y_limita_exceso(self, obtener_chat):

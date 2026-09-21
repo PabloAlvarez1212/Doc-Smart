@@ -86,6 +86,230 @@
     text-align: center;
 }
 
+.resumeUpload {
+    position: relative;
+    width: 100%;
+}
+
+.fileInput {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.uploadSurface {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: .12rem .7rem;
+    width: 100%;
+    min-height: 94px;
+    padding: .7rem .85rem;
+    border: 1px dashed #9dbce7;
+    border-radius: 12px;
+    color: #52627a;
+    background: #f7faff;
+    text-align: left;
+    transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
+}
+
+.resumeUpload:hover .uploadSurface {
+    border-color: #5e91d7;
+    background: #f1f7ff;
+}
+
+.fileInput:focus-visible + .uploadSurface {
+    border-color: #2b7fff;
+    box-shadow: 0 0 0 3px rgba(43, 127, 255, .14);
+    outline: none;
+}
+
+.uploadIcon,
+.fileIcon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    color: #174c96;
+    background: #e8f2ff;
+}
+
+.uploadIcon {
+    grid-row: 1 / 3;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+}
+
+.uploadIcon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.uploadCopy {
+    align-self: end;
+    min-width: 0;
+}
+
+.uploadCopy strong {
+    display: block;
+    margin-bottom: .12rem;
+    color: #1b2a41;
+    font-size: .87rem;
+}
+
+.uploadCopy p {
+    max-width: 390px;
+    color: #667085;
+    font-size: .7rem;
+    line-height: 1.3;
+}
+
+.selectFile,
+.changeFile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    border-radius: 9px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: color .18s ease, background-color .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.selectFile {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    min-height: 34px;
+    padding: .42rem .68rem;
+    color: #fff;
+    background: #1733a4;
+    font-size: .75rem;
+    white-space: nowrap;
+}
+
+.selectFile:hover {
+    background: #2145bd;
+    transform: translateY(-1px);
+}
+
+.uploadSurface > small {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    color: #7a8698;
+    font-size: .66rem;
+}
+
+.selectedFile {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+    gap: .65rem;
+    min-height: 64px;
+    padding: .62rem .75rem;
+    border-style: solid;
+    text-align: left;
+}
+
+.fileIcon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+}
+
+.fileIcon svg {
+    width: 23px;
+    height: 23px;
+}
+
+.fileDetails {
+    min-width: 0;
+}
+
+.fileNameRow {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    min-width: 0;
+}
+
+.fileNameRow strong {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    color: #1b2a41;
+    font-size: .8rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fileNameRow svg {
+    flex: 0 0 auto;
+    color: #1f9d68;
+}
+
+.fileDetails > span {
+    display: block;
+    margin-top: .14rem;
+    color: #718096;
+    font-size: .72rem;
+}
+
+.changeFile {
+    min-height: 32px;
+    padding: .36rem .56rem;
+    border: 1px solid #c8d7e9;
+    color: #174c96;
+    background: #fff;
+    font-size: .71rem;
+    white-space: nowrap;
+}
+
+.changeFile:hover {
+    border-color: #8eb2df;
+    background: #edf5ff;
+}
+
 .swal {
     font-size: 1.2rem;
-}@media (max-width: 640px) { .inputs, .buttons { width: 100%; } }
+}
+
+@media (max-width: 640px) {
+    .inputs, .buttons { width: 100%; }
+    .uploadSurface {
+        grid-template-columns: 32px minmax(0, 1fr);
+        min-height: 108px;
+        padding: .7rem .75rem;
+    }
+    .uploadIcon { width: 32px; height: 32px; }
+    .selectFile {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        width: 100%;
+        min-height: 36px;
+        margin-top: .35rem;
+    }
+    .selectedFile {
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        min-height: 94px;
+    }
+    .changeFile {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: 100%;
+        min-height: 34px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .uploadSurface,
+    .selectFile,
+    .changeFile { transition: none; }
+}

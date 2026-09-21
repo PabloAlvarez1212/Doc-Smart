@@ -3,6 +3,7 @@
 import Swal from "sweetalert2"
 import { useRouter } from "next/navigation"
 import { logoutService } from "@/app/services/authService"
+import { iniciarCierreSesion } from "@/app/services/api"
 
 export default function useLogout() {
 
@@ -10,6 +11,7 @@ export default function useLogout() {
 
     // Cierra sesión directamente, sin preguntar
     const logoutDirecto = async () => {
+        iniciarCierreSesion();
         try {
             await logoutService()
         } catch (error) {
@@ -33,7 +35,9 @@ export default function useLogout() {
         })
 
         if (!result.isConfirmed) return
-
+            
+        iniciarCierreSesion();
+        
         try {
             await logoutService()
 

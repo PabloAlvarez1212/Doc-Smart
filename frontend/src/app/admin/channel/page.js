@@ -4,6 +4,10 @@ import FormCatalogo from "../../../../components/forms/CatalogoForm/FormCatalogo
 import Modal from "../../../../components/ui/Modal/Modal";
 import { useCrud } from "../../../../components/hooks/useCrud";
 import DataTable from "../../../../components/ui/DataTable/DataTable";
+import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
+import pageStyles from "../adminPages.module.css";
+import Button from "../../../../components/ui/Button/Button";
+import { Plus } from "lucide-react";
 
 import {
     getMediosService,
@@ -32,7 +36,9 @@ export default function Channel() {
     ];
 
     return (
-        <>
+        <div className={pageStyles.page}>
+            <AdminPageHeader eyebrow="Catálogos" title="Medios" description="Gestiona los canales utilizados para la atención y comunicación." action={<Button size="sm" onClick={crud.abrirModalNuevo}><Plus size={17} /> Nuevo medio</Button>} />
+            <section className={pageStyles.tableSection} aria-label="Listado de medios">
             <DataTable
                 titulo="Medios"
                 columnas={columnas}
@@ -41,7 +47,9 @@ export default function Channel() {
                 onNuevo={crud.abrirModalNuevo}
                 onEditar={crud.abrirModalEditar}
                 onEliminar={crud.eliminar}
+                mostrarEncabezado={false}
             />
+            </section>
 
             <Modal
                 abierto={crud.modalAbierto}
@@ -56,6 +64,6 @@ export default function Channel() {
                     guardando={crud.guardando}
                 />
             </Modal>
-        </>
+        </div>
     );
 }

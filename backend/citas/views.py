@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from utils import IsMedico,IsPaciente,IsPacienteOrMedico,IsAdmin
+from utils import IsMedicoAprobado,IsPaciente,IsPacienteOrMedicoAprobado,IsAdmin
 from rest_framework.permissions import IsAuthenticated
 from citas.services import (
     listarCitasService,
@@ -96,7 +96,7 @@ class CitaPacienteView(APIView):
 
 
 class CitaMedicoView(APIView):
-    permission_classes = [IsAuthenticated,IsMedico]
+    permission_classes = [IsAuthenticated,IsMedicoAprobado]
     # Médico lista sus propias citas
     def get(self, request):
         try:
@@ -111,7 +111,7 @@ class CitaMedicoView(APIView):
 
 
 class CitaDetailView(APIView):
-    permission_classes = [IsAuthenticated,IsPacienteOrMedico]
+    permission_classes = [IsAuthenticated,IsPacienteOrMedicoAprobado]
     #!Medico o usuario obtienen una cita por id
     def get(self, request, pk):
         try:
@@ -144,7 +144,7 @@ class CitaDetailView(APIView):
 
 
 class CitaCancelarView(APIView):
-    permission_classes = [IsAuthenticated,IsPacienteOrMedico]
+    permission_classes = [IsAuthenticated,IsPacienteOrMedicoAprobado]
     #! Paciente o medico cancelan su cita
     def put(self, request, pk):
         try:
@@ -159,7 +159,7 @@ class CitaCancelarView(APIView):
 
 
 class CitaCompletarView(APIView):
-    permission_classes = [IsAuthenticated,IsMedico]
+    permission_classes = [IsAuthenticated,IsMedicoAprobado]
     # Médico completa la cita
     def put(self, request, pk):
         try:
@@ -173,7 +173,7 @@ class CitaCompletarView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 class CitaConfirmarView(APIView):
-    permission_classes = [IsAuthenticated,IsMedico]
+    permission_classes = [IsAuthenticated,IsMedicoAprobado]
     #Medico confirma la cita
     def put(self, request, pk):
         try:
@@ -190,6 +190,7 @@ class CitaConfirmarView(APIView):
 
 #!Metodos admin
 class RecordatorioListView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
     #!Listar recordatorios
     def get(self, request):
         try:
@@ -212,6 +213,7 @@ class RecordatorioListView(APIView):
 
 
 class RecordatorioDetailView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
     #!Eliminar recordatorio
     def delete(self, request, pk):
         try:

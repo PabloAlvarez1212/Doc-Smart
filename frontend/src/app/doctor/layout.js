@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-
+import { usePathname, useRouter } from "next/navigation";
+import useInactivityLogout from "../../../components/hooks/useInactivityLogout";
 import Header from "../../../components/doctor/layout/Header/Header";
 import styles from "./layout.module.css";
 import BymaxAssistant from "../../../components/bymax/BymaxAssistant";
@@ -10,6 +10,19 @@ import useProfile from "../../../components/doctor/Profile/useProfile";
 import { NotificationsProvider } from "../../../components/contex/NotificationsContext";
 
 export default function DoctorLayout({ children }) {
+    useInactivityLogout()
+    const pathname = usePathname();
+    const esPaginaValidacion = pathname === "/doctor/validacion";
+
+    // Al salir de validación, comprobar un perfil nuevo antes de abrir el panel.
+    return (
+        <DoctorAccess key={esPaginaValidacion ? "validacion" : "panel"} esPaginaValidacion={esPaginaValidacion}>
+            {children}
+        </DoctorAccess>
+    );
+}
+
+function DoctorAccess({ children, esPaginaValidacion }) {
     const router = useRouter();
 
     const {
@@ -37,8 +50,7 @@ export default function DoctorLayout({ children }) {
             return;
         }
 
-        // Protección adicional por si el endpoint devolviera
-        // un perfil con un rol inesperado.
+        // Protección adicional por rol.
         if (
             perfil.rol !== "medico" &&
             perfil.rol !== "doctor"
@@ -54,6 +66,26 @@ export default function DoctorLayout({ children }) {
             }
 
             router.replace("/login");
+            return;
+        }
+
+        // Médico aprobado intentando entrar a la página de validación.
+        if (
+            perfil.estado_validacion === "aprobado" &&
+            esPaginaValidacion
+        ) {
+            router.replace("/doctor/home");
+            return;
+        }
+
+        // Médico pendiente, rechazado o sin solicitud intentando
+        // acceder al área normal del médico.
+        if (
+            perfil.estado_validacion !== "aprobado" &&
+            !esPaginaValidacion
+        ) {
+            router.replace("/doctor/validacion");
+            return;
         }
 
     }, [
@@ -61,6 +93,7 @@ export default function DoctorLayout({ children }) {
         loading,
         error,
         router,
+        esPaginaValidacion,
     ]);
 
     // Mientras verificamos la sesión.
@@ -68,8 +101,7 @@ export default function DoctorLayout({ children }) {
         return <p>Cargando...</p>;
     }
 
-    // No renderizar contenido del médico mientras
-    // estamos redirigiendo.
+    // No renderizar contenido si no existe una sesión válida.
     if (
         error ||
         !perfil ||
@@ -81,10 +113,35 @@ export default function DoctorLayout({ children }) {
         return null;
     }
 
+    // Médico no aprobado intentando entrar al panel.
+    // Evita mostrar por un instante el contenido protegido
+    // mientras ocurre la redirección.
+    if (
+        perfil.estado_validacion !== "aprobado" &&
+        !esPaginaValidacion
+    ) {
+        return null;
+    }
+
+    // Médico aprobado intentando entrar a /doctor/validacion.
+    if (
+        perfil.estado_validacion === "aprobado" &&
+        esPaginaValidacion
+    ) {
+        return null;
+    }
+
+    // La página de validación no utiliza el layout normal del médico.
+    if (esPaginaValidacion) {
+        return children;
+    }
+
+    // Área normal para médicos aprobados.
     return (
         <NotificationsProvider>
             <div>
                 <Header />
+
                 <BymaxAssistant modo="medico" />
 
                 <div className={styles.mainContent}>

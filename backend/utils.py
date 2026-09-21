@@ -6,7 +6,12 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.exceptions import InvalidToken
 from datetime import date
 from users.models import Usuario
-from medicos.models import Medico
+from medicos.models import Medico,SolicitudValidacionMedico
+from django.db.models import OuterRef, Subquery
+import os
+import resend
+
+from django.template.loader import render_to_string
 
 def validarContraseña(contraseña):
     if len(contraseña) < 8:
@@ -104,6 +109,23 @@ class IsMedico(BasePermission):
             and isinstance(request.user, Medico)
         )
         
+class IsMedicoAprobado(BasePermission):
+
+    message = (
+        "Tu cuenta médica debe estar aprobada "
+        "para acceder a esta sección."
+    )
+
+    def has_permission(self, request, view):
+        if not (
+            request.user
+            and request.user.is_authenticated
+            and isinstance(request.user, Medico)
+        ):
+            return False
+
+        return request.user.esta_aprobado
+
 class IsPaciente(BasePermission):
     message = "No tienes permisos para acceder a esta sección."
 
@@ -128,7 +150,28 @@ class IsPacienteOrMedico(BasePermission):
                 or isinstance(request.user, Medico)
             )
         )
-        
+
+class IsPacienteOrMedicoAprobado(BasePermission):
+    message = "No tienes permisos para realizar esta acción."
+
+    def has_permission(self, request, view):
+        if not (
+            request.user
+            and request.user.is_authenticated
+        ):
+            return False
+
+        if isinstance(request.user, Usuario):
+            return bool(
+                request.user.id_rol
+                and request.user.id_rol.nombre == "paciente"
+            )
+
+        if isinstance(request.user, Medico):
+            return request.user.esta_aprobado
+
+        return False
+
 def calcular_edad(fecha_nacimiento):
     hoy = date.today()
 
@@ -138,3 +181,83 @@ def calcular_edad(fecha_nacimiento):
         edad -= 1
 
     return edad
+
+def enviarCorreoMedicoAprobado(medico):
+    frontend_url = os.getenv("FRONTEND_URL", "").rstrip("/")
+
+    html_content = render_to_string(
+        "emails/medico_aprobado.html",
+        {
+            "nombre": medico.nombre,
+            "apellido": medico.apellido,
+            "login_url": f"{frontend_url}/login",
+        }
+    )
+
+    try:
+        email = resend.Emails.send({
+            "from": os.getenv("RESEND_FROM_EMAIL"),
+            "to": [medico.correo],
+            "subject": "Tu solicitud fue aprobada - DocSmart",
+            "html": html_content,
+        })
+
+        print("Correo de aprobación enviado:", email)
+        return True
+
+    except Exception as e:
+        print("Error enviando correo de aprobación:", repr(e))
+        return False
+    
+def enviarCorreoMedicoRechazado(medico, motivo_rechazo, puede_reintentar_desde):
+    frontend_url = os.getenv("FRONTEND_URL", "").rstrip("/")
+
+    html_content = render_to_string(
+        "emails/medico_rechazado.html",
+        {
+            "nombre": medico.nombre,
+            "apellido": medico.apellido,
+            "motivo_rechazo": motivo_rechazo,
+            "puede_reintentar_desde": puede_reintentar_desde,
+            "login_url": f"{frontend_url}/login",
+        }
+    )
+
+    try:
+        email = resend.Emails.send({
+            "from": os.getenv("RESEND_FROM_EMAIL"),
+            "to": [medico.correo],
+            "subject": "Actualización sobre tu solicitud - DocSmart",
+            "html": html_content,
+        })
+
+        print("Correo de rechazo enviado:", email)
+        return True
+
+    except Exception as e:
+        print("Error enviando correo de rechazo:", repr(e))
+        return False
+
+def filtrarMedicosAprobados(queryset):
+    ultima_solicitud = (
+        SolicitudValidacionMedico.objects
+        .filter(medico=OuterRef("pk"))
+        .order_by("-fecha_solicitud")
+        .values("estado")[:1]
+    )
+
+    return (
+        queryset
+        .annotate(
+            estado_ultima_solicitud=Subquery(
+                ultima_solicitud
+            )
+        )
+        .filter(
+            estado_ultima_solicitud=(
+                SolicitudValidacionMedico
+                .EstadoSolicitud
+                .APROBADO
+            )
+        )
+    )

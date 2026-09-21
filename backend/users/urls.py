@@ -13,6 +13,8 @@ from .views import (
     RefreshTokenView,
     CSRFTokenView,
     CambiarContraseñaAutenticadoView,
+    PerfilAdminView,
+    MetricasSistemaView,
 )
 
 urlpatterns = [
@@ -24,9 +26,11 @@ urlpatterns = [
     path('usuarios/registro/',RegistroView.as_view()),
     path('usuarios/<int:pk>/', UsuarioDetailView.as_view()),
     path('perfil/',PerfilPacienteView.as_view()),
+    path('perfil/admin/',PerfilAdminView.as_view()),
     path('logout/', LogoutView.as_view()),
     path('dashboard/inicio/paciente/',DashboardInicioPacienteView.as_view()),
     path("perfil/foto/",FotoPerfilPacienteView.as_view(),name="foto-perfil-paciente"),
     path("refresh/",RefreshTokenView.as_view(),name="refresh-token"),
     path("csrf/",CSRFTokenView.as_view(),name="csrf-token"),
+    path('admin/dashboard/metricas/',MetricasSistemaView.as_view(),name='metricas-sistema'),
 ]

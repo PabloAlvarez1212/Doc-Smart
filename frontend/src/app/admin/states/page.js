@@ -4,6 +4,10 @@ import FormCatalogo from "../../../../components/forms/CatalogoForm/FormCatalogo
 import Modal from "../../../../components/ui/Modal/Modal";
 import { useCrud } from "../../../../components/hooks/useCrud";
 import DataTable from "../../../../components/ui/DataTable/DataTable";
+import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
+import pageStyles from "../adminPages.module.css";
+import Button from "../../../../components/ui/Button/Button";
+import { Plus } from "lucide-react";
 
 import {
     getEstadosService,
@@ -32,7 +36,9 @@ export default function States() {
     ];
 
     return (
-        <>
+        <div className={pageStyles.page}>
+            <AdminPageHeader eyebrow="Catálogos" title="Estados" description="Configura los estados utilizados por los flujos operativos del sistema." action={<Button size="sm" onClick={crud.abrirModalNuevo}><Plus size={17} /> Nuevo estado</Button>} />
+            <section className={pageStyles.tableSection} aria-label="Listado de estados">
             <DataTable
                 titulo="Estados"
                 columnas={columnas}
@@ -41,7 +47,9 @@ export default function States() {
                 onNuevo={crud.abrirModalNuevo}
                 onEditar={crud.abrirModalEditar}
                 onEliminar={crud.eliminar}
+                mostrarEncabezado={false}
             />
+            </section>
 
             <Modal
                 abierto={crud.modalAbierto}
@@ -56,6 +64,6 @@ export default function States() {
                     guardando={crud.guardando}
                 />
             </Modal>
-        </>
+        </div>
     );
 }

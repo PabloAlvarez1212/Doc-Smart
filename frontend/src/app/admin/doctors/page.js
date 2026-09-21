@@ -1,9 +1,9 @@
 "use client";
-import Hero from "../../../../components/admin/Doctor/Hero";
 import { useCrud } from "../../../../components/hooks/useCrud";
 import DataTable from "../../../../components/ui/DataTable/DataTable";
+import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
 import { getDoctoresService, deleteDoctorService } from "@/app/services/adminServices";
-import styles from "./doctors.module.css";
+import pageStyles from "../adminPages.module.css";
 
 export default function Doctors() {
   const crud = useCrud({
@@ -54,9 +54,9 @@ export default function Doctors() {
   ];
 
   return (
-    <>
-      <Hero />
-      <div className={styles.containerTable}>
+    <div className={pageStyles.page}>
+      <AdminPageHeader eyebrow="Personas" title="Médicos" description="Consulta y administra los profesionales aprobados en DocSmart." />
+      <section className={pageStyles.tableSection} aria-label="Listado de médicos">
         <DataTable
           centrarAcciones={true}
           mostrarEditar={false}
@@ -67,8 +67,10 @@ export default function Doctors() {
           columnas={columnas}
           mostrarBotonNuevo={false}
           campoBusqueda="cedula"
+          placeholderBusqueda="Buscar por cédula..."
+          mostrarEncabezado={false}
         />
-      </div>
-    </>
+      </section>
+    </div>
   );
 }

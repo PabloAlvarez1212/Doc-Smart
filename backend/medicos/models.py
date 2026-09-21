@@ -10,6 +10,7 @@ class Especialidad(models.Model):
 
 # Modelo principal que representa a un médico del sistema
 class Medico(models.Model):
+    
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     cedula = models.CharField(max_length=20, unique=True)        # Documento de identidad único
@@ -30,7 +31,6 @@ class Medico(models.Model):
         null=True,
         blank=True
     )
-
     # Propiedad requerida por el sistema de autenticación: indica que el médico está autenticado
     @property
     def is_authenticated(self):
@@ -40,6 +40,40 @@ class Medico(models.Model):
     @property
     def is_anonymous(self):
         return False
+    
+    @property
+    def ultima_solicitud_validacion(self):
+        return self.solicitudes_validacion.order_by(
+            "-fecha_solicitud"
+        ).first()
+        
+    @property
+    def esta_aprobado(self):
+        solicitud = self.ultima_solicitud_validacion
+
+        return (
+            solicitud is not None
+            and solicitud.estado
+            == SolicitudValidacionMedico.EstadoSolicitud.APROBADO
+        )
 
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
+
+class SolicitudValidacionMedico(models.Model):
+
+    class EstadoSolicitud(models.TextChoices):
+        PENDIENTE = "pendiente", "Pendiente"
+        APROBADO = "aprobado", "Aprobado"
+        RECHAZADO = "rechazado", "Rechazado"
+        
+    medico = models.ForeignKey(Medico,on_delete=models.CASCADE,related_name="solicitudes_validacion")
+    estado = models.CharField(max_length=20,choices=EstadoSolicitud.choices,default=EstadoSolicitud.PENDIENTE)
+    hoja_vida = models.ForeignKey("storage_app.Archivo",on_delete=models.PROTECT,related_name="solicitudes_medicas")
+    motivo_rechazo = models.TextField(null=True,blank=True)
+    fecha_solicitud = models.DateTimeField(auto_now_add=True)
+    fecha_revision = models.DateTimeField(null=True,blank=True)
+    puede_reintentar_desde = models.DateTimeField(null=True,blank=True)
+    
+    def __str__(self):
+        return f"Solicitud {self.id} - {self.medico}"

@@ -1,10 +1,10 @@
 import Style from "./SettingsComponent.module.css"
 import { KeyIcon, ChevronRight, LogOutIcon, TrashIcon } from "lucide-react"
-export default function SettingsComponent({abrirCambiarContrasena,eliminarCuenta, cerrarSesion }) {
+export default function SettingsComponent({ abrirCambiarContrasena, eliminarCuenta, cerrarSesion }) {
     return (
         <div className={Style.containerMain}>
             <div className={Style.cards}>
-                <div className={Style.card} onClick={() => abrirCambiarContrasena()}>
+                <button type="button" className={Style.card} onClick={abrirCambiarContrasena}>
                     <div className={Style.titleContainer}>
                         <div className={Style.containerllaveIcon}>
                             <KeyIcon color="#6188DC" className={Style.llaveIcon} />
@@ -18,8 +18,8 @@ export default function SettingsComponent({abrirCambiarContrasena,eliminarCuenta
                         <ChevronRight size={28} />
                     </div>
 
-                </div>
-                <div className={Style.card} onClick={() => cerrarSesion()}>
+                </button>
+                <button type="button" className={Style.card} onClick={cerrarSesion}>
                     <div className={Style.titleContainer}>
                         <div className={Style.containerCerrarSesionIcon}>
                             <LogOutIcon color="#E77837" className={Style.cerrarSesionIcon} />
@@ -30,19 +30,21 @@ export default function SettingsComponent({abrirCambiarContrasena,eliminarCuenta
                         </div>
                     </div>
                     <ChevronRight size={28} />
-                </div>
-                <div className={Style.card} onClick={() => eliminarCuenta()}>
-                    <div className={Style.titleContainer}>
-                        <div className={Style.containerEliminarIcon}>
-                            <TrashIcon color="#E05362" />
+                </button>
+                {eliminarCuenta && (
+                    <button type="button" className={Style.card} onClick={eliminarCuenta}>
+                        <div className={Style.titleContainer}>
+                            <div className={Style.containerEliminarIcon}>
+                                <TrashIcon color="#E05362" />
+                            </div>
+                            <div className={Style.textContainer}>
+                                <h3 className={Style.textEliminar}>Eliminar cuenta</h3>
+                                <p>Elimina permanentemente tu cuenta</p>
+                            </div>
                         </div>
-                        <div className={Style.textContainer}>
-                            <h3 className={Style.textEliminar}>Eliminar cuenta</h3>
-                            <p>Elimina permanentemente tu cuenta</p>
-                        </div>
-                    </div>
-                    <ChevronRight size={28} />
-                </div>
+                        <ChevronRight size={28} />
+                    </button>
+                )}
             </div>
         </div>
     )

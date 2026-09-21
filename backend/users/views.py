@@ -12,7 +12,7 @@ from users.services import (
     solicitarCambioService,
     cambiarContraseñaService,
     registrarUsuarioService,
-    listarUsuariosService,
+    listarPacientesService,
     obtenerUsuarioService,
     editarUsuarioService,
     eliminarUsuarioService,
@@ -21,6 +21,7 @@ from users.services import (
     eliminarFotoPerfilPacienteService,
     refreshTokenService,
     cambiarContraseñaAutenticadoService,
+    obtenerMetricasSistema,
 )
 from users.serializers import (
     LoginSerializer,
@@ -345,10 +346,21 @@ class PerfilPacienteView(APIView):
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor',status=500)
-        
+
+class PerfilAdminView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
+    def get(self,request):
+        try:
+            respuesta,status_code = obtenerUsuarioService(request.user.id)
+            if status_code != 200:
+                return respuesta_error(mensaje=respuesta,status=status_code)
+            return respuesta_ok(data=respuesta,status=status_code)
+        except Exception as e:
+            print(f"Error interno en el servidor: {e}")
+                    
 class FotoPerfilPacienteView(APIView):
     parser_classes = [MultiPartParser, FormParser]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsPaciente]
 
     def patch(self, request):
 
@@ -415,14 +427,14 @@ class FotoPerfilPacienteView(APIView):
         
 # ! Metodos para el Admin
 class UsuarioListView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request):
         try:
             page = request.query_params.get('page')
             page_size = request.query_params.get('page_size', 10)
             search = request.query_params.get('search')
 
-            resultado, status_code = listarUsuariosService(
+            resultado, status_code = listarPacientesService(
                 page=page, page_size=page_size, search=search,
             )
             return respuesta_ok(data=resultado, status=status_code)
@@ -431,7 +443,7 @@ class UsuarioListView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 class UsuarioDetailView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request, pk):
         try:
             resultado, status_code = obtenerUsuarioService(pk)
@@ -469,7 +481,7 @@ class UsuarioDetailView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 class DashboardInicioPacienteView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsPaciente]
     def get(self,request):
         try:
             resultado, statusCode = obtenerDashboardPacienteInicioService(request.user.id)
@@ -479,3 +491,17 @@ class DashboardInicioPacienteView(APIView):
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor',status=500)
+
+#vista admin: lista metricas necesarias para el dashboard del admin
+class MetricasSistemaView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
+    def get(self,request):
+        try:
+            data,status_code = obtenerMetricasSistema()
+            if(status_code != 200):
+                return respuesta_error('Error al cargar las metricas: ', status=status_code)
+            return respuesta_ok(data=data,mensaje='metricas traidas exitosamente',status=status_code)
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error en el servidor: ',status=500)
+        

@@ -1,0 +1,11 @@
+.page { display: grid; gap: 22px; }
+.requestsSection { min-width: 0; }
+.sectionHeading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
+.sectionHeading span { display: block; margin-bottom: 4px; color: #2563eb; font-size: .66rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.sectionHeading h2 { color: #25334a; font-size: 1.05rem; font-weight: 720; letter-spacing: -.015em; }
+.sectionHeading p { display: inline-flex; align-items: center; gap: 6px; color: #7a8699; font-size: .7rem; white-space: nowrap; }
+
+@media (max-width: 620px) {
+    .page { gap: 19px; }
+    .sectionHeading { align-items: flex-start; flex-direction: column; gap: 7px; }
+}
