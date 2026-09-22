@@ -511,14 +511,84 @@ class ChatbotResponderView(APIView):
 class ContextoMedicoView(APIView):
     permission_classes = [IsAuthenticated, IsMedicoAprobado]
 
+    ALCANCES = {"proximas", "pendientes", "hoy", "siguiente", "atrasadas"}
+
+    def _chat(self, request, id_chat):
+        return ChatService.obtener_chat(id_chat, request.user)
+
+    def _contexto(self, chat, alcance="proximas"):
+        proximos = ToolManager.ejecutar(
+            "buscar_proximos_pacientes",
+            chat,
+            "Consulta manual del copiloto",
+            {"alcance": alcance},
+        )
+        return {
+            **proximos.get("data", {}),
+            "paciente_activo": contexto_activo(chat),
+        }
+
+    @staticmethod
+    def _respuesta_sin_cache(data, status=200):
+        response = respuesta_ok(data=data, status=status)
+        patch_cache_control(
+            response,
+            private=True,
+            no_cache=True,
+            no_store=True,
+            must_revalidate=True,
+        )
+        patch_vary_headers(response, ("Authorization", "Cookie"))
+        return response
+
     def get(self, request, id_chat):
-        chat = ChatService.obtener_chat(id_chat, request.user)
+        chat = self._chat(request, id_chat)
         if chat is None:
             return respuesta_error("Chat no encontrado.", status=404)
-        proximos = ToolManager.ejecutar("buscar_proximos_pacientes", chat, "Mis próximas citas", {})
-        response = respuesta_ok(data={**proximos["data"], "paciente_activo": contexto_activo(chat)})
-        patch_cache_control(response, private=True, no_store=True)
-        return response
+
+        alcance = request.query_params.get("alcance", "proximas")
+        if alcance not in self.ALCANCES:
+            return respuesta_error("El alcance de agenda no es válido.", status=400)
+
+        return self._respuesta_sin_cache(self._contexto(chat, alcance))
+
+    def post(self, request, id_chat):
+        """Acciones manuales del copiloto; nunca crean mensajes del chat."""
+        chat = self._chat(request, id_chat)
+        if chat is None:
+            return respuesta_error("Chat no encontrado.", status=404)
+
+        accion = request.data.get("accion")
+        alcance = request.data.get("alcance", "proximas")
+        if alcance not in self.ALCANCES:
+            return respuesta_error("El alcance de agenda no es válido.", status=400)
+
+        if accion == "seleccionar_paciente":
+            resultado = ToolManager.ejecutar(
+                "seleccionar_paciente", chat, "Selección manual desde el copiloto",
+                {"paciente_id": request.data.get("paciente_id")},
+            )
+        elif accion == "cerrar_contexto":
+            resultado = ToolManager.ejecutar(
+                "cerrar_contexto_paciente", chat, "Cierre manual desde el copiloto", {},
+            )
+        elif accion == "consultar_agenda":
+            resultado = ToolManager.ejecutar(
+                "buscar_proximos_pacientes", chat, "Consulta manual desde el copiloto",
+                {"alcance": alcance},
+            )
+        else:
+            return respuesta_error("La acción del copiloto no es válida.", status=400)
+
+        if not isinstance(resultado, dict) or not resultado.get("success", False):
+            mensaje = resultado.get("message") if isinstance(resultado, dict) else None
+            return respuesta_error(mensaje or "No fue posible ejecutar la acción.", status=400)
+
+        chat.refresh_from_db(fields=["contexto_temporal"])
+        return self._respuesta_sin_cache({
+            **self._contexto(chat, alcance),
+            "mensaje": resultado.get("message", "Acción completada."),
+        })
 
 
 class BymaxVoiceView(APIView):

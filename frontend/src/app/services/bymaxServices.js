@@ -16,9 +16,13 @@ export const bymaxService = {
   async guardarAnimo(puntuacion) { return datos(await api.post("/chatbot/identidad/", { puntuacion, confirmado: true })); },
   async diagnosticoEstado() { return datos(await api.get("/chatbot/diagnosticos/")); },
   async diagnosticoAccion(accion, comando) { return datos(await api.post("/chatbot/diagnosticos/", { accion, comando, confirmado: true })); },
-  async obtenerContextoMedico(idChat) {
-    try { return datos(await api.get(`/chatbot/chats/${idChat}/contexto-medico/`)); }
+  async obtenerContextoMedico(idChat, alcance = "proximas") {
+    try { return datos(await api.get(`/chatbot/chats/${idChat}/contexto-medico/`, { params: { alcance } })); }
     catch (error) { throw new Error(detalleError(error, "No fue posible cargar el contexto clínico.")); }
+  },
+  async accionContextoMedico(idChat, accion, parametros = {}) {
+    try { return datos(await api.post(`/chatbot/chats/${idChat}/contexto-medico/`, { accion, ...parametros })); }
+    catch (error) { throw new Error(detalleError(error, "No fue posible ejecutar la acción del copiloto.")); }
   },
   crearSocket(idChat) {
     const base = process.env.NEXT_PUBLIC_BYMAX_WS_URL ||

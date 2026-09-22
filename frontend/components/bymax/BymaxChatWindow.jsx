@@ -1,15 +1,14 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { AudioLines, Check, ChevronDown, Menu, Mic, Minus, Play, Plus, Settings2, ShieldCheck, Square, Trash2, Volume2, VolumeX, X } from "lucide-react";
+import { AudioLines, Check, ChevronDown, Menu, Mic, Minus, Play, Plus, Settings2, ShieldCheck, Square, Stethoscope, Trash2, Volume2, VolumeX, X } from "lucide-react";
 import BymaxMessage from "./BymaxMessage";
 import BymaxComposer from "./BymaxComposer";
-import BymaxDoctorContext from "./BymaxDoctorContext";
 import useDraggableBymaxWindow from "./useDraggableBymaxWindow";
 import { DEFAULT_VOICE } from "./bymaxVoiceController.mjs";
 import styles from "./BymaxAssistant.module.css";
 
-export default function BymaxChatWindow({ open, close, status, label, chats, chatId, messages, loading, sending, streamingId, sidebar, setSidebar, loadChat, newChat, deleteChat, voice, viewportStyle, composer, modo = "paciente", onClinicalCommand, daily }) {
+export default function BymaxChatWindow({ open, close, status, label, chats, chatId, messages, loading, sending, streamingId, sidebar, setSidebar, loadChat, newChat, deleteChat, voice, viewportStyle, composer, modo = "paciente", onOpenClinical, daily }) {
   const [present, setPresent] = useState(open);
   const [settings, setSettings] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
@@ -82,12 +81,12 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
         <button ref={historyButtonRef} type="button" className={styles.mobileMenu} onClick={() => setSidebar(true)} aria-label="Abrir historial" aria-expanded={sidebar}><Menu size={21}/></button>
         <div className={styles.assistant}><Image className={styles.avatar} src="/icons/asistente_bymax.png" alt="" width={48} height={48}/><div><strong>{modo === "medico" ? "Bymax Médico" : "Bymax"}</strong><small role="status"><span className={styles.stateMark}/>{label}</small>{daily?.identity && <small>{daily.identity.nombre}{daily.identity.especialidad ? ` · ${daily.identity.especialidad}` : ""}</small>}</div></div>
         <div className={styles.headerActions}>
+          {modo === "medico" && <button type="button" onClick={onOpenClinical} aria-label="Abrir copiloto clínico" title="Copiloto clínico"><Stethoscope size={19}/></button>}
           <button ref={settingsButtonRef} type="button" onClick={() => setSettings(true)} aria-label="Configurar voz" title="Configurar voz"><Settings2 size={19}/></button>
           <button type="button" className={voice.enabled ? styles.activeAction : ""} onClick={() => voice.setEnabled(!voice.enabled)} aria-pressed={voice.enabled} aria-label={voice.enabled ? "Desactivar respuestas por voz" : "Activar respuestas por voz"} title="Respuestas por voz">{voice.enabled ? <Volume2 size={19}/> : <VolumeX size={19}/>}</button>
           <button ref={closeRef} type="button" onClick={close} aria-label="Minimizar chat" title="Minimizar chat"><Minus size={21}/></button>
         </div>
       </header>
-      {modo === "medico" && <BymaxDoctorContext chatId={chatId} sending={sending} loading={loading} onCommand={onClinicalCommand}/>}
       <div className={styles.conversation}>
         <div
           className={styles.messages}

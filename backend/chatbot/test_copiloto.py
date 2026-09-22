@@ -25,8 +25,7 @@ from chatbot.services.identity_service import preguntar_animo, guardar_animo, to
 from chatbot.services.imagen_medica_service import validar_imagen_medica
 from chatbot.services.turn_service import iniciar_turno
 from chatbot.throttles import ActorScopedRateThrottle
-from chatbot.views import ChatbotResponderView
-from chatbot.views import MensajeListView
+from chatbot.views import ChatbotResponderView, ContextoMedicoView, MensajeListView
 from citas.models import Cita
 from medicos.models import Medico
 from notificaciones.models import Notificacion
@@ -47,6 +46,44 @@ class CopilotoTests(TestCase):
     def operar(self, accion, cita=None):
         cita = cita or Cita.objects.filter(id_medico=self.medico).first()
         return ConversationManager.procesar(self.chat, f"{accion} la cita número {cita.pk}")
+
+    def test_modal_clinico_cambia_contexto_sin_crear_mensajes(self):
+        inicial = Mensaje.objects.filter(id_chat=self.chat).count()
+        respuesta = self.request(
+            ContextoMedicoView,
+            self.medico,
+            "post",
+            {"accion": "seleccionar_paciente", "paciente_id": self.paciente.pk},
+            id_chat=self.chat.pk,
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(
+            respuesta.data["data"]["paciente_activo"]["id"],
+            self.paciente.pk,
+        )
+        self.assertEqual(Mensaje.objects.filter(id_chat=self.chat).count(), inicial)
+
+        respuesta = self.request(
+            ContextoMedicoView,
+            self.medico,
+            "post",
+            {"accion": "cerrar_contexto"},
+            id_chat=self.chat.pk,
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIsNone(respuesta.data["data"]["paciente_activo"])
+        self.assertEqual(Mensaje.objects.filter(id_chat=self.chat).count(), inicial)
+
+    def test_modal_clinico_rechaza_paciente_ajeno(self):
+        respuesta = self.request(
+            ContextoMedicoView,
+            self.medico,
+            "post",
+            {"accion": "seleccionar_paciente", "paciente_id": self.ajeno.pk},
+            id_chat=self.chat.pk,
+        )
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIsNone(respuesta.data.get("data"))
 
     def test_operaciones_exigen_confirmacion_y_notifican_una_vez(self):
         self.seleccionar(self.paciente)
