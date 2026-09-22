@@ -3,6 +3,7 @@ from difflib import SequenceMatcher
 import re
 import unicodedata
 
+from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -11,6 +12,8 @@ from citas.services import (
     cancelarCitaService,
     crearCitaService,
     editarCitaService,
+    confirmarCitaService,
+    completarCitaService,
 )
 from medicos.models import Medico
 
@@ -44,7 +47,10 @@ class CitaService:
         if isinstance(valor, datetime):
             fecha = valor
         elif isinstance(valor, str):
-            fecha = parse_datetime(valor.strip())
+            try:
+                fecha = parse_datetime(valor.strip())
+            except ValueError:
+                return None
 
             if fecha is None:
                 for formato in CitaService.FORMATOS_FECHA:
@@ -126,17 +132,21 @@ class CitaService:
             if hora_encontrada is not None:
                 periodo_natural = hora_encontrada.group("periodo_natural")
 
+        formato_24h = False
+        if hora_encontrada is None:
+            hora_encontrada = re.search(r"a\s+las\s+(?P<hora>\d{1,2}):(?P<minuto>\d{2})\b", texto)
+            formato_24h = hora_encontrada is not None
         if hora_encontrada is None:
             return None
 
         hora = int(hora_encontrada.group("hora"))
         minuto = int(hora_encontrada.group("minuto") or 0)
-        periodo = (
+        periodo = "" if formato_24h else (
             hora_encontrada.groupdict().get("periodo")
             or ("am" if periodo_natural == "manana" else "pm")
         ).replace(".", "").replace(" ", "")
 
-        if not 1 <= hora <= 12 or not 0 <= minuto <= 59:
+        if not (0 <= hora <= 23 if formato_24h else 1 <= hora <= 12) or not 0 <= minuto <= 59:
             return None
 
         if periodo == "pm" and hora != 12:
@@ -204,6 +214,95 @@ class CitaService:
             .filter(id=id_cita, id_usuario=usuario)
             .first()
         )
+
+    @staticmethod
+    def obtener_citas_medico_modificables(medico_id):
+        """Citas operables del médico autenticado, incluidas las atrasadas."""
+        return (
+            Cita.objects
+            .select_related("id_usuario", "id_estado", "id_medico")
+            .filter(
+                id_medico_id=medico_id,
+                id_estado__nombre__in=(
+                    "pendiente",
+                    "confirmada",
+                    "reprogramada",
+                ),
+            )
+            .order_by("fecha_programada", "id")
+        )
+
+    @staticmethod
+    @transaction.atomic
+    def reprogramar_medico(medico_id, id_cita, fecha):
+        """Revalida propiedad y disponibilidad justo antes de escribir."""
+        if not Medico.objects.select_for_update().filter(pk=medico_id).first():
+            return "Médico no disponible", 403
+        cita = (
+            Cita.objects
+            .select_for_update()
+            .select_related("id_usuario", "id_medico", "id_estado")
+            .filter(id=id_cita, id_medico_id=medico_id)
+            .first()
+        )
+
+        if cita is None:
+            return "La cita no pertenece al médico autenticado", 403
+
+        if cita.id_estado.nombre.strip().lower() in {"cancelada", "completada"}:
+            return "No se puede reprogramar una cita cancelada o completada", 400
+
+        if fecha <= timezone.now():
+            return "La nueva fecha debe estar en el futuro", 400
+
+        if cita.fecha_programada == fecha:
+            return "La cita ya está programada para esa fecha y hora", 400
+
+        if CitaService.medico_tiene_cita(
+            medico_id,
+            fecha,
+            excluir_cita_id=cita.id,
+        ):
+            return "Ya tienes otra cita programada en esa fecha y hora", 400
+
+        # editarCitaService conserva las reglas, serialización y notificaciones
+        # existentes. La propiedad médica ya fue validada de forma inequívoca.
+        return editarCitaService(
+            cita.id,
+            {"fecha_programada": fecha},
+            cita.id_medico,
+        )
+
+    @staticmethod
+    @transaction.atomic
+    def operar_medico(medico, id_cita, accion, fecha=None, esperado=None):
+        if not isinstance(medico, Medico):
+            return "No fue posible modificar esta cita.", 403
+        # Serializa también las reservas en fechas que todavía no tienen filas.
+        if not Medico.objects.select_for_update().filter(pk=medico.pk).first():
+            return "No fue posible modificar esta cita.", 403
+        cita = Cita.objects.select_for_update().select_related("id_estado").filter(
+            pk=id_cita, id_medico=medico,
+        ).first()
+        if not cita:
+            return "No fue posible modificar esta cita.", 403
+        estado = cita.id_estado.nombre.strip().casefold()
+        if esperado and (esperado.get("estado_original") != estado or
+                         esperado.get("fecha_original") != cita.fecha_programada.isoformat()):
+            return "La cita cambió desde la confirmación. Consulta la agenda e inicia de nuevo.", 409
+        if estado not in ("pendiente", "confirmada", "reprogramada"):
+            return "El estado actual de la cita impide esta operación.", 409
+        if accion == "reprogramar":
+            if fecha is None or fecha <= timezone.now() or fecha == cita.fecha_programada:
+                return "Indica una fecha futura distinta de la actual.", 400
+            return CitaService.reprogramar_medico(medico.pk, cita.pk, fecha)
+        if accion == "cancelar":
+            return cancelarCitaService(cita.pk, medico)
+        if accion == "confirmar":
+            return confirmarCitaService(cita.pk, medico.pk)
+        if accion == "completar":
+            return completarCitaService(cita.pk, medico.pk)
+        return "Operación no permitida.", 400
 
     @staticmethod
     def crear_cita(usuario, medico, fecha, estado):

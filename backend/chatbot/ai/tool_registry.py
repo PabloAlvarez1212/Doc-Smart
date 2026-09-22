@@ -18,9 +18,28 @@ from chatbot.tools.usuarios import ConsultarPerfilTool
 from chatbot.tools.medico_clinico import (
     BuscarProximosPacientesTool, SeleccionarPacienteTool,
     CerrarContextoPacienteTool, ConsultarHistorialPacienteTool,
+    ReprogramarCitaMedicoTool,
+    ConfirmarCitaMedicoTool, CancelarCitaMedicoTool, CompletarCitaMedicoTool, BuscarPacientesMedicoTool,
 )
 
 TOOLS = {
+    **{tool.name: ToolDefinition(nombre=tool.name, descripcion=f"{tool.accion} una cita propia con confirmación explícita.",
+        funcion=tool, categoria="medico_operativo", requiere_confirmacion=True, solo_medicos=True)
+        for tool in (ConfirmarCitaMedicoTool(), CancelarCitaMedicoTool(), CompletarCitaMedicoTool())},
+    "buscar_pacientes_medico": ToolDefinition(nombre="buscar_pacientes_medico", descripcion="Busca por nombre únicamente pacientes vinculados al médico.",
+        funcion=BuscarPacientesMedicoTool(), categoria="medico_clinico", solo_medicos=True),
+
+    "reprogramar_cita_medico": ToolDefinition(
+        nombre="reprogramar_cita_medico",
+        descripcion=(
+            "Reprograma, con confirmación, una cita perteneciente al médico "
+            "autenticado. Acepta id_cita o paciente y una nueva fecha."
+        ),
+        funcion=ReprogramarCitaMedicoTool(),
+        categoria="medico_operativo",
+        requiere_confirmacion=True,
+        solo_medicos=True,
+    ),
 
     "buscar_proximos_pacientes": ToolDefinition(
         nombre="buscar_proximos_pacientes", descripcion=(

@@ -19,6 +19,8 @@ import logging
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from utils import filtrarMedicosAprobados
+from django.db.models import Count,OuterRef, Subquery, Value
+from django.db.models.functions import TruncMonth, Coalesce
 
 logger = logging.getLogger(__name__)
 resend.api_key = os.getenv("RESEND_API_KEY")
@@ -463,6 +465,8 @@ def obtenerDashboardPacienteInicioService(id):
     
     return data,200
 
+#!Metodos de estadistica para el panel del admin
+
 def obtenerMetricasSistema():
     medicos = Medico.objects.all()
     totalMedicosAprobados = filtrarMedicosAprobados(medicos).count()
@@ -475,4 +479,70 @@ def obtenerMetricasSistema():
         "total_citas" : totalCitas,
         "total_solicitudes_pendientes": totalSolicitudesPendientes,
     }
+    return data,200
+
+def obtenerEstadisticasSistemaService():
+    
+    #citas
+    citaPorEstado = Cita.objects.values('id_estado__nombre').annotate(total=Count('id')).order_by('-total')
+    citaPorMes = Cita.objects.annotate(mes=TruncMonth('fecha_creacion')).values('mes').annotate(total=Count('id')).order_by('mes')
+    citaPorEspecialidad = Cita.objects.values('id_medico__id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
+    
+    #medicos
+    medicosPorEpecialidad = filtrarMedicosAprobados(Medico.objects.all()).values('id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
+    solicitudesValidacionPorMes = (SolicitudValidacionMedico.objects.annotate(mes=TruncMonth("fecha_solicitud")).values("mes").annotate(total=Count("id")).order_by("mes"))
+    ultimaSolicitud = (SolicitudValidacionMedico.objects.filter(medico=OuterRef("pk")).order_by("-fecha_solicitud").values("estado")[:1])
+    medicosPorEstadoValidacion = (Medico.objects.annotate(estado_actual=Coalesce(Subquery(ultimaSolicitud),Value("sin_solicitud"))).values("estado_actual").annotate(total=Count("id")).order_by("-total"))
+    
+    data = {
+        "citas": {
+            "citas_por_estado" : [],
+            "citas_por_mes" : [],
+            "citas_por_especialidad" : [],
+        },
+        "medicos":{
+            "medicos_por_especialidad" : [],
+            "medicos_por_estado_validacion": [],
+            "solicitudes_validacion_por_mes": []
+        }
+    }
+    
+    #citas
+    for item in citaPorEstado:
+        data["citas"]["citas_por_estado"].append({
+            "estado" : item['id_estado__nombre'],
+            "total" : item['total']
+        })
+        
+    for item in citaPorMes:
+        data["citas"]["citas_por_mes"].append({
+            "mes" : item['mes'],
+            "total_citas" : item['total']
+        })
+        
+    for item in citaPorEspecialidad:
+        data["citas"]["citas_por_especialidad"].append({
+            "especialidad" : item['id_medico__id_especialidad__nombre'],
+            "total_citas" : item["total"]
+        })
+    
+    #medicos
+    for item in medicosPorEpecialidad:
+        data["medicos"]["medicos_por_especialidad"].append({
+            "especialidad" : item['id_especialidad__nombre'],
+            "total_medicos" : item['total']
+        })
+        
+    for item in medicosPorEstadoValidacion:
+        data["medicos"]["medicos_por_estado_validacion"].append({
+            "estado": item["estado_actual"],
+            "total_medicos": item["total"]
+        })
+    
+    for item in solicitudesValidacionPorMes:
+        data["medicos"]["solicitudes_validacion_por_mes"].append({
+            "mes": item["mes"],
+            "total_solicitudes": item["total"]
+        })
+    
     return data,200

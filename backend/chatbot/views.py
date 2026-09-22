@@ -10,6 +10,8 @@ from chatbot.ai.tool_manager import ToolManager
 from chatbot.tools.medico_clinico import contexto_activo
 from chatbot.ai.doctor_conversation import procesar_medico
 from chatbot.ai.conversation_manager import ConversationManager
+from chatbot.services.turn_service import iniciar_turno, completar_turno, json_seguro
+from chatbot.services.diagnostics import error_operativo
 from chatbot.services import (
     ChatService,
     MensajeService,
@@ -28,7 +30,7 @@ from chatbot.services.imagen_medica_service import (
 )
 
 from django.http import HttpResponse
-from rest_framework.throttling import ScopedRateThrottle
+from chatbot.throttles import ActorScopedRateThrottle as ScopedRateThrottle
 
 from chatbot.ai.elevenlabs_service import (
     ElevenLabsError,
@@ -93,7 +95,7 @@ def normalizar_respuesta_bymax(respuesta):
             "requires_selection": respuesta.get("requires_selection", False),
         }
 
-        return texto, resultado
+        return texto, json_seguro(resultado)
 
     if respuesta is None:
         return "No pude generar una respuesta en este momento.", None
@@ -331,6 +333,9 @@ class ChatbotResponderView(APIView):
     def post(self, request, id_chat):
         mensaje = request.data.get("mensaje")
         imagen = request.FILES.get("imagen")
+        if mensaje is not None and (not isinstance(mensaje, str) or len(mensaje) > 10000):
+            return respuesta_error("Envía un mensaje de texto de hasta 10000 caracteres.")
+        mensaje = mensaje.strip() if mensaje else mensaje
 
         if not mensaje and not imagen:
             return respuesta_error(
@@ -360,6 +365,14 @@ class ChatbotResponderView(APIView):
                 status=404,
             )
 
+        try:
+            turno, nuevo = iniciar_turno(chat, request.data.get("request_id"), mensaje or "[imagen]", imagen)
+        except (ValueError, TypeError, AttributeError):
+            return respuesta_error("Identificador de mensaje no válido.")
+        if not nuevo:
+            if turno.estado == "completado":
+                return respuesta_ok(data=turno.respuesta)
+            return respuesta_error("Este mensaje ya está siendo procesado. Consulta el historial antes de reintentar.", status=409)
         archivo_registro = None
 
         try:
@@ -376,6 +389,12 @@ class ChatbotResponderView(APIView):
 
             try:
                 with transaction.atomic():
+                    chat = Chat.objects.select_for_update().get(
+                        pk=chat.pk, estado="activo", **ChatService.filtro_propietario(request.user))
+                    if imagen and chat.id_medico_id and not contexto_activo(chat):
+                        texto = "Selecciona primero un paciente autorizado para analizar la imagen."
+                        completar_turno(turno, {"respuesta": texto, "resultado": {"success": False}})
+                        return respuesta_ok(data=turno.respuesta)
                     if imagen:
                         archivo_registro = (
                             guardar_archivo_usuario(
@@ -449,14 +468,17 @@ class ChatbotResponderView(APIView):
                 )
             )
 
-            Mensaje.objects.create(
-                id_chat=chat,
-                contexto_clinico=chat.contexto_clinico_id,
-                contenido=texto,
-                es_bot=True,
-                tipo="texto",
-                modelo="bymax",
-            )
+            with transaction.atomic():
+                Mensaje.objects.create(
+                    id_chat=chat,
+                    contexto_clinico=chat.contexto_clinico_id,
+                    contenido=texto,
+                    resultado=resultado,
+                    es_bot=True,
+                    tipo="texto",
+                    modelo="bymax",
+                )
+                completar_turno(turno, {"respuesta": texto, "resultado": resultado})
 
             return respuesta_ok(
                 data={
@@ -476,10 +498,12 @@ class ChatbotResponderView(APIView):
                 getattr(request.user, "id", None),
             )
 
-            return respuesta_error(
-                "No fue posible procesar la solicitud.",
-                status=500,
-            )
+            texto, resultado = normalizar_respuesta_bymax(error_operativo(chat, "responder"))
+            with transaction.atomic():
+                Mensaje.objects.create(id_chat=chat, contexto_clinico=chat.contexto_clinico_id,
+                    contenido=texto, resultado=resultado, es_bot=True, tipo="texto", modelo="bymax")
+                completar_turno(turno, {"respuesta": texto, "resultado": resultado})
+            return respuesta_ok(data=turno.respuesta)
 # ──────────────────────────────────────────────────────────────────────────────
 # VOZ DE BYMAX
 # ──────────────────────────────────────────────────────────────────────────────
@@ -487,14 +511,84 @@ class ChatbotResponderView(APIView):
 class ContextoMedicoView(APIView):
     permission_classes = [IsAuthenticated, IsMedicoAprobado]
 
+    ALCANCES = {"proximas", "pendientes", "hoy", "siguiente", "atrasadas"}
+
+    def _chat(self, request, id_chat):
+        return ChatService.obtener_chat(id_chat, request.user)
+
+    def _contexto(self, chat, alcance="proximas"):
+        proximos = ToolManager.ejecutar(
+            "buscar_proximos_pacientes",
+            chat,
+            "Consulta manual del copiloto",
+            {"alcance": alcance},
+        )
+        return {
+            **proximos.get("data", {}),
+            "paciente_activo": contexto_activo(chat),
+        }
+
+    @staticmethod
+    def _respuesta_sin_cache(data, status=200):
+        response = respuesta_ok(data=data, status=status)
+        patch_cache_control(
+            response,
+            private=True,
+            no_cache=True,
+            no_store=True,
+            must_revalidate=True,
+        )
+        patch_vary_headers(response, ("Authorization", "Cookie"))
+        return response
+
     def get(self, request, id_chat):
-        chat = ChatService.obtener_chat(id_chat, request.user)
+        chat = self._chat(request, id_chat)
         if chat is None:
             return respuesta_error("Chat no encontrado.", status=404)
-        proximos = ToolManager.ejecutar("buscar_proximos_pacientes", chat, "Mis próximas citas", {})
-        response = respuesta_ok(data={**proximos["data"], "paciente_activo": contexto_activo(chat)})
-        patch_cache_control(response, private=True, no_store=True)
-        return response
+
+        alcance = request.query_params.get("alcance", "proximas")
+        if alcance not in self.ALCANCES:
+            return respuesta_error("El alcance de agenda no es válido.", status=400)
+
+        return self._respuesta_sin_cache(self._contexto(chat, alcance))
+
+    def post(self, request, id_chat):
+        """Acciones manuales del copiloto; nunca crean mensajes del chat."""
+        chat = self._chat(request, id_chat)
+        if chat is None:
+            return respuesta_error("Chat no encontrado.", status=404)
+
+        accion = request.data.get("accion")
+        alcance = request.data.get("alcance", "proximas")
+        if alcance not in self.ALCANCES:
+            return respuesta_error("El alcance de agenda no es válido.", status=400)
+
+        if accion == "seleccionar_paciente":
+            resultado = ToolManager.ejecutar(
+                "seleccionar_paciente", chat, "Selección manual desde el copiloto",
+                {"paciente_id": request.data.get("paciente_id")},
+            )
+        elif accion == "cerrar_contexto":
+            resultado = ToolManager.ejecutar(
+                "cerrar_contexto_paciente", chat, "Cierre manual desde el copiloto", {},
+            )
+        elif accion == "consultar_agenda":
+            resultado = ToolManager.ejecutar(
+                "buscar_proximos_pacientes", chat, "Consulta manual desde el copiloto",
+                {"alcance": alcance},
+            )
+        else:
+            return respuesta_error("La acción del copiloto no es válida.", status=400)
+
+        if not isinstance(resultado, dict) or not resultado.get("success", False):
+            mensaje = resultado.get("message") if isinstance(resultado, dict) else None
+            return respuesta_error(mensaje or "No fue posible ejecutar la acción.", status=400)
+
+        chat.refresh_from_db(fields=["contexto_temporal"])
+        return self._respuesta_sin_cache({
+            **self._contexto(chat, alcance),
+            "mensaje": resultado.get("message", "Acción completada."),
+        })
 
 
 class BymaxVoiceView(APIView):

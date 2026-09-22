@@ -1,95 +1,73 @@
-"use client"
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Header from "../../../components/admin/Header/Header"
-import Nav from "../../../components/admin/Nav/Nav"
-import Styles from "./layout.module.css"
-import ResponsiveNav from "../../../components/ui/ResponsiveNav/ResponsiveNav"
-import useProfile from "../../../components/admin/Profile/useProfile"
-import useInactivityLogout from "../../../components/hooks/useInactivityLogout"
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+import Header from "../../../components/admin/Header/Header";
+import Nav from "../../../components/admin/Nav/Nav";
+import ResponsiveNav from "../../../components/ui/ResponsiveNav/ResponsiveNav";
+import BymaxDiagnostics from "../../../components/bymax/BymaxDiagnostics";
+import useProfile from "../../../components/admin/Profile/useProfile";
+import useInactivityLogout from "../../../components/hooks/useInactivityLogout";
+
+import Styles from "./layout.module.css";
+
 export default function AdminLayout({ children }) {
-    useInactivityLogout()
-    const router = useRouter()
+  useInactivityLogout();
 
-    const {
-        perfil,
-        loading,
-        error,
-    } = useProfile()
+  const router = useRouter();
+  const { perfil, loading, error } = useProfile();
 
-    useEffect(() => {
+  useEffect(() => {
+    if (loading) return;
 
-        if (loading) return
-
-        // No tiene una sesión válida
-        if (
-            error === "NO_AUTENTICADO" ||
-            error === "ERROR_PERFIL" ||
-            !perfil
-        ) {
-            router.replace("/login")
-            return
-        }
-
-        // Está autenticado, pero no tiene permisos de admin
-        if (error === "NO_AUTORIZADO") {
-            router.replace("/login")
-            return
-        }
-
-        // Protección adicional por rol
-        if (perfil.rol !== "admin") {
-            router.replace("/login")
-            return
-        }
-
-    }, [
-        perfil,
-        loading,
-        error,
-        router,
-    ])
-
-    if (loading) {
-        return <p>Cargando...</p>
-    }
-
-    // No mostrar contenido administrativo
-    // mientras se realiza una redirección
     if (
-        error ||
-        !perfil ||
-        perfil.rol !== "admin"
+      error === "NO_AUTENTICADO" ||
+      error === "ERROR_PERFIL" ||
+      error === "NO_AUTORIZADO" ||
+      !perfil ||
+      perfil.rol !== "admin"
     ) {
-        return null
+      router.replace("/login");
     }
+  }, [perfil, loading, error, router]);
 
-    return (
-        <div className={Styles.containerMain}>
+  if (loading) {
+    return <p>Cargando...</p>;
+  }
 
-            <header className={Styles.header}>
-                <Header />
-            </header>
+  if (
+    error ||
+    !perfil ||
+    perfil.rol !== "admin"
+  ) {
+    return null;
+  }
 
-            <div className={Styles.workspace}>
+  return (
+    <div className={Styles.containerMain}>
+      <BymaxDiagnostics />
 
-                <aside className={Styles.nav}>
-                    <ResponsiveNav
-                        id="admin-navigation"
-                        label="Menú de administración"
-                    >
-                        <Nav />
-                    </ResponsiveNav>
-                </aside>
+      <header className={Styles.header}>
+        <Header />
+      </header>
 
-                <main className={Styles.main}>
-                    <div className={Styles.content}>
-                        {children}
-                    </div>
-                </main>
+      <div className={Styles.workspace}>
+        <aside className={Styles.nav}>
+          <ResponsiveNav
+            id="admin-navigation"
+            label="Menú de administración"
+          >
+            <Nav />
+          </ResponsiveNav>
+        </aside>
 
-            </div>
-
-        </div>
-    )
+        <main className={Styles.main}>
+          <div className={Styles.content}>
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
 }

@@ -22,6 +22,7 @@ from users.services import (
     refreshTokenService,
     cambiarContraseñaAutenticadoService,
     obtenerMetricasSistema,
+    obtenerEstadisticasSistemaService,
 )
 from users.serializers import (
     LoginSerializer,
@@ -505,3 +506,27 @@ class MetricasSistemaView(APIView):
             print(e)
             return respuesta_error('Error en el servidor: ',status=500)
         
+class EstadisticasSistemaView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
+    def get(self,request):
+        try:
+            data, status_code = obtenerEstadisticasSistemaService()
+
+            if status_code != 200:
+                return respuesta_error(
+                    "Error al cargar las estadísticas",
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=data,
+                mensaje="Estadísticas obtenidas exitosamente",
+                status=status_code
+            )
+
+        except Exception as e:
+            print(e)
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )

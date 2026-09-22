@@ -83,9 +83,16 @@ Usa una herramienta directamente solo si el mensaje ya contiene todos los datos.
 
 Reglas obligatorias:
 
-- Si el usuario quiere una cita y ya indicó médico o especialidad y fecha,
+- Si el usuario quiere una cita y ya indicó médico o especialidad, fecha y hora,
   usa la herramienta agendar_cita. Esta herramienta primero verifica la
   disponibilidad y solicita confirmación; no crea la cita inmediatamente.
+- Si indicó el nombre de un médico, el nombre sustituye a la especialidad:
+  nunca vuelvas a preguntar la especialidad. Si falta fecha u hora, conserva
+  el nombre en parametros, omite fecha e inicia agendar_cita para preguntar
+  solamente la fecha y la hora.
+- Frases como "¿el doctor X está disponible el día Y?" son solicitudes de
+  disponibilidad para agendar: usa agendar_cita con el nombre y la fecha, no
+  buscar_medico ni gemini.
 - Extrae en una sola respuesta todos los datos que el usuario haya escrito.
   Nunca descartes especialidad, médico, ciudad, fecha u hora ya mencionados.
 - Si quiere agendar pero falta algún dato necesario, inicia agendar_cita y
@@ -173,15 +180,27 @@ def _respuesta_gemini(contents, streaming=False):
 
 
 def procesar_mensaje(historial, mensaje, streaming=False):
+    mensaje_actual = str(mensaje or "").strip()
 
-    if solicita_buscar_medicos(mensaje):
+    # Solo los listados generales usan el atajo determinista. Si hay intención
+    # de cita o fecha, Gemini debe extraer nombre, apellido, fecha y hora.
+    menciona_gestion_cita = bool(PATRON_SOLICITUD_CITA.search(mensaje_actual))
+    menciona_fecha = bool(re.search(
+        r"\b(?:\d{4}-\d{1,2}-\d{1,2}|\d{1,2}/\d{1,2}/\d{2,4}|"
+        r"\d{1,2}\s+de\s+[a-záéíóúñ]+|hoy|mañana|pasado\s+mañana)\b",
+        mensaje_actual,
+        re.IGNORECASE,
+    ))
+    if (
+        solicita_buscar_medicos(mensaje_actual)
+        and not menciona_gestion_cita
+        and not menciona_fecha
+    ):
         return RouterDecision(
             tool=True,
             tool_name="buscar_medico",
             parametros={},
         )
-
-    mensaje_actual = str(mensaje or "").strip()
 
     # Copiamos el historial para no modificar la lista original.
     contents = list(historial or [])[-12:]

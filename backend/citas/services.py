@@ -10,9 +10,27 @@ from notificaciones.services import enviarNotificacion
 from django.db.models import Value
 from django.db.models.functions import Concat
 from datetime import datetime, timedelta
-from django.utils import timezone
 from django.core.paginator import Paginator
 from medicos.services_disponibilidad import (esHorarioDisponible,)
+from functools import wraps
+
+
+def serializar_agenda(funcion):
+    """Todas las entradas oficiales comparten el bloqueo de agenda del médico."""
+    @wraps(funcion)
+    @transaction.atomic
+    def protegida(*args, **kwargs):
+        if funcion.__name__ == "crearCitaService":
+            datos = args[0] if args else kwargs["datos"]
+            medico_id = datos.get("id_medico")
+        else:
+            cita_id = args[0] if args else kwargs["id"]
+            medico_id = Cita.objects.filter(pk=cita_id).values_list("id_medico_id", flat=True).first()
+        if medico_id:
+            Medico.objects.select_for_update().get(pk=medico_id)
+        return funcion(*args, **kwargs)
+    return protegida
+
 
 # ─── CITAS ────────────────────────────────────────────────────────────────────
 
@@ -111,8 +129,11 @@ def obtenerCitaService(id, solicitante):
     serializer = CitaSerializer(cita)
     return serializer.data, 200
 
-@transaction.atomic
-def crearCitaService(datos, usuario_id):
+@serializar_agenda
+def crearCitaService(
+    datos,
+    usuario_id
+):
     usuario = (
         Usuario.objects
         .filter(id=usuario_id)
@@ -135,9 +156,9 @@ def crearCitaService(datos, usuario_id):
 
         return "El usuario no existe", 404
 
+
     medico = (
         Medico.objects
-        .select_for_update()
         .filter(id=datos["id_medico"])
         .first()
     )
@@ -145,17 +166,17 @@ def crearCitaService(datos, usuario_id):
     if not medico:
         return "Médico no encontrado", 404
 
+
     fecha_programada = datos[
         "fecha_programada"
     ]
 
-    # -----------------------------------------
-    # 1. Anticipación mínima
-    # -----------------------------------------
 
+    # 1. Anticipación mínima
     if (
         fecha_programada
-        < timezone.now() + timedelta(hours=1)
+        < timezone.now()
+        + timedelta(hours=1)
     ):
         return (
             "La cita debe programarse con "
@@ -163,10 +184,8 @@ def crearCitaService(datos, usuario_id):
             400
         )
 
-    # -----------------------------------------
-    # 2. Validar disponibilidad real
-    # -----------------------------------------
 
+    # 2. Validar disponibilidad real
     if not esHorarioDisponible(
         medico,
         fecha_programada
@@ -177,10 +196,8 @@ def crearCitaService(datos, usuario_id):
             400
         )
 
-    # -----------------------------------------
-    # 3. Calcular fecha final
-    # -----------------------------------------
 
+    # 3. Calcular fecha final
     fecha_final = (
         fecha_programada
         + timedelta(
@@ -188,10 +205,8 @@ def crearCitaService(datos, usuario_id):
         )
     )
 
-    # -----------------------------------------
-    # 4. Obtener estado inicial
-    # -----------------------------------------
 
+    # 4. Estado inicial
     estado = (
         Estado.objects
         .filter(nombre="pendiente")
@@ -204,10 +219,8 @@ def crearCitaService(datos, usuario_id):
             500
         )
 
-    # -----------------------------------------
-    # 5. Crear cita
-    # -----------------------------------------
 
+    # 5. Crear cita
     cita = Cita.objects.create(
         fecha_programada=fecha_programada,
         fecha_final=fecha_final,
@@ -216,19 +229,20 @@ def crearCitaService(datos, usuario_id):
         id_estado=estado,
     )
 
+
     fecha_fmt = (
         cita.fecha_programada
-        .strftime("%d/%m/%Y a las %H:%M")
+        .strftime(
+            "%d/%m/%Y a las %H:%M"
+        )
     )
 
     cita_data = CitaSerializer(
         cita
     ).data
 
-    # -----------------------------------------
-    # 6. Notificación paciente
-    # -----------------------------------------
 
+    # 6. Notificación paciente
     enviarNotificacion(
         titulo="Cita solicitada",
         mensaje=(
@@ -246,10 +260,8 @@ def crearCitaService(datos, usuario_id):
         }
     )
 
-    # -----------------------------------------
-    # 7. Notificación médico
-    # -----------------------------------------
 
+    # 7. Notificación médico
     enviarNotificacion(
         titulo="Nueva solicitud de cita",
         mensaje=(
@@ -270,6 +282,8 @@ def crearCitaService(datos, usuario_id):
 
     return cita_data, 201
 
+
+@serializar_agenda
 def editarCitaService(id, datos, solicitante):
     if isinstance(solicitante, Usuario):
         cita = Cita.objects.filter(
@@ -359,6 +373,7 @@ def editarCitaService(id, datos, solicitante):
             })
     return CitaSerializer(cita).data, 200
 
+@serializar_agenda
 def cancelarCitaService(id, solicitante):
     cita = Cita.objects.filter(
         id=id
@@ -439,6 +454,7 @@ def cancelarCitaService(id, solicitante):
 
     return 'Cita cancelada correctamente', 200
 
+@serializar_agenda
 def completarCitaService(id, medico_id):
     cita = Cita.objects.filter(id=id, id_medico=medico_id).first()
     if not cita:
@@ -451,6 +467,8 @@ def completarCitaService(id, medico_id):
         return 'No se puede completar una cita cancelada', 400
 
     estado_completada = Estado.objects.filter(nombre='completada').first()
+    if not estado_completada:
+        return "Estado 'completada' no configurado", 500
     cita.id_estado    = estado_completada
     cita.fecha_final  = timezone.now()
     cita.save()
@@ -479,6 +497,7 @@ def completarCitaService(id, medico_id):
 
     return cita_data, 200
 
+@serializar_agenda
 def confirmarCitaService(id, medico_id):
     cita = Cita.objects.filter(
         id=id,

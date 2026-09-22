@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from users.models import Usuario
+import uuid
 
 
 
@@ -65,6 +66,7 @@ class Chat(models.Model):
 
 
 class Mensaje(models.Model):
+    resultado = models.JSONField(null=True, blank=True)
 
     contexto_clinico = models.CharField(max_length=32, blank=True, default="")
 
@@ -220,3 +222,63 @@ class ToolLog(models.Model):
 
     def __str__(self):
         return self.nombre_tool
+
+
+class EstadoAnimoDiario(models.Model):
+    usuario = models.ForeignKey(Usuario, null=True, blank=True, on_delete=models.CASCADE)
+    medico = models.ForeignKey("medicos.Medico", null=True, blank=True, on_delete=models.CASCADE)
+    rol = models.CharField(max_length=20)
+    fecha = models.DateField()
+    puntuacion = models.PositiveSmallIntegerField(null=True, blank=True)
+    preguntado_en = models.DateTimeField(auto_now_add=True)
+    respondido_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["usuario", "fecha"], name="animo_usuario_dia"),
+            models.UniqueConstraint(fields=["medico", "fecha"], name="animo_medico_dia"),
+            models.CheckConstraint(condition=(models.Q(usuario__isnull=False, medico__isnull=True, rol="paciente") |
+                models.Q(usuario__isnull=True, medico__isnull=False, rol="medico")), name="animo_actor_rol"),
+            models.CheckConstraint(condition=models.Q(puntuacion__isnull=True) | models.Q(puntuacion__gte=1, puntuacion__lte=10), name="animo_escala"),
+        ]
+
+
+class PermisoDiagnostico(models.Model):
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    permiso = models.ForeignKey("auth.Permission", on_delete=models.CASCADE)
+    activo = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["usuario", "permiso"], name="permiso_diagnostico_unico")]
+
+
+class SesionDiagnostico(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    sesion_hash = models.CharField(max_length=64)
+    creada_en = models.DateTimeField(auto_now_add=True)
+    expira_en = models.DateTimeField()
+    cerrada_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        permissions = [("view_diagnostics", "Consultar diagnóstico sanitizado de Bymax")]
+
+
+class ErrorBymax(models.Model):
+    correlacion = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
+    codigo = models.CharField(max_length=60)
+    operacion = models.CharField(max_length=30)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+
+class TurnoBymax(models.Model):
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
+    clave = models.UUIDField()
+    huella = models.CharField(max_length=64)
+    estado = models.CharField(max_length=15, default="procesando")
+    respuesta = models.JSONField(default=dict)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["chat", "clave"], name="turno_bymax_unico")]

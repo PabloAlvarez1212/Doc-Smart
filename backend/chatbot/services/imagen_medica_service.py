@@ -1,5 +1,8 @@
 from google.genai import types
 from google.genai.types import GenerateContentConfig
+from pathlib import Path
+from PIL import Image, UnidentifiedImageError
+import warnings
 
 from chatbot.ai.gemini_service import client
 from chatbot.ai.model_config import GEMINI_MODEL
@@ -14,6 +17,21 @@ def validar_imagen_medica(archivo):
         return "La imagen supera el límite de 8 MB."
     if archivo.content_type not in MIME_PERMITIDOS:
         return "Solo se permiten imágenes JPG, PNG o WEBP."
+    formatos = {"JPEG": ("image/jpeg", {".jpg", ".jpeg"}), "PNG": ("image/png", {".png"}), "WEBP": ("image/webp", {".webp"})}
+    posicion = archivo.tell()
+    try:
+        archivo.seek(0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(archivo) as imagen:
+                mime, extensiones = formatos.get(imagen.format, (None, set()))
+                if mime != archivo.content_type or Path(archivo.name).suffix.lower() not in extensiones:
+                    return "El contenido real de la imagen no coincide con su tipo o extensión."
+                imagen.verify()
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError, Image.DecompressionBombWarning):
+        return "El archivo no contiene una imagen válida."
+    finally:
+        archivo.seek(posicion)
     return None
 
 

@@ -51,6 +51,7 @@ class JwtCookieAuthMiddleware:
         token = parse_cookie(
             cookie_header
         ).get("token")
+        scope["bymax_token"] = token
 
         if token:
             try:
