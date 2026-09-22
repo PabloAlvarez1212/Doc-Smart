@@ -6,6 +6,7 @@ import useDraggableAssistant from "../hooks/useDraggableAssistant";
 import useBymaxViewport from "./useBymaxViewport";
 import BymaxLauncher from "./BymaxLauncher";
 import BymaxChatWindow from "./BymaxChatWindow";
+import BymaxDoctorContext from "./BymaxDoctorContext";
 import useBymaxIdentity from "./useBymaxIdentity";
 import { takeSpeechUnits } from "./bymaxSpeechUnits.mjs";
 
@@ -22,6 +23,7 @@ function normalizarMensaje(item) {
 export default function BymaxAssistant({ modo = "paciente" }) {
   const saludo = modo === "medico" ? "Hola, soy Bymax Médico, tu copiloto clínico y operativo. Selecciona un paciente para revisar tus registros, estudiar diferenciales o preparar borradores para tu valoración." : SALUDO;
   const [ventanaAbierta, setVentanaAbierta] = useState(false);
+  const [copilotoAbierto, setCopilotoAbierto] = useState(false);
   const daily = useBymaxIdentity(ventanaAbierta);
   const greetingRef = useRef(saludo);
   greetingRef.current = daily.identity?.saludo || saludo;
@@ -238,8 +240,17 @@ export default function BymaxAssistant({ modo = "paciente" }) {
   return <>
     <BymaxLauncher {...draggable} status={status} label={label} open={ventanaAbierta} buttonRef={launcherRef}/>
     <BymaxChatWindow open={ventanaAbierta} close={close} status={status} label={label} chats={chats} chatId={chatId} messages={mensajes} loading={cargando} sending={enviando} streamingId={streamingId}
-      modo={modo} daily={daily} onClinicalCommand={command => enviarTexto(command, true)}
+      modo={modo} daily={daily} onOpenClinical={() => {
+        setVentanaAbierta(false);
+        setCopilotoAbierto(true);
+      }}
       sidebar={sidebar} setSidebar={setSidebar} loadChat={cargarChat} newChat={nuevoChat} deleteChat={eliminarChat} voice={voice} viewportStyle={viewportStyle}
       composer={{message:mensaje,setMessage:setMensaje,image:imagen,setImage:setImagen,error,clearError:() => {setError("");voice.clearError();},onSend:enviarTexto,onImage:seleccionarImagen,inputRef,fileRef,confirmation}}/>
+    {modo === "medico" && <BymaxDoctorContext
+      open={copilotoAbierto}
+      close={() => setCopilotoAbierto(false)}
+      chatId={chatId}
+      disabled={cargando || enviando}
+    />}
   </>;
 }

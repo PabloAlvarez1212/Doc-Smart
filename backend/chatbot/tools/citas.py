@@ -85,6 +85,36 @@ class AgendarCitaTool(BaseTool):
 
     requires_confirmation = True
 
+    @staticmethod
+    def _pedir_seleccion(candidatos, fecha):
+        disponibles = [
+            medico for medico in candidatos
+            if not CitaService.medico_tiene_cita(medico.id, fecha)
+        ]
+        if not disponibles:
+            return None
+        opciones = []
+        lineas = ["Encontré varios médicos con ese nombre disponibles para esa fecha:"]
+        for indice, medico in enumerate(disponibles[:10], start=1):
+            ciudad = medico.ciudad.nombre if medico.ciudad else "Ciudad no registrada"
+            nombre = f"{medico.nombre} {medico.apellido}".strip()
+            lineas.append(
+                f"{indice}. Dr(a). {nombre} — {medico.id_especialidad.nombre}, {ciudad}"
+            )
+            opciones.append({
+                "id_medico": medico.id,
+                "nombre": nombre,
+                "especialidad": medico.id_especialidad.nombre,
+                "ciudad": ciudad,
+            })
+        lineas.append("Indícame el nombre o el número del médico que prefieres.")
+        return {
+            "success": True,
+            "requires_selection": True,
+            "message": "\n".join(lineas),
+            "data": {"medicos": opciones, "fecha": fecha.isoformat()},
+        }
+
     def execute(
         self,
         chat,
@@ -217,16 +247,36 @@ class AgendarCitaTool(BaseTool):
 
             medico = disponibles[0]
         else:
-            medico = MedicoService.obtener_medico(
-
+            candidatos = list(MedicoService.buscar_medicos(
                 nombre=nombre,
-
                 apellido=apellido,
-
                 especialidad=especialidad,
-
                 ciudad=ciudad,
+            )[:11])
 
+            # Cuando el usuario dio un nombre concreto, una especialidad mal
+            # inferida por el modelo no debe impedir encontrar a la persona.
+            if not candidatos and especialidad:
+                candidatos = list(MedicoService.buscar_medicos(
+                    nombre=nombre,
+                    apellido=apellido,
+                    ciudad=ciudad,
+                )[:11])
+
+            if len(candidatos) > 1:
+                seleccion = self._pedir_seleccion(candidatos, fecha_normalizada)
+                if seleccion:
+                    return seleccion
+                return {
+                    "success": False,
+                    "message": "Los médicos encontrados no tienen disponibilidad en ese horario.",
+                    "data": {"medicos": []},
+                }
+
+            medico = candidatos[0] if candidatos else MedicoService.obtener_medico(
+                nombre=nombre,
+                apellido=apellido,
+                ciudad=ciudad,
             )
         if medico is None:
 

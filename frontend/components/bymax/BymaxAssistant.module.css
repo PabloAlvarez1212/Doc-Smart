@@ -399,3 +399,91 @@
     display: none;
   }
 }
+
+.clinicalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(13 31 27 / 52%);
+  backdrop-filter: blur(5px);
+}
+
+.clinicalModal {
+  width: min(760px, 100%);
+  max-height: min(760px, calc(100dvh - 40px));
+  overflow: hidden;
+  border: 1px solid #c9ddd5;
+  border-radius: 20px;
+  background: #fff;
+  color: #173c34;
+  box-shadow: 0 24px 70px rgb(8 38 31 / 30%);
+}
+
+.clinicalModalHeader,
+.clinicalModalFooter {
+  padding: 16px 20px;
+  background: #eff8f4;
+  border-bottom: 1px solid #d6e7df;
+}
+
+.clinicalModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.clinicalModalHeader span,
+.clinicalAgenda h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #13735c;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.clinicalModalHeader h2 { margin: 4px 0 0; font-size: 21px; }
+.clinicalModalHeader button,
+.clinicalToolbar button,
+.clinicalFilters button,
+.clinicalAgenda button {
+  min-height: 38px;
+  border: 1px solid #bfd9ce;
+  border-radius: 10px;
+  background: #fff;
+  color: #126e58;
+  cursor: pointer;
+}
+.clinicalModalHeader button { width: 40px; display: grid; place-items: center; }
+.clinicalModal button:disabled { cursor: not-allowed; opacity: .55; }
+
+.clinicalModalBody { max-height: calc(100dvh - 190px); overflow-y: auto; padding: 20px; }
+.clinicalToolbar { display: grid; grid-template-columns: minmax(240px, 1fr) auto auto; gap: 10px; align-items: end; }
+.clinicalToolbar label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; }
+.clinicalToolbar select { min-height: 40px; border: 1px solid #bfd9ce; border-radius: 10px; padding: 0 11px; background: white; color: #173c34; }
+.clinicalToolbar button { padding: 0 12px; }
+.clinicalStatus { min-height: 22px; margin: 12px 0; color: #536e67; }
+.clinicalFilters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.clinicalFilters button { padding: 0 12px; }
+.clinicalFilters .clinicalFilterActive { border-color: #14866a; background: #14866a; color: white; }
+.clinicalAgenda h3 { margin: 0 0 8px; }
+.clinicalAgenda ul { list-style: none; padding: 0; margin: 0; border-top: 1px solid #dbe9e3; }
+.clinicalAgenda li { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-bottom: 1px solid #dbe9e3; }
+.clinicalAgenda li div { display: grid; gap: 4px; }
+.clinicalAgenda li span { color: #637a74; font-size: 13px; }
+.clinicalAgenda button { padding: 0 11px; flex: 0 0 auto; }
+.clinicalModalFooter { border-top: 1px solid #d6e7df; border-bottom: 0; color: #60756f; font-size: 12px; }
+
+@media (max-width: 600px) {
+  .clinicalBackdrop { padding: 8px; align-items: end; }
+  .clinicalModal { max-height: calc(100dvh - 16px); border-radius: 18px 18px 10px 10px; }
+  .clinicalModalBody { max-height: calc(100dvh - 175px); padding: 15px; }
+  .clinicalToolbar { grid-template-columns: 1fr auto; }
+  .clinicalToolbar label { grid-column: 1 / -1; }
+  .clinicalAgenda li { align-items: flex-start; }
+}

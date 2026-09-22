@@ -1,55 +1,287 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  CalendarDays,
+  RefreshCw,
+  Stethoscope,
+  X,
+} from "lucide-react";
 import { bymaxService } from "@/app/services/bymaxServices";
 import styles from "./BymaxAssistant.module.css";
 
-export default function BymaxDoctorContext({ chatId, sending, loading, onCommand }) {
-  const [context, setContext] = useState(null);
-  const [error, setError] = useState("");
-  const [refresh, setRefresh] = useState(0);
-  const [fetching, setFetching] = useState(false);
+const FILTROS = [
+  ["hoy", "Hoy"],
+  ["siguiente", "Quién sigue"],
+  ["proximas", "Próximas"],
+  ["pendientes", "Pendientes"],
+  ["atrasadas", "Atrasadas"],
+];
+
+export default function BymaxDoctorContext({
+  open,
+  close,
+  chatId,
+  disabled = false,
+}) {
+  const [contexto, setContexto] = useState(null);
+  const [alcance, setAlcance] = useState("proximas");
+  const [cargando, setCargando] = useState(false);
+  const [aviso, setAviso] = useState("");
+  const closeRef = useRef(null);
+
+  const cargar = useCallback(async (filtro = "proximas") => {
+    if (!chatId) return;
+
+    setCargando(true);
+    setAviso("");
+
+    try {
+      setContexto(
+        await bymaxService.obtenerContextoMedico(
+          chatId,
+          filtro,
+        ),
+      );
+    } catch (error) {
+      setAviso(error.message);
+    } finally {
+      setCargando(false);
+    }
+  }, [chatId]);
+
+  const actuar = async (accion, datos = {}) => {
+    if (!chatId || cargando || disabled) return;
+
+    setCargando(true);
+    setAviso("");
+
+    try {
+      const respuesta =
+        await bymaxService.accionContextoMedico(
+          chatId,
+          accion,
+          { alcance, ...datos },
+        );
+
+      setContexto(respuesta);
+      setAviso(respuesta?.mensaje || "Acción completada.");
+    } catch (error) {
+      setAviso(error.message);
+    } finally {
+      setCargando(false);
+    }
+  };
+
   useEffect(() => {
-    if (!chatId || sending || loading) return;
-    let cancelled = false;
-    setFetching(true);
-    setError("");
-    bymaxService.obtenerContextoMedico(chatId).then(data => {
-      if (!cancelled) setContext({ ...data, chatId });
-    }).catch(e => { if (!cancelled) { setError(e.message); setContext(null); } })
-      .finally(() => { if (!cancelled) setFetching(false); });
-    return () => { cancelled = true; };
-  }, [chatId, sending, loading, refresh]);
-  const current = context?.chatId === chatId ? context : null;
-  const disabled = sending || loading || fetching || !current;
-  const active = current?.paciente_activo;
-  const pacientes = new Map((current?.citas || []).map(cita => [cita.paciente.id, cita.paciente]));
-  if (active) pacientes.set(active.id, active);
-  return <section className={styles.doctorContext} aria-label="Contexto clínico">
-    <div className={styles.contextHeading}><strong>Bymax Médico · Copiloto clínico</strong>
-      <button type="button" disabled={sending || loading || fetching} onClick={() => setRefresh(value => value + 1)}>Actualizar citas</button>
+    if (!open || !chatId) return;
+
+    setAlcance("proximas");
+    cargar("proximas");
+    requestAnimationFrame(() => closeRef.current?.focus());
+  }, [open, chatId, cargar]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const cerrarEscape = (event) => {
+      if (event.key === "Escape") close();
+    };
+
+    window.addEventListener("keydown", cerrarEscape);
+    return () => window.removeEventListener("keydown", cerrarEscape);
+  }, [open, close]);
+
+  const pacientes = useMemo(() => {
+    const mapa = new Map();
+
+    contexto?.citas?.forEach(({ paciente }) => {
+      if (paciente?.id) mapa.set(paciente.id, paciente);
+    });
+
+    const activo = contexto?.paciente_activo;
+    if (activo?.id) mapa.set(activo.id, activo);
+
+    return [...mapa.values()];
+  }, [contexto]);
+
+  if (!open) return null;
+
+  const activo = contexto?.paciente_activo;
+  const citas = contexto?.citas || [];
+  const bloqueado = disabled || cargando || !chatId;
+
+  const filtrar = (valor) => {
+    setAlcance(valor);
+    cargar(valor);
+  };
+
+  return (
+    <div
+      className={styles.clinicalBackdrop}
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) close();
+      }}
+    >
+      <section
+        className={styles.clinicalModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bymax-clinical-title"
+      >
+        <header className={styles.clinicalModalHeader}>
+          <div>
+            <span>
+              <Stethoscope size={18} />
+              COPILOTO MÉDICO
+            </span>
+            <h2 id="bymax-clinical-title">
+              Contexto clínico y agenda
+            </h2>
+          </div>
+
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={close}
+            aria-label="Cerrar copiloto"
+          >
+            <X size={21} />
+          </button>
+        </header>
+
+        <div className={styles.clinicalModalBody}>
+          <div className={styles.clinicalToolbar}>
+            <label>
+              Paciente activo
+
+              <select
+                value={activo?.id || ""}
+                disabled={bloqueado}
+                onChange={(event) => {
+                  const pacienteId = Number(event.target.value);
+
+                  if (pacienteId) {
+                    actuar("seleccionar_paciente", {
+                      paciente_id: pacienteId,
+                    });
+                  }
+                }}
+              >
+                <option value="">
+                  Selecciona un paciente autorizado
+                </option>
+
+                {pacientes.map((paciente) => (
+                  <option key={paciente.id} value={paciente.id}>
+                    {paciente.nombre} · #{paciente.id}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button
+              type="button"
+              disabled={bloqueado || !activo}
+              onClick={() => actuar("cerrar_contexto")}
+            >
+              Cerrar contexto
+            </button>
+
+            <button
+              type="button"
+              disabled={bloqueado}
+              onClick={() => cargar(alcance)}
+              aria-label="Actualizar"
+            >
+              <RefreshCw size={17} />
+            </button>
+          </div>
+
+          <p className={styles.clinicalStatus} role="status">
+            {aviso ||
+              (cargando
+                ? "Actualizando información…"
+                : activo
+                  ? `Caso activo: ${activo.nombre}.`
+                  : "Sin paciente activo.")}
+          </p>
+
+          <nav
+            className={styles.clinicalFilters}
+            aria-label="Filtros de agenda"
+          >
+            {FILTROS.map(([valor, etiqueta]) => (
+              <button
+                key={valor}
+                type="button"
+                disabled={bloqueado}
+                aria-pressed={alcance === valor}
+                className={
+                  alcance === valor
+                    ? styles.clinicalFilterActive
+                    : ""
+                }
+                onClick={() => filtrar(valor)}
+              >
+                {etiqueta}
+              </button>
+            ))}
+          </nav>
+
+          <div className={styles.clinicalAgenda}>
+            <h3>
+              <CalendarDays size={18} />
+              Citas ({citas.length})
+            </h3>
+
+            <ul>
+              {citas.map((cita) => (
+                <li key={cita.id_cita}>
+                  <div>
+                    <strong>{cita.paciente.nombre}</strong>
+                    <span>
+                      {new Date(
+                        cita.fecha_programada,
+                      ).toLocaleString("es-CO")}
+                      {" · "}
+                      {cita.estado}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={bloqueado}
+                    onClick={() =>
+                      actuar("seleccionar_paciente", {
+                        paciente_id: cita.paciente.id,
+                      })
+                    }
+                  >
+                    Usar caso
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            {!cargando && !citas.length && (
+              <p>No hay citas para este filtro.</p>
+            )}
+          </div>
+        </div>
+
+        <footer className={styles.clinicalModalFooter}>
+          Este panel no escribe en el chat. Toda decisión
+          clínica permanece bajo valoración profesional.
+        </footer>
+      </section>
     </div>
-    <label htmlFor="bymax-active-patient">Paciente activo</label>
-    <div className={styles.contextControls}>
-      <select id="bymax-active-patient" value={active?.id || ""} disabled={disabled}
-        onChange={event => event.target.value && onCommand(`Seleccionar paciente #${event.target.value}`)}>
-        <option value="">Selecciona un paciente de tus citas</option>
-        {[...pacientes.values()].map(paciente => <option key={paciente.id} value={paciente.id}>{paciente.nombre} · #{paciente.id}</option>)}
-      </select>
-      <button type="button" disabled={disabled || !active} onClick={() => onCommand("Cerrar contexto")}>Cerrar contexto</button>
-    </div>
-    <p role="status">{error || (fetching ? "Cargando contexto…" : active ? `Caso activo: ${active.nombre}. Solo tus historiales.` : "Sin paciente activo.")}</p>
-    <div className={styles.quickActions} aria-label="Consultas de agenda">
-      {["¿A quién atiendo hoy?", "¿Quién sigue?", "¿Qué citas tengo pendientes?", "Muéstrame mis citas atrasadas"].map(command =>
-        <button key={command} type="button" disabled={sending || loading} onClick={() => onCommand(command)}>{command}</button>)}
-    </div>
-    {current && !fetching && <details>
-      <summary>Próximas citas ({current.citas.length})</summary>
-      <ul className={styles.clinicalAppointments}>{current.citas.map(cita => <li key={cita.id_cita}>
-        <span><strong>{cita.paciente.nombre}</strong><br/>{new Date(cita.fecha_programada).toLocaleString("es-CO")} · {cita.estado}</span>
-        <button type="button" disabled={disabled} onClick={() => onCommand(`Seleccionar paciente #${cita.paciente.id}`)}>Seleccionar</button>
-      </li>)}</ul>
-      {!current.citas.length && <p>No tienes citas próximas en los estados permitidos.</p>}
-    </details>}
-    <small>Apoyo profesional. Los diagnósticos, tratamientos y borradores requieren tu valoración.</small>
-  </section>;
+  );
 }
