@@ -3,14 +3,14 @@
 import {
     Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import styles from "./AppointmentsStats/AppointmentStats.module.css";
+import styles from "./DoctorStats/DoctorStats.module.css";
 import { getSpecialtyChartLayout, SpecialtyTick } from "../specialtyChartLayout";
 
-export default function AppointmentsBySpecialtyChart({ data }) {
-    const { axisWidth, chartHeight, axisMax, ticks } = getSpecialtyChartLayout(data, "total_citas");
+export default function DoctorsBySpecialtyChart({ data }) {
+    const { axisWidth, chartHeight, axisMax, ticks } = getSpecialtyChartLayout(data, "total_medicos");
 
     return (
-        <div className={styles.specialtyScroll} aria-label="Citas por especialidad">
+        <div className={styles.specialtyScroll} role="img" aria-label="Médicos aprobados por especialidad">
             <div className={styles.specialtyArea} style={{ height: chartHeight }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart
@@ -40,10 +40,10 @@ export default function AppointmentsBySpecialtyChart({ data }) {
                             axisLine={false}
                         />
                         <Tooltip
-                            formatter={(value) => [value, "Total de citas"]}
+                            formatter={(value) => [value, "Médicos aprobados"]}
                             contentStyle={{ borderRadius: 10, borderColor: "#e1e7f0", fontSize: 13 }}
                         />
-                        <Bar dataKey="total_citas" name="Total de citas" fill="#13796f" radius={[0, 5, 5, 0]} maxBarSize={25} />
+                        <Bar dataKey="total_medicos" name="Médicos aprobados" fill="#2563eb" radius={[0, 5, 5, 0]} maxBarSize={25} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
