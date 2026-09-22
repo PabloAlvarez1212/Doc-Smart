@@ -23,6 +23,7 @@ CLAVES_PARAMETROS_AUDITABLES = {
     'tipo',
 }
 NOMBRES_TOOL_AUDITABLES = {
+    'confirmar_cita_medico', 'cancelar_cita_medico', 'completar_cita_medico', 'buscar_pacientes_medico',
     'buscar_proximos_pacientes',
     'seleccionar_paciente',
     'cerrar_contexto_paciente',
@@ -34,6 +35,7 @@ NOMBRES_TOOL_AUDITABLES = {
     'consultar_historial',
     'consultar_perfil',
     'reprogramar_cita',
+    'reprogramar_cita_medico',
 }
 
 

@@ -7,6 +7,7 @@ from users.models import Usuario
 from notificaciones.serializers import NotificacionSerializer
 from citas.serializers import CitaSerializer
 from django.core.paginator import Paginator
+from django.db import transaction
 from .serializers import NotificacionSerializer
 
 def enviarNotificacion(titulo, mensaje, tipo, id_usuario=None, id_medico=None, extra_data=None):
@@ -41,9 +42,9 @@ def enviarNotificacion(titulo, mensaje, tipo, id_usuario=None, id_medico=None, e
         }
 
         channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            group_name, 
-            event_payload
+        transaction.on_commit(
+            lambda: async_to_sync(channel_layer.group_send)(group_name, event_payload),
+            robust=True,
         )
 
     return notificacion

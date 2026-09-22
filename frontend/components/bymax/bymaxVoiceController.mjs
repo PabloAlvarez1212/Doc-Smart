@@ -80,7 +80,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
   }
 
   function stopPlayback(announce = true) {
-    for (const item of [current, ...queue]) if (item) mutedIds.add(item.id);
+    for (const item of [current, ...queue]) if (item) { mutedIds.add(item.id); item.abort?.abort(); browser.clearTimeout(item.fetchTimer); }
     if (mutedIds.size > 100) mutedIds.delete(mutedIds.values().next().value);
     voiceGeneration += 1;
     browser.clearTimeout(fetchTimer);
@@ -128,6 +128,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
 
       engines.set(item.id, item.engine);
       update({ playback: "speaking", notice: "Reproduciendo respuesta…" });
+      preloadNext();
       browser.clearTimeout(playbackTimer);
       playbackTimer = browser.setTimeout(() => playbackError(generation, "La reproducción se detuvo por tiempo máximo. Puedes reproducir el mensaje de nuevo."), 180000);
     };
@@ -162,16 +163,36 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
     }
   }
 
+  function requestAudio(item) {
+    if (item.prepared) return item.prepared;
+    item.abort = typeof AbortController !== "undefined" ? new AbortController() : null;
+    let requested;
+    try { requested = generateVoice(item.text, Number(config.rate), item.abort?.signal); }
+    catch (error) { requested = Promise.reject(error); }
+    // A prefetched rejection is captured immediately, even before consumption.
+    item.prepared = Promise.race([
+      requested,
+      new Promise((_, reject) => { item.fetchTimer = browser.setTimeout(() => { item.abort?.abort(); reject(new Error("voice-timeout")); }, 20000); }),
+    ]).then(blob => ({ blob }), error => ({ error })).finally(() => browser.clearTimeout(item.fetchTimer));
+    return item.prepared;
+  }
+
+  function preloadNext() {
+    const next = queue[0];
+    if (!current || !next || disposed || engines.get(next.id) !== "neural") return;
+    requestAudio(next);
+  }
+
   async function prepare(item) {
     const generation = ++voiceGeneration;
-    current = { ...item, engine: engines.get(item.id) || config.motor };
+    current = item;
+    current.engine = engines.get(item.id) || config.motor;
     update({ playback: "preparing", messageId: item.id, error: "", notice: "Preparando respuesta por voz…" });
     if (current.engine === "neural") {
       try {
-        const blob = await Promise.race([
-          generateVoice(item.text, Number(config.rate)),
-          new Promise((_, reject) => { fetchTimer = browser.setTimeout(() => reject(new Error("voice-timeout")), 20000); }),
-        ]);
+        const prepared = await requestAudio(item);
+        if (prepared.error) throw prepared.error;
+        const blob = prepared.blob;
         if (disposed || generation !== voiceGeneration) return;
         browser.clearTimeout(fetchTimer);
         if (!blob || !blob.size || (blob.type && !/^(audio\/|application\/octet-stream)/i.test(blob.type))) throw new Error("invalid-audio");
@@ -206,6 +227,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
     if (!state.enabled || !text.trim() || disposed || ended || suspended || mutedIds.has(id)) return;
     queue.push({ text, id });
     drain();
+    preloadNext();
   }
 
   function play(text, id) {

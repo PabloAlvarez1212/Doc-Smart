@@ -11,6 +11,11 @@ function datos(response) {
 }
 
 export const bymaxService = {
+  async identidad() { return datos(await api.get("/chatbot/identidad/")); },
+  async preguntarAnimo() { return datos(await api.post("/chatbot/identidad/", {})); },
+  async guardarAnimo(puntuacion) { return datos(await api.post("/chatbot/identidad/", { puntuacion, confirmado: true })); },
+  async diagnosticoEstado() { return datos(await api.get("/chatbot/diagnosticos/")); },
+  async diagnosticoAccion(accion, comando) { return datos(await api.post("/chatbot/diagnosticos/", { accion, comando, confirmado: true })); },
   async obtenerContextoMedico(idChat) {
     try { return datos(await api.get(`/chatbot/chats/${idChat}/contexto-medico/`)); }
     catch (error) { throw new Error(detalleError(error, "No fue posible cargar el contexto clínico.")); }
@@ -36,13 +41,14 @@ export const bymaxService = {
     try { await api.delete(`/chatbot/chats/${idChat}/`); return true; }
     catch (error) { throw new Error(detalleError(error, "No fue posible eliminar la conversación.")); }
   },
-  async enviarMensaje(idChat, mensaje, imagen = null) {
+  async enviarMensaje(idChat, mensaje, imagen = null, requestId = crypto.randomUUID()) {
     try {
-      let payload = { mensaje };
+      let payload = { mensaje, request_id: requestId };
       let config;
       if (imagen) {
         payload = new FormData();
         payload.append("mensaje", mensaje);
+        payload.append("request_id", requestId);
         payload.append("imagen", imagen);
         config = { headers: { "Content-Type": "multipart/form-data" } };
       }
@@ -55,12 +61,12 @@ export const bymaxService = {
       throw new Error(detalleError(error, "Ocurrió un error comunicándome con Bymax."));
     }
   },
-  async generarVoz(texto, velocidad = 0.96) {
+  async generarVoz(texto, velocidad = 0.96, signal) {
     try {
       const response = await api.post(
         "/chatbot/voz/",
         { texto, velocidad },
-        { responseType: "blob" },
+        { responseType: "blob", signal },
       );
       return response.data;
     } catch (error) {

@@ -768,6 +768,12 @@ class ImagenMedicaBymaxTests(SimpleTestCase):
 
     def test_acepta_jpeg_valido(self):
         from chatbot.services.imagen_medica_service import validar_imagen_medica
+        from io import BytesIO
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
 
-        archivo = SimpleNamespace(size=100, content_type="image/jpeg")
+        buffer = BytesIO()
+        Image.new("RGB", (2, 2)).save(buffer, format="JPEG")
+        archivo = SimpleUploadedFile("imagen.jpg", buffer.getvalue(), content_type="image/jpeg")
         self.assertIsNone(validar_imagen_medica(archivo))
+        self.assertEqual(archivo.tell(), 0)
