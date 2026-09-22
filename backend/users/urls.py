@@ -15,6 +15,7 @@ from .views import (
     CambiarContraseñaAutenticadoView,
     PerfilAdminView,
     MetricasSistemaView,
+    EstadisticasSistemaView,
 )
 
 urlpatterns = [
@@ -33,4 +34,5 @@ urlpatterns = [
     path("refresh/",RefreshTokenView.as_view(),name="refresh-token"),
     path("csrf/",CSRFTokenView.as_view(),name="csrf-token"),
     path('admin/dashboard/metricas/',MetricasSistemaView.as_view(),name='metricas-sistema'),
+    path("admin/dashboard/estadisticas/",EstadisticasSistemaView.as_view()),
 ]

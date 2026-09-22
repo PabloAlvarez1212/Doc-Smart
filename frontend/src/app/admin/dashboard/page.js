@@ -1,10 +1,12 @@
 "use client"
 import { CalendarDays, CircleUserRound, ClipboardClock, Stethoscope } from "lucide-react";
 import AdminMetricCard from "../../../../components/admin/Dashboard/AdminMetricCard/AdminMetricCard";
-import DashboardMetricsState from "../../../../components/admin/Dashboard/DashboardMetricsState/DashboardMetricsState";
+import DashboardTabs from "../../../../components/admin/Dashboard/DashboardTabs/DashboardTabs";
 import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
 import styles from "./dashboard.module.css";
 import { useDashboard } from "../../../../components/admin/Dashboard/useDashboard";
+import AppointmentStats from "../../../../components/admin/Dashboard/Appointments/AppointmentsStats/AppointmentsStats";
+import { useState } from "react";
 
 const metricDefinitions = [
     { key: "total_medicos_aprobados", label: "Total de médicos", icon: Stethoscope, tone: "blue" },
@@ -14,7 +16,8 @@ const metricDefinitions = [
 ];
 
 export default function Dashboard() {
-    const { metricasTarjetas } = useDashboard()
+    const [activeTab, setActiveTab] = useState("resumen");
+    const { metricasTarjetas, citasPorEstado,citasPorMes , citasPorEspecialidad} = useDashboard()
     return (
         <div className={styles.page}>
             <AdminPageHeader
@@ -47,10 +50,21 @@ export default function Dashboard() {
                 <div className={styles.sectionHeading}>
                     <div>
                         <span>Análisis</span>
-                        <h2 id="analytics-title">Tendencias y distribución</h2>
+                        <h2 id="analytics-title">Información detallada sobre la actividad de DocSmart.</h2>
                     </div>
                 </div>
-                <DashboardMetricsState />
+                <DashboardTabs
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                />
+
+                {activeTab === "citas" && (
+                    <AppointmentStats
+                        citasPorEstado={citasPorEstado}
+                        citasPorMes={citasPorMes}
+                        citasPorEspecialidad={citasPorEspecialidad}
+                    />
+                )}
             </section>
         </div>
     );

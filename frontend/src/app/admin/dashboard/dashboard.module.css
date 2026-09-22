@@ -1,4 +1,5 @@
-.page { display: grid; gap: 30px; }
+.page { display: grid; min-width: 0; gap: 30px; }
+.page > section { min-width: 0; }
 .sectionHeading {
     display: flex;
     align-items: flex-end;
@@ -15,7 +16,7 @@
     letter-spacing: .1em;
     text-transform: uppercase;
 }
-.sectionHeading h2 { color: #25334a; font-size: 1.08rem; font-weight: 720; letter-spacing: -.018em; }
+.sectionHeading h2 { margin: 0; color: #25334a; font-size: clamp(1rem, 2.5vw, 1.08rem); font-weight: 720; letter-spacing: -.018em; line-height: 1.4; overflow-wrap: anywhere; }
 .developmentBadge {
     display: inline-flex;
     align-items: center;
@@ -29,13 +30,11 @@
     font-weight: 680;
     white-space: nowrap;
 }
-.metricsGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-.analyticsPanel { padding: 20px; border: 1px solid #e1e7f0; border-radius: 16px; background: #fff; box-shadow: 0 8px 24px rgba(28, 54, 92, .04); }
+.metricsGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.analyticsPanel { min-width: 0; container-type: inline-size; padding: 20px; border: 1px solid #e1e7f0; border-radius: 16px; background: #fff; box-shadow: 0 8px 24px rgba(28, 54, 92, .04); }
 
-@media (max-width: 1180px) { .metricsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 620px) {
     .page { gap: 24px; }
     .sectionHeading { align-items: flex-start; flex-direction: column; gap: 10px; }
-    .metricsGrid { grid-template-columns: 1fr; }
     .analyticsPanel { padding: 16px; }
 }

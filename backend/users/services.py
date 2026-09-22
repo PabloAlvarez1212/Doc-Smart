@@ -19,6 +19,8 @@ import logging
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from utils import filtrarMedicosAprobados
+from django.db.models import Count
+from django.db.models.functions import TruncMonth
 
 logger = logging.getLogger(__name__)
 resend.api_key = os.getenv("RESEND_API_KEY")
@@ -463,6 +465,8 @@ def obtenerDashboardPacienteInicioService(id):
     
     return data,200
 
+#!Metodos de estadistica para el panel del admin
+
 def obtenerMetricasSistema():
     medicos = Medico.objects.all()
     totalMedicosAprobados = filtrarMedicosAprobados(medicos).count()
@@ -475,4 +479,36 @@ def obtenerMetricasSistema():
         "total_citas" : totalCitas,
         "total_solicitudes_pendientes": totalSolicitudesPendientes,
     }
+    return data,200
+
+def obtenerEstadisticasSistemaService():
+    
+    citaPorEstado = Cita.objects.values('id_estado__nombre').annotate(total=Count('id')).order_by('-total')
+    citaPorMes = Cita.objects.annotate(mes=TruncMonth('fecha_creacion')).values('mes').annotate(total=Count('id')).order_by('mes')
+    citaPorEspecialidad = Cita.objects.values('id_medico__id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
+    
+    data = {
+        "citas_por_estado" : [],
+        "citas_por_mes" : [],
+        "citas_por_especialidad" : [],
+    }
+    
+    for item in citaPorEstado:
+        data["citas_por_estado"].append({
+            "estado" : item['id_estado__nombre'],
+            "total" : item['total']
+        })
+        
+    for item in citaPorMes:
+        data["citas_por_mes"].append({
+            "mes" : item['mes'],
+            "total_citas" : item['total']
+        })
+        
+    for item in citaPorEspecialidad:
+        data["citas_por_especialidad"].append({
+            "especialidad" : item['id_medico__id_especialidad__nombre'],
+            "total_citas" : item["total"]
+        })
+    
     return data,200

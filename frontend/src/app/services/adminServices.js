@@ -70,3 +70,8 @@ export const obtenerMetricasSistemaService = async () => {
 
     return response.data;
 };
+
+export const obtenerEstadisticasSistemaService = async () => {
+    const response = await api.get("/admin/dashboard/estadisticas/");
+    return response.data;
+};
