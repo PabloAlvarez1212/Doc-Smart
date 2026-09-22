@@ -23,9 +23,9 @@ export function useDashboard() {
     const cargarEstadisticas = async () => {
         try {
             const data = await obtenerEstadisticasSistemaService();
-            setCitasPorEstado(data.data.citas_por_estado);
-            setCitasPorMes(data.data.citas_por_mes);
-            setCitasPorEspecialidad(data.data.citas_por_especialidad)
+            setCitasPorEstado(data.data.citas.citas_por_estado);
+            setCitasPorMes(data.data.citas.citas_por_mes);
+            setCitasPorEspecialidad(data.data.citas.citas_por_especialidad)
 
         } catch (error) {
             console.log("Error al cargar las estadísticas");

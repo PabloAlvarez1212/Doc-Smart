@@ -488,25 +488,27 @@ def obtenerEstadisticasSistemaService():
     citaPorEspecialidad = Cita.objects.values('id_medico__id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
     
     data = {
-        "citas_por_estado" : [],
-        "citas_por_mes" : [],
-        "citas_por_especialidad" : [],
+        "citas": {
+            "citas_por_estado" : [],
+            "citas_por_mes" : [],
+            "citas_por_especialidad" : [],
+        }
     }
     
     for item in citaPorEstado:
-        data["citas_por_estado"].append({
+        data["citas"]["citas_por_estado"].append({
             "estado" : item['id_estado__nombre'],
             "total" : item['total']
         })
         
     for item in citaPorMes:
-        data["citas_por_mes"].append({
+        data["citas"]["citas_por_mes"].append({
             "mes" : item['mes'],
             "total_citas" : item['total']
         })
         
     for item in citaPorEspecialidad:
-        data["citas_por_especialidad"].append({
+        data["citas"]["citas_por_especialidad"].append({
             "especialidad" : item['id_medico__id_especialidad__nombre'],
             "total_citas" : item["total"]
         })
