@@ -6,6 +6,8 @@ import useDraggableAssistant from "../hooks/useDraggableAssistant";
 import useBymaxViewport from "./useBymaxViewport";
 import BymaxLauncher from "./BymaxLauncher";
 import BymaxChatWindow from "./BymaxChatWindow";
+import useBymaxIdentity from "./useBymaxIdentity";
+import { takeSpeechUnits } from "./bymaxSpeechUnits.mjs";
 
 const SALUDO = "Hola, soy Bymax, tu asistente virtual de DocSmart. ¿En qué puedo ayudarte el dia de hoy?";
 function normalizarMensaje(item) {
@@ -20,6 +22,9 @@ function normalizarMensaje(item) {
 export default function BymaxAssistant({ modo = "paciente" }) {
   const saludo = modo === "medico" ? "Hola, soy Bymax Médico, tu copiloto clínico y operativo. Selecciona un paciente para revisar tus registros, estudiar diferenciales o preparar borradores para tu valoración." : SALUDO;
   const [ventanaAbierta, setVentanaAbierta] = useState(false);
+  const daily = useBymaxIdentity(ventanaAbierta);
+  const greetingRef = useRef(saludo);
+  greetingRef.current = daily.identity?.saludo || saludo;
   const [chats, setChats] = useState([]);
   const [chatId, setChatId] = useState(null);
   const [mensajes, setMensajes] = useState([]);
@@ -74,11 +79,11 @@ export default function BymaxAssistant({ modo = "paciente" }) {
       const data = await bymaxService.obtenerMensajes(id);
       if (epoch !== epochRef.current) return;
       setChatId(id);
-      setMensajes(data.length ? data.map(normalizarMensaje) : [normalizarMensaje({remitente:"bot", texto:saludo})]);
+      setMensajes(data.length ? data.map(normalizarMensaje) : [normalizarMensaje({remitente:"bot", texto:greetingRef.current})]);
       setSidebar(false);
     } catch (e) { if (epoch === epochRef.current) setError(e.message); }
     finally { if (epoch === epochRef.current) { setCargando(false); voiceRef.current?.completeTurn(); } }
-  }, [resetInteraction, saludo]);
+  }, [resetInteraction]);
   const nuevoChat = useCallback(async () => {
     resetInteraction();
     const epoch = epochRef.current;
@@ -89,11 +94,11 @@ export default function BymaxAssistant({ modo = "paciente" }) {
       if (epoch !== epochRef.current) return;
       setChats(previous => [nuevo, ...previous.filter(chat => chat.id !== nuevo.id)]);
       setChatId(nuevo.id);
-      setMensajes([normalizarMensaje({remitente:"bot",texto:saludo})]);
+      setMensajes([normalizarMensaje({remitente:"bot",texto:greetingRef.current})]);
       setSidebar(false);
     } catch (e) { if (epoch === epochRef.current) setError(e.message); }
     finally { if (epoch === epochRef.current) { setCargando(false); voiceRef.current?.completeTurn(); } }
-  }, [resetInteraction, saludo]);
+  }, [resetInteraction]);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -119,13 +124,9 @@ export default function BymaxAssistant({ modo = "paciente" }) {
       voiceRef.current?.completeTurn();
     }
     function speakFragments(turn, final = false) {
-      const pattern = /^([\s\S]*?[.!?…](?:\s+|$))/;
-      let match;
-      while ((match = turn.buffer.match(pattern))) {
-        voiceRef.current?.enqueue(match[1], turn.id);
-        turn.buffer = turn.buffer.slice(match[1].length);
-      }
-      if (final && turn.buffer.trim()) { voiceRef.current?.enqueue(turn.buffer, turn.id); turn.buffer = ""; }
+      const { units, remaining } = takeSpeechUnits(turn.buffer, final);
+      for (const unit of units) voiceRef.current?.enqueue(unit, turn.id);
+      turn.buffer = remaining;
     }
     socket.onmessage = event => {
       const turn = turnRef.current;
@@ -133,12 +134,14 @@ export default function BymaxAssistant({ modo = "paciente" }) {
       let data;
       try { data = JSON.parse(event.data); } catch { setError("Recibí una respuesta que no pude interpretar."); finish(); return; }
       if (data.tipo === "texto") {
+        turn.received = true;
         const fragment = String(data.contenido || "");
         turn.buffer += fragment;
         setMensajes(previous => previous.map(item => item.id === turn.id ? {...item,texto:item.texto + fragment} : item));
         speakFragments(turn);
       } else if (data.tipo === "fin") {
-        setMensajes(previous => previous.map(item => item.id === turn.id ? {...item,resultado:data.resultado || item.resultado} : item));
+        if (!turn.received) turn.buffer = String(data.respuesta || "");
+        setMensajes(previous => previous.map(item => item.id === turn.id ? {...item,texto:data.respuesta || item.texto,resultado:data.resultado || item.resultado} : item));
         speakFragments(turn, true);
         setChats(previous => previous.map(chat => chat.id === chatId ? {...chat,ultima_interaccion:new Date().toISOString()} : chat));
         finish();
@@ -180,7 +183,7 @@ export default function BymaxAssistant({ modo = "paciente" }) {
       turnRef.current = {id:bot.id,chatId,buffer:""};
       setStreamingId(bot.id);
       setMensajes(previous => [...previous,bot]);
-      try { socket.send(JSON.stringify({tipo:"mensaje",mensaje:temporal.texto})); }
+      try { socket.send(JSON.stringify({tipo:"mensaje",mensaje:temporal.texto,request_id:temporal.id})); }
       catch {
         turnRef.current = null; sendingRef.current = false; setEnviando(false); setStreamingId(null); voice.completeTurn();
         setMensajes(previous => previous.map(item => item.id === bot.id ? {...item,texto:"No fue posible enviar el mensaje. Intenta nuevamente.",error:true} : item));
@@ -188,11 +191,11 @@ export default function BymaxAssistant({ modo = "paciente" }) {
       return;
     }
     try {
-      const response = await bymaxService.enviarMensaje(chatId, temporal.texto, file);
+      const response = await bymaxService.enviarMensaje(chatId, temporal.texto, file, temporal.id);
       if (epoch !== epochRef.current) return;
       const bot = normalizarMensaje({remitente:"bot",texto:response.respuesta,resultado:response.resultado});
       setMensajes(previous => [...previous,bot]);
-      voice.enqueue(bot.texto, bot.id);
+      for (const unit of takeSpeechUnits(bot.texto, true).units) voice.enqueue(unit, bot.id);
       setChats(previous => previous.map(chat => chat.id === chatId ? {...chat,ultima_interaccion:new Date().toISOString()} : chat));
     } catch (e) {
       if (epoch === epochRef.current) setMensajes(previous => [...previous,normalizarMensaje({remitente:"bot",texto:e.message,error:true})]);
@@ -235,7 +238,7 @@ export default function BymaxAssistant({ modo = "paciente" }) {
   return <>
     <BymaxLauncher {...draggable} status={status} label={label} open={ventanaAbierta} buttonRef={launcherRef}/>
     <BymaxChatWindow open={ventanaAbierta} close={close} status={status} label={label} chats={chats} chatId={chatId} messages={mensajes} loading={cargando} sending={enviando} streamingId={streamingId}
-      modo={modo} onClinicalCommand={command => enviarTexto(command, true)}
+      modo={modo} daily={daily} onClinicalCommand={command => enviarTexto(command, true)}
       sidebar={sidebar} setSidebar={setSidebar} loadChat={cargarChat} newChat={nuevoChat} deleteChat={eliminarChat} voice={voice} viewportStyle={viewportStyle}
       composer={{message:mensaje,setMessage:setMensaje,image:imagen,setImage:setImagen,error,clearError:() => {setError("");voice.clearError();},onSend:enviarTexto,onImage:seleccionarImagen,inputRef,fileRef,confirmation}}/>
   </>;

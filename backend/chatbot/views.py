@@ -10,6 +10,8 @@ from chatbot.ai.tool_manager import ToolManager
 from chatbot.tools.medico_clinico import contexto_activo
 from chatbot.ai.doctor_conversation import procesar_medico
 from chatbot.ai.conversation_manager import ConversationManager
+from chatbot.services.turn_service import iniciar_turno, completar_turno, json_seguro
+from chatbot.services.diagnostics import error_operativo
 from chatbot.services import (
     ChatService,
     MensajeService,
@@ -28,7 +30,7 @@ from chatbot.services.imagen_medica_service import (
 )
 
 from django.http import HttpResponse
-from rest_framework.throttling import ScopedRateThrottle
+from chatbot.throttles import ActorScopedRateThrottle as ScopedRateThrottle
 
 from chatbot.ai.elevenlabs_service import (
     ElevenLabsError,
@@ -93,7 +95,7 @@ def normalizar_respuesta_bymax(respuesta):
             "requires_selection": respuesta.get("requires_selection", False),
         }
 
-        return texto, resultado
+        return texto, json_seguro(resultado)
 
     if respuesta is None:
         return "No pude generar una respuesta en este momento.", None
@@ -331,6 +333,9 @@ class ChatbotResponderView(APIView):
     def post(self, request, id_chat):
         mensaje = request.data.get("mensaje")
         imagen = request.FILES.get("imagen")
+        if mensaje is not None and (not isinstance(mensaje, str) or len(mensaje) > 10000):
+            return respuesta_error("Envía un mensaje de texto de hasta 10000 caracteres.")
+        mensaje = mensaje.strip() if mensaje else mensaje
 
         if not mensaje and not imagen:
             return respuesta_error(
@@ -360,6 +365,14 @@ class ChatbotResponderView(APIView):
                 status=404,
             )
 
+        try:
+            turno, nuevo = iniciar_turno(chat, request.data.get("request_id"), mensaje or "[imagen]", imagen)
+        except (ValueError, TypeError, AttributeError):
+            return respuesta_error("Identificador de mensaje no válido.")
+        if not nuevo:
+            if turno.estado == "completado":
+                return respuesta_ok(data=turno.respuesta)
+            return respuesta_error("Este mensaje ya está siendo procesado. Consulta el historial antes de reintentar.", status=409)
         archivo_registro = None
 
         try:
@@ -376,6 +389,12 @@ class ChatbotResponderView(APIView):
 
             try:
                 with transaction.atomic():
+                    chat = Chat.objects.select_for_update().get(
+                        pk=chat.pk, estado="activo", **ChatService.filtro_propietario(request.user))
+                    if imagen and chat.id_medico_id and not contexto_activo(chat):
+                        texto = "Selecciona primero un paciente autorizado para analizar la imagen."
+                        completar_turno(turno, {"respuesta": texto, "resultado": {"success": False}})
+                        return respuesta_ok(data=turno.respuesta)
                     if imagen:
                         archivo_registro = (
                             guardar_archivo_usuario(
@@ -449,14 +468,17 @@ class ChatbotResponderView(APIView):
                 )
             )
 
-            Mensaje.objects.create(
-                id_chat=chat,
-                contexto_clinico=chat.contexto_clinico_id,
-                contenido=texto,
-                es_bot=True,
-                tipo="texto",
-                modelo="bymax",
-            )
+            with transaction.atomic():
+                Mensaje.objects.create(
+                    id_chat=chat,
+                    contexto_clinico=chat.contexto_clinico_id,
+                    contenido=texto,
+                    resultado=resultado,
+                    es_bot=True,
+                    tipo="texto",
+                    modelo="bymax",
+                )
+                completar_turno(turno, {"respuesta": texto, "resultado": resultado})
 
             return respuesta_ok(
                 data={
@@ -476,10 +498,12 @@ class ChatbotResponderView(APIView):
                 getattr(request.user, "id", None),
             )
 
-            return respuesta_error(
-                "No fue posible procesar la solicitud.",
-                status=500,
-            )
+            texto, resultado = normalizar_respuesta_bymax(error_operativo(chat, "responder"))
+            with transaction.atomic():
+                Mensaje.objects.create(id_chat=chat, contexto_clinico=chat.contexto_clinico_id,
+                    contenido=texto, resultado=resultado, es_bot=True, tipo="texto", modelo="bymax")
+                completar_turno(turno, {"respuesta": texto, "resultado": resultado})
+            return respuesta_ok(data=turno.respuesta)
 # ──────────────────────────────────────────────────────────────────────────────
 # VOZ DE BYMAX
 # ──────────────────────────────────────────────────────────────────────────────

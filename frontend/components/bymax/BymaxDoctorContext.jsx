@@ -38,6 +38,10 @@ export default function BymaxDoctorContext({ chatId, sending, loading, onCommand
       <button type="button" disabled={disabled || !active} onClick={() => onCommand("Cerrar contexto")}>Cerrar contexto</button>
     </div>
     <p role="status">{error || (fetching ? "Cargando contexto…" : active ? `Caso activo: ${active.nombre}. Solo tus historiales.` : "Sin paciente activo.")}</p>
+    <div className={styles.quickActions} aria-label="Consultas de agenda">
+      {["¿A quién atiendo hoy?", "¿Quién sigue?", "¿Qué citas tengo pendientes?", "Muéstrame mis citas atrasadas"].map(command =>
+        <button key={command} type="button" disabled={sending || loading} onClick={() => onCommand(command)}>{command}</button>)}
+    </div>
     {current && !fetching && <details>
       <summary>Próximas citas ({current.citas.length})</summary>
       <ul className={styles.clinicalAppointments}>{current.citas.map(cita => <li key={cita.id_cita}>

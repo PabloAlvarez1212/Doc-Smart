@@ -1,4 +1,5 @@
 from django.urls import path
+from chatbot.identity_views import IdentidadBymaxView, DiagnosticoBymaxView
 
 from chatbot.views import (
     BymaxVoiceView,
@@ -11,6 +12,8 @@ from chatbot.views import (
 
 
 urlpatterns = [
+    path("identidad/", IdentidadBymaxView.as_view(), name="bymax-identidad"),
+    path("diagnosticos/", DiagnosticoBymaxView.as_view(), name="bymax-diagnosticos"),
     path("chats/<int:id_chat>/contexto-medico/", ContextoMedicoView.as_view(), name="bymax-contexto-medico"),
     path(
         "chats/",

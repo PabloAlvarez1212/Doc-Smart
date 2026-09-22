@@ -10,6 +10,10 @@ export default function BymaxComposer({ message, setMessage, image, setImage, er
     if (input) { input.style.height = "auto"; input.style.height = `${Math.min(input.scrollHeight, 112)}px`; }
   }, [message, inputRef]);
   return <footer className={styles.composerArea}>
+    {confirmation && <div className={styles.confirmation} role="group" aria-label="Confirmar operación pendiente">
+      <button type="button" disabled={sending} onClick={() => onSend("Sí", true)}>Sí, confirmar</button>
+      <button type="button" disabled={sending} onClick={() => onSend("No", true)}>No, cancelar</button>
+    </div>}
     <div className={styles.sessionControls}>
       <button type="button" aria-pressed={voice.active} onClick={() => voice.active ? voice.stopListening() : voice.startListening("wake")}>
         <Mic size={16}/>{voice.active ? "Desactivar micrófono" : "Activar asistente de voz"}

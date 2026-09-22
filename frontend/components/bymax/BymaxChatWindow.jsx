@@ -5,14 +5,16 @@ import { AudioLines, Check, ChevronDown, Menu, Mic, Minus, Play, Plus, Settings2
 import BymaxMessage from "./BymaxMessage";
 import BymaxComposer from "./BymaxComposer";
 import BymaxDoctorContext from "./BymaxDoctorContext";
+import useDraggableBymaxWindow from "./useDraggableBymaxWindow";
 import { DEFAULT_VOICE } from "./bymaxVoiceController.mjs";
 import styles from "./BymaxAssistant.module.css";
 
-export default function BymaxChatWindow({ open, close, status, label, chats, chatId, messages, loading, sending, streamingId, sidebar, setSidebar, loadChat, newChat, deleteChat, voice, viewportStyle, composer, modo = "paciente", onClinicalCommand }) {
+export default function BymaxChatWindow({ open, close, status, label, chats, chatId, messages, loading, sending, streamingId, sidebar, setSidebar, loadChat, newChat, deleteChat, voice, viewportStyle, composer, modo = "paciente", onClinicalCommand, daily }) {
   const [present, setPresent] = useState(open);
   const [settings, setSettings] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
   const panelRef = useRef(null);
+  const draggable = useDraggableBymaxWindow(panelRef, open && present);
   const scrollRef = useRef(null);
   const closeRef = useRef(null);
   const settingsRef = useRef(null);
@@ -61,7 +63,7 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
   if (!present) return null;
   const playing = ["speaking", "starting", "preparing", "ready"].includes(voice.playback);
   return <section id="bymax-chat" ref={panelRef} role="dialog" aria-label="Chat con Bymax" inert={!open} onKeyDown={keyboard}
-    className={`${styles.shell} ${!open ? styles.closing : ""}`} style={viewportStyle} data-state={status}>
+    className={`${styles.shell} ${!open ? styles.closing : ""}`} style={{ ...viewportStyle, ...draggable.style }} data-state={status}>
     {sidebar && <button type="button" className={styles.backdrop} aria-label="Cerrar historial" onClick={closeHistory}/>}
     <aside ref={historyRef} className={`${styles.sidebar} ${sidebar ? styles.sidebarOpen : ""}`} aria-label="Historial de Bymax" inert={settings}>
       <div className={styles.brand}><Image src="/icons/asistente_bymax.png" alt="" width={42} height={42}/><div><strong>Bymax</strong><small>Tu asistente de salud</small></div><button type="button" className={styles.historyClose} onClick={closeHistory} aria-label="Cerrar historial de Bymax"><X size={20}/></button></div>
@@ -76,9 +78,9 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
       <p className={styles.privacy}><ShieldCheck size={16}/><span>Un espacio para tus consultas, vinculado a tu sesión.</span></p>
     </aside>
     <section className={styles.chatPanel} inert={settings || sidebar}>
-      <header className={styles.header}>
+      <header className={styles.header} {...draggable.handlers} title="Arrastra la cabecera para mover la ventana. Doble clic para restaurar.">
         <button ref={historyButtonRef} type="button" className={styles.mobileMenu} onClick={() => setSidebar(true)} aria-label="Abrir historial" aria-expanded={sidebar}><Menu size={21}/></button>
-        <div className={styles.assistant}><Image className={styles.avatar} src="/icons/asistente_bymax.png" alt="" width={48} height={48}/><div><strong>Bymax</strong><small role="status"><span className={styles.stateMark}/>{label}</small></div></div>
+        <div className={styles.assistant}><Image className={styles.avatar} src="/icons/asistente_bymax.png" alt="" width={48} height={48}/><div><strong>{modo === "medico" ? "Bymax Médico" : "Bymax"}</strong><small role="status"><span className={styles.stateMark}/>{label}</small>{daily?.identity && <small>{daily.identity.nombre}{daily.identity.especialidad ? ` · ${daily.identity.especialidad}` : ""}</small>}</div></div>
         <div className={styles.headerActions}>
           <button ref={settingsButtonRef} type="button" onClick={() => setSettings(true)} aria-label="Configurar voz" title="Configurar voz"><Settings2 size={19}/></button>
           <button type="button" className={voice.enabled ? styles.activeAction : ""} onClick={() => voice.setEnabled(!voice.enabled)} aria-pressed={voice.enabled} aria-label={voice.enabled ? "Desactivar respuestas por voz" : "Activar respuestas por voz"} title="Respuestas por voz">{voice.enabled ? <Volume2 size={19}/> : <VolumeX size={19}/>}</button>
@@ -87,13 +89,99 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
       </header>
       {modo === "medico" && <BymaxDoctorContext chatId={chatId} sending={sending} loading={loading} onCommand={onClinicalCommand}/>}
       <div className={styles.conversation}>
-        <div className={styles.messages} ref={scrollRef} role="log" aria-label="Mensajes de la conversación" aria-live="polite" aria-relevant="additions" aria-busy={sending}
-          onScroll={event => { const element = event.currentTarget; setAtBottom(element.scrollHeight - element.scrollTop - element.clientHeight < 64); }}>
-          {loading ? <div className={styles.loading} role="status"><span className={styles.typing}><i/><i/><i/></span>Cargando conversación…</div> : <>
-            {messages.length <= 1 && <div className={styles.welcome}><Image src="/icons/asistente_bymax.png" alt="Bymax" width={96} height={96}/><span>{modo === "medico" ? "APOYO PARA TU PRÁCTICA CLÍNICA" : "UN POCO DE AYUDA, CUANDO LA NECESITAS"}</span><h2>Hola, soy Bymax.</h2><p>{modo === "medico" ? "Revisemos tus casos y preparemos borradores para tu valoración." : "Estoy aquí para orientarte y ayudarte a cuidar de ti."}</p></div>}
-            {messages.map(item => <BymaxMessage key={item.id} item={item} voice={voice} streaming={item.id === streamingId && sending}/>)}
-            {sending && !streamingId && <div className={styles.loading} role="status"><span className={styles.typing}><i/><i/><i/></span>Bymax está preparando una respuesta…</div>}
-          </>}
+        <div
+          className={styles.messages}
+          ref={scrollRef}
+          role="log"
+          aria-label="Mensajes de la conversación"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-busy={sending}
+          onScroll={(event) => {
+            const element = event.currentTarget;
+
+            setAtBottom(
+              element.scrollHeight -
+                element.scrollTop -
+                element.clientHeight <
+                64,
+            );
+          }}
+        >
+          {loading ? (
+            <div
+              className={styles.loading}
+              role="status"
+            >
+              <span className={styles.typing}>
+                <i />
+                <i />
+                <i />
+              </span>
+
+              Cargando conversación…
+            </div>
+          ) : (
+            <>
+              {messages.length <= 1 && (
+                <div className={styles.welcome}>
+                  <Image
+                    src="/icons/asistente_bymax.png"
+                    alt="Bymax"
+                    width={96}
+                    height={96}
+                  />
+
+                  <span>
+                    {modo === "medico"
+                      ? "APOYO PARA TU PRÁCTICA CLÍNICA"
+                      : "UN POCO DE AYUDA, CUANDO LA NECESITAS"}
+                  </span>
+
+                  <h2>
+                    Hola, soy{" "}
+                    {modo === "medico"
+                      ? "Bymax Médico"
+                      : "Bymax"}.
+                  </h2>
+
+                  <p>
+                    {daily?.identity?.saludo ||
+                      (modo === "medico"
+                        ? "Revisemos tus casos y preparemos borradores para tu valoración."
+                        : "Estoy aquí para orientarte y ayudarte a cuidar de ti.")}
+                  </p>
+                </div>
+              )}
+
+              {messages.map((item) => (
+                <BymaxMessage
+                  key={item.id}
+                  item={item}
+                  voice={voice}
+                  streaming={
+                    item.id === streamingId &&
+                    sending
+                  }
+                />
+              ))}
+
+              {sending && !streamingId && (
+                <div
+                  className={styles.loading}
+                  role="status"
+                >
+                  <span className={styles.typing}>
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+
+                  Bymax está preparando una respuesta…
+                </div>
+              )}
+            </>
+          )}
         </div>
         {!atBottom && <button type="button" className={styles.latest} onClick={() => setAtBottom(true)}><ChevronDown size={16}/> Ir al último mensaje</button>}
       </div>

@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone as datetime_timezone
 from types import SimpleNamespace
 from unittest.mock import patch
+from io import BytesIO
+from PIL import Image
 
 from asgiref.sync import async_to_sync
 from channels.testing import WebsocketCommunicator
@@ -251,6 +253,9 @@ class BymaxMedicoTests(TestCase):
     @patch("chatbot.ai.doctor_conversation.preguntar_gemini", return_value="Análisis médico")
     def test_imagenes_conservan_flujo_paciente_y_aislan_medico(self, gemini, analizar_paciente, guardar):
         self.seleccionar(self.paciente)
+        buffer = BytesIO()
+        Image.new("RGB", (2, 2)).save(buffer, format="PNG")
+        png = buffer.getvalue()
         for actor, chat, categoria, usuario_id in (
             (self.medico, self.chat, f"general/bymax/medicos/{self.medico.id}", None),
             (self.paciente, Chat.objects.create(id_usuario=self.paciente), "general/bymax", self.paciente.id),
@@ -259,7 +264,7 @@ class BymaxMedicoTests(TestCase):
                 storage_key=f"{categoria}/{chat.id}/test.png", tamano=8, tipo="imagen", categoria=categoria)
             guardar.return_value = archivo
             request = self.factory.post("/api/chatbot/", {"mensaje": "Analiza esta imagen",
-                "imagen": SimpleUploadedFile("test.png", b"fake-png", content_type="image/png")}, format="multipart")
+                "imagen": SimpleUploadedFile("test.png", png, content_type="image/png")}, format="multipart")
             force_authenticate(request, user=actor)
             response = ChatbotResponderView.as_view()(request, id_chat=chat.id)
             self.assertEqual(response.status_code, 200)
@@ -270,7 +275,7 @@ class BymaxMedicoTests(TestCase):
         self.assertEqual(analizar_paciente.call_count, 1)
         self.assertEqual(gemini.call_count, 1)
         self.assertEqual(gemini.call_args.kwargs["system_prompt"], DOCTOR_SYSTEM_PROMPT)
-        self.assertEqual(gemini.call_args.args[0][-1]["parts"][-1].inline_data.data, b"fake-png")
+        self.assertEqual(gemini.call_args.args[0][-1]["parts"][-1].inline_data.data, png)
 
     def test_rechazo_de_herramienta_se_registra_como_fallo(self):
         respuesta = ToolManager.ejecutar("seleccionar_paciente", self.chat, "Seleccionar", {"paciente_id": self.ajeno.id})
@@ -452,6 +457,84 @@ class BymaxMedicoTests(TestCase):
         medico.assert_not_called()
         router.assert_called_once()
         self.assertEqual(ToolLog.objects.get().nombre_tool, "consultar_disponibilidad")
+
+    def test_reprogramacion_medica_pide_confirmacion_y_conserva_contexto(self):
+        self.seleccionar(self.paciente)
+        self.chat.refresh_from_db()
+        sesion_clinica = dict(self.chat.contexto_temporal["clinico"])
+        cita = Cita.objects.filter(
+            id_medico=self.medico,
+            id_usuario=self.paciente,
+        ).first()
+        nueva_fecha = timezone.localtime() + timedelta(days=5)
+        mensaje = (
+            f"Reprograma la cita #{cita.id} para el "
+            f"{nueva_fecha.strftime('%Y-%m-%d %H:%M')}"
+        )
+
+        respuesta = ConversationManager.procesar(self.chat, mensaje)
+
+        self.assertTrue(respuesta["requires_confirmation"])
+        self.chat.refresh_from_db()
+        self.assertEqual(
+            self.chat.contexto_temporal["clinico"],
+            sesion_clinica,
+        )
+        self.assertEqual(
+            self.chat.contexto_temporal["operacion_medica"]["estado"],
+            "confirmacion",
+        )
+
+    @patch("chatbot.services.cita_service.CitaService.reprogramar_medico")
+    def test_confirmacion_medica_ejecuta_una_vez(self, reprogramar):
+        reprogramar.return_value = ({"id": 1}, 200)
+        cita = Cita.objects.filter(id_medico=self.medico).first()
+        nueva_fecha = timezone.localtime() + timedelta(days=5)
+        ConversationManager.procesar(
+            self.chat,
+            f"Reprograma la cita #{cita.id} para el "
+            f"{nueva_fecha.strftime('%Y-%m-%d %H:%M')}",
+        )
+
+        respuesta = ConversationManager.procesar(self.chat, "Sí")
+
+        self.assertTrue(respuesta["success"])
+        reprogramar.assert_called_once()
+        self.chat.refresh_from_db()
+        self.assertNotIn("operacion_medica", self.chat.contexto_temporal)
+
+        # Una confirmación repetida no puede volver a ejecutar la escritura.
+        ConversationManager.procesar(self.chat, "Sí")
+        reprogramar.assert_called_once()
+
+    def test_medico_no_reprograma_cita_ajena(self):
+        cita_ajena = Cita.objects.filter(id_medico=self.otro).first()
+        nueva_fecha = timezone.localtime() + timedelta(days=5)
+
+        respuesta = self.tool(
+            "reprogramar_cita_medico",
+            {
+                "id_cita": cita_ajena.id,
+                "fecha": nueva_fecha.isoformat(),
+            },
+        )
+
+        self.assertFalse(respuesta["success"])
+        cita_ajena.refresh_from_db()
+        self.assertNotEqual(cita_ajena.fecha_programada, nueva_fecha)
+
+    def test_paciente_no_ejecuta_reprogramacion_medica(self):
+        chat_paciente = Chat.objects.create(id_usuario=self.paciente)
+        respuesta = ejecutar_tool(
+            "reprogramar_cita_medico",
+            chat_paciente,
+            "Reprogramar",
+            {
+                "id_cita": 1,
+                "fecha": (timezone.now() + timedelta(days=2)).isoformat(),
+            },
+        )
+        self.assertFalse(respuesta["success"])
 
 
 @override_settings(CACHES=TEST_CACHES, CHANNEL_LAYERS=TEST_CHANNEL_LAYERS)

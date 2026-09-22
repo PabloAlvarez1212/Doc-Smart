@@ -218,6 +218,10 @@ class ConversationManager:
     def _cargar_memoria(chat, state):
 
         state.historial = construir_historial(chat)
+        from chatbot.services.identity_service import tono_chat
+        tono = tono_chat(chat)
+        if tono:
+            state.historial.insert(0, {"role": "user", "parts": [{"text": tono}]})
 
         state.contexto = obtener_contexto(chat)
 

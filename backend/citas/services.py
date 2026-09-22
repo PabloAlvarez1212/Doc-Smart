@@ -11,6 +11,25 @@ from django.db.models.functions import Concat
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.db import transaction
+from functools import wraps
+
+
+def serializar_agenda(funcion):
+    """Todas las entradas oficiales comparten el bloqueo de agenda del médico."""
+    @wraps(funcion)
+    @transaction.atomic
+    def protegida(*args, **kwargs):
+        if funcion.__name__ == "crearCitaService":
+            datos = args[0] if args else kwargs["datos"]
+            medico_id = datos.get("id_medico")
+        else:
+            cita_id = args[0] if args else kwargs["id"]
+            medico_id = Cita.objects.filter(pk=cita_id).values_list("id_medico_id", flat=True).first()
+        if medico_id:
+            Medico.objects.select_for_update().get(pk=medico_id)
+        return funcion(*args, **kwargs)
+    return protegida
 
 
 # ─── CITAS ────────────────────────────────────────────────────────────────────
@@ -110,6 +129,7 @@ def obtenerCitaService(id, solicitante):
     serializer = CitaSerializer(cita)
     return serializer.data, 200
 
+@serializar_agenda
 def crearCitaService(datos, usuario_id):  
     usuario = Usuario.objects.filter(id=usuario_id).first()
     
@@ -172,6 +192,7 @@ def crearCitaService(datos, usuario_id):
 
     return cita_data, 201
 
+@serializar_agenda
 def editarCitaService(id, datos, solicitante):
     if isinstance(solicitante, Usuario):
         cita = Cita.objects.filter(
@@ -261,6 +282,7 @@ def editarCitaService(id, datos, solicitante):
             })
     return CitaSerializer(cita).data, 200
 
+@serializar_agenda
 def cancelarCitaService(id, solicitante):
     cita = Cita.objects.filter(
         id=id
@@ -341,6 +363,7 @@ def cancelarCitaService(id, solicitante):
 
     return 'Cita cancelada correctamente', 200
 
+@serializar_agenda
 def completarCitaService(id, medico_id):
     cita = Cita.objects.filter(id=id, id_medico=medico_id).first()
     if not cita:
@@ -353,6 +376,8 @@ def completarCitaService(id, medico_id):
         return 'No se puede completar una cita cancelada', 400
 
     estado_completada = Estado.objects.filter(nombre='completada').first()
+    if not estado_completada:
+        return "Estado 'completada' no configurado", 500
     cita.id_estado    = estado_completada
     cita.fecha_final  = timezone.now()
     cita.save()
@@ -381,6 +406,7 @@ def completarCitaService(id, medico_id):
 
     return cita_data, 200
 
+@serializar_agenda
 def confirmarCitaService(id, medico_id):
     cita = Cita.objects.filter(
         id=id,

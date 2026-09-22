@@ -1,9 +1,14 @@
 import asyncio
 import logging
+from types import SimpleNamespace
+from chatbot.throttles import ActorScopedRateThrottle
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.db import close_old_connections
+from django.db import transaction
+from chatbot.services.turn_service import iniciar_turno, completar_turno, json_seguro
+from chatbot.services.diagnostics import error_operativo
 
 from chatbot.ai.conversation_manager import ConversationManager
 from chatbot.ai.gemini_service import preguntar_gemini_stream
@@ -21,14 +26,14 @@ def _normalizar_respuesta(respuesta):
         texto = respuesta.get("message")
         if not isinstance(texto, str) or not texto.strip():
             texto = "No pude generar una respuesta en este momento."
-        return texto, {
+        return texto, json_seguro({
             "success": respuesta.get("success", True),
             "data": respuesta.get("data", {}),
             "requires_confirmation": respuesta.get(
                 "requires_confirmation", False
             ),
             "requires_selection": respuesta.get("requires_selection", False),
-        }
+        })
 
     if respuesta is None:
         return "No pude generar una respuesta en este momento.", None
@@ -64,15 +69,29 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json({"tipo": "conectado", "id_chat": self.id_chat})
 
     async def disconnect(self, close_code):
-        if self.tarea_respuesta and not self.tarea_respuesta.done():
-            self.tarea_respuesta.cancel()
+        # Una desconexión no revierte una operación ya confirmada. Se termina
+        # y persiste su resultado para recuperar el mismo turno al reconectar.
+        self.desconectado = True
+
+    async def send_json(self, content, close=False):
+        if not getattr(self, "desconectado", False):
+            await super().send_json(content, close=close)
 
     async def receive_json(self, content, **kwargs):
+        if not isinstance(content, dict) or not isinstance(content.get("mensaje", ""), str):
+            await self.send_json({"tipo": "error", "mensaje": "Envía un mensaje de texto válido."})
+            return
+        if "bymax_token" in self.scope:
+            from chatbot.middleware import _usuario_desde_token
+            try:
+                self.scope["user"] = await _usuario_desde_token(self.scope["bymax_token"])
+            except Exception:
+                await self.close(code=4401)
+                return
         tipo = content.get("tipo", "mensaje")
 
         if tipo == "cancelar":
-            if self.tarea_respuesta and not self.tarea_respuesta.done():
-                self.tarea_respuesta.cancel()
+            await self.send_json({"tipo": "aviso", "mensaje": "La solicitud en curso conservará su resultado en el historial."})
             return
 
         mensaje = str(content.get("mensaje") or "").strip()
@@ -97,14 +116,27 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
             })
             return
 
-        self.tarea_respuesta = asyncio.create_task(self._responder(mensaje))
+        permitido = await database_sync_to_async(ActorScopedRateThrottle().allow_request)(
+            SimpleNamespace(user=self.scope["user"]), SimpleNamespace(throttle_scope="bymax_chat"))
+        if not permitido:
+            await self.send_json({"tipo": "error", "mensaje": "Has alcanzado el límite temporal. Espera antes de enviar otra solicitud."})
+            return
+        self.tarea_respuesta = asyncio.create_task(self._responder(mensaje, content.get("request_id")))
 
-    async def _responder(self, mensaje):
+    async def _responder(self, mensaje, request_id=None):
         respuesta_completa = ""
+        turno = None
         try:
             self.chat = await self._obtener_chat(self.scope["user"])
             if self.chat is None:
                 await self.close(code=4404)
+                return
+            turno, nuevo = await database_sync_to_async(iniciar_turno)(self.chat, request_id, mensaje)
+            if not nuevo:
+                if turno.estado == "completado":
+                    await self.send_json({"tipo": "fin", **turno.respuesta})
+                else:
+                    await self.send_json({"tipo": "error", "mensaje": "Este mensaje ya está siendo procesado. Consulta el historial."})
                 return
             await self._guardar_mensaje_usuario(mensaje)
             await self.send_json({"tipo": "inicio"})
@@ -131,7 +163,7 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
             if not respuesta_completa.strip():
                 raise RuntimeError("Bymax generó una respuesta vacía")
 
-            await self._guardar_mensaje_bymax(respuesta_completa)
+            await self._guardar_mensaje_bymax(respuesta_completa, turno, resultado_estructurado)
             await self.send_json({
                 "tipo": "fin",
                 "respuesta": respuesta_completa,
@@ -147,13 +179,13 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
                 type(error).__name__,
                 self.id_chat,
             )
-            await self.send_json({
-                "tipo": "error",
-                "mensaje": (
-                    "En este momento no puedo procesar tu solicitud. "
-                    "Por favor, intenta nuevamente en unos segundos."
-                ),
-            })
+            if turno is not None and turno.estado != "completado":
+                seguro = await database_sync_to_async(error_operativo)(self.chat, "responder")
+                texto, resultado = _normalizar_respuesta(seguro)
+                await self._guardar_mensaje_bymax(texto, turno, resultado)
+                await self.send_json({"tipo": "fin", **turno.respuesta})
+            else:
+                await self.send_json({"tipo": "error", "mensaje": "No fue posible procesar el mensaje."})
 
     async def _transmitir_gemini(self, contents):
         cola = asyncio.Queue()
@@ -200,7 +232,10 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
         return medico.esta_aprobado
 
     @database_sync_to_async
+    @transaction.atomic
     def _guardar_mensaje_usuario(self, mensaje):
+        self.chat = Chat.objects.select_for_update().get(
+            pk=self.id_chat, estado="activo", **ChatService.filtro_propietario(self.scope["user"]))
         Mensaje.objects.create(
             id_chat=self.chat,
             contexto_clinico=self.chat.contexto_clinico_id,
@@ -214,12 +249,16 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
             self.chat.save(update_fields=["titulo", "ultima_interaccion"])
 
     @database_sync_to_async
-    def _guardar_mensaje_bymax(self, respuesta):
+    @transaction.atomic
+    def _guardar_mensaje_bymax(self, respuesta, turno=None, resultado=None):
         Mensaje.objects.create(
             id_chat=self.chat,
             contexto_clinico=self.chat.contexto_clinico_id,
             contenido=respuesta,
+            resultado=resultado,
             es_bot=True,
             tipo="texto",
             modelo="bymax",
         )
+        if turno is not None:
+            completar_turno(turno, {"respuesta": respuesta, "resultado": resultado})

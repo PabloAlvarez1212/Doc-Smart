@@ -38,6 +38,22 @@ function setup(overrides = {}) {
   return { controller, browser, recognitions, audios, utterances, received, states, timers, timeout, revoked };
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
+
+test("preloads only next phrase while current audio plays and preserves order", async () => {
+  const requested = [];
+  const e = setup({ generateVoice: text => { requested.push(text); return Promise.resolve({ size: 10, type: "audio/mpeg" }); } });
+  e.controller.beginTurn();
+  for (const phrase of ["Primera.", "Segunda.", "Tercera."]) e.controller.enqueue(phrase, "response");
+  await flush(); assert.deepEqual(requested, ["Primera."]);
+  e.audios[0].onplaying(); await flush();
+  assert.deepEqual(requested, ["Primera.", "Segunda."]);
+  assert.equal(e.audios[0].plays, 1);
+  e.audios[0].onended(); await flush();
+  assert.equal(e.audios[0].plays, 2);
+  e.audios[0].onplaying(); await flush();
+  assert.deepEqual(requested, ["Primera.", "Segunda.", "Tercera."]);
+  e.controller.stopPlayback();
+});
 function result(text, index = 0, final = true) {
   return {resultIndex:index, results:[...Array(index).fill(Object.assign([{transcript:"ignored"}],{isFinal:true})), Object.assign([{transcript:text}],{isFinal:final})]};
 }
