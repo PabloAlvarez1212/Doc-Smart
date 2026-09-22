@@ -4,6 +4,7 @@ from catalogos.models import Estado, Medio
 from medicos.models import Medico
 from users.models import Usuario
 from django.utils import timezone
+from django.db import transaction
 from datetime import timedelta
 from notificaciones.services import enviarNotificacion
 from django.db.models import Value
@@ -11,7 +12,7 @@ from django.db.models.functions import Concat
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.paginator import Paginator
-
+from medicos.services_disponibilidad import (esHorarioDisponible,)
 
 # ─── CITAS ────────────────────────────────────────────────────────────────────
 
@@ -110,65 +111,162 @@ def obtenerCitaService(id, solicitante):
     serializer = CitaSerializer(cita)
     return serializer.data, 200
 
-def crearCitaService(datos, usuario_id):  
-    usuario = Usuario.objects.filter(id=usuario_id).first()
-    
-    if not usuario:
-        medico_logueado = Medico.objects.filter(id=usuario_id).first()
-        if medico_logueado:
-            return 'Solo pacientes pueden crear citas', 400
-        return 'El usuario no existe', 404
-    
-    medico = Medico.objects.filter(id=datos['id_medico']).first()
-    if not medico:
-        return 'Médico no encontrado', 404
-
-    if datos['fecha_programada'] < timezone.now() + timedelta(hours=1):
-        return 'La cita debe programarse con al menos 1 hora de anticipación', 400
-
-    if Cita.objects.filter(
-        id_medico=medico,
-        fecha_programada=datos['fecha_programada']
-    ).exists():
-        return 'El médico ya tiene una cita en esa fecha y hora', 400
-
-    estado = Estado.objects.filter(nombre='pendiente').first()
-    if not estado:
-        return 'Estado pendiente no configurado', 500
-        
-    cita = Cita.objects.create(
-        fecha_programada = datos['fecha_programada'],
-        id_usuario_id    = usuario_id,
-        id_medico        = medico,
-        id_estado        = estado,
+@transaction.atomic
+def crearCitaService(datos, usuario_id):
+    usuario = (
+        Usuario.objects
+        .filter(id=usuario_id)
+        .first()
     )
-    
-    fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
-    cita_data = CitaSerializer(cita).data  # 👈 Serializamos los datos completos de la cita
 
-    # 1. Notificación + Datos Cita para Paciente
+    if not usuario:
+
+        medico_logueado = (
+            Medico.objects
+            .filter(id=usuario_id)
+            .first()
+        )
+
+        if medico_logueado:
+            return (
+                "Solo pacientes pueden crear citas",
+                400
+            )
+
+        return "El usuario no existe", 404
+
+    medico = (
+        Medico.objects
+        .select_for_update()
+        .filter(id=datos["id_medico"])
+        .first()
+    )
+
+    if not medico:
+        return "Médico no encontrado", 404
+
+    fecha_programada = datos[
+        "fecha_programada"
+    ]
+
+    # -----------------------------------------
+    # 1. Anticipación mínima
+    # -----------------------------------------
+
+    if (
+        fecha_programada
+        < timezone.now() + timedelta(hours=1)
+    ):
+        return (
+            "La cita debe programarse con "
+            "al menos 1 hora de anticipación",
+            400
+        )
+
+    # -----------------------------------------
+    # 2. Validar disponibilidad real
+    # -----------------------------------------
+
+    if not esHorarioDisponible(
+        medico,
+        fecha_programada
+    ):
+        return (
+            "El horario seleccionado ya no "
+            "está disponible",
+            400
+        )
+
+    # -----------------------------------------
+    # 3. Calcular fecha final
+    # -----------------------------------------
+
+    fecha_final = (
+        fecha_programada
+        + timedelta(
+            minutes=medico.duracion_consulta
+        )
+    )
+
+    # -----------------------------------------
+    # 4. Obtener estado inicial
+    # -----------------------------------------
+
+    estado = (
+        Estado.objects
+        .filter(nombre="pendiente")
+        .first()
+    )
+
+    if not estado:
+        return (
+            "Estado pendiente no configurado",
+            500
+        )
+
+    # -----------------------------------------
+    # 5. Crear cita
+    # -----------------------------------------
+
+    cita = Cita.objects.create(
+        fecha_programada=fecha_programada,
+        fecha_final=fecha_final,
+        id_usuario_id=usuario_id,
+        id_medico=medico,
+        id_estado=estado,
+    )
+
+    fecha_fmt = (
+        cita.fecha_programada
+        .strftime("%d/%m/%Y a las %H:%M")
+    )
+
+    cita_data = CitaSerializer(
+        cita
+    ).data
+
+    # -----------------------------------------
+    # 6. Notificación paciente
+    # -----------------------------------------
+
     enviarNotificacion(
-        titulo='Cita solicitada',
-        mensaje=f'Tu cita con el Dr. {cita.id_medico.nombre} {fecha_fmt} hs fue agendada con éxito. Queda en espera de la confirmación del médico.',
-        tipo='cita_pendiente',
+        titulo="Cita solicitada",
+        mensaje=(
+            f"Tu cita con el Dr. "
+            f"{cita.id_medico.nombre} "
+            f"{fecha_fmt} hs fue agendada "
+            f"con éxito. Queda en espera de "
+            f"la confirmación del médico."
+        ),
+        tipo="cita_pendiente",
         id_usuario=cita.id_usuario_id,
         extra_data={
             "tipo_evento": "NUEVA_SOLICITUD",
             "cita": cita_data
         }
     )
-    
-    # 2. Notificación + Datos Cita para Médico
+
+    # -----------------------------------------
+    # 7. Notificación médico
+    # -----------------------------------------
+
     enviarNotificacion(
-        titulo='Nueva solicitud de cita',
-        mensaje=f'El paciente {cita.id_usuario.nombre} {cita.id_usuario.apellido} ha solicitado una cita para el {fecha_fmt} hs. Revisa tu agenda para confirmarla.',
-        tipo='nueva_solicitud',
+        titulo="Nueva solicitud de cita",
+        mensaje=(
+            f"El paciente "
+            f"{cita.id_usuario.nombre} "
+            f"{cita.id_usuario.apellido} "
+            f"ha solicitado una cita para "
+            f"el {fecha_fmt} hs. "
+            f"Revisa tu agenda para confirmarla."
+        ),
+        tipo="nueva_solicitud",
         id_medico=cita.id_medico_id,
         extra_data={
             "tipo_evento": "NUEVA_SOLICITUD",
             "cita": cita_data
         }
-    )   
+    )
 
     return cita_data, 201
 

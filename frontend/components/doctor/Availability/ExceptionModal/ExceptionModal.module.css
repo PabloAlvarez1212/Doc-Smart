@@ -1,0 +1,273 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(17, 24, 39, 0.45);
+}
+
+.modal {
+    width: 100%;
+    max-width: 620px;
+    max-height: 90vh;
+    overflow-y: auto;
+
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+
+    padding: 24px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.header h2 {
+    margin: 0 0 6px;
+    font-size: 20px;
+    color: #111827;
+}
+
+.header p {
+    margin: 0;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.closeButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+}
+
+.closeButton:hover {
+    background: #f3f4f6;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+
+    padding: 24px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.field label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.field label span {
+    font-weight: 400;
+    color: #9ca3af;
+}
+
+.field input,
+.field textarea {
+    width: 100%;
+    box-sizing: border-box;
+
+    border: 1px solid #d1d5db;
+    border-radius: 9px;
+    padding: 10px 12px;
+
+    background: white;
+    color: #111827;
+    font: inherit;
+}
+
+.field textarea {
+    resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
+    outline: none;
+    border-color: #16a34a;
+}
+
+.typeOptions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.typeButton,
+.typeActive {
+    padding: 11px;
+
+    border-radius: 9px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.typeButton {
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #4b5563;
+}
+
+.typeActive {
+    border: 1px solid #16a34a;
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.scheduleHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.addSchedule {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    border: none;
+    background: transparent;
+
+    color: #16a34a;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.scheduleList {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.schedule {
+    display: grid;
+    grid-template-columns:
+        auto 1fr auto 1fr auto;
+    align-items: center;
+    gap: 9px;
+
+    padding: 10px;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+
+    color: #6b7280;
+}
+
+.schedule input {
+    padding: 8px;
+}
+
+.removeSchedule {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 32px;
+    height: 32px;
+
+    border: none;
+    border-radius: 7px;
+
+    background: transparent;
+    color: #dc2626;
+    cursor: pointer;
+}
+
+.removeSchedule:hover {
+    background: #fef2f2;
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+
+    padding-top: 5px;
+}
+
+.cancelButton,
+.saveButton {
+    border-radius: 9px;
+    padding: 10px 17px;
+
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cancelButton {
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #374151;
+}
+
+.saveButton {
+    border: none;
+    background: #16a34a;
+    color: white;
+}
+
+.cancelButton:disabled,
+.saveButton:disabled,
+.closeButton:disabled,
+.addSchedule:disabled,
+.removeSchedule:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+
+    .modal {
+        max-height: 95vh;
+    }
+
+    .typeOptions {
+        grid-template-columns: 1fr;
+    }
+
+    .schedule {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .schedule > svg {
+        display: none;
+    }
+
+    .schedule > span {
+        display: none;
+    }
+
+    .removeSchedule {
+        grid-column: 1 / -1;
+        justify-self: end;
+    }
+}

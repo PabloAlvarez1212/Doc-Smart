@@ -137,3 +137,72 @@ export const reintentarSolicitudValidacionService = async (archivo, signal) => {
 
     return response.data;
 };
+
+
+// ==========================================
+// DISPONIBILIDAD DEL MÉDICO
+// ==========================================
+
+export const obtenerDisponibilidadMedicoService =
+    async function () {
+
+        const response = await api.get(
+            "/medicos/disponibilidad/"
+        );
+
+        return response.data;
+    };
+
+
+export const actualizarDisponibilidadMedicoService =
+    async function (datos) {
+
+        const response = await api.put(
+            "/medicos/disponibilidad/",
+            datos
+        );
+
+        return response.data;
+    };
+
+
+export const obtenerExcepcionesDisponibilidadService =
+    async function () {
+        const response = await api.get(
+            "/medicos/disponibilidad/excepciones/"
+        );
+
+        return response.data;
+    };
+
+
+export const crearExcepcionDisponibilidadService =
+    async function (datos) {
+        const response = await api.post(
+            "/medicos/disponibilidad/excepciones/fecha/",
+            datos
+        );
+
+        return response.data;
+    };
+
+
+export const actualizarExcepcionDisponibilidadService =
+    async function (fecha, datos) {
+        const response = await api.put(
+            `/medicos/disponibilidad/excepciones/fecha/${fecha}/`,
+            datos
+        );
+
+        return response.data;
+    };
+
+
+export const eliminarExcepcionDisponibilidadService =
+    async function (fecha) {
+        const response = await api.delete(
+            `/medicos/disponibilidad/excepciones/fecha/${fecha}/`
+        );
+
+        return response.data;
+    };

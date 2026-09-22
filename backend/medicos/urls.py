@@ -16,13 +16,22 @@ from .views import (
     RechazarSolicitudValidacionView,
     MiValidacionMedicoView,
     ReintentarSolicitudValidacionView,
+    DisponibilidadMedicoView,
+    ExcepcionesDisponibilidadMedicoView,
+    ExcepcionDisponibilidadMedicoDetalleView,
+    HorariosDisponiblesMedicoView,
+    DiasDisponiblesMedicoView,
+    CrearExcepcionDisponibilidadFechaView,
+    ExcepcionDisponibilidadFechaView,
 )
 urlpatterns = [
     path('', MedicoListView.as_view(), name='medico-list'),
     path('registro/',RegistrarMedicoView.as_view(), name='medico-registro'),
+    path("<int:medico_id>/horarios-disponibles/", HorariosDisponiblesMedicoView.as_view(), name="horarios-disponibles-medico"),
+    path("<int:medico_id>/dias-disponibles/", DiasDisponiblesMedicoView.as_view(),name="dias-disponibles-medico"),
     path('<int:id_medico>/', MedicoDetailView.as_view(), name='medico-detail'),
     path('especialidades/', EspecialidadListView.as_view(), name='especialidad-list'),
-    path('especialidad/<int:id_especialidad>/', EspecialidadDetailView.as_view(), name='especialidad-list'),
+    path('especialidad/<int:id_especilidad>/', EspecialidadDetailView.as_view(), name='especialidad-list'),
     path("dashboard/inicio/",DashboardInicioMedicoView.as_view(),name="dashboard-medico"),
     path('perfil/', PerfilMedicoView.as_view(), name='perfil-medico'),
     path('perfil/foto/', FotoPerfilMedicoView.as_view(), name='foto-perfil-medico'),
@@ -42,4 +51,10 @@ urlpatterns = [
     path("mi-validacion/",MiValidacionMedicoView.as_view(),name="mi-validacion-medico"),
     #!Enviar una nueva solicitud
     path("mi-validacion/reintentar/",ReintentarSolicitudValidacionView.as_view(),name="reintentar-validacion-medico"),
+    #!Disponibilidad del medico
+    path("disponibilidad/", DisponibilidadMedicoView.as_view(), name="disponibilidad-medico"),
+    path("disponibilidad/excepciones/fecha/",CrearExcepcionDisponibilidadFechaView.as_view(), name="crear-excepcion-disponibilidad-fecha"),
+    path("disponibilidad/excepciones/fecha/<str:fecha>/",ExcepcionDisponibilidadFechaView.as_view(),name="excepcion-disponibilidad-fecha"),
+    path("disponibilidad/excepciones/", ExcepcionesDisponibilidadMedicoView.as_view(), name="excepciones-disponibilidad-medico"),
+    path("disponibilidad/excepciones/<int:excepcion_id>/", ExcepcionDisponibilidadMedicoDetalleView.as_view(), name="detalle-excepcion-disponibilidad-medico"), 
 ]

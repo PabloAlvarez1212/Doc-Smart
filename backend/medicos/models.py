@@ -1,5 +1,6 @@
 from django.db import models
 from catalogos.models import Rol
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Modelo que representa una especialidad médica (ej: Cardiología, Pediatría)
 class Especialidad(models.Model):
@@ -30,6 +31,14 @@ class Medico(models.Model):
         on_delete=models.PROTECT,
         null=True,
         blank=True
+    )
+    duracion_consulta = models.PositiveSmallIntegerField(
+        default=30,
+        validators=[
+            MinValueValidator(10),
+            MaxValueValidator(180),
+        ],
+        help_text="Duración de la consulta en minutos"
     )
     # Propiedad requerida por el sistema de autenticación: indica que el médico está autenticado
     @property
@@ -77,3 +86,86 @@ class SolicitudValidacionMedico(models.Model):
     
     def __str__(self):
         return f"Solicitud {self.id} - {self.medico}"
+
+class DisponibilidadMedico(models.Model):
+
+    class DiaSemana(models.IntegerChoices):
+        LUNES = 0, "Lunes"
+        MARTES = 1, "Martes"
+        MIERCOLES = 2, "Miércoles"
+        JUEVES = 3, "Jueves"
+        VIERNES = 4, "Viernes"
+        SABADO = 5, "Sábado"
+        DOMINGO = 6, "Domingo"
+
+    medico = models.ForeignKey(
+        Medico,
+        on_delete=models.CASCADE,
+        related_name="disponibilidades"
+    )
+
+    dia_semana = models.PositiveSmallIntegerField(
+        choices=DiaSemana.choices
+    )
+
+    hora_inicio = models.TimeField()
+
+    hora_fin = models.TimeField()
+
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return (
+            f"{self.medico} - "
+            f"{self.get_dia_semana_display()} "
+            f"{self.hora_inicio} - {self.hora_fin}"
+        )
+
+class ExcepcionDisponibilidadMedico(models.Model):
+
+    class TipoExcepcion(models.TextChoices):
+        NO_DISPONIBLE = "NO_DISPONIBLE", "No disponible"
+        HORARIO_ESPECIAL = "HORARIO_ESPECIAL", "Horario especial"
+
+    medico = models.ForeignKey(
+        Medico,
+        on_delete=models.CASCADE,
+        related_name="excepciones_disponibilidad"
+    )
+
+    fecha = models.DateField()
+
+    tipo = models.CharField(
+        max_length=20,
+        choices=TipoExcepcion.choices
+    )
+
+    hora_inicio = models.TimeField(
+        null=True,
+        blank=True
+    )
+
+    hora_fin = models.TimeField(
+        null=True,
+        blank=True
+    )
+
+    motivo = models.CharField(
+        max_length=255,
+        blank=True,
+        default=""
+    )
+
+    class Meta:
+        ordering = [
+            "fecha",
+            "hora_inicio"
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.medico} - "
+            f"{self.fecha} - "
+            f"{self.get_tipo_display()}"
+        )
+

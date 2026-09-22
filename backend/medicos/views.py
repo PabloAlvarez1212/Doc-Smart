@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from utils import IsAdmin,IsMedico,IsMedicoAprobado,IsPaciente
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from medicos.models import Medico
+from medicos.models import (Medico, ExcepcionDisponibilidadMedico,)
 from medicos.services import (
     listarMedicosService,
     obtenerMedicoService,
@@ -30,6 +30,15 @@ from medicos.services import (
     rechazarSolicitudValidacionService,
     obtenerMiValidacionService,
     reintentarSolicitudValidacionService,
+    obtenerDisponibilidadMedicoService,
+    actualizarDisponibilidadMedicoService,
+    obtenerExcepcionesDisponibilidadService,
+    crearExcepcionDisponibilidadService,
+    actualizarExcepcionDisponibilidadService,
+    eliminarExcepcionDisponibilidadService,
+    guardarExcepcionFechaService,
+    obtenerExcepcionFechaService,
+    eliminarExcepcionFechaService,
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
@@ -39,6 +48,16 @@ from medicos.serializers import (
     FotoPerfilMedicoSerializer,
     RechazarSolicitudValidacionSerializer,
     ReintentarSolicitudValidacionSerializer,
+    ActualizarDisponibilidadMedicoSerializer,
+    GuardarExcepcionDisponibilidadSerializer,
+    ConsultarHorariosDisponiblesSerializer,
+    ConsultarDiasDisponiblesSerializer,
+    GuardarExcepcionFechaSerializer,
+    FechaDisponibilidadSerializer,
+)
+from .services_disponibilidad import (
+    obtenerHorariosDisponiblesService,
+    obtenerDiasDisponiblesService,
 )
 from rest_framework.parsers import MultiPartParser, FormParser
 
@@ -710,3 +729,590 @@ class MedicosDisponiblesView(APIView):
         except Exception as e:
             print("Error en el servidor:", e)
             return respuesta_error(mensaje="Error interno en el servidor",status=500)
+
+
+
+class DisponibilidadMedicoView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsMedicoAprobado,
+    ]
+
+    def get(self, request):
+
+        try:
+
+            resultado, status_code = (
+                obtenerDisponibilidadMedicoService(
+                    request.user.id
+                )
+            )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje=(
+                    "Disponibilidad obtenida "
+                    "correctamente"
+                ),
+                status=status_code
+            )
+
+        except Exception as e:
+
+            logger.exception(
+                "Error obteniendo disponibilidad "
+                "del médico id=%s",
+                request.user.id
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+    def put(self, request):
+
+        try:
+
+            serializer = (
+                ActualizarDisponibilidadMedicoSerializer(
+                    data=request.data
+                )
+            )
+
+            if not serializer.is_valid():
+
+                return respuesta_serializer_invalido(
+                    serializer.errors
+                )
+
+            bloques = serializer.validated_data[
+                "disponibilidad"
+            ]
+
+            duracion_consulta = (
+                serializer.validated_data[
+                    "duracion_consulta"
+                ]
+            )
+
+            resultado, status_code = (
+                actualizarDisponibilidadMedicoService(
+                    request.user.id,
+                    bloques,
+                    duracion_consulta
+                )
+            )
+
+            if status_code != 200:
+
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje=(
+                    "Disponibilidad actualizada "
+                    "correctamente"
+                ),
+                status=status_code
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Error actualizando disponibilidad "
+                "del médico id=%s",
+                request.user.id
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+class ExcepcionesDisponibilidadMedicoView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsMedicoAprobado,
+    ]
+
+    def get(self, request):
+
+        try:
+
+            resultado, status_code = (
+                obtenerExcepcionesDisponibilidadService(
+                    request.user.id
+                )
+            )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje="Excepciones obtenidas correctamente",
+                status=status_code
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Error obteniendo excepciones médico id=%s",
+                request.user.id
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+    def post(self, request):
+
+        try:
+
+            serializer = GuardarExcepcionDisponibilidadSerializer(
+                data=request.data
+            )
+
+            if not serializer.is_valid():
+
+                return respuesta_serializer_invalido(
+                    serializer.errors
+                )
+
+            resultado, status_code = (
+                crearExcepcionDisponibilidadService(
+                    request.user.id,
+                    serializer.validated_data
+                )
+            )
+
+            if status_code != 201:
+
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje="Excepción creada correctamente",
+                status=status_code
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Error creando excepción médico id=%s",
+                request.user.id
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+
+class ExcepcionDisponibilidadMedicoDetalleView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsMedicoAprobado,
+    ]
+
+    def put(self, request, excepcion_id):
+
+        try:
+
+            serializer = GuardarExcepcionDisponibilidadSerializer(
+                data=request.data
+            )
+
+            if not serializer.is_valid():
+
+                return respuesta_serializer_invalido(
+                    serializer.errors
+                )
+
+            resultado, status_code = (
+                actualizarExcepcionDisponibilidadService(
+                    request.user.id,
+                    excepcion_id,
+                    serializer.validated_data
+                )
+            )
+
+            if status_code != 200:
+
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje="Excepción actualizada correctamente",
+                status=status_code
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Error actualizando excepción id=%s médico=%s",
+                excepcion_id,
+                request.user.id
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+    def delete(self, request, excepcion_id):
+
+        try:
+
+            resultado, status_code = (
+                eliminarExcepcionDisponibilidadService(
+                    request.user.id,
+                    excepcion_id
+                )
+            )
+
+            if status_code != 204:
+
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            return Response(
+                status=204
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Error eliminando excepción id=%s médico=%s",
+                excepcion_id,
+                request.user.id
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+
+class HorariosDisponiblesMedicoView(APIView):
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    def get(self, request, medico_id):
+
+        try:
+
+            serializer = (
+                ConsultarHorariosDisponiblesSerializer(
+                    data=request.query_params
+                )
+            )
+
+            if not serializer.is_valid():
+
+                return respuesta_serializer_invalido(
+                    serializer.errors
+                )
+
+            fecha = serializer.validated_data[
+                "fecha"
+            ]
+
+            resultado, status_code = (
+                obtenerHorariosDisponiblesService(
+                    medico_id,
+                    fecha
+                )
+            )
+
+            if status_code != 200:
+
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje=(
+                    "Horarios disponibles obtenidos "
+                    "correctamente"
+                ),
+                status=status_code
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Error obteniendo horarios "
+                "del médico id=%s",
+                medico_id
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+
+class DiasDisponiblesMedicoView(APIView):
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    def get(self, request, medico_id):
+
+        try:
+
+            serializer = (
+                ConsultarDiasDisponiblesSerializer(
+                    data=request.query_params
+                )
+            )
+
+            if not serializer.is_valid():
+
+                return respuesta_serializer_invalido(
+                    serializer.errors
+                )
+
+            resultado, status_code = (
+                obtenerDiasDisponiblesService(
+                    medico_id,
+                    serializer.validated_data[
+                        "desde"
+                    ],
+                    serializer.validated_data[
+                        "hasta"
+                    ]
+                )
+            )
+
+            if status_code != 200:
+
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje=(
+                    "Días disponibles obtenidos "
+                    "correctamente"
+                ),
+                status=status_code
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Error obteniendo días disponibles "
+                "del médico id=%s",
+                medico_id
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+
+
+class ExcepcionDisponibilidadFechaView(
+    APIView
+):
+    permission_classes = [
+        IsAuthenticated,
+        IsMedicoAprobado,
+    ]
+
+    def put(self, request, fecha):
+        try:
+            datos = request.data.copy()
+
+            datos["fecha"] = fecha
+
+            serializer = (
+                GuardarExcepcionFechaSerializer(
+                    data=datos
+                )
+            )
+
+            if not serializer.is_valid():
+                return respuesta_serializer_invalido(
+                    serializer.errors
+                )
+
+            resultado, status_code = (
+                guardarExcepcionFechaService(
+                    request.user.id,
+                    serializer.validated_data
+                )
+            )
+
+            if status_code != 200:
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje=(
+                    "Excepción actualizada "
+                    "correctamente"
+                ),
+                status=200
+            )
+
+        except Exception:
+            logger.exception(
+                "Error actualizando excepción "
+                "del médico id=%s fecha=%s",
+                request.user.id,
+                fecha
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+    def delete(self, request, fecha):
+        try:
+            serializer = FechaDisponibilidadSerializer(
+                data={
+                    "fecha": fecha
+                }
+            )
+
+            if not serializer.is_valid():
+                return respuesta_serializer_invalido(
+                    serializer.errors
+                )
+
+            fecha_validada = (
+                serializer.validated_data[
+                    "fecha"
+                ]
+            )
+
+            resultado, status_code = (
+                eliminarExcepcionFechaService(
+                    request.user.id,
+                    fecha_validada
+                )
+            )
+
+            if status_code != 204:
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            return Response(
+                status=204
+            )
+
+        except Exception:
+            logger.exception(
+                "Error eliminando excepción "
+                "del médico id=%s fecha=%s",
+                request.user.id,
+                fecha
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+class CrearExcepcionDisponibilidadFechaView(
+    APIView
+):
+    permission_classes = [
+        IsAuthenticated,
+        IsMedicoAprobado,
+    ]
+
+    def post(self, request):
+        try:
+            serializer = (
+                GuardarExcepcionFechaSerializer(
+                    data=request.data
+                )
+            )
+
+            if not serializer.is_valid():
+                return respuesta_serializer_invalido(
+                    serializer.errors
+                )
+
+            fecha = (
+                serializer.validated_data[
+                    "fecha"
+                ]
+            )
+
+            existe = (
+                ExcepcionDisponibilidadMedico.objects
+                .filter(
+                    medico_id=request.user.id,
+                    fecha=fecha
+                )
+                .exists()
+            )
+
+            if existe:
+                return respuesta_error(
+                    (
+                        "Ya existe una excepción "
+                        "para esta fecha"
+                    ),
+                    status=400
+                )
+
+            resultado, status_code = (
+                guardarExcepcionFechaService(
+                    request.user.id,
+                    serializer.validated_data
+                )
+            )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje=(
+                    "Excepción creada "
+                    "correctamente"
+                ),
+                status=201
+            )
+
+        except Exception:
+            logger.exception(
+                "Error creando excepción "
+                "del médico id=%s",
+                request.user.id
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )

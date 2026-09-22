@@ -5,7 +5,7 @@ from django.utils import timezone
 from datetime import timedelta
 from citas.models import Cita
 from notificaciones.models import Notificacion
-from medicos.models import Medico, Especialidad,SolicitudValidacionMedico
+from medicos.models import Medico, Especialidad,SolicitudValidacionMedico, DisponibilidadMedico, ExcepcionDisponibilidadMedico
 from users.models import Usuario
 from historial_medico.models import HistorialClinico
 from catalogos.models import Rol, Ciudad
@@ -17,7 +17,11 @@ from medicos.serializers import (
     EditarEspecialidadSerializer,
     MedicosPublicosSerializer,
     SolicitudValidacionMedicoSerializer,
+    DisponibilidadMedicoSerializer,
+    ExcepcionDisponibilidadMedicoSerializer,
 )
+
+from medicos.services_disponibilidad import (obtenerProximaDisponibilidad,)
 from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
 from django.db.models import Q,Value,OuterRef, Subquery,Count
@@ -78,7 +82,20 @@ def listarMedicosPublicosService(
     if ciudad:
         medicos = medicos.filter(ciudad_id=ciudad)
         
-    serializer = MedicosPublicosSerializer(medicos,many=True)
+    medicos = list(medicos)
+
+    for medico in medicos:
+        medico.proxima_disponibilidad_calculada = (
+            obtenerProximaDisponibilidad(
+                medico
+            )
+        )
+
+    serializer = MedicosPublicosSerializer(
+        medicos,
+        many=True
+    )
+
     return serializer.data, 200
 
 def listarSolicitudesValidacionService(
@@ -1172,3 +1189,495 @@ def eliminarFotoPerfilMedicoService(medico):
     )
 
     return medico
+
+# ── DISPONIBILIDAD DEL MEDICO ────────────────────────────────────────────────────────────
+
+def obtenerDisponibilidadMedicoService(
+    medico_id
+):
+    medico = (
+        Medico.objects
+        .filter(id=medico_id)
+        .first()
+    )
+
+    if not medico:
+        return "Médico no encontrado", 404
+
+    disponibilidad = (
+        DisponibilidadMedico.objects
+        .filter(medico_id=medico_id)
+        .order_by(
+            "dia_semana",
+            "hora_inicio"
+        )
+    )
+
+    serializer = DisponibilidadMedicoSerializer(
+        disponibilidad,
+        many=True
+    )
+
+    return {
+        "duracion_consulta": (
+            medico.duracion_consulta
+        ),
+        "disponibilidad": serializer.data,
+    }, 200
+
+
+@transaction.atomic
+def actualizarDisponibilidadMedicoService(
+    medico_id,
+    bloques,
+    duracion_consulta
+):
+    medico = (
+        Medico.objects
+        .select_for_update()
+        .filter(id=medico_id)
+        .first()
+    )
+
+    if not medico:
+        return "Médico no encontrado", 404
+
+    medico.duracion_consulta = (
+        duracion_consulta
+    )
+
+    medico.save(
+        update_fields=[
+            "duracion_consulta"
+        ]
+    )
+
+    DisponibilidadMedico.objects.filter(
+        medico=medico
+    ).delete()
+
+    nuevas_disponibilidades = [
+        DisponibilidadMedico(
+            medico=medico,
+            dia_semana=bloque[
+                "dia_semana"
+            ],
+            hora_inicio=bloque[
+                "hora_inicio"
+            ],
+            hora_fin=bloque[
+                "hora_fin"
+            ],
+            activo=bloque.get(
+                "activo",
+                True
+            ),
+        )
+        for bloque in bloques
+    ]
+
+    if nuevas_disponibilidades:
+        DisponibilidadMedico.objects.bulk_create(
+            nuevas_disponibilidades
+        )
+
+    disponibilidad = (
+        DisponibilidadMedico.objects
+        .filter(medico=medico)
+        .order_by(
+            "dia_semana",
+            "hora_inicio"
+        )
+    )
+
+    serializer = DisponibilidadMedicoSerializer(
+        disponibilidad,
+        many=True
+    )
+
+    return {
+        "duracion_consulta": (
+            medico.duracion_consulta
+        ),
+        "disponibilidad": serializer.data,
+    }, 200
+
+def obtenerExcepcionesDisponibilidadService(medico_id):
+
+    excepciones = (
+        ExcepcionDisponibilidadMedico.objects
+        .filter(medico_id=medico_id)
+        .order_by("fecha", "hora_inicio")
+    )
+
+    serializer = ExcepcionDisponibilidadMedicoSerializer(
+        excepciones,
+        many=True
+    )
+
+    return serializer.data, 200
+
+def _validarConflictosExcepcion(
+    medico,
+    fecha,
+    tipo,
+    hora_inicio=None,
+    hora_fin=None,
+    excluir_id=None,
+):
+
+    excepciones = (
+        ExcepcionDisponibilidadMedico.objects
+        .select_for_update()
+        .filter(
+            medico=medico,
+            fecha=fecha
+        )
+    )
+
+    if excluir_id is not None:
+        excepciones = excepciones.exclude(
+            id=excluir_id
+        )
+
+    tipo_no_disponible = (
+        ExcepcionDisponibilidadMedico
+        .TipoExcepcion.NO_DISPONIBLE
+    )
+
+    tipo_horario = (
+        ExcepcionDisponibilidadMedico
+        .TipoExcepcion.HORARIO_ESPECIAL
+    )
+
+    if tipo == tipo_no_disponible:
+
+        if excepciones.exists():
+            return (
+                "No puedes marcar la fecha como no disponible "
+                "porque ya tiene excepciones configuradas."
+            )
+
+        return None
+
+    if tipo == tipo_horario:
+
+        if excepciones.filter(
+            tipo=tipo_no_disponible
+        ).exists():
+
+            return (
+                "La fecha está marcada como no disponible."
+            )
+
+        horarios = excepciones.filter(
+            tipo=tipo_horario
+        )
+
+        for horario in horarios:
+
+            # Dos intervalos se solapan cuando:
+            # inicio_nuevo < fin_existente
+            # y fin_nuevo > inicio_existente
+            if (
+                hora_inicio < horario.hora_fin
+                and
+                hora_fin > horario.hora_inicio
+            ):
+                return (
+                    "El horario especial se solapa con otro "
+                    "horario configurado para esta fecha."
+                )
+
+    return None
+
+@transaction.atomic
+def crearExcepcionDisponibilidadService(
+    medico_id,
+    datos
+):
+
+    medico = (
+        Medico.objects
+        .select_for_update()
+        .filter(id=medico_id)
+        .first()
+    )
+
+    if not medico:
+        return "Médico no encontrado", 404
+
+    error = _validarConflictosExcepcion(
+        medico=medico,
+        fecha=datos["fecha"],
+        tipo=datos["tipo"],
+        hora_inicio=datos.get("hora_inicio"),
+        hora_fin=datos.get("hora_fin"),
+    )
+
+    if error:
+        return error, 400
+
+    excepcion = (
+        ExcepcionDisponibilidadMedico.objects.create(
+            medico=medico,
+            fecha=datos["fecha"],
+            tipo=datos["tipo"],
+            hora_inicio=datos.get("hora_inicio"),
+            hora_fin=datos.get("hora_fin"),
+            motivo=datos.get("motivo", ""),
+        )
+    )
+
+    serializer = ExcepcionDisponibilidadMedicoSerializer(
+        excepcion
+    )
+
+    return serializer.data, 201
+
+@transaction.atomic
+def actualizarExcepcionDisponibilidadService(
+    medico_id,
+    excepcion_id,
+    datos
+):
+
+    excepcion = (
+        ExcepcionDisponibilidadMedico.objects
+        .select_for_update()
+        .filter(
+            id=excepcion_id,
+            medico_id=medico_id
+        )
+        .first()
+    )
+
+    if not excepcion:
+        return "Excepción no encontrada", 404
+
+    error = _validarConflictosExcepcion(
+        medico=excepcion.medico,
+        fecha=datos["fecha"],
+        tipo=datos["tipo"],
+        hora_inicio=datos.get("hora_inicio"),
+        hora_fin=datos.get("hora_fin"),
+        excluir_id=excepcion.id,
+    )
+
+    if error:
+        return error, 400
+
+    excepcion.fecha = datos["fecha"]
+    excepcion.tipo = datos["tipo"]
+    excepcion.hora_inicio = datos.get(
+        "hora_inicio"
+    )
+    excepcion.hora_fin = datos.get(
+        "hora_fin"
+    )
+    excepcion.motivo = datos.get(
+        "motivo",
+        ""
+    )
+
+    excepcion.save()
+
+    serializer = ExcepcionDisponibilidadMedicoSerializer(
+        excepcion
+    )
+
+    return serializer.data, 200
+
+@transaction.atomic
+def eliminarExcepcionDisponibilidadService(
+    medico_id,
+    excepcion_id
+):
+
+    excepcion = (
+        ExcepcionDisponibilidadMedico.objects
+        .select_for_update()
+        .filter(
+            id=excepcion_id,
+            medico_id=medico_id
+        )
+        .first()
+    )
+
+    if not excepcion:
+        return "Excepción no encontrada", 404
+
+    excepcion.delete()
+
+    return None, 204
+
+
+@transaction.atomic
+def guardarExcepcionFechaService(
+    medico_id,
+    datos
+):
+    medico = (
+        Medico.objects
+        .select_for_update()
+        .filter(id=medico_id)
+        .first()
+    )
+
+    if not medico:
+        return "Médico no encontrado", 404
+
+    fecha = datos["fecha"]
+    tipo = datos["tipo"]
+    motivo = datos.get(
+        "motivo",
+        ""
+    )
+    horarios = datos.get(
+        "horarios",
+        []
+    )
+
+    (
+        ExcepcionDisponibilidadMedico.objects
+        .filter(
+            medico=medico,
+            fecha=fecha
+        )
+        .delete()
+    )
+
+    tipo_no_disponible = (
+        ExcepcionDisponibilidadMedico
+        .TipoExcepcion.NO_DISPONIBLE
+    )
+
+    tipo_horario = (
+        ExcepcionDisponibilidadMedico
+        .TipoExcepcion.HORARIO_ESPECIAL
+    )
+
+    if tipo == tipo_no_disponible:
+
+        ExcepcionDisponibilidadMedico.objects.create(
+            medico=medico,
+            fecha=fecha,
+            tipo=tipo_no_disponible,
+            motivo=motivo,
+        )
+
+    elif tipo == tipo_horario:
+
+        excepciones = [
+            ExcepcionDisponibilidadMedico(
+                medico=medico,
+                fecha=fecha,
+                tipo=tipo_horario,
+                hora_inicio=bloque[
+                    "hora_inicio"
+                ],
+                hora_fin=bloque[
+                    "hora_fin"
+                ],
+                motivo=motivo,
+            )
+            for bloque in horarios
+        ]
+
+        ExcepcionDisponibilidadMedico.objects.bulk_create(
+            excepciones
+        )
+
+    return obtenerExcepcionFechaService(
+        medico_id,
+        fecha
+    )
+
+
+def obtenerExcepcionFechaService(
+    medico_id,
+    fecha
+):
+    excepciones = list(
+        ExcepcionDisponibilidadMedico.objects
+        .filter(
+            medico_id=medico_id,
+            fecha=fecha
+        )
+        .order_by("hora_inicio")
+    )
+
+    if not excepciones:
+        return (
+            "No existe una excepción "
+            "para esta fecha",
+            404
+        )
+
+    primera = excepciones[0]
+
+    horarios = []
+
+    if (
+        primera.tipo
+        == ExcepcionDisponibilidadMedico
+        .TipoExcepcion.HORARIO_ESPECIAL
+    ):
+        horarios = [
+            {
+                "id": excepcion.id,
+                "hora_inicio": (
+                    excepcion.hora_inicio
+                    .strftime("%H:%M")
+                ),
+                "hora_fin": (
+                    excepcion.hora_fin
+                    .strftime("%H:%M")
+                ),
+            }
+            for excepcion in excepciones
+        ]
+
+    return {
+        "fecha": fecha.isoformat(),
+        "tipo": primera.tipo,
+        "tipo_display": (
+            primera.get_tipo_display()
+        ),
+        "motivo": primera.motivo,
+        "horarios": horarios,
+    }, 200
+
+
+@transaction.atomic
+def eliminarExcepcionFechaService(
+    medico_id,
+    fecha
+):
+    medico = (
+        Medico.objects
+        .select_for_update()
+        .filter(id=medico_id)
+        .first()
+    )
+
+    if not medico:
+        return "Médico no encontrado", 404
+
+    eliminadas, _ = (
+        ExcepcionDisponibilidadMedico.objects
+        .filter(
+            medico=medico,
+            fecha=fecha
+        )
+        .delete()
+    )
+
+    if eliminadas == 0:
+        return (
+            "No existe una excepción "
+            "para esta fecha",
+            404
+        )
+
+    return None, 204

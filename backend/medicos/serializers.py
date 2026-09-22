@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import Medico, Especialidad,SolicitudValidacionMedico
+from .models import Medico, Especialidad,SolicitudValidacionMedico, DisponibilidadMedico, ExcepcionDisponibilidadMedico
 from utils import validarContraseña, validarNumber
+from django.utils import timezone
 from datetime import date
 
 
@@ -93,6 +94,7 @@ class MedicosPublicosSerializer(serializers.ModelSerializer):
     departamento = serializers.SerializerMethodField()
     ciudad = serializers.SerializerMethodField()
     foto_perfil = serializers.SerializerMethodField()
+    proxima_disponibilidad = (serializers.SerializerMethodField())
     class Meta:
         model = Medico
         fields = [
@@ -104,6 +106,7 @@ class MedicosPublicosSerializer(serializers.ModelSerializer):
             'departamento',
             'ciudad',
             'foto_perfil',
+            'proxima_disponibilidad'
         ]
     def get_departamento(self, obj):
         if obj.ciudad and obj.ciudad.departamento:
@@ -119,6 +122,13 @@ class MedicosPublicosSerializer(serializers.ModelSerializer):
         if obj.foto_perfil:
             return obj.foto_perfil.url
         return None
+
+    def get_proxima_disponibilidad(self, obj):
+        return getattr(
+            obj,
+            "proxima_disponibilidad_calculada",
+            None
+        )
         
 class MedicoPerfilSerializer(serializers.ModelSerializer):
 
@@ -553,3 +563,479 @@ class RechazarSolicitudValidacionSerializer(serializers.Serializer):
         allow_blank=False,
         trim_whitespace=True
     )
+
+class DisponibilidadMedicoSerializer(serializers.ModelSerializer):
+
+    dia = serializers.CharField(
+        source="get_dia_semana_display",
+        read_only=True
+    )
+
+    class Meta:
+        model = DisponibilidadMedico
+        fields = [
+            "id",
+            "dia_semana",
+            "dia",
+            "hora_inicio",
+            "hora_fin",
+            "activo",
+        ]
+
+
+class BloqueDisponibilidadSerializer(serializers.Serializer):
+
+    dia_semana = serializers.IntegerField(
+        min_value=0,
+        max_value=6,
+        error_messages={
+            "required": "El día de la semana es obligatorio",
+            "invalid": "El día de la semana debe ser un número",
+            "min_value": "El día de la semana debe estar entre 0 y 6",
+            "max_value": "El día de la semana debe estar entre 0 y 6",
+        }
+    )
+
+    hora_inicio = serializers.TimeField(
+        error_messages={
+            "required": "La hora de inicio es obligatoria",
+            "invalid": "La hora de inicio no tiene un formato válido",
+        }
+    )
+
+    hora_fin = serializers.TimeField(
+        error_messages={
+            "required": "La hora de finalización es obligatoria",
+            "invalid": "La hora de finalización no tiene un formato válido",
+        }
+    )
+
+    activo = serializers.BooleanField(
+        default=True
+    )
+
+    def validate(self, data):
+
+        if data["hora_inicio"] >= data["hora_fin"]:
+            raise serializers.ValidationError({
+                "hora_fin": (
+                    "La hora de finalización debe ser "
+                    "posterior a la hora de inicio"
+                )
+            })
+
+        return data
+
+
+class ActualizarDisponibilidadMedicoSerializer(
+    serializers.Serializer
+):
+    duracion_consulta = serializers.IntegerField(
+        min_value=10,
+        max_value=180,
+        required=True,
+        error_messages={
+            "required": (
+                "La duración de la consulta es obligatoria"
+            ),
+            "invalid": (
+                "La duración de la consulta debe ser un número"
+            ),
+            "min_value": (
+                "La duración mínima de una consulta "
+                "es de 10 minutos"
+            ),
+            "max_value": (
+                "La duración máxima de una consulta "
+                "es de 180 minutos"
+            ),
+        }
+    )
+
+    disponibilidad = BloqueDisponibilidadSerializer(
+        many=True,
+        required=True
+    )
+
+    def validate_disponibilidad(self, bloques):
+        bloques_por_dia = {}
+
+        for bloque in bloques:
+            dia = bloque["dia_semana"]
+            bloques_por_dia.setdefault(
+                dia,
+                []
+            ).append(bloque)
+
+        for dia, bloques_dia in (
+            bloques_por_dia.items()
+        ):
+            bloques_ordenados = sorted(
+                bloques_dia,
+                key=lambda bloque: (
+                    bloque["hora_inicio"]
+                )
+            )
+
+            for indice in range(
+                1,
+                len(bloques_ordenados)
+            ):
+                anterior = bloques_ordenados[
+                    indice - 1
+                ]
+                actual = bloques_ordenados[
+                    indice
+                ]
+
+                if (
+                    actual["hora_inicio"]
+                    < anterior["hora_fin"]
+                ):
+                    raise serializers.ValidationError(
+                        (
+                            "Existen horarios que se "
+                            f"solapan en el día {dia}."
+                        )
+                    )
+
+        return bloques
+
+
+class ExcepcionDisponibilidadMedicoSerializer(
+    serializers.ModelSerializer
+):
+
+    tipo_display = serializers.CharField(
+        source="get_tipo_display",
+        read_only=True
+    )
+
+    class Meta:
+        model = ExcepcionDisponibilidadMedico
+        fields = [
+            "id",
+            "fecha",
+            "tipo",
+            "tipo_display",
+            "hora_inicio",
+            "hora_fin",
+            "motivo",
+        ]
+
+
+class GuardarExcepcionDisponibilidadSerializer(
+    serializers.Serializer
+):
+
+    fecha = serializers.DateField()
+
+    tipo = serializers.ChoiceField(
+        choices=ExcepcionDisponibilidadMedico.TipoExcepcion.choices
+    )
+
+    hora_inicio = serializers.TimeField(
+        required=False,
+        allow_null=True
+    )
+
+    hora_fin = serializers.TimeField(
+        required=False,
+        allow_null=True
+    )
+
+    motivo = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=255,
+        default=""
+    )
+
+    def validate_fecha(self, fecha):
+
+        if fecha < timezone.localdate():
+            raise serializers.ValidationError(
+                "No puedes crear excepciones en fechas pasadas."
+            )
+
+        return fecha
+
+    def validate(self, data):
+
+        tipo = data.get("tipo")
+
+        hora_inicio = data.get("hora_inicio")
+        hora_fin = data.get("hora_fin")
+
+        if (
+            tipo
+            == ExcepcionDisponibilidadMedico
+            .TipoExcepcion.NO_DISPONIBLE
+        ):
+
+            if hora_inicio is not None or hora_fin is not None:
+                raise serializers.ValidationError({
+                    "hora_inicio": (
+                        "Una fecha no disponible no debe "
+                        "tener horas configuradas."
+                    )
+                })
+
+        elif (
+            tipo
+            == ExcepcionDisponibilidadMedico
+            .TipoExcepcion.HORARIO_ESPECIAL
+        ):
+
+            if hora_inicio is None:
+                raise serializers.ValidationError({
+                    "hora_inicio": (
+                        "La hora de inicio es obligatoria "
+                        "para un horario especial."
+                    )
+                })
+
+            if hora_fin is None:
+                raise serializers.ValidationError({
+                    "hora_fin": (
+                        "La hora de finalización es obligatoria "
+                        "para un horario especial."
+                    )
+                })
+
+            if hora_inicio >= hora_fin:
+                raise serializers.ValidationError({
+                    "hora_fin": (
+                        "La hora de finalización debe ser "
+                        "posterior a la hora de inicio."
+                    )
+                })
+
+        return data
+
+
+class ConsultarHorariosDisponiblesSerializer(
+    serializers.Serializer
+):
+
+    fecha = serializers.DateField(
+        required=True,
+        error_messages={
+            "required": "La fecha es obligatoria",
+            "invalid": (
+                "La fecha debe tener formato YYYY-MM-DD"
+            ),
+        }
+    )
+
+
+class ConsultarDiasDisponiblesSerializer(
+    serializers.Serializer
+):
+
+    desde = serializers.DateField(
+        required=True,
+        error_messages={
+            "required": (
+                "La fecha inicial es obligatoria"
+            ),
+            "invalid": (
+                "La fecha inicial debe tener "
+                "formato YYYY-MM-DD"
+            ),
+        }
+    )
+
+    hasta = serializers.DateField(
+        required=True,
+        error_messages={
+            "required": (
+                "La fecha final es obligatoria"
+            ),
+            "invalid": (
+                "La fecha final debe tener "
+                "formato YYYY-MM-DD"
+            ),
+        }
+    )
+
+    def validate(self, data):
+
+        if data["hasta"] < data["desde"]:
+
+            raise serializers.ValidationError({
+                "hasta": (
+                    "La fecha final debe ser posterior "
+                    "o igual a la fecha inicial"
+                )
+            })
+
+        return data
+
+class HorarioEspecialSerializer(
+    serializers.Serializer
+):
+    hora_inicio = serializers.TimeField(
+        required=True,
+        error_messages={
+            "required": (
+                "La hora de inicio es obligatoria"
+            ),
+            "invalid": (
+                "La hora de inicio no tiene "
+                "un formato válido"
+            ),
+        }
+    )
+
+    hora_fin = serializers.TimeField(
+        required=True,
+        error_messages={
+            "required": (
+                "La hora de finalización "
+                "es obligatoria"
+            ),
+            "invalid": (
+                "La hora de finalización no "
+                "tiene un formato válido"
+            ),
+        }
+    )
+
+    def validate(self, data):
+        if (
+            data["hora_inicio"]
+            >= data["hora_fin"]
+        ):
+            raise serializers.ValidationError({
+                "hora_fin": (
+                    "La hora de finalización debe "
+                    "ser posterior a la hora de inicio."
+                )
+            })
+
+        return data
+
+
+class GuardarExcepcionFechaSerializer(
+    serializers.Serializer
+):
+    fecha = serializers.DateField(
+        required=True
+    )
+
+    tipo = serializers.ChoiceField(
+        choices=(
+            ExcepcionDisponibilidadMedico
+            .TipoExcepcion.choices
+        )
+    )
+
+    motivo = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=255,
+        default=""
+    )
+
+    horarios = HorarioEspecialSerializer(
+        many=True,
+        required=False,
+        default=list
+    )
+
+    def validate_fecha(self, fecha):
+        if fecha < timezone.localdate():
+            raise serializers.ValidationError(
+                "No puedes configurar "
+                "fechas pasadas."
+            )
+
+        return fecha
+
+    def validate(self, data):
+        tipo = data["tipo"]
+        horarios = data.get(
+            "horarios",
+            []
+        )
+
+        tipo_no_disponible = (
+            ExcepcionDisponibilidadMedico
+            .TipoExcepcion.NO_DISPONIBLE
+        )
+
+        tipo_horario = (
+            ExcepcionDisponibilidadMedico
+            .TipoExcepcion.HORARIO_ESPECIAL
+        )
+
+        if tipo == tipo_no_disponible:
+            if horarios:
+                raise serializers.ValidationError({
+                    "horarios": (
+                        "Una fecha no disponible "
+                        "no debe tener horarios."
+                    )
+                })
+
+            return data
+
+        if tipo == tipo_horario:
+            if not horarios:
+                raise serializers.ValidationError({
+                    "horarios": (
+                        "Debes configurar al menos "
+                        "un horario especial."
+                    )
+                })
+
+            horarios_ordenados = sorted(
+                horarios,
+                key=lambda bloque: (
+                    bloque["hora_inicio"]
+                )
+            )
+
+            for indice in range(
+                1,
+                len(horarios_ordenados)
+            ):
+                anterior = (
+                    horarios_ordenados[
+                        indice - 1
+                    ]
+                )
+
+                actual = (
+                    horarios_ordenados[
+                        indice
+                    ]
+                )
+
+                if (
+                    actual["hora_inicio"]
+                    < anterior["hora_fin"]
+                ):
+                    raise serializers.ValidationError({
+                        "horarios": (
+                            "Los horarios especiales "
+                            "no pueden solaparse."
+                        )
+                    })
+
+        return data
+
+class FechaDisponibilidadSerializer(
+    serializers.Serializer
+):
+    fecha = serializers.DateField()
+
+    def validate_fecha(self, fecha):
+        if fecha < timezone.localdate():
+            raise serializers.ValidationError(
+                "No puedes modificar "
+                "fechas pasadas."
+            )
+
+        return fecha
