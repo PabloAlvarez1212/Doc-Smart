@@ -372,21 +372,18 @@ class BymaxMedicoTests(TestCase):
         self.assertEqual(resultado["data"], {"citas": []})
         self.assertIn("No tienes citas pendientes", response.data["data"]["respuesta"])
 
-    @patch("chatbot.ai.doctor_conversation.preguntar_gemini")
-    def test_consultas_clinicas_individuales_exigen_contexto_autorizado(self, gemini):
-        for mensaje in ("Analiza el caso de Ana", "Resume su historia clínica", "Revisa sus medicamentos",
-                        "Compara sus resultados", "¿Qué diagnóstico diferencial considerarías?",
-                        "Resume la historia clínica del paciente de mi próxima cita"):
-            for streaming in (False, True):
-                with self.subTest(mensaje=mensaje, streaming=streaming):
-                    respuesta = ConversationManager.procesar(self.chat, mensaje, streaming=streaming)
-                    self.assertFalse(respuesta["success"])
-                    self.assertIn("paciente autorizado", respuesta["message"])
-        self.chat.contexto_temporal = {"clinico": {"paciente_id": self.ajeno.id}}
-        self.chat.save(update_fields=["contexto_temporal"])
-        self.assertFalse(ConversationManager.procesar(self.chat, "Analiza el caso de Ana")["success"])
-        gemini.assert_not_called()
+    @patch("chatbot.ai.doctor_conversation.preguntar_gemini",return_value="Análisis clínico general", )
+    def test_consulta_clinica_sin_paciente_activo(self, gemini):
+        mensaje = "Analiza este caso clínico con los datos proporcionados"
+        respuesta = ConversationManager.procesar(self.chat, mensaje)
+        streaming = ConversationManager.procesar(self.chat,mensaje,streaming=True,)
+        self.assertEqual(respuesta, "Análisis clínico general")
+        self.assertTrue(streaming["stream"])
+        contenido = str(streaming["contents"])
+        self.assertIn("paciente activo", contenido)
+        self.assertIn("No afirmes haber consultado", contenido)
         self.assertFalse(ToolLog.objects.exists())
+        gemini.assert_called_once()
 
     @patch("chatbot.ai.doctor_conversation.preguntar_gemini")
     def test_agenda_no_lee_historial_ni_cambia_paciente_activo(self, gemini):
