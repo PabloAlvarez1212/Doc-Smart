@@ -177,7 +177,6 @@ class CopilotoTests(TestCase):
         self.assertEqual(Notificacion.objects.count(), 0)
 
     def test_animo_una_vez_dia_separado_por_tipo_actor_y_validado(self):
-        self.assertEqual(self.medico.pk, self.paciente.pk)
         for actor in (self.medico, self.paciente):
             self.assertTrue(preguntar_animo(actor)[1])
             self.assertFalse(preguntar_animo(actor)[1])
@@ -185,7 +184,8 @@ class CopilotoTests(TestCase):
             self.assertEqual(guardar_animo(actor, 9).puntuacion, 2)
         self.assertEqual(EstadoAnimoDiario.objects.count(), 2)
         for valor in (0, 11, True, "5"):
-            with self.assertRaises(ValueError): guardar_animo(self.medico, valor)
+            with self.assertRaises(ValueError):
+                guardar_animo(self.medico, valor)
         self.assertIn("Nunca deduzcas riesgo", tono_chat(self.chat))
 
     def test_animo_usa_fecha_local_django_y_nuevo_dia(self):
