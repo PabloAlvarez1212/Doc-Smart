@@ -16,6 +16,11 @@ export function useDashboard() {
     const [medicosPorEstadoValidacion, setMedicosPorEstadoValidacion] = useState([]);
     const [solicitudesValidacionPorMes, setSolicitudesValidacionPorMes] = useState([]);
 
+    //pacientes
+    const [pacientesPorCitas, setPacientesPorCitas] = useState([]);
+    const [pacientesPorEdad, setPacientesPorEdad] = useState([]);
+    const [pacientesPorMes, setPacientesPorMes] = useState([]);
+
     useEffect(() => {
         cargarMetricasTarjetas();
         cargarEstadisticas();
@@ -33,19 +38,30 @@ export function useDashboard() {
             const data = await obtenerEstadisticasSistemaService();
 
             //citas
-            setCitasPorEstado(data.data.citas.citas_por_estado);
-            setCitasPorMes(data.data.citas.citas_por_mes);
-            setCitasPorEspecialidad(data.data.citas.citas_por_especialidad)
+            const citas = data.data.citas;
+
+            setCitasPorEstado(citas.citas_por_estado);
+            setCitasPorMes(citas.citas_por_mes);
+            setCitasPorEspecialidad(citas.citas_por_especialidad)
 
             //medicos
-            setMedicosPorEspecialidad(data.data.medicos.medicos_por_especialidad);
-            setMedicosPorEstadoValidacion(data.data.medicos.medicos_por_estado_validacion);
-            setSolicitudesValidacionPorMes(data.data.medicos.solicitudes_validacion_por_mes);
+            const medicos = data.data.medicos;
+
+            setMedicosPorEspecialidad(medicos.medicos_por_especialidad);
+            setMedicosPorEstadoValidacion(medicos.medicos_por_estado_validacion);
+            setSolicitudesValidacionPorMes(medicos.solicitudes_validacion_por_mes);
+
+            //pacientes
+            const pacientes = data.data.pacientes;
+
+            setPacientesPorCitas(pacientes.pacientes_por_citas);
+            setPacientesPorEdad(pacientes.pacientes_por_edad);
+            setPacientesPorMes(pacientes.pacientes_por_mes);
 
         } catch (error) {
             console.log("Error al cargar las estadísticas");
         }
     };
 
-    return { metricasTarjetas, citasPorEstado, citasPorMes, citasPorEspecialidad,medicosPorEspecialidad, medicosPorEstadoValidacion,solicitudesValidacionPorMes }
+    return { metricasTarjetas, citasPorEstado, citasPorMes, citasPorEspecialidad, medicosPorEspecialidad, medicosPorEstadoValidacion, solicitudesValidacionPorMes, pacientesPorCitas,pacientesPorEdad,pacientesPorMes }
 }

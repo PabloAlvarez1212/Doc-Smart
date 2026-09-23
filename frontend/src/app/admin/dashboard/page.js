@@ -8,6 +8,7 @@ import { useDashboard } from "../../../../components/admin/Dashboard/useDashboar
 import AppointmentStats from "../../../../components/admin/Dashboard/Appointments/AppointmentsStats/AppointmentsStats";
 import { useState } from "react";
 import DoctorStats from "../../../../components/admin/Dashboard/Doctors/DoctorStats/DoctorStats";
+import PatientStats from "../../../../components/admin/Dashboard/Patients/PatientStats/PatientStats";
 
 const metricDefinitions = [
     { key: "total_medicos_aprobados", label: "Total de médicos", icon: Stethoscope, tone: "blue" },
@@ -18,7 +19,7 @@ const metricDefinitions = [
 
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState("resumen");
-    const { metricasTarjetas, citasPorEstado, citasPorMes, citasPorEspecialidad, medicosPorEspecialidad, medicosPorEstadoValidacion, solicitudesValidacionPorMes } = useDashboard()
+    const { metricasTarjetas, citasPorEstado, citasPorMes, citasPorEspecialidad, medicosPorEspecialidad, medicosPorEstadoValidacion, solicitudesValidacionPorMes,pacientesPorCitas,pacientesPorEdad,pacientesPorMes } = useDashboard()
     return (
         <div className={styles.page}>
             <AdminPageHeader
@@ -72,6 +73,14 @@ export default function Dashboard() {
                         medicosPorEspecialidad={medicosPorEspecialidad}
                         medicosPorEstadoValidacion={medicosPorEstadoValidacion}
                         solicitudesValidacionPorMes={solicitudesValidacionPorMes}
+                    />
+                )}
+
+                {activeTab === "pacientes" && (
+                    <PatientStats
+                        pacientesPorCitas={pacientesPorCitas}
+                        pacientesPorEdad={pacientesPorEdad}
+                        pacientesPorMes={pacientesPorMes}
                     />
                 )}
             </section>

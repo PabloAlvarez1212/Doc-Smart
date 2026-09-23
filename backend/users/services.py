@@ -21,6 +21,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from utils import filtrarMedicosAprobados
 from django.db.models import Count,OuterRef, Subquery, Value
 from django.db.models.functions import TruncMonth, Coalesce
+from dateutil.relativedelta import relativedelta
 
 logger = logging.getLogger(__name__)
 resend.api_key = os.getenv("RESEND_API_KEY")
@@ -494,6 +495,41 @@ def obtenerEstadisticasSistemaService():
     ultimaSolicitud = (SolicitudValidacionMedico.objects.filter(medico=OuterRef("pk")).order_by("-fecha_solicitud").values("estado")[:1])
     medicosPorEstadoValidacion = (Medico.objects.annotate(estado_actual=Coalesce(Subquery(ultimaSolicitud),Value("sin_solicitud"))).values("estado_actual").annotate(total=Count("id")).order_by("-total"))
     
+    #pacientes
+    pacientesPorCitas = Cita.objects.filter(id_usuario__id_rol__nombre="paciente").values("id_usuario","id_usuario__nombre","id_usuario__apellido").annotate(total=Count("id")).order_by("-total")[:5]
+    pacientesPorMes = (Usuario.objects.filter(id_rol__nombre__iexact="paciente").annotate(mes=TruncMonth("fecha_creacion")).values("mes").annotate(total=Count("id")).order_by("mes"))
+    
+    hoy = timezone.localdate()
+    pacientes = Usuario.objects.filter(id_rol__nombre__iexact="paciente")
+    
+    hace18 = hoy - relativedelta(years=18)
+    hace30 = hoy - relativedelta(years=30)
+    hace45 = hoy - relativedelta(years=45)
+    hace60 = hoy - relativedelta(years=60)
+
+    menores18 = pacientes.filter(
+        fecha_nacimiento__gt=hace18
+    ).count()
+
+    entre18y29 = pacientes.filter(
+        fecha_nacimiento__lte=hace18,
+        fecha_nacimiento__gt=hace30
+    ).count()
+
+    entre30y44 = pacientes.filter(
+        fecha_nacimiento__lte=hace30,
+        fecha_nacimiento__gt=hace45
+    ).count()
+
+    entre45y59 = pacientes.filter(
+        fecha_nacimiento__lte=hace45,
+        fecha_nacimiento__gt=hace60
+    ).count()
+
+    mayores60 = pacientes.filter(
+        fecha_nacimiento__lte=hace60
+    ).count()
+
     data = {
         "citas": {
             "citas_por_estado" : [],
@@ -504,7 +540,12 @@ def obtenerEstadisticasSistemaService():
             "medicos_por_especialidad" : [],
             "medicos_por_estado_validacion": [],
             "solicitudes_validacion_por_mes": []
-        }
+        },
+        "pacientes":{
+            "pacientes_por_citas": [],
+            "pacientes_por_edad": [],
+            "pacientes_por_mes": [],
+        },
     }
     
     #citas
@@ -543,6 +584,42 @@ def obtenerEstadisticasSistemaService():
         data["medicos"]["solicitudes_validacion_por_mes"].append({
             "mes": item["mes"],
             "total_solicitudes": item["total"]
+        })
+    
+    #pacientes
+    for item in pacientesPorCitas:
+        data["pacientes"]["pacientes_por_citas"].append({
+            "paciente" : f'{item["id_usuario__nombre"]} {item["id_usuario__apellido"]}',
+            "total_citas" : item["total"]
+        })
+    
+    data["pacientes"]["pacientes_por_edad"] = [
+        {
+            "rango": "0-17",
+            "total_pacientes": menores18
+        },
+        {
+            "rango": "18-29",
+            "total_pacientes": entre18y29
+        },
+        {
+            "rango": "30-44",
+            "total_pacientes": entre30y44
+        },
+        {
+            "rango": "45-59",
+            "total_pacientes": entre45y59
+        },
+        {
+            "rango": "60+",
+            "total_pacientes": mayores60
+        }
+    ] 
+    
+    for item in pacientesPorMes:
+        data["pacientes"]["pacientes_por_mes"].append({
+            "mes": item["mes"],
+            "total_pacientes": item["total"]
         })
     
     return data,200
