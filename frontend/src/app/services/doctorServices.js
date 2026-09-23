@@ -206,3 +206,41 @@ export const eliminarExcepcionDisponibilidadService =
 
         return response.data;
     };
+
+// ==========================================
+// DISPONIBILIDAD PÚBLICA DEL MÉDICO
+// ==========================================
+
+export const obtenerDiasDisponiblesMedicoService = async function (
+    medicoId,
+    desde,
+    hasta
+) {
+    const response = await api.get(
+        `/medicos/${medicoId}/dias-disponibles/`,
+        {
+            params: {
+                desde,
+                hasta,
+            },
+        }
+    );
+
+    return response.data;
+};
+
+export const obtenerHorariosDisponiblesMedicoService = async function (
+    medicoId,
+    fecha
+) {
+    const response = await api.get(
+        `/medicos/${medicoId}/horarios-disponibles/`,
+        {
+            params: {
+                fecha,
+            },
+        }
+    );
+
+    return response.data;
+};

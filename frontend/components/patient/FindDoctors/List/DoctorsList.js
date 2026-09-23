@@ -8,6 +8,7 @@ export default function DoctorsList({
     loading = false,
     error = null,
     onRetry,
+    onSchedule,
 }) {
     const countLabel = loading
         ? "Consultando directorio"
@@ -46,6 +47,7 @@ export default function DoctorsList({
                         <DoctorCard
                             key={doctor.id}
                             doctor={doctor}
+                            onSchedule={onSchedule}
                         />
                     ))}
                 </div>

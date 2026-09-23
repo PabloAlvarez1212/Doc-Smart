@@ -79,3 +79,19 @@ export const reprogramarCitaService = async (
 
     return response.data;
 };
+
+
+
+// ==========================================
+// REGISTRAR CITA
+// ==========================================
+
+export const registrarCitaService = async (datos) => {
+
+    const response = await api.post(
+        "/citas/registrar/",
+        datos
+    );
+
+    return response.data;
+};
