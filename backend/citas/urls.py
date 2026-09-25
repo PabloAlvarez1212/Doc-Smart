@@ -9,7 +9,8 @@ from citas.views import (
     RecordatorioListView,
     RecordatorioDetailView,
     CitaConfirmarView,
-    RegistroCitaView
+    RegistroCitaView,
+    EstadisticasCitasView
 )
 
 urlpatterns = [
@@ -37,4 +38,7 @@ urlpatterns = [
     path('recordatorios/',          RecordatorioListView.as_view(),   name='recordatorio-lista'),
     #Actualizar,eliminar o obtener un recordatorio por id
     path('recordatorios/<int:pk>/', RecordatorioDetailView.as_view(), name='recordatorio-detalle'),
+    
+    # Estadisticas Dashboard
+    path("admin/dashboard/",EstadisticasCitasView.as_view(),name="estadisticas-citas"),
 ]

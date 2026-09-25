@@ -482,20 +482,8 @@ def obtenerMetricasSistema():
     }
     return data,200
 
-def obtenerEstadisticasSistemaService():
-    
-    #citas
-    citaPorEstado = Cita.objects.values('id_estado__nombre').annotate(total=Count('id')).order_by('-total')
-    citaPorMes = Cita.objects.annotate(mes=TruncMonth('fecha_creacion')).values('mes').annotate(total=Count('id')).order_by('mes')
-    citaPorEspecialidad = Cita.objects.values('id_medico__id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
-    
-    #medicos
-    medicosPorEpecialidad = filtrarMedicosAprobados(Medico.objects.all()).values('id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
-    solicitudesValidacionPorMes = (SolicitudValidacionMedico.objects.annotate(mes=TruncMonth("fecha_solicitud")).values("mes").annotate(total=Count("id")).order_by("mes"))
-    ultimaSolicitud = (SolicitudValidacionMedico.objects.filter(medico=OuterRef("pk")).order_by("-fecha_solicitud").values("estado")[:1])
-    medicosPorEstadoValidacion = (Medico.objects.annotate(estado_actual=Coalesce(Subquery(ultimaSolicitud),Value("sin_solicitud"))).values("estado_actual").annotate(total=Count("id")).order_by("-total"))
-    
-    #pacientes
+def obtenerEstadisticasPacientesService():
+
     pacientesPorCitas = Cita.objects.filter(id_usuario__id_rol__nombre="paciente").values("id_usuario","id_usuario__nombre","id_usuario__apellido").annotate(total=Count("id")).order_by("-total")[:5]
     pacientesPorMes = (Usuario.objects.filter(id_rol__nombre__iexact="paciente").annotate(mes=TruncMonth("fecha_creacion")).values("mes").annotate(total=Count("id")).order_by("mes"))
     
@@ -531,69 +519,19 @@ def obtenerEstadisticasSistemaService():
     ).count()
 
     data = {
-        "citas": {
-            "citas_por_estado" : [],
-            "citas_por_mes" : [],
-            "citas_por_especialidad" : [],
-        },
-        "medicos":{
-            "medicos_por_especialidad" : [],
-            "medicos_por_estado_validacion": [],
-            "solicitudes_validacion_por_mes": []
-        },
-        "pacientes":{
-            "pacientes_por_citas": [],
-            "pacientes_por_edad": [],
-            "pacientes_por_mes": [],
-        },
+        "pacientes_por_citas": [],
+        "pacientes_por_edad": [],
+        "pacientes_por_mes": [],
     }
-    
-    #citas
-    for item in citaPorEstado:
-        data["citas"]["citas_por_estado"].append({
-            "estado" : item['id_estado__nombre'],
-            "total" : item['total']
-        })
-        
-    for item in citaPorMes:
-        data["citas"]["citas_por_mes"].append({
-            "mes" : item['mes'],
-            "total_citas" : item['total']
-        })
-        
-    for item in citaPorEspecialidad:
-        data["citas"]["citas_por_especialidad"].append({
-            "especialidad" : item['id_medico__id_especialidad__nombre'],
-            "total_citas" : item["total"]
-        })
-    
-    #medicos
-    for item in medicosPorEpecialidad:
-        data["medicos"]["medicos_por_especialidad"].append({
-            "especialidad" : item['id_especialidad__nombre'],
-            "total_medicos" : item['total']
-        })
-        
-    for item in medicosPorEstadoValidacion:
-        data["medicos"]["medicos_por_estado_validacion"].append({
-            "estado": item["estado_actual"],
-            "total_medicos": item["total"]
-        })
-    
-    for item in solicitudesValidacionPorMes:
-        data["medicos"]["solicitudes_validacion_por_mes"].append({
-            "mes": item["mes"],
-            "total_solicitudes": item["total"]
-        })
     
     #pacientes
     for item in pacientesPorCitas:
-        data["pacientes"]["pacientes_por_citas"].append({
+        data["pacientes_por_citas"].append({
             "paciente" : f'{item["id_usuario__nombre"]} {item["id_usuario__apellido"]}',
             "total_citas" : item["total"]
         })
     
-    data["pacientes"]["pacientes_por_edad"] = [
+    data["pacientes_por_edad"] = [
         {
             "rango": "0-17",
             "total_pacientes": menores18
@@ -617,7 +555,7 @@ def obtenerEstadisticasSistemaService():
     ] 
     
     for item in pacientesPorMes:
-        data["pacientes"]["pacientes_por_mes"].append({
+        data["pacientes_por_mes"].append({
             "mes": item["mes"],
             "total_pacientes": item["total"]
         })

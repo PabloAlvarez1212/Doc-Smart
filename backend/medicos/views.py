@@ -39,6 +39,7 @@ from medicos.services import (
     guardarExcepcionFechaService,
     obtenerExcepcionFechaService,
     eliminarExcepcionFechaService,
+    obtenerEstadisticasMedicosService,
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
@@ -1314,5 +1315,25 @@ class CrearExcepcionDisponibilidadFechaView(
 
             return respuesta_error(
                 "Error interno del servidor",
+                status=500
+            )
+
+class EstadisticasMedicosView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        try:
+            data, status_code = obtenerEstadisticasMedicosService()
+
+            return respuesta_ok(
+                data=data,
+                mensaje="Estadísticas de medicos obtenidas correctamente",
+                status=status_code
+            )
+
+        except Exception as e:
+            return respuesta_error(
+                mensaje="Error al obtener las estadísticas de medicos",
+                errores={"detalle": str(e)},
                 status=500
             )

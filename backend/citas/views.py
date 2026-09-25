@@ -14,7 +14,8 @@ from citas.services import (
     listarRecordatoriosService,
     crearRecordatorioService,
     confirmarCitaService,
-    eliminarRecordatorioService
+    eliminarRecordatorioService,
+    obtenerEstadisticasCitas,
 )
 from citas.serializers import CrearCitaSerializer, EditarCitaSerializer
 
@@ -224,3 +225,25 @@ class RecordatorioDetailView(APIView):
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
+
+#Estadisticas Dashboard
+
+class EstadisticasCitasView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        try:
+            data, status_code = obtenerEstadisticasCitas()
+
+            return respuesta_ok(
+                data=data,
+                mensaje="Estadísticas de citas obtenidas correctamente",
+                status=status_code
+            )
+
+        except Exception as e:
+            return respuesta_error(
+                mensaje="Error al obtener las estadísticas de citas",
+                errores={"detalle": str(e)},
+                status=500
+            )

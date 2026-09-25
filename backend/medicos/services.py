@@ -25,6 +25,7 @@ from medicos.services_disponibilidad import (obtenerProximaDisponibilidad,)
 from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
 from django.db.models import Q,Value,OuterRef, Subquery,Count
+from django.db.models.functions import TruncMonth, Coalesce
 from django.db.models.functions import Concat
 from storage_app.services import guardar_archivo_medico,eliminar_archivo
 from django.db import transaction
@@ -1681,3 +1682,36 @@ def eliminarExcepcionFechaService(
         )
 
     return None, 204
+
+def obtenerEstadisticasMedicosService():
+    
+    medicosPorEpecialidad = filtrarMedicosAprobados(Medico.objects.all()).values('id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
+    solicitudesValidacionPorMes = (SolicitudValidacionMedico.objects.annotate(mes=TruncMonth("fecha_solicitud")).values("mes").annotate(total=Count("id")).order_by("mes"))
+    ultimaSolicitud = (SolicitudValidacionMedico.objects.filter(medico=OuterRef("pk")).order_by("-fecha_solicitud").values("estado")[:1])
+    medicosPorEstadoValidacion = (Medico.objects.annotate(estado_actual=Coalesce(Subquery(ultimaSolicitud),Value("sin_solicitud"))).values("estado_actual").annotate(total=Count("id")).order_by("-total"))
+    
+    data = {
+        "medicos_por_especialidad" : [],
+        "medicos_por_estado_validacion": [],
+        "solicitudes_validacion_por_mes": []
+    }
+    
+    for item in medicosPorEpecialidad:
+        data["medicos_por_especialidad"].append({
+            "especialidad" : item['id_especialidad__nombre'],
+            "total_medicos" : item['total']
+        })
+        
+    for item in medicosPorEstadoValidacion:
+        data["medicos_por_estado_validacion"].append({
+            "estado": item["estado_actual"],
+            "total_medicos": item["total"]
+        })
+    
+    for item in solicitudesValidacionPorMes:
+        data["solicitudes_validacion_por_mes"].append({
+            "mes": item["mes"],
+            "total_solicitudes": item["total"]
+        })
+        
+    return data,200

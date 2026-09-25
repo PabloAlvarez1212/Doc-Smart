@@ -75,3 +75,18 @@ export const obtenerEstadisticasSistemaService = async () => {
     const response = await api.get("/admin/dashboard/estadisticas/");
     return response.data;
 };
+
+export const obtenerEstadisticasCitasService = async () =>{
+    const response = await api.get("/citas/admin/dashboard/");
+    return response.data
+}
+
+export const obtenerEstadisticasMedicosService = async () =>{
+    const response = await api.get("/medicos/admin/dashboard/");
+    return response.data
+}
+
+export const obtenerEstadisticasPacientesService = async () =>{
+    const response = await api.get("/pacientes/admin/dashboard/");
+    return response.data
+}

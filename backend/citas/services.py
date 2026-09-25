@@ -7,12 +7,13 @@ from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
 from notificaciones.services import enviarNotificacion
-from django.db.models import Value
+from django.db.models import Count,Value
 from django.db.models.functions import Concat
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator
 from medicos.services_disponibilidad import (esHorarioDisponible,)
 from functools import wraps
+from django.db.models.functions import TruncMonth
 
 
 def serializar_agenda(funcion):
@@ -596,3 +597,37 @@ def eliminarRecordatorioService(id):
         return 'Recordatorio no encontrado', 404
     recordatorio.delete()
     return 'Recordatorio eliminado correctamente', 200
+
+#!Service para estadisticas del modulo citas
+
+def obtenerEstadisticasCitas():
+    citaPorEstado = Cita.objects.values('id_estado__nombre').annotate(total=Count('id')).order_by('-total')
+    citaPorMes = Cita.objects.annotate(mes=TruncMonth('fecha_creacion')).values('mes').annotate(total=Count('id')).order_by('mes')
+    citaPorEspecialidad = Cita.objects.values('id_medico__id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
+    
+    data = {
+        "citas_por_estado" : [],
+        "citas_por_mes" : [],
+        "citas_por_especialidad" : []
+    }
+    
+    #citas
+    for item in citaPorEstado:
+        data["citas_por_estado"].append({
+            "estado" : item['id_estado__nombre'],
+            "total" : item['total']
+        })
+        
+    for item in citaPorMes:
+        data["citas_por_mes"].append({
+            "mes" : item['mes'],
+            "total_citas" : item['total']
+        })
+        
+    for item in citaPorEspecialidad:
+        data["citas_por_especialidad"].append({
+            "especialidad" : item['id_medico__id_especialidad__nombre'],
+            "total_citas" : item["total"]
+        })
+        
+    return data,200
