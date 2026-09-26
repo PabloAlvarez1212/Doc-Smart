@@ -19,7 +19,7 @@ const metricDefinitions = [
 
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState("resumen");
-    const { metricasTarjetas, citasPorEstado, citasPorMes, citasPorEspecialidad, medicosPorEspecialidad, medicosPorEstadoValidacion, solicitudesValidacionPorMes,pacientesPorCitas,pacientesPorEdad,pacientesPorMes } = useDashboard()
+    const { metricasTarjetas, citasPorEstado, citasPorMes, citasPorEspecialidad, medicosPorEspecialidad, medicosPorEstadoValidacion, solicitudesValidacionPorMes,pacientesPorCitas,pacientesPorEdad,pacientesPorMes,citasPorDiaSemana,citasPorHora,tasaCancelacion } = useDashboard()
     return (
         <div className={styles.page}>
             <AdminPageHeader
@@ -65,6 +65,9 @@ export default function Dashboard() {
                         citasPorEstado={citasPorEstado}
                         citasPorMes={citasPorMes}
                         citasPorEspecialidad={citasPorEspecialidad}
+                        citasPorDiaSemana={citasPorDiaSemana}
+                        citasPorHora={citasPorHora}
+                        tasaCancelacion={tasaCancelacion}
                     />
                 )}
 

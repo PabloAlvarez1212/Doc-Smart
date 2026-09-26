@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from django.core.paginator import Paginator
 from medicos.services_disponibilidad import (esHorarioDisponible,)
 from functools import wraps
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import TruncMonth, ExtractWeekDay,ExtractHour
 
 
 def serializar_agenda(funcion):
@@ -604,11 +604,42 @@ def obtenerEstadisticasCitas():
     citaPorEstado = Cita.objects.values('id_estado__nombre').annotate(total=Count('id')).order_by('-total')
     citaPorMes = Cita.objects.annotate(mes=TruncMonth('fecha_creacion')).values('mes').annotate(total=Count('id')).order_by('mes')
     citaPorEspecialidad = Cita.objects.values('id_medico__id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
+    citaPorDiaSemana = Cita.objects.annotate(dia_semana = ExtractWeekDay("fecha_programada")).values("dia_semana").annotate(total=Count("id")).order_by("dia_semana")
+    citasPorHora = (Cita.objects.annotate(hora=ExtractHour("fecha_programada")).values("hora").annotate(total=Count("id")).order_by("hora"))
+    totalCitas = Cita.objects.count()
+    totalCitasCanceladas = Cita.objects.filter(fecha_cancelacion__isnull=False).count()
     
+    if totalCitas > 0:
+        tasaCancelacion = (totalCitasCanceladas / totalCitas) * 100
+    else:
+        tasaCancelacion = 0
+        
+    ordenDias = [
+        (2, "Lunes"),
+        (3, "Martes"),
+        (4, "Miércoles"),
+        (5, "Jueves"),
+        (6, "Viernes"),
+        (7, "Sábado"),
+        (1, "Domingo"),
+    ]
+    
+    totalesPorDia = {
+        item["dia_semana"]: item["total"]
+        for item in citaPorDiaSemana
+    }
+        
     data = {
         "citas_por_estado" : [],
         "citas_por_mes" : [],
-        "citas_por_especialidad" : []
+        "citas_por_especialidad" : [],
+        "citas_por_dia_semana" : [],
+        "citas_por_hora": [],
+        "tasa_cancelacion": {
+            "total_citas": totalCitas,
+            "total_canceladas": totalCitasCanceladas,
+            "porcentaje": round(tasaCancelacion, 2)
+        }
     }
     
     #citas
@@ -628,6 +659,18 @@ def obtenerEstadisticasCitas():
         data["citas_por_especialidad"].append({
             "especialidad" : item['id_medico__id_especialidad__nombre'],
             "total_citas" : item["total"]
+        })
+        
+    for numero, nombre in ordenDias:
+        data["citas_por_dia_semana"].append({
+            "dia": nombre,
+            "total_citas": totalesPorDia.get(numero, 0)
+        })
+    
+    for item in citasPorHora:
+        data["citas_por_hora"].append({
+            "hora": f"{item['hora']:02d}:00",
+            "total_citas": item["total"]
         })
         
     return data,200

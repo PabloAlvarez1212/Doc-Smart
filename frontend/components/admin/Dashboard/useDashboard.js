@@ -10,6 +10,9 @@ export function useDashboard() {
     const [citasPorEstado, setCitasPorEstado] = useState([]);
     const [citasPorMes, setCitasPorMes] = useState([]);
     const [citasPorEspecialidad, setCitasPorEspecialidad] = useState([]);
+    const [citasPorDiaSemana, setCitasPorDiaSemana] = useState([]);
+    const [citasPorHora, setCitasPorHora] = useState([]);
+    const [tasaCancelacion, setTasaCancelacion] = useState(null);
 
     //medicos
     const [medicosPorEspecialidad, setMedicosPorEspecialidad] = useState([]);
@@ -44,6 +47,9 @@ export function useDashboard() {
             setCitasPorEstado(citas.citas_por_estado);
             setCitasPorMes(citas.citas_por_mes);
             setCitasPorEspecialidad(citas.citas_por_especialidad)
+            setCitasPorDiaSemana(citas.citas_por_dia_semana);
+            setCitasPorHora(citas.citas_por_hora);
+            setTasaCancelacion(citas.tasa_cancelacion);
 
         } catch (error) {
             console.log("Error al cargar las estadísticas de citas");
@@ -79,5 +85,25 @@ export function useDashboard() {
         }
     }
 
-    return { metricasTarjetas, citasPorEstado, citasPorMes, citasPorEspecialidad, medicosPorEspecialidad, medicosPorEstadoValidacion, solicitudesValidacionPorMes, pacientesPorCitas, pacientesPorEdad, pacientesPorMes }
+    return { 
+        metricasTarjetas, 
+        
+        //citas
+        citasPorEstado,
+        citasPorMes,
+        citasPorEspecialidad,
+        citasPorDiaSemana,
+        citasPorHora,
+        tasaCancelacion,
+
+        //medicos
+        medicosPorEspecialidad,
+        medicosPorEstadoValidacion,
+        solicitudesValidacionPorMes, 
+
+        //pacientes
+        pacientesPorEdad, 
+        pacientesPorMes,
+        pacientesPorCitas,
+    }
 }
