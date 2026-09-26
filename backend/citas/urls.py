@@ -3,6 +3,7 @@ from citas.views import (
     CitaListView,
     CitaPacienteView,
     CitaMedicoView,
+    CitaMedicoResumenView,
     CitaDetailView,
     CitaCancelarView,
     CitaCompletarView,
@@ -23,6 +24,8 @@ urlpatterns = [
     path('paciente/',               CitaPacienteView.as_view(),  name='cita-paciente'),
     #Listar citas medico
     path('medico/',                 CitaMedicoView.as_view(),     name='cita-medico'),
+    #Listar resumen de las citas del medico
+    path('medico/resumen/', CitaMedicoResumenView.as_view(), name='cita-medico-resumen'),
     #Actualizar o obtener una sola cita por id
     path('<int:pk>/',               CitaDetailView.as_view(),    name='cita-detalle'),
     #Cancelar una cita por id

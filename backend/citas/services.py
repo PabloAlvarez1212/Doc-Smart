@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
 from notificaciones.services import enviarNotificacion
-from django.db.models import Value
+from django.db.models import Q, Value, Count
 from django.db.models.functions import Concat
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator
@@ -107,12 +107,349 @@ def listarCitasPacienteService(usuario_id,estado=None,doctor=None,ciudad=None,de
             },
         }, 200
 
-def listarCitasMedicoService(medico_id):
-    citas = Cita.objects.filter(id_medico=medico_id).order_by('-fecha_programada')
-    if not citas.exists():
-        return 'No se encontraron citas', 404
-    serializer = CitaSerializer(citas, many=True)
-    return serializer.data, 200
+def listarCitasMedicoService(
+    medico_id,
+    estado=None,
+    paciente=None,
+    fecha=None,
+    page=None,
+    page_size=10
+):
+    """
+    Lista las citas pertenecientes al médico autenticado.
+
+    Filtros disponibles:
+    - estado
+    - paciente
+    - fecha_programada
+    - page
+    - page_size
+    """
+
+    citas = (
+        Cita.objects
+        .filter(id_medico_id=medico_id)
+        .select_related(
+            "id_estado",
+            "id_usuario",
+            "id_medico",
+            "id_medico__ciudad",
+            "id_medico__ciudad__departamento",
+            "id_medico__id_especialidad",
+        )
+    )
+
+
+    # ==========================================
+    # ESTADO
+    # ==========================================
+
+    if estado and estado.lower() != "todas":
+        citas = citas.filter(
+            id_estado__nombre__iexact=estado
+        )
+
+
+    # ==========================================
+    # PACIENTE
+    # ==========================================
+
+    if paciente:
+        paciente = paciente.strip()
+
+        citas = (
+            citas
+            .annotate(
+                nombre_completo=Concat(
+                    "id_usuario__nombre",
+                    Value(" "),
+                    "id_usuario__apellido"
+                )
+            )
+            .filter(
+                Q(
+                    nombre_completo__icontains=paciente
+                )
+                |
+                Q(
+                    id_usuario__nombre__icontains=paciente
+                )
+                |
+                Q(
+                    id_usuario__apellido__icontains=paciente
+                )
+                |
+                Q(
+                    id_usuario__correo__icontains=paciente
+                )
+                |
+                Q(
+                    id_usuario__cedula__icontains=paciente
+                )
+            )
+        )
+
+
+    # ==========================================
+    # FECHA
+    # ==========================================
+
+    if fecha:
+        try:
+            fecha_obj = datetime.strptime(
+                fecha,
+                "%Y-%m-%d"
+            ).date()
+
+        except ValueError:
+            return (
+                "La fecha debe tener el formato YYYY-MM-DD",
+                400
+            )
+
+        inicio = timezone.make_aware(
+            datetime.combine(
+                fecha_obj,
+                datetime.min.time()
+            )
+        )
+
+        fin = inicio + timedelta(days=1)
+
+        citas = citas.filter(
+            fecha_programada__gte=inicio,
+            fecha_programada__lt=fin
+        )
+
+
+    # ==========================================
+    # ORDEN
+    # ==========================================
+
+    citas = citas.order_by(
+        "-fecha_programada"
+    )
+
+
+    # ==========================================
+    # PAGINACIÓN
+    # ==========================================
+
+    try:
+        page_size = int(page_size)
+
+    except (TypeError, ValueError):
+        page_size = 10
+
+
+    # Evitamos tamaños inválidos o exagerados
+    page_size = max(
+        1,
+        min(page_size, 50)
+    )
+
+
+    paginator = Paginator(
+        citas,
+        page_size
+    )
+
+    page_obj = paginator.get_page(
+        page or 1
+    )
+
+
+    serializer = CitaSerializer(
+        page_obj.object_list,
+        many=True
+    )
+
+
+    return {
+        "data": serializer.data,
+
+        "paginacion": {
+            "count": paginator.count,
+            "total_pages": paginator.num_pages,
+            "current_page": page_obj.number,
+            "page_size": page_size,
+        }
+
+    }, 200
+
+def resumenCitasMedicoService(medico_id):
+
+    # ==========================================
+    # QUERY BASE
+    # ==========================================
+
+    citas = (
+        Cita.objects
+        .filter(id_medico_id=medico_id)
+        .select_related(
+            "id_estado",
+            "id_usuario"
+        )
+    )
+
+
+    # ==========================================
+    # RANGO DEL DÍA ACTUAL
+    # ==========================================
+
+    hoy = timezone.localdate()
+
+    inicio_dia = timezone.make_aware(
+        datetime.combine(
+            hoy,
+            datetime.min.time()
+        )
+    )
+
+    fin_dia = inicio_dia + timedelta(days=1)
+
+
+    # ==========================================
+    # ESTADÍSTICAS
+    # ==========================================
+
+    resumen = citas.aggregate(
+
+        total=Count("id"),
+
+        citas_hoy=Count(
+            "id",
+            filter=(
+                Q(
+                    fecha_programada__gte=inicio_dia,
+                    fecha_programada__lt=fin_dia
+                )
+                &
+                ~Q(
+                    id_estado__nombre__iexact="cancelada"
+                )
+            )
+        ),
+
+        pendientes=Count(
+            "id",
+            filter=Q(
+                id_estado__nombre__iexact="pendiente"
+            )
+        ),
+
+        confirmadas=Count(
+            "id",
+            filter=Q(
+                id_estado__nombre__iexact="confirmada"
+            )
+        ),
+
+        reprogramadas=Count(
+            "id",
+            filter=Q(
+                id_estado__nombre__iexact="reprogramada"
+            )
+        ),
+
+        completadas=Count(
+            "id",
+            filter=Q(
+                id_estado__nombre__iexact="completada"
+            )
+        ),
+
+        canceladas=Count(
+            "id",
+            filter=Q(
+                id_estado__nombre__iexact="cancelada"
+            )
+        ),
+    )
+
+
+    # ==========================================
+    # PRÓXIMA CITA
+    # ==========================================
+
+    ahora = timezone.now()
+
+    proxima_cita = (
+        citas
+        .filter(
+            fecha_programada__gte=ahora
+        )
+        .exclude(
+            Q(
+                id_estado__nombre__iexact="cancelada"
+            )
+            |
+            Q(
+                id_estado__nombre__iexact="completada"
+            )
+        )
+        .order_by(
+            "fecha_programada"
+        )
+        .first()
+    )
+
+
+    # ==========================================
+    # SERIALIZAR PRÓXIMA CITA
+    # ==========================================
+
+    proxima_data = None
+
+    if proxima_cita:
+
+        cita_serializada = CitaSerializer(
+            proxima_cita
+        ).data
+
+        proxima_data = {
+            "id": cita_serializada["id"],
+
+            "fecha_programada":
+                cita_serializada["fecha_programada"],
+
+            "fecha_final":
+                cita_serializada["fecha_final"],
+
+            "estado":
+                cita_serializada["estado"],
+
+            "paciente":
+                cita_serializada["paciente"],
+
+            "foto_paciente":
+                cita_serializada["foto_paciente"],
+        }
+
+
+    # ==========================================
+    # RESPUESTA
+    # ==========================================
+
+    return {
+        "total": resumen["total"],
+
+        "citas_hoy": resumen["citas_hoy"],
+
+        "pendientes": resumen["pendientes"],
+
+        "confirmadas": resumen["confirmadas"],
+
+        "reprogramadas": resumen["reprogramadas"],
+
+        "completadas": resumen["completadas"],
+
+        "canceladas": resumen["canceladas"],
+
+        "proxima_cita": proxima_data,
+
+    }, 200
+
 
 def obtenerCitaService(id, solicitante):
     cita = Cita.objects.filter(id=id).first()
