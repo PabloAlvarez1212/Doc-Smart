@@ -30,6 +30,13 @@ export const listarCitasMedicoService = async (params = {}) => {
     return response.data.data;
 };
 
+export const resumenCitasMedicoService  = async () => {
+    const response = await api.get(
+        "/citas/medico/resumen/"
+    )    
+
+    return response.data.data;
+};
 
 // ==========================================
 // ACCIONES SOBRE CITAS

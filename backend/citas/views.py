@@ -6,6 +6,7 @@ from citas.services import (
     listarCitasService,
     listarCitasPacienteService,
     listarCitasMedicoService,
+    resumenCitasMedicoService,
     obtenerCitaService,
     crearCitaService,
     editarCitaService,
@@ -14,7 +15,7 @@ from citas.services import (
     listarRecordatoriosService,
     crearRecordatorioService,
     confirmarCitaService,
-    eliminarRecordatorioService
+    eliminarRecordatorioService,
 )
 from citas.serializers import CrearCitaSerializer, EditarCitaSerializer
 
@@ -96,18 +97,113 @@ class CitaPacienteView(APIView):
 
 
 class CitaMedicoView(APIView):
-    permission_classes = [IsAuthenticated,IsMedicoAprobado]
+    permission_classes = [
+        IsAuthenticated,
+        IsMedicoAprobado
+    ]
     # Médico lista sus propias citas
     def get(self, request):
         try:
             medico_id = request.user.id
-            resultado, status_code = listarCitasMedicoService(medico_id)
+
+            # ==================================
+            # FILTROS
+            # ==================================
+
+            estado = request.query_params.get("estado")
+            paciente = request.query_params.get("paciente")
+            fecha = request.query_params.get("fecha_programada")
+
+            # ==================================
+            # PAGINACIÓN
+            # ==================================
+
+            page = request.query_params.get("page")
+            page_size = request.query_params.get("page_size",10)
+
+            resultado, status_code = (
+                listarCitasMedicoService(
+                    medico_id=medico_id,
+                    estado=estado,
+                    paciente=paciente,
+                    fecha=fecha,
+                    page=page,
+                    page_size=page_size
+                )
+            )
+
+
             if status_code != 200:
-                return respuesta_error(resultado, status=status_code)
-            return respuesta_ok(data=resultado)
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+
+            return respuesta_ok(
+                data=resultado,
+                status=status_code
+            )
+
+
         except Exception as e:
-            print(e)
-            return respuesta_error('Error interno del servidor', status=500)
+
+            print(
+                "ERROR LISTANDO CITAS DEL MÉDICO:",
+                repr(e)
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+
+class CitaMedicoResumenView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsMedicoAprobado
+    ]
+
+
+    def get(self, request):
+
+        try:
+
+            medico_id = request.user.id
+
+            resultado, status_code = (
+                resumenCitasMedicoService(
+                    medico_id
+                )
+            )
+
+            if status_code != 200:
+
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+
+            return respuesta_ok(
+                data=resultado,
+                status=status_code
+            )
+
+
+        except Exception as e:
+
+            print(
+                "ERROR RESUMEN CITAS MÉDICO:",
+                repr(e)
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
 
 
 class CitaDetailView(APIView):
