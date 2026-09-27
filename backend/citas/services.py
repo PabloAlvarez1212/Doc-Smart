@@ -605,8 +605,7 @@ def obtenerEstadisticasCitas():
     citaPorMes = Cita.objects.annotate(mes=TruncMonth('fecha_creacion')).values('mes').annotate(total=Count('id')).order_by('mes')
     citaPorEspecialidad = Cita.objects.values('id_medico__id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
     citaPorDiaSemana = Cita.objects.annotate(dia_semana = ExtractWeekDay("fecha_programada")).values("dia_semana").annotate(total=Count("id")).order_by("dia_semana")
-    citasPorHora = (Cita.objects.annotate(hora=ExtractHour("fecha_programada")).values("hora").annotate(total=Count("id")).order_by("hora"))
-        
+    citasPorHora = (Cita.objects.annotate(hora=ExtractHour("fecha_programada")).values("hora").annotate(total=Count("id")).order_by("hora"))  
     ordenDias = [
         (2, "Lunes"),
         (3, "Martes"),

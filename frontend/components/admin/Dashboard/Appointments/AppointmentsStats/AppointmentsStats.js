@@ -5,10 +5,28 @@ import AppointmentsByMonthChart from "../AppointmentByMonthChart";
 import AppointmentsBySpecialtyChart from "../AppointmentsBySpecialtyChart";
 import AppointmentsByWeekdayChart from "../AppointmentsByWeekdayChart";
 import AppointmentsByHourChart from "../AppointmentsByHourChart";
+import DashboardModuleState from "../../DashboardModuleState/DashboardModuleState";
 
 export default function AppointmentStats({
-    citasPorEstado, citasPorMes, citasPorEspecialidad, citasPorDiaSemana, citasPorHora
+    citasPorEstado,
+    citasPorMes,
+    citasPorEspecialidad,
+    citasPorDiaSemana,
+    citasPorHora,
+    loading = false,
+    error = false,
 }) {
+    if (loading || error) {
+        return (
+            <DashboardModuleState
+                loading={loading}
+                error={error}
+                cardCount={5}
+                moduleName="citas"
+            />
+        );
+    }
+
     return (
         <section className={styles.grid} aria-label="Estadísticas de citas">
 

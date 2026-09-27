@@ -3,32 +3,11 @@
 import {
     CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import {
+    formatDashboardMonthLong,
+    formatDashboardMonthShort,
+} from "../dashboardMonthFormatters";
 import styles from "./PatientStats/PatientStats.module.css";
-
-function parseMonth(value) {
-    const match = String(value ?? "").match(/^(\d{4})-(\d{2})/);
-
-    if (match) {
-        return new Date(Number(match[1]), Number(match[2]) - 1, 1);
-    }
-
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function formatMonth(value, format = "short") {
-    const date = parseMonth(value);
-    if (!date) return "Fecha no disponible";
-
-    const formatted = new Intl.DateTimeFormat("es-CO", {
-        month: format === "long" ? "long" : "short",
-        year: "numeric",
-    }).format(date).replace(" de ", " ").replace(".", "");
-
-    return format === "long"
-        ? formatted.charAt(0).toUpperCase() + formatted.slice(1)
-        : formatted;
-}
 
 function MonthTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
@@ -37,7 +16,7 @@ function MonthTooltip({ active, payload, label }) {
 
     return (
         <div className={styles.chartTooltip}>
-            <strong>{formatMonth(label, "long")}</strong>
+            <strong>{formatDashboardMonthLong(label)}</strong>
             <span>{total} {total === 1 ? "paciente registrado" : "pacientes registrados"}</span>
         </div>
     );
@@ -64,7 +43,7 @@ export default function PatientsByMonthChart({ data }) {
                     <CartesianGrid vertical={false} stroke="#e9eef4" strokeDasharray="3 4" />
                     <XAxis
                         dataKey="mes"
-                        tickFormatter={(value) => formatMonth(value)}
+                        tickFormatter={formatDashboardMonthShort}
                         tick={{ fill: "#64748b", fontSize: 11 }}
                         tickLine={false}
                         axisLine={false}

@@ -1,118 +1,137 @@
-"use client"
-import { obtenerMetricasSistemaService, obtenerEstadisticasCitasService, obtenerEstadisticasMedicosService, obtenerEstadisticasPacientesService } from "@/app/services/adminServices";
+"use client";
+
+import {
+    obtenerEstadisticasCitasService,
+    obtenerEstadisticasMedicosService,
+    obtenerEstadisticasPacientesService,
+    obtenerMetricasSistemaService,
+} from "@/app/services/adminServices";
 import { useEffect, useState } from "react";
 
-
 export function useDashboard() {
-    const [metricasTarjetas, setMetricasTarjetas] = useState(null)
+    const [metricasTarjetas, setMetricasTarjetas] = useState(null);
+    const [loadingMetricas, setLoadingMetricas] = useState(true);
+    const [errorMetricas, setErrorMetricas] = useState(false);
 
-    //citas
     const [citasPorEstado, setCitasPorEstado] = useState([]);
     const [citasPorMes, setCitasPorMes] = useState([]);
     const [citasPorEspecialidad, setCitasPorEspecialidad] = useState([]);
     const [citasPorDiaSemana, setCitasPorDiaSemana] = useState([]);
     const [citasPorHora, setCitasPorHora] = useState([]);
+    const [loadingCitas, setLoadingCitas] = useState(true);
+    const [errorCitas, setErrorCitas] = useState(false);
 
-    //medicos
     const [medicosPorEspecialidad, setMedicosPorEspecialidad] = useState([]);
     const [medicosPorEstadoValidacion, setMedicosPorEstadoValidacion] = useState([]);
     const [solicitudesValidacionPorMes, setSolicitudesValidacionPorMes] = useState([]);
     const [medicosQueMasAtienden, setMedicosQueMasAtienden] = useState([]);
     const [tiempoPromedioValidacion, setTiempoPromedioValidacion] = useState(null);
+    const [loadingMedicos, setLoadingMedicos] = useState(true);
+    const [errorMedicos, setErrorMedicos] = useState(false);
 
-    //pacientes
-    const [pacientesPorCitas, setPacientesPorCitas] = useState([]);
     const [pacientesPorEdad, setPacientesPorEdad] = useState([]);
     const [pacientesPorMes, setPacientesPorMes] = useState([]);
     const [pacientesPorCantidadCitas, setPacientesPorCantidadCitas] = useState([]);
     const [pacientesActivosPorMes, setPacientesActivosPorMes] = useState([]);
+    const [loadingPacientes, setLoadingPacientes] = useState(true);
+    const [errorPacientes, setErrorPacientes] = useState(false);
 
     useEffect(() => {
         cargarMetricasTarjetas();
         cargarEstadisticasPacientes();
         cargarEstadisticasCitas();
         cargarEstadisticasMedicos();
-    }, [])
+    }, []);
+
     const cargarMetricasTarjetas = async () => {
         try {
-            const data = await obtenerMetricasSistemaService()
-            setMetricasTarjetas(data.data)
-        } catch (error) {
-            console.log("Error en el servidor")
+            setErrorMetricas(false);
+            const data = await obtenerMetricasSistemaService();
+            setMetricasTarjetas(data.data);
+        } catch {
+            setMetricasTarjetas(null);
+            setErrorMetricas(true);
+        } finally {
+            setLoadingMetricas(false);
         }
-    }
+    };
 
     const cargarEstadisticasCitas = async () => {
         try {
-            const data = await obtenerEstadisticasCitasService()
-            const citas = data.data
+            setErrorCitas(false);
+            const data = await obtenerEstadisticasCitasService();
+            const citas = data.data;
 
-            setCitasPorEstado(citas.citas_por_estado);
-            setCitasPorMes(citas.citas_por_mes);
-            setCitasPorEspecialidad(citas.citas_por_especialidad)
-            setCitasPorDiaSemana(citas.citas_por_dia_semana);
-            setCitasPorHora(citas.citas_por_hora);
-
-        } catch (error) {
-            console.log("Error al cargar las estadísticas de citas");
+            setCitasPorEstado(citas.citas_por_estado ?? []);
+            setCitasPorMes(citas.citas_por_mes ?? []);
+            setCitasPorEspecialidad(citas.citas_por_especialidad ?? []);
+            setCitasPorDiaSemana(citas.citas_por_dia_semana ?? []);
+            setCitasPorHora(citas.citas_por_hora ?? []);
+        } catch {
+            setErrorCitas(true);
+        } finally {
+            setLoadingCitas(false);
         }
-    }
+    };
 
     const cargarEstadisticasMedicos = async () => {
         try {
-            const data = await obtenerEstadisticasMedicosService()
-
+            setErrorMedicos(false);
+            const data = await obtenerEstadisticasMedicosService();
             const medicos = data.data;
 
-            setMedicosPorEspecialidad(medicos.medicos_por_especialidad);
-            setMedicosPorEstadoValidacion(medicos.medicos_por_estado_validacion);
-            setSolicitudesValidacionPorMes(medicos.solicitudes_validacion_por_mes);
-            setMedicosQueMasAtienden(medicos.medicos_que_mas_atienden);
+            setMedicosPorEspecialidad(medicos.medicos_por_especialidad ?? []);
+            setMedicosPorEstadoValidacion(medicos.medicos_por_estado_validacion ?? []);
+            setSolicitudesValidacionPorMes(medicos.solicitudes_validacion_por_mes ?? []);
+            setMedicosQueMasAtienden(medicos.medicos_que_mas_atienden ?? []);
             setTiempoPromedioValidacion(medicos.tiempo_promedio_validacion ?? null);
-
-        } catch (error) {
-            console.log("Error al cargar las estadísticas de medicos");
+        } catch {
+            setErrorMedicos(true);
+        } finally {
+            setLoadingMedicos(false);
         }
-    }
+    };
 
     const cargarEstadisticasPacientes = async () => {
         try {
-            const data = await obtenerEstadisticasPacientesService()
-            const pacientes = data.data
+            setErrorPacientes(false);
+            const data = await obtenerEstadisticasPacientesService();
+            const pacientes = data.data;
 
-            setPacientesPorCitas(pacientes.pacientes_por_citas);
-            setPacientesPorEdad(pacientes.pacientes_por_edad);
-            setPacientesPorMes(pacientes.pacientes_por_mes);
+            setPacientesPorEdad(pacientes.pacientes_por_edad ?? []);
+            setPacientesPorMes(pacientes.pacientes_por_mes ?? []);
             setPacientesPorCantidadCitas(pacientes.pacientes_por_cantidad_citas ?? []);
             setPacientesActivosPorMes(pacientes.pacientes_activos_por_mes ?? []);
-
-        } catch (error) {
-            console.log("Error al cargar las estadísticas de pacientes");
+        } catch {
+            setErrorPacientes(true);
+        } finally {
+            setLoadingPacientes(false);
         }
-    }
+    };
 
-    return { 
-        metricasTarjetas, 
-        
-        //citas
+    return {
+        metricasTarjetas,
+        loadingMetricas,
+        errorMetricas,
         citasPorEstado,
         citasPorMes,
         citasPorEspecialidad,
         citasPorDiaSemana,
         citasPorHora,
-
-        //medicos
+        loadingCitas,
+        errorCitas,
         medicosPorEspecialidad,
         medicosPorEstadoValidacion,
-        solicitudesValidacionPorMes, 
+        solicitudesValidacionPorMes,
         medicosQueMasAtienden,
         tiempoPromedioValidacion,
-
-        //pacientes
-        pacientesPorEdad, 
+        loadingMedicos,
+        errorMedicos,
+        pacientesPorEdad,
         pacientesPorMes,
-        pacientesPorCitas,
         pacientesPorCantidadCitas,
         pacientesActivosPorMes,
-    }
+        loadingPacientes,
+        errorPacientes,
+    };
 }

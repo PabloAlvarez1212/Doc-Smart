@@ -6,6 +6,7 @@ import DoctorsBySpecialtyChart from "../DoctorsBySpecialtyChart";
 import DoctorsValidationStatusChart from "../DoctorsValidationStatusChart";
 import ValidationRequestsByMonthChart from "../ValidationRequestsByMonthChart";
 import DoctorsByAppointmentsChart from "../DoctorsByAppointmentsChart";
+import DashboardModuleState from "../../DashboardModuleState/DashboardModuleState";
 
 const numberFormatter = new Intl.NumberFormat("es-CO", {
     maximumFractionDigits: 1,
@@ -56,7 +57,20 @@ export default function DoctorStats({
     solicitudesValidacionPorMes,
     medicosQueMasAtienden,
     tiempoPromedioValidacion,
+    loading = false,
+    error = false,
 }) {
+    if (loading || error) {
+        return (
+            <DashboardModuleState
+                loading={loading}
+                error={error}
+                cardCount={5}
+                moduleName="médicos"
+            />
+        );
+    }
+
     const formattedValidationTime = formatValidationTime(
         tiempoPromedioValidacion?.segundos
     );

@@ -1,26 +1,28 @@
 "use client";
 
 import {
-    CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
+    CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import {
+    formatDashboardMonthLong,
+    formatDashboardMonthShort,
+} from "../dashboardMonthFormatters";
 import styles from "./DoctorStats/DoctorStats.module.css";
 
-function formatMonth(value, options) {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime())
-        ? "Fecha no disponible"
-        : date.toLocaleDateString("es-CO", { ...options, timeZone: "America/Bogota" });
-}
-
 export default function ValidationRequestsByMonthChart({ data }) {
+    const hasSingleMonth = data.length === 1;
+
     return (
         <div className={styles.chartArea} aria-label="Solicitudes históricas de validación por mes">
             <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 12, right: 14, left: -16, bottom: 4 }}>
+                <LineChart
+                    data={data}
+                    margin={{ top: hasSingleMonth ? 28 : 12, right: 14, left: -16, bottom: 4 }}
+                >
                     <CartesianGrid vertical={false} stroke="#e9eef4" strokeDasharray="3 4" />
                     <XAxis
                         dataKey="mes"
-                        tickFormatter={(value) => formatMonth(value, { month: "short", year: "2-digit" })}
+                        tickFormatter={formatDashboardMonthShort}
                         tick={{ fill: "#64748b", fontSize: 11 }}
                         tickLine={false}
                         axisLine={false}
@@ -35,7 +37,7 @@ export default function ValidationRequestsByMonthChart({ data }) {
                         width={42}
                     />
                     <Tooltip
-                        labelFormatter={(value) => formatMonth(value, { month: "long", year: "numeric" })}
+                        labelFormatter={formatDashboardMonthLong}
                         formatter={(value) => [value, "Solicitudes"]}
                         contentStyle={{ borderRadius: 10, borderColor: "#e1e7f0", fontSize: 13 }}
                     />
@@ -45,10 +47,20 @@ export default function ValidationRequestsByMonthChart({ data }) {
                         name="Solicitudes"
                         stroke="#2563eb"
                         strokeWidth={2.5}
-                        dot={{ r: 3, fill: "#fff", strokeWidth: 2 }}
+                        dot={{ r: hasSingleMonth ? 5 : 3, fill: "#fff", strokeWidth: 2 }}
                         activeDot={{ r: 5 }}
                         connectNulls={false}
-                    />
+                    >
+                        {hasSingleMonth && (
+                            <LabelList
+                                dataKey="total_solicitudes"
+                                position="top"
+                                fill="#334155"
+                                fontSize={11}
+                                fontWeight={700}
+                            />
+                        )}
+                    </Line>
                 </LineChart>
             </ResponsiveContainer>
         </div>

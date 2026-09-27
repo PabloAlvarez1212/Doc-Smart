@@ -474,12 +474,67 @@ def obtenerMetricasSistema():
     totalPacientes = Usuario.objects.filter(id_rol__nombre__iexact = "paciente").count()
     totalCitas = Cita.objects.all().count()
     totalSolicitudesPendientes = SolicitudValidacionMedico.objects.filter(estado=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE).count()
+    solicitudPendienteMasAntigua = (SolicitudValidacionMedico.objects.filter(estado=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE).order_by("fecha_solicitud").first())
+    
+    antiguedadSolicitudPendiente = None
+
+    if solicitudPendienteMasAntigua:
+        antiguedad = (
+            timezone.now()
+            - solicitudPendienteMasAntigua.fecha_solicitud
+        )
+
+        antiguedadSolicitudPendiente = antiguedad.days
+
+    hoy = timezone.localdate()
+    ahora = timezone.localtime()
+
+    totalCitasHoy = Cita.objects.filter(fecha_programada__date=hoy).count()
+    
+    inicioMes = ahora.replace(
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+    )
+    
+    inicioPeriodo = inicioMes - relativedelta(months=2)
+    citasCreadasUltimosMeses = (Cita.objects.filter(fecha_creacion__gte=inicioPeriodo).annotate(mes=TruncMonth("fecha_creacion")).values("mes").annotate(total=Count("id")).order_by("mes"))
+    totalPacientesActivosMes = (Cita.objects.filter(fecha_creacion__gte=inicioMes,id_usuario__id_rol__nombre__iexact="paciente").values("id_usuario").distinct().count())
+    especialidadMayorDemanda = (Cita.objects.filter(fecha_creacion__gte=inicioMes).values("id_medico__id_especialidad__nombre").annotate(total=Count("id")).order_by("-total").first())
+    totalCancelacionesMes = Cita.objects.filter(fecha_cancelacion__gte=inicioMes).count()
+    
+    especialidadMayorDemandaData = None
+
+    if especialidadMayorDemanda:
+        especialidadMayorDemandaData = {
+            "especialidad": especialidadMayorDemanda[
+                "id_medico__id_especialidad__nombre"
+            ],
+            "total_citas": especialidadMayorDemanda["total"],
+        }
+    
     data = {
         "total_medicos_aprobados" : totalMedicosAprobados,
         "total_pacientes" : totalPacientes,
         "total_citas" : totalCitas,
         "total_solicitudes_pendientes": totalSolicitudesPendientes,
+        "citas_hoy": totalCitasHoy,
+        "pacientes_activos_mes": totalPacientesActivosMes,
+        "antiguedad_solicitud_pendiente_dias": antiguedadSolicitudPendiente,
+        "citas_creadas_ultimos_3_meses": [],
+        "especialidad_mayor_demanda_mes": especialidadMayorDemandaData,
+        "cancelaciones_mes": totalCancelacionesMes,
+        
     }
+    
+    for item in citasCreadasUltimosMeses:
+        data["citas_creadas_ultimos_3_meses"].append({
+            "mes": item["mes"].strftime("%Y-%m"),
+            "total": item["total"],
+        })
+        
     return data,200
 
 def obtenerEstadisticasPacientesService():
@@ -516,7 +571,6 @@ def obtenerEstadisticasPacientesService():
             "id_usuario",
             distinct=True
     )).order_by("mes"))
-    print(list(pacientesActivosPorMes))
     rangosCitas = {
         "Sin citas": 0,
         "1 cita": 0,
