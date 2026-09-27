@@ -43,7 +43,7 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .cardHeader > div { min-width: 0; }
@@ -52,7 +52,7 @@
     display: block;
     margin-bottom: 4px;
     color: #2563eb;
-    font-size: .64rem;
+    font-size: .62rem;
     font-weight: 750;
     letter-spacing: .085em;
     text-transform: uppercase;
@@ -62,15 +62,15 @@
 .demandContent h3 {
     margin: 0;
     color: #172033;
-    font-size: 1rem;
+    font-size: .92rem;
     font-weight: 720;
     line-height: 1.35;
 }
 
 .cardHeader p {
-    margin: 5px 0 0;
+    margin: 4px 0 0;
     color: #64748b;
-    font-size: .8rem;
+    font-size: .75rem;
     line-height: 1.45;
 }
 
@@ -103,11 +103,11 @@
     background: rgba(255, 255, 255, .98);
     box-shadow: 0 10px 26px rgba(28, 54, 92, .12);
     color: #526078;
-    font-size: .75rem;
+    font-size: .71rem;
     line-height: 1.4;
 }
 
-.chartTooltip strong { color: #172033; font-size: .8rem; }
+.chartTooltip strong { color: #172033; font-size: .76rem; }
 
 .sideColumn {
     display: grid;
@@ -129,7 +129,7 @@
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 14px;
-    padding: 12px 0;
+    padding: 10px 0;
     border-top: 1px solid #edf1f5;
 }
 
@@ -139,7 +139,7 @@
     align-items: center;
     gap: 9px;
     color: #526078;
-    font-size: .78rem;
+    font-size: .73rem;
     font-weight: 650;
     line-height: 1.4;
 }
@@ -148,7 +148,7 @@
 .attentionList dd {
     margin: 0;
     color: #172033;
-    font-size: .82rem;
+    font-size: .78rem;
     font-weight: 780;
     font-variant-numeric: tabular-nums;
     line-height: 1.35;
@@ -164,11 +164,11 @@
 
 .demandIcon { background: #e9f8f6; color: #13796f; }
 .demandContent { min-width: 0; }
-.demandMetric { margin-top: 16px; }
+.demandMetric { margin-top: 13px; }
 .demandMetric strong {
     display: block;
     color: #172033;
-    font-size: clamp(1.35rem, 3vw, 1.8rem);
+    font-size: clamp(1.05rem, 2.2vw, 1.25rem);
     font-weight: 780;
     letter-spacing: -.035em;
     line-height: 1.15;
@@ -179,11 +179,11 @@
 .demandEmpty {
     margin: 6px 0 0;
     color: #64748b;
-    font-size: .8rem;
+    font-size: .74rem;
     line-height: 1.45;
 }
 
-.demandEmpty { margin-top: 16px; }
+.demandEmpty { margin-top: 13px; }
 
 .emptyState {
     display: grid;
@@ -196,7 +196,7 @@
     border-radius: 10px;
     background: #f8fafc;
     color: #64748b;
-    font-size: .85rem;
+    font-size: .8rem;
     text-align: center;
 }
 

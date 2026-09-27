@@ -20,20 +20,20 @@
     box-shadow: 0 8px 24px rgba(28, 54, 92, .045);
 }
 
-.chartHeader { margin-bottom: 18px; }
+.chartHeader { margin-bottom: 15px; }
 
 .chartHeader h3 {
     margin: 0;
     color: #172033;
-    font-size: 1rem;
+    font-size: .92rem;
     font-weight: 700;
     line-height: 1.35;
 }
 
 .chartHeader p {
-    margin: 5px 0 0;
+    margin: 4px 0 0;
     color: #526078;
-    font-size: .81rem;
+    font-size: .76rem;
     line-height: 1.5;
 }
 
@@ -59,13 +59,13 @@
     background: rgba(255, 255, 255, .98);
     box-shadow: 0 10px 26px rgba(28, 54, 92, .12);
     color: #526078;
-    font-size: .75rem;
+    font-size: .71rem;
     line-height: 1.4;
 }
 
 .chartTooltip strong {
     color: #172033;
-    font-size: .8rem;
+    font-size: .76rem;
 }
 
 .empty {
@@ -79,7 +79,7 @@
     border-radius: 10px;
     background: #f8fafc;
     color: #64748b;
-    font-size: .87rem;
+    font-size: .81rem;
     text-align: center;
 }
 

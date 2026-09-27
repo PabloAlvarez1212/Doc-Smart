@@ -19,20 +19,20 @@
 }
 
 .chartHeader {
-    margin-bottom: 18px;
+    margin-bottom: 15px;
 }
 
 .chartHeader h3 {
     margin: 0;
-    font-size: 1rem;
+    font-size: .92rem;
     font-weight: 700;
     line-height: 1.35;
     color: #172033;
 }
 
 .chartHeader p {
-    margin: 5px 0 0;
-    font-size: .81rem;
+    margin: 4px 0 0;
+    font-size: .76rem;
     line-height: 1.5;
     color: #526078;
 }
@@ -74,7 +74,7 @@
     border-radius: 9px;
     color: #526078;
     background: #edf2f7;
-    font-size: .72rem;
+    font-size: .69rem;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
 }
@@ -89,7 +89,7 @@
     min-width: 0;
     overflow: hidden;
     color: #26354d;
-    font-size: .79rem;
+    font-size: .74rem;
     font-weight: 720;
     line-height: 1.35;
     text-overflow: ellipsis;
@@ -107,13 +107,13 @@
 
 .rankingValue strong {
     color: #172033;
-    font-size: .9rem;
+    font-size: .84rem;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
 }
 
 .rankingValue small {
-    font-size: .64rem;
+    font-size: .61rem;
     font-weight: 650;
 }
 
@@ -144,13 +144,13 @@
     background: rgba(255, 255, 255, .98);
     box-shadow: 0 10px 26px rgba(28, 54, 92, .12);
     color: #526078;
-    font-size: .75rem;
+    font-size: .71rem;
     line-height: 1.4;
 }
 
 .specialtyTooltip strong {
     color: #172033;
-    font-size: .8rem;
+    font-size: .76rem;
 }
 
 .validationDistribution {
@@ -170,7 +170,7 @@
 
 .validationDonutTotal {
     fill: #172033;
-    font-size: 1.55rem;
+    font-size: 1.4rem;
     font-weight: 800;
     letter-spacing: -.04em;
     font-variant-numeric: tabular-nums;
@@ -178,7 +178,7 @@
 
 .validationDonutLabel {
     fill: #697586;
-    font-size: .68rem;
+    font-size: .65rem;
     font-weight: 700;
 }
 
@@ -228,7 +228,7 @@
     gap: 8px;
     min-width: 0;
     color: #334155;
-    font-size: .76rem;
+    font-size: .72rem;
     font-weight: 700;
 }
 
@@ -243,7 +243,7 @@
 .validationStateCount,
 .validationStatePercentage {
     color: #526078;
-    font-size: .76rem;
+    font-size: .72rem;
     font-variant-numeric: tabular-nums;
     text-align: right;
     white-space: nowrap;
@@ -251,7 +251,7 @@
 
 .validationStateCount small {
     color: #8994a5;
-    font-size: .65rem;
+    font-size: .62rem;
     font-weight: 600;
 }
 
@@ -263,7 +263,7 @@
 .validationTotalSummary {
     margin: 10px 0 0;
     color: #7b8798;
-    font-size: .68rem;
+    font-size: .64rem;
     line-height: 1.4;
     text-align: right;
 }
@@ -283,14 +283,14 @@
     background: rgba(255, 255, 255, .98);
     box-shadow: 0 10px 26px rgba(28, 54, 92, .12);
     color: #526078;
-    font-size: .75rem;
+    font-size: .71rem;
     line-height: 1.35;
 }
 
 .validationStatusTooltip strong {
     margin-bottom: 2px;
     color: #172033;
-    font-size: .82rem;
+    font-size: .77rem;
 }
 
 .validationTimeCard {
@@ -321,7 +321,7 @@
 .validationTimeHeading h3 {
     margin: 0;
     color: #172033;
-    font-size: .98rem;
+    font-size: .91rem;
     font-weight: 750;
     line-height: 1.3;
 }
@@ -329,7 +329,7 @@
 .validationTimeHeading p {
     margin: 4px 0 0;
     color: #667085;
-    font-size: .8rem;
+    font-size: .75rem;
     line-height: 1.45;
 }
 
@@ -362,25 +362,25 @@
 }
 
 .validationTimeMetric strong > span {
-    font-size: clamp(2rem, 4vw, 2.55rem);
+    font-size: clamp(1.4rem, 2.6vw, 1.7rem);
     font-weight: 800;
     letter-spacing: -.045em;
 }
 
 .validationTimeMetric small {
     color: #2563eb;
-    font-size: .85rem;
+    font-size: .78rem;
     font-weight: 750;
 }
 
 .validationTimeMetric .unavailableMetric {
     color: #a3adba;
-    font-size: 2.3rem;
+    font-size: 1.9rem;
 }
 
 .validationTimeCaption {
     color: #697586;
-    font-size: .72rem;
+    font-size: .68rem;
     font-weight: 650;
     line-height: 1.35;
 }
@@ -394,7 +394,7 @@
     border-radius: 999px;
     color: #526078;
     background: #f7f9fc;
-    font-size: .74rem;
+    font-size: .7rem;
     font-weight: 700;
     white-space: nowrap;
 }
@@ -409,7 +409,7 @@
     border-radius: 10px;
     background: #f8fafc;
     color: #64748b;
-    font-size: .87rem;
+    font-size: .81rem;
     text-align: center;
 }
 

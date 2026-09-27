@@ -40,11 +40,13 @@ export default function Dashboard() {
 
     return (
         <div className={styles.page}>
-            <AdminPageHeader
-                eyebrow="Vista general"
-                title="Dashboard administrativo"
-                description="Resumen consolidado del estado general de DocSmart."
-            />
+            <div className={styles.pageHeader}>
+                <AdminPageHeader
+                    eyebrow="Vista general"
+                    title="Dashboard administrativo"
+                    description="Resumen consolidado del estado general de DocSmart."
+                />
+            </div>
 
             <section className={styles.analyticsPanel} aria-labelledby="analytics-title">
                 <DashboardTabs activeTab={activeTab} setActiveTab={setActiveTab} />

@@ -20,20 +20,20 @@
 }
 
 .chartHeader {
-    margin-bottom: 18px;
+    margin-bottom: 15px;
 }
 
 .chartHeader h3 {
     margin: 0;
-    font-size: 1rem;
+    font-size: .92rem;
     font-weight: 700;
     line-height: 1.35;
     color: #172033;
 }
 
 .chartHeader p {
-    margin: 5px 0 0;
-    font-size: .81rem;
+    margin: 4px 0 0;
+    font-size: .76rem;
     line-height: 1.5;
     color: #526078;
 }
@@ -60,7 +60,7 @@
 
 .donutTotal {
     fill: #172033;
-    font-size: 1.55rem;
+    font-size: 1.4rem;
     font-weight: 800;
     letter-spacing: -.04em;
     font-variant-numeric: tabular-nums;
@@ -68,7 +68,7 @@
 
 .donutTotalLabel {
     fill: #697586;
-    font-size: .68rem;
+    font-size: .65rem;
     font-weight: 700;
 }
 
@@ -118,7 +118,7 @@
     gap: 8px;
     min-width: 0;
     color: #334155;
-    font-size: .76rem;
+    font-size: .72rem;
     font-weight: 700;
 }
 
@@ -133,7 +133,7 @@
 .statusCount,
 .statusPercentage {
     color: #526078;
-    font-size: .76rem;
+    font-size: .72rem;
     font-variant-numeric: tabular-nums;
     text-align: right;
     white-space: nowrap;
@@ -141,7 +141,7 @@
 
 .statusCount small {
     color: #8994a5;
-    font-size: .65rem;
+    font-size: .62rem;
     font-weight: 600;
 }
 
@@ -153,7 +153,7 @@
 .statusTotalSummary {
     margin: 10px 0 0;
     color: #7b8798;
-    font-size: .68rem;
+    font-size: .64rem;
     line-height: 1.4;
     text-align: right;
 }
@@ -173,20 +173,20 @@
     background: rgba(255, 255, 255, .98);
     box-shadow: 0 10px 26px rgba(28, 54, 92, .12);
     color: #526078;
-    font-size: .75rem;
+    font-size: .71rem;
     line-height: 1.35;
 }
 
 .statusTooltip strong {
     margin-bottom: 2px;
     color: #172033;
-    font-size: .82rem;
+    font-size: .77rem;
 }
 
 .demandHeading { grid-column: 1 / -1; min-width: 0; padding: 8px 2px 0; }
-.demandHeading span { display: block; margin-bottom: 4px; color: #2563eb; font-size: .67rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
-.demandHeading h3 { margin: 0; color: #25334a; font-size: 1rem; font-weight: 720; line-height: 1.4; }
-.demandHeading p { margin: 4px 0 0; color: #64748b; font-size: .8rem; line-height: 1.5; }
+.demandHeading span { display: block; margin-bottom: 4px; color: #2563eb; font-size: .62rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.demandHeading h3 { margin: 0; color: #25334a; font-size: .92rem; font-weight: 720; line-height: 1.4; }
+.demandHeading p { margin: 3px 0 0; color: #64748b; font-size: .75rem; line-height: 1.5; }
 
 .empty {
     display: grid;
@@ -197,7 +197,7 @@
     border-radius: 10px;
     background: #f8fafc;
     color: #64748b;
-    font-size: .87rem;
+    font-size: .81rem;
     text-align: center;
 }
 

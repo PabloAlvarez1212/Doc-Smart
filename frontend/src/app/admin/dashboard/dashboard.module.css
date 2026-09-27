@@ -6,6 +6,18 @@
 
 .page > section { min-width: 0; }
 
+.pageHeader { min-width: 0; }
+.pageHeader h1 {
+    font-size: clamp(1.45rem, 2.4vw, 1.85rem);
+    line-height: 1.12;
+}
+
+.pageHeader p {
+    margin-top: 7px;
+    font-size: .87rem;
+    line-height: 1.5;
+}
+
 .analyticsPanel {
     min-width: 0;
     container-type: inline-size;
@@ -18,5 +30,7 @@
 
 @media (max-width: 620px) {
     .page { gap: 24px; }
+    .pageHeader h1 { font-size: 1.4rem; }
+    .pageHeader p { font-size: .82rem; }
     .analyticsPanel { padding: 16px; }
 }
