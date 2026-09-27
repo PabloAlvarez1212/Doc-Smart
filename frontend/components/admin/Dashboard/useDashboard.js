@@ -12,17 +12,20 @@ export function useDashboard() {
     const [citasPorEspecialidad, setCitasPorEspecialidad] = useState([]);
     const [citasPorDiaSemana, setCitasPorDiaSemana] = useState([]);
     const [citasPorHora, setCitasPorHora] = useState([]);
-    const [tasaCancelacion, setTasaCancelacion] = useState(null);
 
     //medicos
     const [medicosPorEspecialidad, setMedicosPorEspecialidad] = useState([]);
     const [medicosPorEstadoValidacion, setMedicosPorEstadoValidacion] = useState([]);
     const [solicitudesValidacionPorMes, setSolicitudesValidacionPorMes] = useState([]);
+    const [medicosQueMasAtienden, setMedicosQueMasAtienden] = useState([]);
+    const [tiempoPromedioValidacion, setTiempoPromedioValidacion] = useState(null);
 
     //pacientes
     const [pacientesPorCitas, setPacientesPorCitas] = useState([]);
     const [pacientesPorEdad, setPacientesPorEdad] = useState([]);
     const [pacientesPorMes, setPacientesPorMes] = useState([]);
+    const [pacientesPorCantidadCitas, setPacientesPorCantidadCitas] = useState([]);
+    const [pacientesActivosPorMes, setPacientesActivosPorMes] = useState([]);
 
     useEffect(() => {
         cargarMetricasTarjetas();
@@ -49,7 +52,6 @@ export function useDashboard() {
             setCitasPorEspecialidad(citas.citas_por_especialidad)
             setCitasPorDiaSemana(citas.citas_por_dia_semana);
             setCitasPorHora(citas.citas_por_hora);
-            setTasaCancelacion(citas.tasa_cancelacion);
 
         } catch (error) {
             console.log("Error al cargar las estadísticas de citas");
@@ -65,6 +67,8 @@ export function useDashboard() {
             setMedicosPorEspecialidad(medicos.medicos_por_especialidad);
             setMedicosPorEstadoValidacion(medicos.medicos_por_estado_validacion);
             setSolicitudesValidacionPorMes(medicos.solicitudes_validacion_por_mes);
+            setMedicosQueMasAtienden(medicos.medicos_que_mas_atienden);
+            setTiempoPromedioValidacion(medicos.tiempo_promedio_validacion ?? null);
 
         } catch (error) {
             console.log("Error al cargar las estadísticas de medicos");
@@ -79,6 +83,8 @@ export function useDashboard() {
             setPacientesPorCitas(pacientes.pacientes_por_citas);
             setPacientesPorEdad(pacientes.pacientes_por_edad);
             setPacientesPorMes(pacientes.pacientes_por_mes);
+            setPacientesPorCantidadCitas(pacientes.pacientes_por_cantidad_citas ?? []);
+            setPacientesActivosPorMes(pacientes.pacientes_activos_por_mes ?? []);
 
         } catch (error) {
             console.log("Error al cargar las estadísticas de pacientes");
@@ -94,16 +100,19 @@ export function useDashboard() {
         citasPorEspecialidad,
         citasPorDiaSemana,
         citasPorHora,
-        tasaCancelacion,
 
         //medicos
         medicosPorEspecialidad,
         medicosPorEstadoValidacion,
         solicitudesValidacionPorMes, 
+        medicosQueMasAtienden,
+        tiempoPromedioValidacion,
 
         //pacientes
         pacientesPorEdad, 
         pacientesPorMes,
         pacientesPorCitas,
+        pacientesPorCantidadCitas,
+        pacientesActivosPorMes,
     }
 }

@@ -19,7 +19,7 @@ import logging
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from utils import filtrarMedicosAprobados
-from django.db.models import Count,OuterRef, Subquery, Value
+from django.db.models import Count,Case, When, Value, CharField
 from django.db.models.functions import TruncMonth, Coalesce
 from dateutil.relativedelta import relativedelta
 
@@ -486,6 +486,47 @@ def obtenerEstadisticasPacientesService():
 
     pacientesPorCitas = Cita.objects.filter(id_usuario__id_rol__nombre="paciente").values("id_usuario","id_usuario__nombre","id_usuario__apellido").annotate(total=Count("id")).order_by("-total")[:5]
     pacientesPorMes = (Usuario.objects.filter(id_rol__nombre__iexact="paciente").annotate(mes=TruncMonth("fecha_creacion")).values("mes").annotate(total=Count("id")).order_by("mes"))
+    pacientesCantidadCitas = (
+        Usuario.objects
+        .filter(id_rol__nombre__iexact="paciente")
+        .annotate(total_citas=Count("cita"))
+        .annotate(
+            rango_citas=Case(
+                When(total_citas=0, then=Value("Sin citas")),
+                When(total_citas=1, then=Value("1 cita")),
+                When(total_citas__range=(2, 3), then=Value("2 - 3 citas")),
+                When(total_citas__range=(4, 5), then=Value("4 - 5 citas")),
+                When(total_citas__gte=6, then=Value("6+ citas")),
+                output_field=CharField(),
+            )
+        )
+    )
+    
+    pacientesActivosPorMes = (
+    Cita.objects
+    .filter(
+        id_usuario__id_rol__nombre__iexact="paciente"
+    )
+    .annotate(
+        mes=TruncMonth("fecha_creacion")
+    )
+    .values("mes")
+    .annotate(
+        total_pacientes=Count(
+            "id_usuario",
+            distinct=True
+    )).order_by("mes"))
+    print(list(pacientesActivosPorMes))
+    rangosCitas = {
+        "Sin citas": 0,
+        "1 cita": 0,
+        "2 - 3 citas": 0,
+        "4 - 5 citas": 0,
+        "6+ citas": 0,
+    }
+
+    for paciente in pacientesCantidadCitas.values("rango_citas"):
+        rangosCitas[paciente["rango_citas"]] += 1
     
     hoy = timezone.localdate()
     pacientes = Usuario.objects.filter(id_rol__nombre__iexact="paciente")
@@ -522,6 +563,8 @@ def obtenerEstadisticasPacientesService():
         "pacientes_por_citas": [],
         "pacientes_por_edad": [],
         "pacientes_por_mes": [],
+        "pacientes_por_cantidad_citas": [],
+        "pacientes_activos_por_mes": [],
     }
     
     #pacientes
@@ -558,6 +601,18 @@ def obtenerEstadisticasPacientesService():
         data["pacientes_por_mes"].append({
             "mes": item["mes"],
             "total_pacientes": item["total"]
+        })
+    
+    for rango, total in rangosCitas.items():
+        data["pacientes_por_cantidad_citas"].append({
+            "rango": rango,
+            "total_pacientes": total,
+        })
+        
+    for item in pacientesActivosPorMes:
+        data["pacientes_activos_por_mes"].append({
+            "mes": item["mes"].strftime("%Y-%m"),
+            "total_pacientes": item["total_pacientes"],
         })
     
     return data,200

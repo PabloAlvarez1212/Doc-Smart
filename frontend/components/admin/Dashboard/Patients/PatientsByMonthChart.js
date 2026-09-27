@@ -1,31 +1,76 @@
 "use client";
 
 import {
-    CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
+    CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import styles from "./PatientStats/PatientStats.module.css";
 
-function formatMonth(value, options) {
+function parseMonth(value) {
+    const match = String(value ?? "").match(/^(\d{4})-(\d{2})/);
+
+    if (match) {
+        return new Date(Number(match[1]), Number(match[2]) - 1, 1);
+    }
+
     const date = new Date(value);
-    return Number.isNaN(date.getTime())
-        ? "Fecha no disponible"
-        : date.toLocaleDateString("es-CO", { ...options, timeZone: "America/Bogota" });
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatMonth(value, format = "short") {
+    const date = parseMonth(value);
+    if (!date) return "Fecha no disponible";
+
+    const formatted = new Intl.DateTimeFormat("es-CO", {
+        month: format === "long" ? "long" : "short",
+        year: "numeric",
+    }).format(date).replace(" de ", " ").replace(".", "");
+
+    return format === "long"
+        ? formatted.charAt(0).toUpperCase() + formatted.slice(1)
+        : formatted;
+}
+
+function MonthTooltip({ active, payload, label }) {
+    if (!active || !payload?.length) return null;
+
+    const total = Math.max(0, Number(payload[0]?.value) || 0);
+
+    return (
+        <div className={styles.chartTooltip}>
+            <strong>{formatMonth(label, "long")}</strong>
+            <span>{total} {total === 1 ? "paciente registrado" : "pacientes registrados"}</span>
+        </div>
+    );
 }
 
 export default function PatientsByMonthChart({ data }) {
+    const monthlyRegistrations = data.map((item) => ({
+        ...item,
+        total_pacientes: Math.max(0, Number(item.total_pacientes) || 0),
+    }));
+    const hasSingleMonth = monthlyRegistrations.length === 1;
+
     return (
-        <div className={styles.chartArea} aria-label="Pacientes registrados por mes">
+        <div
+            className={`${styles.chartArea} ${styles.trendChart}`}
+            role="img"
+            aria-label="Evolución mensual de pacientes registrados"
+        >
             <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 12, right: 14, left: -16, bottom: 4 }}>
+                <LineChart
+                    data={monthlyRegistrations}
+                    margin={{ top: hasSingleMonth ? 28 : 14, right: 16, left: -12, bottom: 4 }}
+                >
                     <CartesianGrid vertical={false} stroke="#e9eef4" strokeDasharray="3 4" />
                     <XAxis
                         dataKey="mes"
-                        tickFormatter={(value) => formatMonth(value, { month: "short", year: "2-digit" })}
+                        tickFormatter={(value) => formatMonth(value)}
                         tick={{ fill: "#64748b", fontSize: 11 }}
                         tickLine={false}
                         axisLine={false}
                         minTickGap={22}
                         tickMargin={10}
+                        interval="preserveStartEnd"
                     />
                     <YAxis
                         allowDecimals={false}
@@ -34,21 +79,27 @@ export default function PatientsByMonthChart({ data }) {
                         axisLine={false}
                         width={42}
                     />
-                    <Tooltip
-                        labelFormatter={(value) => formatMonth(value, { month: "long", year: "numeric" })}
-                        formatter={(value) => [value, "Pacientes registrados"]}
-                        contentStyle={{ borderRadius: 10, borderColor: "#e1e7f0", fontSize: 13 }}
-                    />
+                    <Tooltip content={<MonthTooltip />} />
                     <Line
                         type="monotone"
                         dataKey="total_pacientes"
                         name="Pacientes registrados"
                         stroke="#2563eb"
                         strokeWidth={2.5}
-                        dot={{ r: 3, fill: "#fff", strokeWidth: 2 }}
-                        activeDot={{ r: 5 }}
+                        dot={{ r: hasSingleMonth ? 5 : 3.5, fill: "#fff", stroke: "#2563eb", strokeWidth: 2.5 }}
+                        activeDot={{ r: 5.5, fill: "#fff", strokeWidth: 2.5 }}
                         connectNulls={false}
-                    />
+                    >
+                        {hasSingleMonth && (
+                            <LabelList
+                                dataKey="total_pacientes"
+                                position="top"
+                                fill="#334155"
+                                fontSize={11}
+                                fontWeight={700}
+                            />
+                        )}
+                    </Line>
                 </LineChart>
             </ResponsiveContainer>
         </div>

@@ -1,35 +1,35 @@
-import styles from "./PatientStats/PatientStats.module.css";
+"use client";
 
-export default function PatientsByAppointmentsChart({ data }) {
+import styles from "./DoctorStats/DoctorStats.module.css";
+
+export default function DoctorsByAppointmentsChart({ data }) {
     const ranking = data.map((item) => ({
         ...item,
-        paciente: String(item.paciente ?? "Paciente sin nombre"),
         total_citas: Math.max(0, Number(item.total_citas) || 0),
     }));
     const maxAppointments = Math.max(1, ...ranking.map((item) => item.total_citas));
 
     return (
-        <ol className={styles.patientRanking} aria-label="Ranking de pacientes por cantidad de citas">
+        <ol className={styles.doctorRanking} aria-label="Ranking de médicos por citas completadas">
             {ranking.map((item, index) => {
-                const appointments = item.total_citas;
-                const progress = (appointments / maxAppointments) * 100;
-                const appointmentLabel = appointments === 1 ? "cita" : "citas";
+                const completedAppointments = item.total_citas;
+                const progress = (completedAppointments / maxAppointments) * 100;
 
                 return (
                     <li
-                        className={styles.patientRankingItem}
-                        key={`${item.paciente}-${index}`}
-                        aria-label={`${index + 1}. ${item.paciente}: ${appointments} ${appointmentLabel}`}
+                        className={styles.doctorRankingItem}
+                        key={`${item.medico}-${index}`}
+                        aria-label={`${index + 1}. ${item.medico}: ${completedAppointments} ${completedAppointments === 1 ? "cita completada" : "citas completadas"}`}
                     >
                         <span className={styles.rankingPosition} aria-hidden="true">
                             {index + 1}
                         </span>
-                        <span className={styles.rankingPatient} title={item.paciente}>
-                            {item.paciente}
+                        <span className={styles.rankingDoctor} title={item.medico}>
+                            {item.medico}
                         </span>
                         <span className={styles.rankingValue} aria-hidden="true">
-                            <strong>{appointments}</strong>
-                            <small>{appointmentLabel}</small>
+                            <strong>{completedAppointments}</strong>
+                            <small>{completedAppointments === 1 ? "cita" : "citas"}</small>
                         </span>
                         <span className={styles.rankingTrack} aria-hidden="true">
                             <span

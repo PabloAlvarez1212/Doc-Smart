@@ -19,7 +19,24 @@ const metricDefinitions = [
 
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState("resumen");
-    const { metricasTarjetas, citasPorEstado, citasPorMes, citasPorEspecialidad, medicosPorEspecialidad, medicosPorEstadoValidacion, solicitudesValidacionPorMes,pacientesPorCitas,pacientesPorEdad,pacientesPorMes,citasPorDiaSemana,citasPorHora,tasaCancelacion } = useDashboard()
+    const {
+        metricasTarjetas,
+        citasPorEstado,
+        citasPorMes,
+        citasPorEspecialidad,
+        citasPorDiaSemana,
+        citasPorHora,
+        medicosPorEspecialidad,
+        medicosPorEstadoValidacion,
+        solicitudesValidacionPorMes,
+        medicosQueMasAtienden,
+        tiempoPromedioValidacion,
+        pacientesPorCitas,
+        pacientesPorEdad,
+        pacientesPorMes,
+        pacientesPorCantidadCitas,
+        pacientesActivosPorMes,
+    } = useDashboard()
     return (
         <div className={styles.page}>
             <AdminPageHeader
@@ -67,7 +84,6 @@ export default function Dashboard() {
                         citasPorEspecialidad={citasPorEspecialidad}
                         citasPorDiaSemana={citasPorDiaSemana}
                         citasPorHora={citasPorHora}
-                        tasaCancelacion={tasaCancelacion}
                     />
                 )}
 
@@ -76,6 +92,8 @@ export default function Dashboard() {
                         medicosPorEspecialidad={medicosPorEspecialidad}
                         medicosPorEstadoValidacion={medicosPorEstadoValidacion}
                         solicitudesValidacionPorMes={solicitudesValidacionPorMes}
+                        medicosQueMasAtienden={medicosQueMasAtienden}
+                        tiempoPromedioValidacion={tiempoPromedioValidacion}
                     />
                 )}
 
@@ -84,6 +102,8 @@ export default function Dashboard() {
                         pacientesPorCitas={pacientesPorCitas}
                         pacientesPorEdad={pacientesPorEdad}
                         pacientesPorMes={pacientesPorMes}
+                        pacientesPorCantidadCitas={pacientesPorCantidadCitas}
+                        pacientesActivosPorMes={pacientesActivosPorMes}
                     />
                 )}
             </section>

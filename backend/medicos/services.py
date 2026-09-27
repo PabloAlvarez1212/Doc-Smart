@@ -6,6 +6,7 @@ from datetime import timedelta
 from citas.models import Cita
 from notificaciones.models import Notificacion
 from medicos.models import Medico, Especialidad,SolicitudValidacionMedico, DisponibilidadMedico, ExcepcionDisponibilidadMedico
+from citas.models import Cita
 from users.models import Usuario
 from historial_medico.models import HistorialClinico
 from catalogos.models import Rol, Ciudad
@@ -24,7 +25,7 @@ from medicos.serializers import (
 from medicos.services_disponibilidad import (obtenerProximaDisponibilidad,)
 from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
-from django.db.models import Q,Value,OuterRef, Subquery,Count
+from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, OuterRef, Q, Subquery, Value
 from django.db.models.functions import TruncMonth, Coalesce
 from django.db.models.functions import Concat
 from storage_app.services import guardar_archivo_medico,eliminar_archivo
@@ -1689,11 +1690,24 @@ def obtenerEstadisticasMedicosService():
     solicitudesValidacionPorMes = (SolicitudValidacionMedico.objects.annotate(mes=TruncMonth("fecha_solicitud")).values("mes").annotate(total=Count("id")).order_by("mes"))
     ultimaSolicitud = (SolicitudValidacionMedico.objects.filter(medico=OuterRef("pk")).order_by("-fecha_solicitud").values("estado")[:1])
     medicosPorEstadoValidacion = (Medico.objects.annotate(estado_actual=Coalesce(Subquery(ultimaSolicitud),Value("sin_solicitud"))).values("estado_actual").annotate(total=Count("id")).order_by("-total"))
+    medicosQueMasAtienden = (Cita.objects.filter(id_estado__nombre__iexact="completada").values("id_medico","id_medico__nombre","id_medico__apellido").annotate(total=Count("id")).order_by("-total")[:5])
+    duracionValidacion = ExpressionWrapper(F("fecha_revision") - F("fecha_solicitud"),output_field=DurationField(),)
+    resumenTiempoValidacion = (SolicitudValidacionMedico.objects.filter(fecha_revision__isnull=False).aggregate(promedio=Avg(duracionValidacion),total_revisadas=Count("id"),))
+    promedioValidacion = resumenTiempoValidacion["promedio"]
     
     data = {
         "medicos_por_especialidad" : [],
         "medicos_por_estado_validacion": [],
-        "solicitudes_validacion_por_mes": []
+        "solicitudes_validacion_por_mes": [],
+        "medicos_que_mas_atienden": [],
+        "tiempo_promedio_validacion": {
+            "segundos": (
+                round(promedioValidacion.total_seconds())
+                if promedioValidacion is not None
+                else None
+            ),
+            "solicitudes_revisadas": resumenTiempoValidacion["total_revisadas"],
+        },
     }
     
     for item in medicosPorEpecialidad:
@@ -1714,4 +1728,9 @@ def obtenerEstadisticasMedicosService():
             "total_solicitudes": item["total"]
         })
         
+    for item in medicosQueMasAtienden:
+        data["medicos_que_mas_atienden"].append({
+            "medico": f"{item['id_medico__nombre']} {item['id_medico__apellido']}",
+            "total_citas": item["total"]
+        })
     return data,200

@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
 from notificaciones.services import enviarNotificacion
-from django.db.models import Count,Value
+from django.db.models import Count,Value,Q
 from django.db.models.functions import Concat
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator
@@ -601,18 +601,11 @@ def eliminarRecordatorioService(id):
 #!Service para estadisticas del modulo citas
 
 def obtenerEstadisticasCitas():
-    citaPorEstado = Cita.objects.values('id_estado__nombre').annotate(total=Count('id')).order_by('-total')
+    citaPorEstado = Cita.objects.filter(Q(id_estado__nombre__iexact="cancelada",fecha_cancelacion__isnull=False)|~Q(id_estado__nombre__iexact="cancelada")).values('id_estado__nombre').annotate(total=Count('id')).order_by('-total')
     citaPorMes = Cita.objects.annotate(mes=TruncMonth('fecha_creacion')).values('mes').annotate(total=Count('id')).order_by('mes')
     citaPorEspecialidad = Cita.objects.values('id_medico__id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
     citaPorDiaSemana = Cita.objects.annotate(dia_semana = ExtractWeekDay("fecha_programada")).values("dia_semana").annotate(total=Count("id")).order_by("dia_semana")
     citasPorHora = (Cita.objects.annotate(hora=ExtractHour("fecha_programada")).values("hora").annotate(total=Count("id")).order_by("hora"))
-    totalCitas = Cita.objects.count()
-    totalCitasCanceladas = Cita.objects.filter(fecha_cancelacion__isnull=False).count()
-    
-    if totalCitas > 0:
-        tasaCancelacion = (totalCitasCanceladas / totalCitas) * 100
-    else:
-        tasaCancelacion = 0
         
     ordenDias = [
         (2, "Lunes"),
@@ -635,11 +628,6 @@ def obtenerEstadisticasCitas():
         "citas_por_especialidad" : [],
         "citas_por_dia_semana" : [],
         "citas_por_hora": [],
-        "tasa_cancelacion": {
-            "total_citas": totalCitas,
-            "total_canceladas": totalCitasCanceladas,
-            "porcentaje": round(tasaCancelacion, 2)
-        }
     }
     
     #citas
