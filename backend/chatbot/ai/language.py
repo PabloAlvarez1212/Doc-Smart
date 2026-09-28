@@ -1,10 +1,8 @@
 import logging
 import re
 
-from google.genai.types import GenerateContentConfig
-
-from chatbot.ai.gemini_service import client
-from chatbot.ai.model_config import GEMINI_MODEL
+from chatbot.ai.openai_service import obtener_cliente
+from chatbot.ai.model_config import OPENAI_MODEL
 
 
 logger = logging.getLogger(__name__)
@@ -64,12 +62,14 @@ class LanguageService:
             f"ASSISTANT RESPONSE:\n{protegida}"
         )
         try:
-            response = client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=instruccion,
-                config=GenerateContentConfig(temperature=0, max_output_tokens=1200),
+            response = obtener_cliente().responses.create(
+                model=OPENAI_MODEL,
+                instructions="Traduce únicamente el texto solicitado. Conserva cada token protegido sin cambios.",
+                input=instruccion,
+                max_output_tokens=1200,
+                store=False,
             )
-            traducida = (response.text or protegida).strip()
+            traducida = (response.output_text or protegida).strip()
         except Exception as error:
             logger.warning(
                 "No fue posible localizar la respuesta de Bymax tipo=%s",
