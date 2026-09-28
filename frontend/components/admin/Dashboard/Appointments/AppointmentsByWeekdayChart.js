@@ -50,10 +50,10 @@ export default function AppointmentsByWeekdayChart({ data }) {
                         width={42}
                     />
                     <Tooltip
-                        formatter={(value) => [value, "Total de citas"]}
+                        formatter={(value) => [value, "Citas programadas"]}
                         contentStyle={{ borderRadius: 10, borderColor: "#e1e7f0", fontSize: 13 }}
                     />
-                    <Bar dataKey="total_citas" name="Total de citas" fill="#2563eb" radius={[5, 5, 0, 0]} maxBarSize={40}>
+                    <Bar dataKey="total_citas" name="Citas programadas" fill="#2563eb" radius={[5, 5, 0, 0]} maxBarSize={40}>
                         <LabelList dataKey="total_citas" position="top" fill="#526078" fontSize={11} />
                     </Bar>
                 </BarChart>

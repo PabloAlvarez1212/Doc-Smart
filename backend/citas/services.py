@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from django.core.paginator import Paginator
 from medicos.services_disponibilidad import (esHorarioDisponible,)
 from functools import wraps
-from django.db.models.functions import TruncMonth, ExtractWeekDay,ExtractHour
+from django.db.models.functions import TruncMonth, ExtractWeekDay,ExtractHour,TruncDay
 
 
 def serializar_agenda(funcion):
@@ -600,12 +600,30 @@ def eliminarRecordatorioService(id):
 
 #!Service para estadisticas del modulo citas
 
-def obtenerEstadisticasCitas():
-    citaPorEstado = Cita.objects.filter(Q(id_estado__nombre__iexact="cancelada",fecha_cancelacion__isnull=False)|~Q(id_estado__nombre__iexact="cancelada")).values('id_estado__nombre').annotate(total=Count('id')).order_by('-total')
-    citaPorMes = Cita.objects.annotate(mes=TruncMonth('fecha_creacion')).values('mes').annotate(total=Count('id')).order_by('mes')
-    citaPorEspecialidad = Cita.objects.values('id_medico__id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
-    citaPorDiaSemana = Cita.objects.annotate(dia_semana = ExtractWeekDay("fecha_programada")).values("dia_semana").annotate(total=Count("id")).order_by("dia_semana")
-    citasPorHora = (Cita.objects.annotate(hora=ExtractHour("fecha_programada")).values("hora").annotate(total=Count("id")).order_by("hora"))  
+def obtenerEstadisticasCitas(anio=None,mes=None):
+    citas = Cita.objects.all()
+
+    if anio is not None:
+        citas = citas.filter(fecha_programada__year=anio)
+
+    if mes is not None:
+        citas = citas.filter(fecha_programada__month=mes)
+        
+    citaPorEstado = citas.filter(Q(id_estado__nombre__iexact="cancelada",fecha_cancelacion__isnull=False)|~Q(id_estado__nombre__iexact="cancelada")).values('id_estado__nombre').annotate(total=Count('id')).order_by('-total')
+    
+    if mes is not None:
+        citaPorPeriodo = (Cita.objects.filter(fecha_creacion__year=anio,fecha_creacion__month=mes).annotate(dia=TruncDay("fecha_creacion")).values("dia").annotate(total=Count("id")).order_by("dia"))
+        
+        agrupacion = "dia"
+        
+    else:
+        citaPorPeriodo = (Cita.objects.filter(fecha_creacion__year=anio).annotate(mes=TruncMonth("fecha_creacion")).values("mes").annotate(total=Count("id")).order_by("mes"))
+
+        agrupacion = "mes"
+        
+    citaPorEspecialidad = citas.values('id_medico__id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
+    citaPorDiaSemana = citas.annotate(dia_semana = ExtractWeekDay("fecha_programada")).values("dia_semana").annotate(total=Count("id")).order_by("dia_semana")
+    citasPorHora = (citas.annotate(hora=ExtractHour("fecha_programada")).values("hora").annotate(total=Count("id")).order_by("hora"))  
     ordenDias = [
         (2, "Lunes"),
         (3, "Martes"),
@@ -620,26 +638,50 @@ def obtenerEstadisticasCitas():
         item["dia_semana"]: item["total"]
         for item in citaPorDiaSemana
     }
+    
+    citasPorPeriodoData = []
         
+    for item in citaPorPeriodo:
+        if agrupacion == "dia":
+            citasPorPeriodoData.append({
+                "periodo": item["dia"].strftime("%Y-%m-%d"),
+                "total": item["total"]
+            })
+        else:
+            citasPorPeriodoData.append({
+                "periodo": item["mes"].strftime("%Y-%m"),
+                "total": item["total"]
+            })
+            
+    aniosDisponibles = (Cita.objects.dates("fecha_programada", "year", order="DESC"))
+    
+    aniosDisponibles = [
+        fecha.year
+        for fecha in aniosDisponibles
+    ]
+    
     data = {
         "citas_por_estado" : [],
-        "citas_por_mes" : [],
+        "citas_por_periodo" : [],
         "citas_por_especialidad" : [],
         "citas_por_dia_semana" : [],
         "citas_por_hora": [],
+        "citas_creadas_por_periodo": {
+            "agrupacion": agrupacion,
+            "datos": citasPorPeriodoData
+        },
+        "filtros": {
+            "anio": anio,
+            "mes": mes,
+            "anios_disponibles": aniosDisponibles
+        },
     }
-    
+                
     #citas
     for item in citaPorEstado:
         data["citas_por_estado"].append({
             "estado" : item['id_estado__nombre'],
             "total" : item['total']
-        })
-        
-    for item in citaPorMes:
-        data["citas_por_mes"].append({
-            "mes" : item['mes'],
-            "total_citas" : item['total']
         })
         
     for item in citaPorEspecialidad:

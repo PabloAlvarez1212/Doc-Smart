@@ -6,7 +6,23 @@ import {
     obtenerEstadisticasPacientesService,
     obtenerMetricasSistemaService,
 } from "@/app/services/adminServices";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+/** @typedef {"mes"|"dia"} AgrupacionCitas */
+/** @typedef {{periodo: string, total: number}} CitaPeriodo */
+/** @typedef {{agrupacion: AgrupacionCitas, datos: CitaPeriodo[]}} CitasCreadasPorPeriodo */
+/** @typedef {{anio: number|null, mes: number|null, anios_disponibles: number[]}} FiltrosCitas */
+
+const EMPTY_APPOINTMENT_ACTIVITY = {
+    agrupacion: "mes",
+    datos: [],
+};
+
+const EMPTY_APPOINTMENT_FILTERS = {
+    anio: null,
+    mes: null,
+    anios_disponibles: [],
+};
 
 export function useDashboard() {
     const [metricasTarjetas, setMetricasTarjetas] = useState(null);
@@ -14,12 +30,18 @@ export function useDashboard() {
     const [errorMetricas, setErrorMetricas] = useState(false);
 
     const [citasPorEstado, setCitasPorEstado] = useState([]);
-    const [citasPorMes, setCitasPorMes] = useState([]);
+    const [citasCreadasPorPeriodo, setCitasCreadasPorPeriodo] = useState(
+        /** @type {CitasCreadasPorPeriodo} */ (EMPTY_APPOINTMENT_ACTIVITY)
+    );
+    const [filtrosCitas, setFiltrosCitas] = useState(
+        /** @type {FiltrosCitas} */ (EMPTY_APPOINTMENT_FILTERS)
+    );
     const [citasPorEspecialidad, setCitasPorEspecialidad] = useState([]);
     const [citasPorDiaSemana, setCitasPorDiaSemana] = useState([]);
     const [citasPorHora, setCitasPorHora] = useState([]);
     const [loadingCitas, setLoadingCitas] = useState(true);
     const [errorCitas, setErrorCitas] = useState(false);
+    const appointmentRequestRef = useRef(null);
 
     const [medicosPorEspecialidad, setMedicosPorEspecialidad] = useState([]);
     const [medicosPorEstadoValidacion, setMedicosPorEstadoValidacion] = useState([]);
@@ -41,6 +63,8 @@ export function useDashboard() {
         cargarEstadisticasPacientes();
         cargarEstadisticasCitas();
         cargarEstadisticasMedicos();
+
+        return () => appointmentRequestRef.current?.abort();
     }, []);
 
     const cargarMetricasTarjetas = async () => {
@@ -56,22 +80,81 @@ export function useDashboard() {
         }
     };
 
-    const cargarEstadisticasCitas = async () => {
+    const limpiarDatosCitas = () => {
+        setCitasPorEstado([]);
+        setCitasCreadasPorPeriodo(EMPTY_APPOINTMENT_ACTIVITY);
+        setCitasPorEspecialidad([]);
+        setCitasPorDiaSemana([]);
+        setCitasPorHora([]);
+    };
+
+    const cargarEstadisticasCitas = async (anio, mes) => {
+        appointmentRequestRef.current?.abort();
+        const controller = new AbortController();
+        appointmentRequestRef.current = controller;
+
         try {
+            setLoadingCitas(true);
             setErrorCitas(false);
-            const data = await obtenerEstadisticasCitasService();
+            limpiarDatosCitas();
+
+            const data = await obtenerEstadisticasCitasService(
+                anio,
+                mes,
+                controller.signal
+            );
+
+            if (controller.signal.aborted) return;
+
             const citas = data.data;
+            const activity = citas.citas_creadas_por_periodo;
+            const filters = citas.filtros;
 
             setCitasPorEstado(citas.citas_por_estado ?? []);
-            setCitasPorMes(citas.citas_por_mes ?? []);
+            setCitasCreadasPorPeriodo({
+                agrupacion: activity?.agrupacion === "dia" ? "dia" : "mes",
+                datos: Array.isArray(activity?.datos) ? activity.datos : [],
+            });
             setCitasPorEspecialidad(citas.citas_por_especialidad ?? []);
             setCitasPorDiaSemana(citas.citas_por_dia_semana ?? []);
             setCitasPorHora(citas.citas_por_hora ?? []);
+            setFiltrosCitas({
+                anio: Number.isInteger(filters?.anio) ? filters.anio : null,
+                mes: Number.isInteger(filters?.mes) ? filters.mes : null,
+                anios_disponibles: Array.isArray(filters?.anios_disponibles)
+                    ? filters.anios_disponibles
+                    : [],
+            });
         } catch {
-            setErrorCitas(true);
+            if (!controller.signal.aborted) {
+                setErrorCitas(true);
+            }
         } finally {
-            setLoadingCitas(false);
+            if (
+                !controller.signal.aborted
+                && appointmentRequestRef.current === controller
+            ) {
+                setLoadingCitas(false);
+            }
         }
+    };
+
+    const cambiarAnioCitas = (value) => {
+        const anio = Number(value);
+        if (!Number.isInteger(anio)) return;
+
+        const mes = filtrosCitas.mes;
+        setFiltrosCitas((current) => ({ ...current, anio }));
+        cargarEstadisticasCitas(anio, mes);
+    };
+
+    const cambiarMesCitas = (value) => {
+        const mes = value === null || value === "" ? null : Number(value);
+        if (mes !== null && (!Number.isInteger(mes) || mes < 1 || mes > 12)) return;
+        if (!Number.isInteger(filtrosCitas.anio)) return;
+
+        setFiltrosCitas((current) => ({ ...current, mes }));
+        cargarEstadisticasCitas(filtrosCitas.anio, mes);
     };
 
     const cargarEstadisticasMedicos = async () => {
@@ -114,7 +197,10 @@ export function useDashboard() {
         loadingMetricas,
         errorMetricas,
         citasPorEstado,
-        citasPorMes,
+        citasCreadasPorPeriodo,
+        filtrosCitas,
+        cambiarAnioCitas,
+        cambiarMesCitas,
         citasPorEspecialidad,
         citasPorDiaSemana,
         citasPorHora,

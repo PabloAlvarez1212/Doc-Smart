@@ -10,7 +10,7 @@ export default function AppointmentsBySpecialtyChart({ data }) {
     const { axisWidth, chartHeight, axisMax, ticks } = getSpecialtyChartLayout(data, "total_citas");
 
     return (
-        <div className={styles.specialtyScroll} aria-label="Citas por especialidad">
+        <div className={styles.specialtyScroll} aria-label="Citas programadas por especialidad">
             <div className={styles.specialtyArea} style={{ height: chartHeight }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart
@@ -40,10 +40,10 @@ export default function AppointmentsBySpecialtyChart({ data }) {
                             axisLine={false}
                         />
                         <Tooltip
-                            formatter={(value) => [value, "Total de citas"]}
+                            formatter={(value) => [value, "Citas programadas"]}
                             contentStyle={{ borderRadius: 10, borderColor: "#e1e7f0", fontSize: 13 }}
                         />
-                        <Bar dataKey="total_citas" name="Total de citas" fill="#13796f" radius={[0, 5, 5, 0]} maxBarSize={25} />
+                        <Bar dataKey="total_citas" name="Citas programadas" fill="#13796f" radius={[0, 5, 5, 0]} maxBarSize={25} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>

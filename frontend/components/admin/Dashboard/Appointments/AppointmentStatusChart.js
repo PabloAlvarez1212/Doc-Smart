@@ -76,7 +76,7 @@ export default function AppointmentStatusChart({ data }) {
     });
 
     return (
-        <div className={styles.statusDistribution} aria-label="Distribución de citas por estado">
+        <div className={styles.statusDistribution} aria-label="Citas programadas por estado">
             <div className={styles.statusChartArea}>
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>

@@ -17,7 +17,10 @@ export default function Dashboard() {
         loadingMetricas,
         errorMetricas,
         citasPorEstado,
-        citasPorMes,
+        citasCreadasPorPeriodo,
+        filtrosCitas,
+        cambiarAnioCitas,
+        cambiarMesCitas,
         citasPorEspecialidad,
         citasPorDiaSemana,
         citasPorHora,
@@ -62,7 +65,10 @@ export default function Dashboard() {
                 {activeTab === "citas" && (
                     <AppointmentStats
                         citasPorEstado={citasPorEstado}
-                        citasPorMes={citasPorMes}
+                        citasCreadasPorPeriodo={citasCreadasPorPeriodo}
+                        filtros={filtrosCitas}
+                        cambiarAnio={cambiarAnioCitas}
+                        cambiarMes={cambiarMesCitas}
                         citasPorEspecialidad={citasPorEspecialidad}
                         citasPorDiaSemana={citasPorDiaSemana}
                         citasPorHora={citasPorHora}
