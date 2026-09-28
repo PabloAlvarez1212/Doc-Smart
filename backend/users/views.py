@@ -9,9 +9,13 @@ from utils import IsAdmin,IsPaciente
 from django.conf import settings
 from users.services import (
     loginService,
-    solicitarCambioService,
     cambiarContraseñaService,
     registrarUsuarioService,
+    verificarCorreoRegistroService,
+    reenviarCodigoRegistroService,
+    completarRegistroUsuarioService,
+    solicitarCambioCorreoService,
+    confirmarCambioCorreoService,
     listarPacientesService,
     obtenerUsuarioService,
     editarUsuarioService,
@@ -26,10 +30,14 @@ from users.services import (
 )
 from users.serializers import (
     LoginSerializer,
-    SolicitarCambioSerializer,
     CambiarContraseñaSerializer,
-    RegistrarUsuarioSerializer,
+    IniciarRegistroUsuarioSerializer,
+    VerificarCorreoRegistroSerializer,
+    ReenviarCodigoRegistroSerializer,
+    CompletarRegistroSerializer,
     EditarUsuarioSerializer,
+    SolicitarCambioCorreoSerializer,
+    ConfirmarCambioCorreoSerializer,
     FotoPerfilPacienteSerializer,
     CambiarContraseñaAutenticadoSerializer,
 )
@@ -218,28 +226,76 @@ class CSRFTokenView(APIView):
             }
         )
 
-class SolicitarCambioView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []
+class SolicitarCambioCorreoView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsPaciente
+    ]
 
     def post(self, request):
-        serializer = SolicitarCambioSerializer(data=request.data)
+
+        serializer = (
+            SolicitarCambioCorreoSerializer(
+                data=request.data
+            )
+        )
+
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(
+                serializer.errors
+            )
+
+        resultado, status_code = (
+            solicitarCambioCorreoService(
+                request.user,
+                serializer.validated_data[
+                    "correo"
+                ]
+            )
+        )
+
+        if status_code != 201:
+            return respuesta_error(
+                "No fue posible solicitar el cambio",
+                errores=resultado,
+                status=status_code
+            )
+
+        return respuesta_ok(
+            data=resultado,
+            mensaje=(
+                "Código enviado al nuevo correo"
+            ),
+            status=201
+        )
+
+
+class ConfirmarCambioCorreoView(APIView):
+
+    permission_classes = [IsAuthenticated,IsPaciente]
+
+    def post(self, request):
+        serializer = (ConfirmarCambioCorreoSerializer(data=request.data))
+
         if not serializer.is_valid():
             return respuesta_serializer_invalido(serializer.errors)
 
-        try:
-            mensaje, status_code = solicitarCambioService(
-                serializer.validated_data['correo']
+        resultado, status_code = (
+            confirmarCambioCorreoService(
+                request.user,
+                serializer.validated_data[
+                    "cambio_id"
+                ],
+                serializer.validated_data[
+                    "codigo"
+                ]
             )
+        )
 
-            if status_code != 200:
-                return respuesta_error('Error',  errores=mensaje , status=status_code)
-
-            return respuesta_ok(mensaje=mensaje)
-
-        except Exception as e:
-            print(e)
-            return respuesta_error('Error interno del servidor', status=500)
+        if status_code != 200:
+            return respuesta_error("No fue posible cambiar el correo",errores=resultado,status=status_code)
+        return respuesta_ok(data=resultado,mensaje=("Correo actualizado correctamente"),status=200)
 
 
 class CambiarContraseñaView(APIView):
@@ -289,23 +345,95 @@ class CambiarContraseñaAutenticadoView(APIView):
 
 #!Registro - publico - NO REQUIERE TOKEN
 class RegistroView(APIView):
+
     permission_classes = [AllowAny]
     authentication_classes = []
 
-    def post(self,request):
-        serializer = RegistrarUsuarioSerializer(data=request.data)
+    def post(self, request):
+        serializer = IniciarRegistroUsuarioSerializer(
+            data=request.data
+        )
+
+        if not serializer.is_valid():return respuesta_serializer_invalido(serializer.errors)
+
+        try:
+
+            respuesta, status_code = (registrarUsuarioService(serializer.validated_data))
+            if status_code != 201:
+                return respuesta_error("No fue posible iniciar el registro",errores=respuesta,status=status_code)
+            return respuesta_ok(data=respuesta,mensaje=("Código de verificación enviado"),status=201)
+
+        except Exception as e:
+            print(e)
+            return respuesta_error("Error interno del servidor",status=500)
+
+
+class VerificarCorreoRegistroView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    def post(self, request):
+        serializer = (VerificarCorreoRegistroSerializer( data=request.data))
+
         if not serializer.is_valid():
             return respuesta_serializer_invalido(serializer.errors)
-        try :
-            respuesta , status_code = registrarUsuarioService(
-                serializer.validated_data
+
+        resultado, status_code = (
+            verificarCorreoRegistroService(
+                serializer.validated_data[
+                    "proceso_id"
+                ],
+                serializer.validated_data[
+                    "codigo"
+                ]
             )
-            if status_code != 201:
-                return respuesta_error(mensaje=respuesta,status=status_code)
-            return respuesta_ok(respuesta,"Registro existoso",status_code)
-        except Exception as e:
-            print(f"Error: {e}")
-            return respuesta_error("Error interno en el servidor",status=500)
+        )
+
+        if status_code != 200:
+            return respuesta_error("No fue posible verificar el correo",errores=resultado,status=status_code)
+        return respuesta_ok( data=resultado,mensaje="Correo verificado",status=200)  
+
+
+class ReenviarCodigoRegistroView(APIView):
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+
+        serializer = (ReenviarCodigoRegistroSerializer(data=request.data))
+
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+
+        resultado, status_code = (
+            reenviarCodigoRegistroService(
+                serializer.validated_data[
+                    "proceso_id"
+                ]
+            )
+        )
+
+        if status_code != 200:
+            return respuesta_error("No fue posible reenviar el código",errores=resultado,status=status_code)
+        return respuesta_ok( mensaje="Código reenviado",status=200)   
+
+
+class CompletarRegistroUsuarioView(APIView):
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = CompletarRegistroSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+
+        resultado, status_code = (completarRegistroUsuarioService(serializer.validated_data[ "proceso_id"]))
+        if status_code != 201:
+            return respuesta_error("No fue posible completar el registro", errores=resultado,status=status_code)
+        return respuesta_ok(data=resultado,mensaje="Registro exitoso",status=201)   
+
 
 #!Metodos unicos del usuario - requiere Token
 
@@ -321,7 +449,12 @@ class PerfilPacienteView(APIView):
             print(f"Error: {e}")
     def put(self,request):
         try:
-            serializer = EditarUsuarioSerializer(data=request.data)
+            serializer = EditarUsuarioSerializer(
+                data=request.data,
+                context={
+                    "request": request
+                }
+            )
             if not serializer.is_valid():
                 return respuesta_serializer_invalido(serializer.errors)
             respuesta , status_code = editarUsuarioService(
@@ -456,7 +589,12 @@ class UsuarioDetailView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
     def put(self, request, pk):
-        serializer = EditarUsuarioSerializer(data=request.data)
+        serializer = EditarUsuarioSerializer(
+            data=request.data,
+            context={
+                "usuario_id": pk
+            }
+        )
         if not serializer.is_valid():
             return respuesta_serializer_invalido(serializer.errors)
 

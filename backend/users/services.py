@@ -22,6 +22,30 @@ from utils import filtrarMedicosAprobados
 from django.db.models import Count,OuterRef, Subquery, Value
 from django.db.models.functions import TruncMonth, Coalesce
 from dateutil.relativedelta import relativedelta
+from django.contrib.auth.hashers import (
+    make_password,
+    check_password,
+)
+
+from django.db import transaction
+
+from users.models import (
+    Usuario,
+    ProcesoRegistroUsuario,
+    CambioCorreoUsuario,
+)
+
+#configuración de OTP
+MAX_INTENTOS_OTP = 5
+MAX_REENVIOS_OTP = 5
+
+DURACION_OTP_MINUTOS = 10
+DURACION_PROCESO_MINUTOS = 30
+
+TIEMPO_REENVIO_SEGUNDOS = 60
+def generarCodigoOTP():
+    return f"{secrets.randbelow(1_000_000):06d}"
+
 
 logger = logging.getLogger(__name__)
 resend.api_key = os.getenv("RESEND_API_KEY")
@@ -114,81 +138,179 @@ def refreshTokenService(refresh_token):
             401
         )
         
-def solicitarCambioService(correo):
-    # Busca en ambas tablas
-    usuario = Usuario.objects.filter(correo=correo).first()
-    medico = Medico.objects.filter(correo=correo).first()
+def solicitarCambioCorreoService(usuario,nuevo_correo):
 
-    if not usuario and not medico:
-        return {"general": ["El correo no se encuentra registrado"]}, 404
+    nuevo_correo = (nuevo_correo .strip().lower())
 
-    # Genera token temporal
-    token = secrets.token_urlsafe(32)
-    expiracion = timezone.now() + timedelta(minutes=15)
+    if (
+        nuevo_correo
+        == usuario.correo.lower()
+    ):
+        return {
+            "correo": [
+                "El correo ingresado es el actual"
+            ]
+        }, 400
 
-    # Guarda el token en la BD
-    if usuario:
-        usuario.token_reset = token
-        usuario.token_reset_expira = expiracion
-        usuario.save()
-    else:
-        medico.token_reset = token
-        medico.token_reset_expira = expiracion
-        medico.save()
+    ocupado = (
+        Usuario.objects.filter(
+            correo__iexact=nuevo_correo
+        ).exclude(
+            id=usuario.id
+        ).exists()
+        or
+        Medico.objects.filter(
+            correo__iexact=nuevo_correo
+        ).exists()
+    )
 
-    persona = usuario or medico
-    
-    if persona.ultimo_envio:
-        tiempo_transcurrido = timezone.now() - persona.ultimo_envio
+    if ocupado:
+        return {"correo": ["El correo ya se encuentra registrado"]}, 400
 
-        if tiempo_transcurrido < timedelta(minutes=5):
-            segundos_restantes = max(0, 300 - int(tiempo_transcurrido.total_seconds()))
-            minutos = segundos_restantes // 60
-            segundos = segundos_restantes % 60
-            if minutos > 0:
-                return {"general":[f"Espera {minutos} min {segundos} seg antes de reenviar"]}, 400
-            else:
-                return {"general":[f"Espera {segundos} segundos antes de reenviar"]}, 400
-    
-    if persona :
-        # Envía el email
-        frontend_url = os.getenv("FRONTEND_URL", "").rstrip("/")
-        link = f"{frontend_url}/reset-password?token={token}"
-        nombre = persona.nombre or "Usuario"
-        apellido = persona.apellido or ""
-        html_content = render_to_string(
-            "emails/reset_password.html",
-            {
-                "link": link,
-                "nombre": nombre,
-                "apellido": apellido
-            }
+    CambioCorreoUsuario.objects.filter(
+        usuario=usuario,
+        estado=(CambioCorreoUsuario.Estado.PENDIENTE)
+    ).update(estado=(CambioCorreoUsuario.Estado.EXPIRADO))
+
+    codigo = generarCodigoOTP()
+    ahora = timezone.now()
+    cambio = CambioCorreoUsuario.objects.create(
+        usuario=usuario,
+        nuevo_correo=nuevo_correo,
+        otp_hash=make_password(codigo),
+        otp_expira_en=(
+            ahora
+            + timedelta(
+                minutes=DURACION_OTP_MINUTOS
+            )
+        ),
+    )
+
+    try:
+
+        resend.Emails.send({
+            "from": os.getenv(
+                "RESEND_FROM_EMAIL"
+            ),
+            "to": [nuevo_correo],
+            "subject": (
+                "Confirma tu nuevo correo - DocSmart"
+            ),
+            "html": f"""
+                <h2>Cambio de correo electrónico</h2>
+
+                <p>
+                    Código de verificación:
+                </p>
+
+                <h1>{codigo}</h1>
+
+                <p>
+                    Este código expirará en
+                    {DURACION_OTP_MINUTOS} minutos.
+                </p>
+            """
+        })
+
+    except Exception:
+
+        logger.exception("Error enviando OTP cambio correo")
+
+        cambio.delete()
+        return {"general": ["No fue posible enviar el código"]}, 500
+
+    return {"cambio_id": str(cambio.id)}, 201
+
+@transaction.atomic
+def confirmarCambioCorreoService(usuario,cambio_id,codigo):
+
+    cambio = (
+        CambioCorreoUsuario.objects
+        .select_for_update()
+        .filter(
+            id=cambio_id,
+            usuario=usuario
+        )
+        .first()
+    )
+    if not cambio:
+        return {"general": ["Solicitud inválida"]}, 400
+
+    if (
+        cambio.estado
+        != CambioCorreoUsuario.Estado.PENDIENTE
+    ):
+        return {
+            "general": [
+                "Esta solicitud ya no está disponible"
+            ]
+        }, 400
+
+    ahora = timezone.now()
+
+    if cambio.otp_expira_en <= ahora:
+        cambio.estado = (CambioCorreoUsuario.Estado.EXPIRADO)
+        cambio.save(update_fields=["estado"])
+        
+        return {
+            "codigo": ["El código ha expirado"]}, 400
+
+    if cambio.intentos >= MAX_INTENTOS_OTP:
+        cambio.estado = (CambioCorreoUsuario.Estado.BLOQUEADO)
+        cambio.save(update_fields=["estado"])
+
+        return {
+            "general": ["Se alcanzó el máximo de intentos"]}, 429
+
+    if not check_password(codigo,cambio.otp_hash):
+
+        cambio.intentos += 1
+        campos = ["intentos"]
+
+        if cambio.intentos >= MAX_INTENTOS_OTP:
+            cambio.estado = (CambioCorreoUsuario.Estado.BLOQUEADO)
+            campos.append("estado")
+
+        cambio.save(
+            update_fields=campos
         )
 
-        try:
-            email = resend.Emails.send({
-                "from": os.getenv("RESEND_FROM_EMAIL"),
-                "to": [correo],
-                "subject": "Recupera tu contraseña - DocSmart",
-                "html": html_content,
-            })
+        return {"codigo": ["Código incorrecto"]}, 400
 
-            print("Email enviado:", email)
+    # Volver a verificar justo antes
+    # de cambiar el correo.
+    ocupado = (
+        Usuario.objects.filter(
+            correo__iexact=cambio.nuevo_correo
+        ).exclude(
+            id=usuario.id
+        ).exists()
+        or
+        Medico.objects.filter(
+            correo__iexact=cambio.nuevo_correo
+        ).exists()
+    )
 
-            persona.ultimo_envio = timezone.now()
-            persona.save()
+    if ocupado:
+        return {
+            "correo": [
+                "El correo ya se encuentra registrado"
+            ]
+        }, 400
 
-            return "Email enviado correctamente", 200
+    usuario.correo = cambio.nuevo_correo
+    usuario.save(update_fields=["correo"])
 
-        except Exception as e:
+    cambio.estado = (CambioCorreoUsuario.Estado.COMPLETADO)
+    cambio.completado_en = ahora
+    cambio.save(
+        update_fields=[
+            "estado",
+            "completado_en",
+        ]
+    )
 
-            print("Error enviando correo:", repr(e))
-
-            return {
-                "general": [
-                    "Error enviando el correo"
-                ]
-            }, 500
+    return {"correo": usuario.correo}, 200
     
 def cambiarContraseñaService(token, nueva_contraseña):
     
@@ -238,48 +360,378 @@ def cambiarContraseñaAutenticadoService(persona,contraseña_actual,nueva_contra
         
 def registrarUsuarioService(datos):
 
-    usuario_correo = Usuario.objects.filter(correo=datos.get('correo')).first()
-    medico_correo = Medico.objects.filter(correo=datos.get('correo')).first()
+    correo = datos["correo"].strip().lower()
+    cedula = datos["cedula"].strip()
 
-    usuario_cedula = Usuario.objects.filter(cedula=datos.get('cedula')).first()
-    medico_cedula = Medico.objects.filter(cedula=datos.get('cedula')).first()
-    # Verifica que existe en alguna tabla
-    if usuario_correo or medico_correo:
-       return {"correo": ["El correo ya se encuentra registrado"]}, 404
+    # No revelamos demasiado sobre cuentas existentes.
+    correo_ocupado = (
+        Usuario.objects.filter(
+            correo__iexact=correo
+        ).exists()
+        or
+        Medico.objects.filter(
+            correo__iexact=correo
+        ).exists()
+    )
 
-    if usuario_cedula or medico_cedula:
-        return {'cedula': ['La cédula ya está registrada']}, 400
+    if correo_ocupado:
+        return {"correo": ["No fue posible utilizar este correo"]}, 400
 
-    # Obtiene el rol
-    rol = Rol.objects.filter(nombre='paciente').first()
-    if not rol:
-        return 'Rol no encontrado', 404
+    cedula_ocupada = (
+        Usuario.objects.filter(
+            cedula=cedula
+        ).exists()
+        or
+        Medico.objects.filter(
+            cedula=cedula
+        ).exists()
+    )
 
-    # Encripta la contraseña
+    if cedula_ocupada:
+        return {"cedula": ["No fue posible utilizar este documento"]}, 400
+
+    # Invalidar procesos anteriores sin completar.
+    ProcesoRegistroUsuario.objects.filter(
+        correo__iexact=correo
+    ).exclude(
+        estado=(ProcesoRegistroUsuario.Estado.COMPLETADO)
+    ).update(
+        estado=(ProcesoRegistroUsuario.Estado.EXPIRADO)
+    )
+    codigo = generarCodigoOTP()
+    ahora = timezone.now()
+
     contraseña_hash = bcrypt.hashpw(
-        datos.get('contraseña').encode(),
+        datos["contraseña"].encode(),
         bcrypt.gensalt()
     ).decode()
 
-    # Crea el usuario
-    usuario = Usuario.objects.create(
-        nombre=datos.get('nombre'),
-        apellido=datos.get('apellido'),
-        fecha_nacimiento=datos.get('fecha_nacimiento'),
-        estatura=datos.get('estatura'),
-        peso=datos.get('peso'),
-        correo=datos.get('correo'),
-        contraseña=contraseña_hash,
-        cedula=datos.get('cedula'),
-        telefono=datos.get('telefono'),
-        id_rol=rol
+    proceso = ProcesoRegistroUsuario.objects.create(
+        nombre_declarado=datos["nombre"],
+        apellido_declarado=datos["apellido"],
+        fecha_nacimiento_declarada=(
+            datos["fecha_nacimiento"]
+        ),
+        cedula_declarada=cedula,
+        correo=correo,
+        contraseña_hash=contraseña_hash,
+
+        telefono=datos["telefono"],
+        estatura=datos["estatura"],
+        peso=datos["peso"],
+
+        otp_hash=make_password(codigo),
+
+        otp_expira_en=(
+            ahora
+            + timedelta(
+                minutes=DURACION_OTP_MINUTOS
+            )
+        ),
+
+        ultimo_envio_otp=ahora,
+        expira_en=(ahora + timedelta(minutes=DURACION_PROCESO_MINUTOS)),
     )
+    try:
+        resend.Emails.send({
+            "from": os.getenv(
+                "RESEND_FROM_EMAIL"
+            ),
+            "to": [correo],
+            "subject": (
+                "Código de verificación - DocSmart"
+            ),
+            "html": f"""
+                <h2>Verificación de correo</h2>
+
+                <p>
+                    Tu código de verificación es:
+                </p>
+
+                <h1>{codigo}</h1>
+
+                <p>
+                    Este código expirará en
+                    {DURACION_OTP_MINUTOS} minutos.
+                </p>
+
+                <p>
+                    Si no solicitaste este registro,
+                    ignora este mensaje.
+                </p>
+            """
+        })
+
+    except Exception:
+        logger.exception("Error enviando OTP de registro")
+        proceso.delete()
+
+        return {
+            "general": ["No fue posible enviar el código"]}, 500
+
+    return {"proceso_id": str(proceso.id)}, 201
+
+
+def verificarCorreoRegistroService(proceso_id,codigo):
+    ahora = timezone.now()
+    proceso = (ProcesoRegistroUsuario.objects.filter(id=proceso_id).first())
+
+    if not proceso:
+        return {"general": ["Proceso de registro inválido"]}, 400
+
+    if proceso.estado in [
+        ProcesoRegistroUsuario.Estado.BLOQUEADO,
+        ProcesoRegistroUsuario.Estado.EXPIRADO,
+        ProcesoRegistroUsuario.Estado.COMPLETADO,
+    ]:
+        return {"general": ["El proceso ya no está disponible"]}, 400
+
+    if proceso.expira_en <= ahora:
+        proceso.estado = (ProcesoRegistroUsuario.Estado.EXPIRADO)
+        proceso.save(update_fields=["estado"])
+
+        return {"general": ["El proceso de registro ha expirado"]}, 400
+
+    if proceso.correo_verificado:
+        return {"correo_verificado": True}, 200
+
+    if proceso.intentos_otp >= MAX_INTENTOS_OTP:
+
+        proceso.estado = (ProcesoRegistroUsuario.Estado.BLOQUEADO)
+        proceso.save(update_fields=["estado"])
+
+        return {"general": ["Se alcanzó el máximo de intentos"]}, 429
+
+    if (
+        not proceso.otp_expira_en
+        or proceso.otp_expira_en <= ahora
+    ):
+        return {"codigo": ["El código ha expirado"]}, 400
+
+    if not check_password(codigo,proceso.otp_hash):
+
+        proceso.intentos_otp += 1
+        campos = ["intentos_otp"]
+
+        if (
+            proceso.intentos_otp
+            >= MAX_INTENTOS_OTP
+        ):
+            proceso.estado = (
+                ProcesoRegistroUsuario
+                .Estado
+                .BLOQUEADO
+            )
+
+            campos.append("estado")
+        proceso.save(
+
+            update_fields=campos
+        )
+
+        return {"codigo": ["Código incorrecto"]}, 400
+
+    proceso.correo_verificado = True
+    proceso.correo_verificado_en = ahora
+    proceso.estado = (ProcesoRegistroUsuario.Estado.CORREO_VERIFICADO)
+
+    # OTP de un solo uso.
+    proceso.otp_hash = None
+    proceso.otp_expira_en = None
+
+    proceso.save(
+        update_fields=[
+            "correo_verificado",
+            "correo_verificado_en",
+            "estado",
+            "otp_hash",
+            "otp_expira_en",
+        ]
+    )
+
+    return {"correo_verificado": True}, 200
+
+
+def reenviarCodigoRegistroService(proceso_id):
+
+    proceso = (ProcesoRegistroUsuario.objects.filter(id=proceso_id).first())
+
+    if not proceso:
+        return {"general": ["Proceso de registro inválido"]}, 400
+
+    if proceso.correo_verificado:
+        return {"general": ["El correo ya fue verificado"]}, 400
+
+    if proceso.estado in [
+        ProcesoRegistroUsuario.Estado.BLOQUEADO,
+        ProcesoRegistroUsuario.Estado.EXPIRADO,
+        ProcesoRegistroUsuario.Estado.COMPLETADO,
+    ]:
+        return {
+            "general": ["El proceso ya no está disponible"]}, 400
+
+    ahora = timezone.now()
+
+    if proceso.expira_en <= ahora:
+        proceso.estado = (ProcesoRegistroUsuario.Estado.EXPIRADO)
+        proceso.save(update_fields=["estado"])
+
+        return {"general": ["El proceso ha expirado"]}, 400
+
+    if proceso.reenvios_otp >= MAX_REENVIOS_OTP:
+        return {"general": ["Se alcanzó el máximo de reenvíos"]}, 429
+
+    if proceso.ultimo_envio_otp:
+
+        transcurrido = (ahora - proceso.ultimo_envio_otp).total_seconds()
+
+        if transcurrido < TIEMPO_REENVIO_SEGUNDOS:
+
+            restantes = int(TIEMPO_REENVIO_SEGUNDOS - transcurrido)
+
+            return {"general": [f"Espera {restantes} segundos"]}, 429
+
+    codigo = generarCodigoOTP()
+
+    proceso.otp_hash = make_password(codigo)
+    proceso.otp_expira_en = (ahora + timedelta(minutes=DURACION_OTP_MINUTOS))
+    proceso.ultimo_envio_otp = ahora
+    proceso.reenvios_otp += 1
+
+    try:
+
+        resend.Emails.send({
+            "from": os.getenv(
+                "RESEND_FROM_EMAIL"
+            ),
+            "to": [proceso.correo],
+            "subject": (
+                "Nuevo código de verificación - DocSmart"
+            ),
+            "html": f"""
+                <h2>Nuevo código</h2>
+                <h1>{codigo}</h1>
+
+                <p>
+                    El código expirará en
+                    {DURACION_OTP_MINUTOS} minutos.
+                </p>
+            """
+        })
+
+    except Exception:
+        logger.exception("Error reenviando OTP de registro")
+
+        return { "general": [ "No fue posible enviar el código"]}, 500
+
+    proceso.save(
+        update_fields=[
+            "otp_hash",
+            "otp_expira_en",
+            "ultimo_envio_otp",
+            "reenvios_otp",
+        ]
+    )
+
+    return {"general": ["Código reenviado correctamente"]}, 200
+
+
+@transaction.atomic
+def completarRegistroUsuarioService(proceso_id):
+
+    proceso = (ProcesoRegistroUsuario.objects.select_for_update().filter(id=proceso_id).first())
+
+    if not proceso:
+        return {"general": ["Proceso de registro inválido"]}, 400
+
+    if (
+        proceso.estado
+        ==
+        ProcesoRegistroUsuario.Estado.COMPLETADO
+    ):
+        return {"general": ["El registro ya fue completado" ]}, 400
+
+    if proceso.expira_en <= timezone.now():
+
+        proceso.estado = (ProcesoRegistroUsuario.Estado.EXPIRADO)
+
+        proceso.save(update_fields=["estado"])
+
+        return {"general": ["El proceso ha expirado"]}, 400
+
+    if not proceso.correo_verificado:
+        return {
+            "correo": ["El correo no ha sido verificado"]}, 400
+
+    if not proceso.documento_verificado:
+        return {"documento": ["El documento no ha sido verificado"]}, 400
+
+    if not all([
+        proceso.nombre_verificado,
+        proceso.apellido_verificado,
+        proceso.cedula_verificada,
+        proceso.fecha_nacimiento_verificada,
+    ]):
+        return {"documento": ["La identidad verificada está incompleta"]}, 400
+
+    correo_ocupado = (
+        Usuario.objects.filter(
+            correo__iexact=proceso.correo
+        ).exists()
+        or
+        Medico.objects.filter(
+            correo__iexact=proceso.correo
+        ).exists()
+    )
+
+    if correo_ocupado:
+        return {"correo": ["No fue posible completar el registro"]}, 400
+
+    cedula_ocupada = (
+        Usuario.objects.filter(
+            cedula=proceso.cedula_verificada
+        ).exists()
+        or
+        Medico.objects.filter(
+            cedula=proceso.cedula_verificada
+        ).exists()
+    )
+
+    if cedula_ocupada:
+        return {"cedula": ["No fue posible completar el registro"]}, 400
+    rol = Rol.objects.filter(nombre__iexact="paciente").first()
+
+    if not rol:
+        return {"general": ["Rol de paciente no configurado"]}, 500
+
+    usuario = Usuario.objects.create(
+        # Estos vienen exclusivamente
+        # de la identidad verificada.
+        nombre=proceso.nombre_verificado,
+        apellido=proceso.apellido_verificado,
+        fecha_nacimiento=(
+            proceso
+            .fecha_nacimiento_verificada
+        ),
+        cedula=proceso.cedula_verificada,
+
+        correo=proceso.correo,
+
+        contraseña=proceso.contraseña_hash,
+
+        telefono=proceso.telefono,
+        estatura=proceso.estatura,
+        peso=proceso.peso,
+
+        id_rol=rol,
+    )
+
+    proceso.estado = (ProcesoRegistroUsuario.Estado.COMPLETADO)
+    proceso.completado_en = timezone.now()
+    proceso.save(update_fields=["estado","completado_en",])
 
     serializer = UsuarioSerializer(usuario)
     return serializer.data, 201
-
-
-
 
 def listarPacientesService(page=None, page_size=10, search=None):
     usuarios = Usuario.objects.filter(id_rol__nombre__iexact = "paciente")
@@ -360,27 +812,26 @@ def obtenerUsuarioService(id):
 
 
 def editarUsuarioService(id, datos):
+
     usuario = Usuario.objects.filter(id=id).first()
+
     if not usuario:
-        return 'Usuario no encontrado', 404
+        return "Usuario no encontrado", 404
 
-    nuevo_correo = datos.get('correo')
-    if nuevo_correo and nuevo_correo != usuario.correo:
-        if Usuario.objects.filter(correo=nuevo_correo).exists():
-            return {"correo": ["El correo ya está registrado"]}, 400
-        usuario.correo = nuevo_correo
+    usuario.estatura = datos.get("estatura",usuario.estatura)
+    usuario.peso = datos.get("peso",usuario.peso)
+    usuario.telefono = datos.get("telefono",usuario.telefono)
 
-    usuario.nombre = datos.get('nombre', usuario.nombre)
-    usuario.apellido = datos.get('apellido', usuario.apellido)
-    usuario.fecha_nacimiento = datos.get('fecha_nacimiento', usuario.fecha_nacimiento)
-    usuario.estatura = datos.get('estatura', usuario.estatura)
-    usuario.peso = datos.get('peso', usuario.peso)
-    usuario.telefono = datos.get('telefono', usuario.telefono)
-    usuario.save()
-
+    usuario.save(
+        update_fields=[
+            "estatura",
+            "peso",
+            "telefono",
+        ]
+    )
     serializer = UsuarioPerfilSerializer(usuario)
-    return serializer.data, 200
 
+    return serializer.data, 200
 
 def eliminarUsuarioService(id):
     usuario = Usuario.objects.filter(id=id).first()

@@ -1,11 +1,17 @@
 from django.urls import path
+from django.urls import path
+
 from .views import (
     LoginView,
-    SolicitarCambioView,
     CambiarContraseñaView,
     UsuarioListView,
     UsuarioDetailView,
     RegistroView,
+    VerificarCorreoRegistroView,
+    ReenviarCodigoRegistroView,
+    CompletarRegistroUsuarioView,
+    SolicitarCambioCorreoView,
+    ConfirmarCambioCorreoView,
     PerfilPacienteView,
     LogoutView,
     DashboardInicioPacienteView,
@@ -19,20 +25,25 @@ from .views import (
 )
 
 urlpatterns = [
-    path('login/', LoginView.as_view()),
-    path('solicitar-cambio/', SolicitarCambioView.as_view()),
-    path('cambiar-contraseña/', CambiarContraseñaView.as_view()),
-    path('cambiar-contraseña-auth/', CambiarContraseñaAutenticadoView.as_view()),
-    path('usuarios/', UsuarioListView.as_view()),
-    path('usuarios/registro/',RegistroView.as_view()),
-    path('usuarios/<int:pk>/', UsuarioDetailView.as_view()),
-    path('perfil/',PerfilPacienteView.as_view()),
-    path('perfil/admin/',PerfilAdminView.as_view()),
-    path('logout/', LogoutView.as_view()),
-    path('dashboard/inicio/paciente/',DashboardInicioPacienteView.as_view()),
+
+    path("login/",LoginView.as_view()),
+    path("cambiar-contraseña/",CambiarContraseñaView.as_view()),
+    path("cambiar-contraseña-auth/",CambiarContraseñaAutenticadoView.as_view()),
+    path("usuarios/registro/",RegistroView.as_view()),
+    path("usuarios/registro/verificar-correo/",VerificarCorreoRegistroView.as_view()),
+    path("usuarios/registro/reenviar-codigo/",ReenviarCodigoRegistroView.as_view()),
+    path("usuarios/registro/completar/", CompletarRegistroUsuarioView.as_view()),
+    path("usuarios/",UsuarioListView.as_view()),
+    path("usuarios/<int:pk>/",UsuarioDetailView.as_view()),
+    path("perfil/",PerfilPacienteView.as_view()),
+    path("perfil/correo/solicitar-cambio/",SolicitarCambioCorreoView.as_view()),
+    path("perfil/correo/confirmar-cambio/",ConfirmarCambioCorreoView.as_view()),
+    path("perfil/admin/",PerfilAdminView.as_view()),
+    path("logout/",LogoutView.as_view()),
+    path("dashboard/inicio/paciente/",DashboardInicioPacienteView.as_view()),
     path("perfil/foto/",FotoPerfilPacienteView.as_view(),name="foto-perfil-paciente"),
     path("refresh/",RefreshTokenView.as_view(),name="refresh-token"),
     path("csrf/",CSRFTokenView.as_view(),name="csrf-token"),
-    path('admin/dashboard/metricas/',MetricasSistemaView.as_view(),name='metricas-sistema'),
+    path("admin/dashboard/metricas/",MetricasSistemaView.as_view(),name="metricas-sistema"),
     path("admin/dashboard/estadisticas/",EstadisticasSistemaView.as_view()),
 ]
