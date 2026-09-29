@@ -6,7 +6,7 @@ MAX_MENSAJES_CONTEXTO = 30
 
 def construir_historial(chat):
     """
-    Construye el historial de conversación para Gemini.
+    Construye el historial de conversación para Bymax.
     """
 
     historial = []

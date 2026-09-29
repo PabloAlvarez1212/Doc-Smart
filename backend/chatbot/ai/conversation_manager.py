@@ -169,7 +169,7 @@ class ConversationManager:
             streaming
             and not state.decision.usa_tool
             and not state.decision.usa_flujo
-            and (state.decision.parametros or {}).get("__stream_gemini__")
+            and (state.decision.parametros or {}).get("__stream_openai__")
         ):
             return {
                 "stream": True,

@@ -11,7 +11,7 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.middleware.csrf import get_token
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory, force_authenticate
 from chatbot import test_medico as fixtures
@@ -290,21 +290,6 @@ class CopilotoTests(TestCase):
         self.assertEqual(self.request(ChatbotResponderView, self.otro, "post", data, id_chat=self.chat.pk).status_code, 404)
         self.assertFalse(Mensaje.objects.exists())
 
-    def test_websocket_repite_turno_rest_sin_guardar_otra_vez(self):
-        data = {"mensaje": "Mis próximas citas", "request_id": str(uuid4())}
-        self.request(ChatbotResponderView, self.medico, "post", data, id_chat=self.chat.pk)
-        async def conversar():
-            async def application(scope, receive, send):
-                scope.update(user=self.medico, url_route={"kwargs": {"id_chat": self.chat.pk}})
-                await BymaxConsumer.as_asgi()(scope, receive, send)
-            socket = WebsocketCommunicator(application, "/ws/chatbot/")
-            self.assertTrue((await socket.connect())[0])
-            await socket.receive_json_from()
-            await socket.send_json_to(data)
-            self.assertEqual((await socket.receive_json_from())["tipo"], "fin")
-            await socket.disconnect()
-        async_to_sync(conversar)()
-        self.assertEqual(Mensaje.objects.count(), 2)
 
     def test_mime_real_extension_y_cursor(self):
         buffer = BytesIO(); Image.new("RGB", (2, 2)).save(buffer, format="PNG")
@@ -345,14 +330,14 @@ class CopilotoTests(TestCase):
         self.seleccionar(self.paciente)
         original = Chat.objects.get(pk=self.chat.pk)
         self.seleccionar(self.segundo)
-        with patch("chatbot.ai.doctor_conversation.preguntar_gemini", return_value="Resumen") as gemini:
+        with patch("chatbot.ai.doctor_conversation.preguntar_openai", return_value="Resumen") as gemini:
             ConversationManager.procesar(original, "Resume su caso")
         self.assertEqual(original.contexto_clinico_id, original.contexto_temporal["clinico"]["sesion_id"])
         self.assertNotEqual(original.contexto_clinico_id, self.chat.contexto_clinico_id)
         self.assertNotIn(self.segundo.nombre, str(gemini.call_args))
 
     def test_identidad_conversacional_medica_procede_del_backend(self):
-        with patch("chatbot.ai.doctor_conversation.preguntar_gemini") as gemini:
+        with patch("chatbot.ai.doctor_conversation.preguntar_openai") as gemini:
             respuesta = ConversationManager.procesar(self.chat, "¿Cuál es mi especialidad?")
         self.assertIn(self.medico.nombre, respuesta)
         self.assertIn("General", respuesta)
@@ -363,3 +348,37 @@ class CopilotoTests(TestCase):
         iniciar_turno(self.chat, clave, "Imagen", SimpleUploadedFile("foto.png", b"primera"))
         with self.assertRaises(ValueError):
             iniciar_turno(self.chat, clave, "Imagen", SimpleUploadedFile("foto.png", b"segunda"))
+
+
+@override_settings(CACHES=fixtures.TEST_CACHES, CHANNEL_LAYERS=fixtures.TEST_CHANNEL_LAYERS)
+class CopilotoWebSocketTests(TransactionTestCase):
+    """El consumer consulta la BD desde una conexión distinta."""
+
+    cita = fixtures.BymaxMedicoTests.cita
+    request = fixtures.BymaxMedicoTests.request
+
+    def setUp(self):
+        type(self).setUpTestData()
+        fixtures.BymaxMedicoTests.setUp(self)
+        cache.clear()
+
+    @classmethod
+    def setUpTestData(cls):
+        fixtures.BymaxMedicoTests.setUpTestData.__func__(cls)
+
+    def test_websocket_repite_turno_rest_sin_guardar_otra_vez(self):
+        data = {"mensaje": "Mis próximas citas", "request_id": str(uuid4())}
+        self.request(ChatbotResponderView, self.medico, "post", data, id_chat=self.chat.pk)
+        async def conversar():
+            async def application(scope, receive, send):
+                scope.update(user=self.medico, url_route={"kwargs": {"id_chat": self.chat.pk}})
+                await BymaxConsumer.as_asgi()(scope, receive, send)
+            socket = WebsocketCommunicator(application, "/ws/chatbot/")
+            self.assertTrue((await socket.connect())[0])
+            await socket.receive_json_from()
+            await socket.send_json_to(data)
+            self.assertEqual((await socket.receive_json_from())["tipo"], "fin")
+            await socket.disconnect()
+        async_to_sync(conversar)()
+        self.assertEqual(Mensaje.objects.count(), 2)
+

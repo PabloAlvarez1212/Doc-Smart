@@ -1,20 +1,12 @@
 import json
 import logging
-import os
-
-from dotenv import load_dotenv
-from google import genai
-from google.genai.types import GenerateContentConfig
 
 from chatbot.ai.context_manager import actualizar_contexto, obtener_contexto
-from chatbot.ai.model_config import GEMINI_MODEL
+from chatbot.ai.model_config import OPENAI_MODEL
+from chatbot.ai.openai_service import obtener_cliente
 
-
-load_dotenv()
 
 logger = logging.getLogger(__name__)
-
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 INDICADORES_MEMORIA = {
     "me llamo",
@@ -86,22 +78,20 @@ def extraer_y_guardar_memoria(chat, mensaje):
     contexto_actual = obtener_contexto(chat)
 
     try:
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=(
+        response = obtener_cliente().responses.create(
+            model=OPENAI_MODEL,
+            input=(
                 "Memoria actual:\n"
                 f"{json.dumps(contexto_actual, ensure_ascii=False)}\n\n"
                 "Mensaje nuevo del usuario:\n"
                 f"{mensaje}"
             ),
-            config=GenerateContentConfig(
-                system_instruction=PROMPT_EXTRACTOR,
-                temperature=0,
-                response_mime_type="application/json",
-                max_output_tokens=500,
-            ),
+            instructions=PROMPT_EXTRACTOR,
+            text={"format": {"type": "json_object"}},
+            max_output_tokens=500,
+            store=False,
         )
-        nuevos_datos = json.loads(response.text or "{}")
+        nuevos_datos = json.loads(response.output_text or "{}")
     except Exception as error:
         logger.warning(
             "No fue posible actualizar la memoria de Bymax tipo=%s",

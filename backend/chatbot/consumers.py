@@ -11,7 +11,7 @@ from chatbot.services.turn_service import iniciar_turno, completar_turno, json_s
 from chatbot.services.diagnostics import error_operativo
 
 from chatbot.ai.conversation_manager import ConversationManager
-from chatbot.ai.gemini_service import preguntar_gemini_stream
+from chatbot.ai.openai_service import preguntar_openai_stream
 from chatbot.models import Chat, Mensaje
 from chatbot.services.chat_service import ChatService
 from chatbot.ai.doctor_conversation import DOCTOR_SYSTEM_PROMPT
@@ -147,7 +147,7 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
             )(self.chat, mensaje, streaming=True)
 
             if isinstance(resultado, dict) and resultado.get("stream"):
-                respuesta_completa = await self._transmitir_gemini(
+                respuesta_completa = await self._transmitir_openai(
                     resultado.get("contents", [])
                 )
                 resultado_estructurado = None
@@ -187,7 +187,7 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
             else:
                 await self.send_json({"tipo": "error", "mensaje": "No fue posible procesar el mensaje."})
 
-    async def _transmitir_gemini(self, contents):
+    async def _transmitir_openai(self, contents):
         cola = asyncio.Queue()
         loop = asyncio.get_running_loop()
 
@@ -195,7 +195,7 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
             close_old_connections()
             try:
                 opciones = {"system_prompt": DOCTOR_SYSTEM_PROMPT} if self.chat.id_medico_id else {}
-                for fragmento in preguntar_gemini_stream(contents, **opciones):
+                for fragmento in preguntar_openai_stream(contents, **opciones):
                     loop.call_soon_threadsafe(
                         cola.put_nowait, ("texto", fragmento)
                     )

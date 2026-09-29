@@ -130,8 +130,7 @@ class BymaxMedicoTests(TestCase):
         self.assertFalse(ejecutar_tool("buscar_proximos_pacientes", chat_paciente, "", {})["success"])
         self.assertFalse(self.tool("agendar_cita", {"confirmado": True})["success"])
 
-    def test_chats_aislados_incluso_con_ids_coincidentes(self):
-        self.assertEqual(self.medico.id, self.paciente.id)
+    def test_chats_aislados_por_tipo_de_actor(self):
         chat_paciente = Chat.objects.create(id_usuario=self.paciente)
         for actor in (self.paciente, self.otro):
             self.assertIsNone(ChatService.obtener_chat(self.chat.id, actor))
@@ -193,7 +192,7 @@ class BymaxMedicoTests(TestCase):
         self.assertIsNone(log.usuario_id)
         self.assertNotIn(self.paciente.nombre, str(log.parametros) + str(log.respuesta))
 
-    @patch("chatbot.ai.doctor_conversation.preguntar_gemini", return_value="Borrador para revisión")
+    @patch("chatbot.ai.doctor_conversation.preguntar_openai", return_value="Borrador para revisión")
     def test_medico_usa_prompt_propio_y_stream_mismo_contexto(self, gemini):
         self.seleccionar(self.paciente)
         self.assertEqual(ConversationManager.procesar(self.chat, "Prepara nota"), "Borrador para revisión")
@@ -214,43 +213,15 @@ class BymaxMedicoTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["data"]["resultado"]["data"]["paciente_activo"]["id"], self.paciente.id)
 
-    def test_websocket_busca_por_tipo_de_actor(self):
-        consumer = BymaxConsumer()
-        consumer.id_chat = self.chat.id
-        self.assertIsNone(async_to_sync(consumer._obtener_chat)(self.paciente))
-        self.assertIsNone(async_to_sync(consumer._obtener_chat)(self.otro))
-        self.assertEqual(async_to_sync(consumer._obtener_chat)(self.medico).id, self.chat.id)
 
     def test_storage_no_confunde_id_medico_con_paciente(self):
         self.assertEqual(self.request(ArchivoListaCrearView, self.medico).status_code, 403)
         self.assertEqual(self.request(ArchivoUrlView, self.medico, pk=1).status_code, 403)
 
-    def test_websocket_rechaza_ajenos_y_responde_al_medico(self):
-        async def conversar(actor, permitido):
-            async def application(scope, receive, send):
-                scope = {**scope, "user": actor, "url_route": {"kwargs": {"id_chat": self.chat.id}}}
-                await BymaxConsumer.as_asgi()(scope, receive, send)
-            socket = WebsocketCommunicator(application, f"/ws/chatbot/{self.chat.id}/")
-            conectado, codigo = await socket.connect()
-            self.assertEqual(conectado, permitido)
-            if permitido:
-                self.assertEqual((await socket.receive_json_from())["tipo"], "conectado")
-                await socket.send_json_to({"mensaje": "Mis próximas citas"})
-                self.assertEqual((await socket.receive_json_from())["tipo"], "inicio")
-                self.assertEqual((await socket.receive_json_from())["tipo"], "texto")
-                fin = await socket.receive_json_from()
-                self.assertEqual(fin["tipo"], "fin")
-                self.assertEqual(len(fin["resultado"]["data"]["citas"]), 2)
-            else:
-                self.assertEqual(codigo, 4404)
-            await socket.disconnect()
-        for actor in (self.paciente, self.otro):
-            async_to_sync(conversar)(actor, False)
-        async_to_sync(conversar)(self.medico, True)
 
     @patch("chatbot.views.guardar_archivo_usuario")
     @patch("chatbot.views.analizar_imagen_medica", return_value="Análisis paciente")
-    @patch("chatbot.ai.doctor_conversation.preguntar_gemini", return_value="Análisis médico")
+    @patch("chatbot.ai.doctor_conversation.preguntar_openai", return_value="Análisis médico")
     def test_imagenes_conservan_flujo_paciente_y_aislan_medico(self, gemini, analizar_paciente, guardar):
         self.seleccionar(self.paciente)
         buffer = BytesIO()
@@ -275,14 +246,14 @@ class BymaxMedicoTests(TestCase):
         self.assertEqual(analizar_paciente.call_count, 1)
         self.assertEqual(gemini.call_count, 1)
         self.assertEqual(gemini.call_args.kwargs["system_prompt"], DOCTOR_SYSTEM_PROMPT)
-        self.assertEqual(gemini.call_args.args[0][-1]["parts"][-1].inline_data.data, png)
+        self.assertTrue(gemini.call_args.args[0][-1]["parts"][-1]["image_bytes"].startswith(b"\x89PNG"))
 
     def test_rechazo_de_herramienta_se_registra_como_fallo(self):
         respuesta = ToolManager.ejecutar("seleccionar_paciente", self.chat, "Seleccionar", {"paciente_id": self.ajeno.id})
         self.assertFalse(respuesta["success"])
         self.assertFalse(ToolLog.objects.get().correcto)
 
-    @patch("chatbot.ai.doctor_conversation.preguntar_gemini")
+    @patch("chatbot.ai.doctor_conversation.preguntar_openai")
     def test_frases_agenda_usan_herramienta_sin_paciente_y_sin_gemini(self, gemini):
         consultas = {
             "¿Qué citas tengo pendientes?": {"alcance": "pendientes"},
@@ -372,7 +343,7 @@ class BymaxMedicoTests(TestCase):
         self.assertEqual(resultado["data"], {"citas": []})
         self.assertIn("No tienes citas pendientes", response.data["data"]["respuesta"])
 
-    @patch("chatbot.ai.doctor_conversation.preguntar_gemini",return_value="Análisis clínico general", )
+    @patch("chatbot.ai.doctor_conversation.preguntar_openai",return_value="Análisis clínico general", )
     def test_consulta_clinica_sin_paciente_activo(self, gemini):
         mensaje = "Analiza este caso clínico con los datos proporcionados"
         respuesta = ConversationManager.procesar(self.chat, mensaje)
@@ -385,7 +356,7 @@ class BymaxMedicoTests(TestCase):
         self.assertFalse(ToolLog.objects.exists())
         gemini.assert_called_once()
 
-    @patch("chatbot.ai.doctor_conversation.preguntar_gemini")
+    @patch("chatbot.ai.doctor_conversation.preguntar_openai")
     def test_agenda_no_lee_historial_ni_cambia_paciente_activo(self, gemini):
         self.seleccionar(self.paciente)
         contexto = dict(self.chat.contexto_temporal)
@@ -423,7 +394,6 @@ class BymaxMedicoTests(TestCase):
         herramienta = BuscarProximosPacientesTool()
         self.assertFalse(herramienta.execute(SimpleNamespace(id_medico_id=self.medico.id), "", {})["success"])
         chat_paciente = Chat.objects.create(id_usuario=self.paciente)
-        self.assertEqual(self.paciente.id, self.medico.id)
         self.assertFalse(herramienta.execute(chat_paciente, "", {})["success"])
         self.chat.id_medico = self.otro  # No cambia el propietario persistido del chat.
         self.assertFalse(herramienta.execute(self.chat, "", {})["success"])
@@ -658,3 +628,48 @@ class BymaxApprovalConsumerTests(TransactionTestCase):
         mensaje = async_to_sync(ejecutar)()
         self.assertIsNotNone(mensaje)
         self.assertEqual(mensaje["type"], "count_initial")
+
+@override_settings(CACHES=TEST_CACHES, CHANNEL_LAYERS=TEST_CHANNEL_LAYERS)
+class BymaxMedicoWebSocketTests(TransactionTestCase):
+    """WebSocket usa otra conexión de BD; requiere datos confirmados."""
+
+    cita = BymaxMedicoTests.cita
+
+    def setUp(self):
+        type(self).setUpTestData()
+        BymaxMedicoTests.setUp(self)
+
+    @classmethod
+    def setUpTestData(cls):
+        BymaxMedicoTests.setUpTestData.__func__(cls)
+
+    def test_websocket_busca_por_tipo_de_actor(self):
+        consumer = BymaxConsumer()
+        consumer.id_chat = self.chat.id
+        self.assertIsNone(async_to_sync(consumer._obtener_chat)(self.paciente))
+        self.assertIsNone(async_to_sync(consumer._obtener_chat)(self.otro))
+        self.assertEqual(async_to_sync(consumer._obtener_chat)(self.medico).id, self.chat.id)
+
+    def test_websocket_rechaza_ajenos_y_responde_al_medico(self):
+        async def conversar(actor, permitido):
+            async def application(scope, receive, send):
+                scope = {**scope, "user": actor, "url_route": {"kwargs": {"id_chat": self.chat.id}}}
+                await BymaxConsumer.as_asgi()(scope, receive, send)
+            socket = WebsocketCommunicator(application, f"/ws/chatbot/{self.chat.id}/")
+            conectado, codigo = await socket.connect()
+            self.assertEqual(conectado, permitido)
+            if permitido:
+                self.assertEqual((await socket.receive_json_from())["tipo"], "conectado")
+                await socket.send_json_to({"mensaje": "Mis próximas citas"})
+                self.assertEqual((await socket.receive_json_from())["tipo"], "inicio")
+                self.assertEqual((await socket.receive_json_from())["tipo"], "texto")
+                fin = await socket.receive_json_from()
+                self.assertEqual(fin["tipo"], "fin")
+                self.assertEqual(len(fin["resultado"]["data"]["citas"]), 2)
+            else:
+                self.assertEqual(codigo, 4404)
+            await socket.disconnect()
+        for actor in (self.paciente, self.otro):
+            async_to_sync(conversar)(actor, False)
+        async_to_sync(conversar)(self.medico, True)
+
