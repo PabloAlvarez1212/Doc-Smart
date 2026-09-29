@@ -1,9 +1,16 @@
+import hashlib,uuid
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from PIL import Image,UnidentifiedImageError
+from storage_app.models import Archivo
+from django.db import transaction
 from catalogos.models import Rol
 import bcrypt
 from rest_framework_simplejwt.tokens import RefreshToken
-from users.models import Usuario
+from users.models import Usuario,ProcesoRegistroUsuario
 from medicos.models import Medico,SolicitudValidacionMedico
 from users.serializers import UsuarioSerializer, MedicoSerializer,UsuarioPerfilSerializer
+from users.documento_identidad import DocumentoError,extraer_datos_documento
 import secrets
 from django.utils import timezone
 from datetime import timedelta
@@ -40,9 +47,14 @@ MAX_INTENTOS_OTP = 5
 MAX_REENVIOS_OTP = 5
 
 DURACION_OTP_MINUTOS = 10
-DURACION_PROCESO_MINUTOS = 30
+DURACION_PROCESO_MINUTOS = 240
 
 TIEMPO_REENVIO_SEGUNDOS = 60
+
+#configuración de documentos
+MAX_DOCUMENTO_BYTES=8*1024*1024
+FORMATOS_DOCUMENTO={"JPEG":"image/jpeg","PNG":"image/png","WEBP":"image/webp"}
+
 def generarCodigoOTP():
     return f"{secrets.randbelow(1_000_000):06d}"
 
@@ -359,60 +371,30 @@ def cambiarContraseñaAutenticadoService(persona,contraseña_actual,nueva_contra
     return 'Contraseña actualizada correctamente', 200
         
 def registrarUsuarioService(datos):
+    correo=datos["correo"].strip().lower()
+    tipo=datos["tipo_documento"]
+    numero=datos["numero_documento"].strip().upper()
 
-    correo = datos["correo"].strip().lower()
-    cedula = datos["cedula"].strip()
+    if Usuario.objects.filter(correo__iexact=correo).exists() or Medico.objects.filter(correo__iexact=correo).exists():
+        return {"correo":["No fue posible utilizar este correo"]},400
 
-    # No revelamos demasiado sobre cuentas existentes.
-    correo_ocupado = (
-        Usuario.objects.filter(
-            correo__iexact=correo
-        ).exists()
-        or
-        Medico.objects.filter(
-            correo__iexact=correo
-        ).exists()
-    )
+    if Usuario.objects.filter(tipo_documento=tipo,cedula=numero).exists() or Medico.objects.filter(cedula=numero).exists():
+        return {"numero_documento":["Este documento ya está registrado"]},400
 
-    if correo_ocupado:
-        return {"correo": ["No fue posible utilizar este correo"]}, 400
+    ProcesoRegistroUsuario.objects.filter(correo__iexact=correo).exclude(
+        estado=ProcesoRegistroUsuario.Estado.COMPLETADO
+    ).update(estado=ProcesoRegistroUsuario.Estado.EXPIRADO)
 
-    cedula_ocupada = (
-        Usuario.objects.filter(
-            cedula=cedula
-        ).exists()
-        or
-        Medico.objects.filter(
-            cedula=cedula
-        ).exists()
-    )
+    codigo=generarCodigoOTP()
+    ahora=timezone.now()
+    contraseña_hash=bcrypt.hashpw(datos["contraseña"].encode(),bcrypt.gensalt()).decode()
 
-    if cedula_ocupada:
-        return {"cedula": ["No fue posible utilizar este documento"]}, 400
-
-    # Invalidar procesos anteriores sin completar.
-    ProcesoRegistroUsuario.objects.filter(
-        correo__iexact=correo
-    ).exclude(
-        estado=(ProcesoRegistroUsuario.Estado.COMPLETADO)
-    ).update(
-        estado=(ProcesoRegistroUsuario.Estado.EXPIRADO)
-    )
-    codigo = generarCodigoOTP()
-    ahora = timezone.now()
-
-    contraseña_hash = bcrypt.hashpw(
-        datos["contraseña"].encode(),
-        bcrypt.gensalt()
-    ).decode()
-
-    proceso = ProcesoRegistroUsuario.objects.create(
+    proceso=ProcesoRegistroUsuario.objects.create(
         nombre_declarado=datos["nombre"],
         apellido_declarado=datos["apellido"],
-        fecha_nacimiento_declarada=(
-            datos["fecha_nacimiento"]
-        ),
-        cedula_declarada=cedula,
+        fecha_nacimiento_declarada=datos["fecha_nacimiento"],
+        tipo_documento=tipo,
+        numero_documento_declarado=numero,
         correo=correo,
         contraseña_hash=contraseña_hash,
 
@@ -421,56 +403,220 @@ def registrarUsuarioService(datos):
         peso=datos["peso"],
 
         otp_hash=make_password(codigo),
-
-        otp_expira_en=(
-            ahora
-            + timedelta(
-                minutes=DURACION_OTP_MINUTOS
-            )
-        ),
-
+        otp_expira_en=ahora+timedelta(minutes=DURACION_OTP_MINUTOS),
         ultimo_envio_otp=ahora,
-        expira_en=(ahora + timedelta(minutes=DURACION_PROCESO_MINUTOS)),
+        expira_en=ahora+timedelta(minutes=DURACION_PROCESO_MINUTOS)
     )
+
     try:
         resend.Emails.send({
-            "from": os.getenv(
-                "RESEND_FROM_EMAIL"
-            ),
-            "to": [correo],
-            "subject": (
-                "Código de verificación - DocSmart"
-            ),
-            "html": f"""
-                <h2>Verificación de correo</h2>
-
-                <p>
-                    Tu código de verificación es:
-                </p>
-
-                <h1>{codigo}</h1>
-
-                <p>
-                    Este código expirará en
-                    {DURACION_OTP_MINUTOS} minutos.
-                </p>
-
-                <p>
-                    Si no solicitaste este registro,
-                    ignora este mensaje.
-                </p>
-            """
+            "from":os.getenv("RESEND_FROM_EMAIL"),
+            "to":[correo],
+            "subject":"Código de verificación - DocSmart",
+            "html":f"<h2>Verificación de correo</h2><p>Tu código es:</p><h1>{codigo}</h1><p>Expira en {DURACION_OTP_MINUTOS} minutos.</p>"
         })
 
     except Exception:
         logger.exception("Error enviando OTP de registro")
         proceso.delete()
+        return {"general":["No fue posible enviar el código de verificación"]},500
 
-        return {
-            "general": ["No fue posible enviar el código"]}, 500
+    return {"proceso_id":str(proceso.id)},201
 
-    return {"proceso_id": str(proceso.id)}, 201
 
+def validarArchivoDocumentoService(archivo):
+    if not archivo or archivo.size<=0: return None,{"documento":["Archivo vacío"]},400
+    if archivo.size>MAX_DOCUMENTO_BYTES: return None,{"documento":["El archivo supera los 8 MB"]},400
+
+    archivo.seek(0)
+    contenido=archivo.read()
+    archivo.seek(0)
+
+    try:
+        img=Image.open(ContentFile(contenido))
+        img.verify()
+        img=Image.open(ContentFile(contenido))
+        formato=img.format
+        if formato not in FORMATOS_DOCUMENTO: return None,{"documento":["Solo se permiten JPG, PNG o WEBP"]},400
+        ancho,alto=img.size
+        if ancho<600 or alto<350: return None,{"documento":["La resolución de la imagen es demasiado baja"]},400
+        if ancho*alto>30000000: return None,{"documento":["La resolución de la imagen es demasiado alta"]},400
+    except (UnidentifiedImageError,OSError,ValueError):
+        return None,{"documento":["El archivo no es una imagen válida"]},400
+
+    return {
+        "contenido":contenido,
+        "formato":formato,
+        "content_type":FORMATOS_DOCUMENTO[formato],
+        "sha256":hashlib.sha256(contenido).hexdigest(),
+        "tamano":len(contenido)
+    },None,200
+
+def subirDocumentoRegistroService(
+    proceso_id,
+    documento_frente=None,
+    documento_reverso=None
+):
+    proceso=ProcesoRegistroUsuario.objects.filter(id=proceso_id).first()
+
+    if not proceso:
+        return {"general":["Proceso inválido"]},400
+
+    if proceso.estado in [
+        ProcesoRegistroUsuario.Estado.BLOQUEADO,
+        ProcesoRegistroUsuario.Estado.EXPIRADO,
+        ProcesoRegistroUsuario.Estado.COMPLETADO
+    ]:
+        return {"general":["El proceso ya no está disponible"]},400
+
+    if proceso.expira_en<=timezone.now():
+        proceso.estado=ProcesoRegistroUsuario.Estado.EXPIRADO
+        proceso.save(update_fields=["estado"])
+        return {"general":["El proceso ha expirado"]},400
+
+    if not proceso.correo_verificado:
+        return {"correo":["Primero debes verificar el correo"]},403
+
+    if proceso.documento_verificado:
+        return {"documento":["El documento ya fue verificado"]},400
+
+    campos=[]
+
+    try:
+        if documento_frente:
+            datos,error,status=validarArchivoDocumentoService(documento_frente)
+            if error:
+                return error,status
+
+            ext={"JPEG":"jpg","PNG":"png","WEBP":"webp"}[datos["formato"]]
+            key=f"verificaciones/registro/{proceso.id}/frente-{uuid.uuid4().hex}.{ext}"
+
+            key_real=default_storage.save(
+                key,
+                ContentFile(datos["contenido"])
+            )
+
+            archivo_db=Archivo.objects.create(
+                usuario=None,
+                nombre_original=documento_frente.name,
+                storage_key=key_real,
+                content_type=datos["content_type"],
+                tamano=datos["tamano"],
+                tipo="imagen",
+                categoria="documento_identidad_frente"
+            )
+
+            proceso.documento=archivo_db
+            proceso.documento_sha256=datos["sha256"]
+
+            campos+=["documento","documento_sha256"]
+
+        if documento_reverso:
+            datos,error,status=validarArchivoDocumentoService(documento_reverso)
+            if error:
+                return error,status
+
+            ext={"JPEG":"jpg","PNG":"png","WEBP":"webp"}[datos["formato"]]
+            key=f"verificaciones/registro/{proceso.id}/reverso-{uuid.uuid4().hex}.{ext}"
+
+            key_real=default_storage.save(
+                key,
+                ContentFile(datos["contenido"])
+            )
+
+            archivo_db=Archivo.objects.create(
+                usuario=None,
+                nombre_original=documento_reverso.name,
+                storage_key=key_real,
+                content_type=datos["content_type"],
+                tamano=datos["tamano"],
+                tipo="imagen",
+                categoria="documento_identidad_reverso"
+            )
+
+            proceso.documento_reverso=archivo_db
+            proceso.documento_reverso_sha256=datos["sha256"]
+
+            campos+=["documento_reverso","documento_reverso_sha256"]
+
+    except Exception:
+        logger.exception("Error guardando documento de registro")
+        return {"general":["No fue posible guardar el documento"]},500
+
+    if proceso.documento and proceso.documento_reverso:
+        proceso.estado=ProcesoRegistroUsuario.Estado.DOCUMENTO_CARGADO
+        campos.append("estado")
+
+    if campos:
+        proceso.save(update_fields=list(set(campos)))
+
+    return {
+        "frente_cargado":bool(proceso.documento),
+        "reverso_cargado":bool(proceso.documento_reverso)
+    },200
+
+
+def extraerDocumentoRegistroService(proceso_id):
+    proceso=ProcesoRegistroUsuario.objects.filter(
+        id=proceso_id
+    ).select_related(
+        "documento",
+        "documento_reverso"
+    ).first()
+
+    if not proceso:
+        return {"general":["Proceso inválido"]},400
+
+    if proceso.estado in [
+        ProcesoRegistroUsuario.Estado.BLOQUEADO,
+        ProcesoRegistroUsuario.Estado.EXPIRADO,
+        ProcesoRegistroUsuario.Estado.COMPLETADO
+    ]:
+        return {"general":["El proceso ya no está disponible"]},400
+
+    if proceso.expira_en<=timezone.now():
+        proceso.estado=ProcesoRegistroUsuario.Estado.EXPIRADO
+        proceso.save(update_fields=["estado"])
+        return {"general":["El proceso ha expirado"]},400
+
+    if not proceso.correo_verificado:
+        return {"correo":["Primero debes verificar el correo"]},403
+
+    if not proceso.documento:
+        return {"documento":["Debes cargar el frente del documento"]},400
+
+    try:
+        with default_storage.open(
+            proceso.documento.storage_key,
+            "rb"
+        ) as archivo:
+            contenido_frente=archivo.read()
+
+        contenido_reverso=None
+
+        if proceso.documento_reverso:
+            with default_storage.open(
+                proceso.documento_reverso.storage_key,
+                "rb"
+            ) as archivo:
+                contenido_reverso=archivo.read()
+
+        datos=extraer_datos_documento(
+            contenido_frente,
+            proceso.tipo_documento,
+            contenido_reverso=contenido_reverso,
+            nombre_declarado=proceso.nombre_declarado,
+            apellido_declarado=proceso.apellido_declarado
+        )
+
+    except DocumentoError as e:
+        return {"documento":[str(e)]},400
+
+    except Exception:
+        logger.exception("Error extrayendo documento de registro")
+        return {"general":["No fue posible procesar el documento"]},500
+
+    return datos,200
 
 def verificarCorreoRegistroService(proceso_id,codigo):
     ahora = timezone.now()
@@ -636,93 +782,149 @@ def reenviarCodigoRegistroService(proceso_id):
     return {"general": ["Código reenviado correctamente"]}, 200
 
 
+def verificarDocumentoRegistroService(proceso_id):
+    proceso=ProcesoRegistroUsuario.objects.filter(id=proceso_id).select_related(
+        "documento","documento_reverso"
+    ).first()
+
+    if not proceso:return {"general":["Proceso inválido"]},400
+    if proceso.estado in [ProcesoRegistroUsuario.Estado.BLOQUEADO,ProcesoRegistroUsuario.Estado.EXPIRADO,ProcesoRegistroUsuario.Estado.COMPLETADO]:
+        return {"general":["El proceso ya no está disponible"]},400
+    if proceso.expira_en<=timezone.now():
+        proceso.estado=ProcesoRegistroUsuario.Estado.EXPIRADO
+        proceso.save(update_fields=["estado"])
+        return {"general":["El proceso ha expirado"]},400
+    if not proceso.correo_verificado:return {"correo":["Primero debes verificar el correo"]},403
+    if not proceso.documento:return {"documento":["Debes cargar el frente"]},400
+    if proceso.tipo_documento=="CC" and not proceso.documento_reverso:
+        return {"documento":["Debes cargar el reverso"]},400
+
+    try:
+        with default_storage.open(proceso.documento.storage_key,"rb") as f:
+            frente=f.read()
+
+        reverso=None
+        if proceso.documento_reverso:
+            with default_storage.open(proceso.documento_reverso.storage_key,"rb") as f:
+                reverso=f.read()
+
+        datos=extraer_datos_documento(
+            frente,
+            proceso.tipo_documento,
+            contenido_reverso=reverso,
+            nombre_declarado=proceso.nombre_declarado,
+            apellido_declarado=proceso.apellido_declarado
+        )
+    except DocumentoError as e:
+        return {"documento":[str(e)]},400
+    except Exception:
+        logger.exception("Error verificando documento")
+        return {"general":["No fue posible verificar el documento"]},500
+
+    numero=str(datos.get("numero_documento") or "")
+    numero_esperado=str(proceso.numero_documento_declarado or "")
+    fecha=datos.get("fecha_nacimiento")
+
+    errores={}
+
+    if numero!=numero_esperado:
+        errores["numero_documento"]=["El número no coincide con el registrado"]
+
+    if datos.get("nombre_coincide") is not True:
+        errores["nombre"]=["El nombre no coincide con el documento"]
+
+    if datos.get("apellido_coincide") is not True:
+        errores["apellido"]=["El apellido no coincide con el documento"]
+
+    if not fecha:
+        errores["fecha_nacimiento"]=["No fue posible leer la fecha de nacimiento"]
+    elif fecha!=proceso.fecha_nacimiento_declarada:
+        errores["fecha_nacimiento"]=["La fecha de nacimiento no coincide"]
+
+    if errores:
+        proceso.intentos_documento+=1
+        proceso.save(update_fields=["intentos_documento"])
+        return errores,400
+
+    ahora=timezone.now()
+
+    proceso.numero_documento_verificado=numero
+    proceso.nombre_verificado=proceso.nombre_declarado
+    proceso.apellido_verificado=proceso.apellido_declarado
+    proceso.fecha_nacimiento_verificada=fecha
+    proceso.documento_verificado=True
+    proceso.documento_verificado_en=ahora
+    proceso.estado=ProcesoRegistroUsuario.Estado.DOCUMENTO_VERIFICADO
+
+    proceso.save(update_fields=[
+        "numero_documento_verificado",
+        "nombre_verificado",
+        "apellido_verificado",
+        "fecha_nacimiento_verificada",
+        "documento_verificado",
+        "documento_verificado_en",
+        "estado"
+    ])
+
+    return {
+        "documento_verificado":True,
+        "formato_cc":datos.get("formato_cc")
+    },200
+
+
 @transaction.atomic
 def completarRegistroUsuarioService(proceso_id):
+    proceso=ProcesoRegistroUsuario.objects.select_for_update().filter(id=proceso_id).first()
 
-    proceso = (ProcesoRegistroUsuario.objects.select_for_update().filter(id=proceso_id).first())
+    if not proceso:return {"general":["Proceso de registro inválido"]},400
+    if proceso.estado==ProcesoRegistroUsuario.Estado.COMPLETADO:
+        return {"general":["El registro ya fue completado"]},400
+    if proceso.estado in [ProcesoRegistroUsuario.Estado.BLOQUEADO,ProcesoRegistroUsuario.Estado.EXPIRADO]:
+        return {"general":["El proceso ya no está disponible"]},400
 
-    if not proceso:
-        return {"general": ["Proceso de registro inválido"]}, 400
-
-    if (
-        proceso.estado
-        ==
-        ProcesoRegistroUsuario.Estado.COMPLETADO
-    ):
-        return {"general": ["El registro ya fue completado" ]}, 400
-
-    if proceso.expira_en <= timezone.now():
-
-        proceso.estado = (ProcesoRegistroUsuario.Estado.EXPIRADO)
-
+    if proceso.expira_en<=timezone.now():
+        proceso.estado=ProcesoRegistroUsuario.Estado.EXPIRADO
         proceso.save(update_fields=["estado"])
-
-        return {"general": ["El proceso ha expirado"]}, 400
+        return {"general":["El proceso ha expirado"]},400
 
     if not proceso.correo_verificado:
-        return {
-            "correo": ["El correo no ha sido verificado"]}, 400
-
+        return {"correo":["El correo no ha sido verificado"]},400
     if not proceso.documento_verificado:
-        return {"documento": ["El documento no ha sido verificado"]}, 400
+        return {"documento":["El documento no ha sido verificado"]},400
 
     if not all([
         proceso.nombre_verificado,
         proceso.apellido_verificado,
-        proceso.cedula_verificada,
-        proceso.fecha_nacimiento_verificada,
+        proceso.numero_documento_verificado,
+        proceso.fecha_nacimiento_verificada
     ]):
-        return {"documento": ["La identidad verificada está incompleta"]}, 400
+        return {"documento":["La identidad verificada está incompleta"]},400
 
-    correo_ocupado = (
-        Usuario.objects.filter(
-            correo__iexact=proceso.correo
-        ).exists()
-        or
-        Medico.objects.filter(
-            correo__iexact=proceso.correo
-        ).exists()
-    )
+    if Usuario.objects.filter(correo__iexact=proceso.correo).exists() or Medico.objects.filter(correo__iexact=proceso.correo).exists():
+        return {"correo":["No fue posible completar el registro"]},400
 
-    if correo_ocupado:
-        return {"correo": ["No fue posible completar el registro"]}, 400
+    if Usuario.objects.filter(
+        tipo_documento=proceso.tipo_documento,
+        cedula=proceso.numero_documento_verificado
+    ).exists() or Medico.objects.filter(
+        cedula=proceso.numero_documento_verificado
+    ).exists():
+        return {"numero_documento":["No fue posible completar el registro"]},400
 
-    cedula_ocupada = (
-        Usuario.objects.filter(
-            cedula=proceso.cedula_verificada
-        ).exists()
-        or
-        Medico.objects.filter(
-            cedula=proceso.cedula_verificada
-        ).exists()
-    )
+    rol=Rol.objects.filter(nombre__iexact="paciente").first()
+    if not rol:return {"general":["Rol de paciente no configurado"]},500
 
-    if cedula_ocupada:
-        return {"cedula": ["No fue posible completar el registro"]}, 400
-    rol = Rol.objects.filter(nombre__iexact="paciente").first()
-
-    if not rol:
-        return {"general": ["Rol de paciente no configurado"]}, 500
-
-    usuario = Usuario.objects.create(
-        # Estos vienen exclusivamente
-        # de la identidad verificada.
+    usuario=Usuario.objects.create(
         nombre=proceso.nombre_verificado,
         apellido=proceso.apellido_verificado,
-        fecha_nacimiento=(
-            proceso
-            .fecha_nacimiento_verificada
-        ),
-        cedula=proceso.cedula_verificada,
-
+        fecha_nacimiento=proceso.fecha_nacimiento_verificada,
+        tipo_documento=proceso.tipo_documento,
+        cedula=proceso.numero_documento_verificado,
         correo=proceso.correo,
-
         contraseña=proceso.contraseña_hash,
-
         telefono=proceso.telefono,
         estatura=proceso.estatura,
         peso=proceso.peso,
-
         id_rol=rol,
     )
 

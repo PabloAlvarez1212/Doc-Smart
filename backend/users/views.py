@@ -3,6 +3,7 @@ from multiprocessing.util import DEBUG
 from rest_framework.views import APIView
 from django.middleware.csrf import get_token
 from rest_framework.response import Response
+from citas import serializers
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
 from utils import IsAdmin,IsPaciente
@@ -27,6 +28,10 @@ from users.services import (
     cambiarContraseñaAutenticadoService,
     obtenerMetricasSistema,
     obtenerEstadisticasSistemaService,
+    subirDocumentoRegistroService,
+    extraerDocumentoRegistroService,
+    verificarDocumentoRegistroService,
+    
 )
 from users.serializers import (
     LoginSerializer,
@@ -34,12 +39,16 @@ from users.serializers import (
     IniciarRegistroUsuarioSerializer,
     VerificarCorreoRegistroSerializer,
     ReenviarCodigoRegistroSerializer,
-    CompletarRegistroSerializer,
     EditarUsuarioSerializer,
     SolicitarCambioCorreoSerializer,
     ConfirmarCambioCorreoSerializer,
     FotoPerfilPacienteSerializer,
     CambiarContraseñaAutenticadoSerializer,
+    SubirDocumentoRegistroSerializer,
+    ReenviarCodigoRegistroSerializer,
+    ExtraerDocumentoRegistroSerializer,
+    VerificarDocumentoRegistroSerializer,
+    CompletarRegistroUsuarioSerializer,
 )
 
 
@@ -226,6 +235,33 @@ class CSRFTokenView(APIView):
             }
         )
 
+class ExtraerDocumentoRegistroView(APIView):
+    permission_classes=[AllowAny]
+    authentication_classes=[]
+
+    def post(self,request):
+        serializer=ExtraerDocumentoRegistroSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+
+        resultado,status_code=extraerDocumentoRegistroService(
+            serializer.validated_data["proceso_id"]
+        )
+
+        if status_code!=200:
+            return respuesta_error(
+                "No fue posible extraer los datos del documento",
+                errores=resultado,
+                status=status_code
+            )
+
+        return respuesta_ok(
+            data=resultado,
+            mensaje="Datos extraídos correctamente",
+            status=200
+        )
+
 class SolicitarCambioCorreoView(APIView):
 
     permission_classes = [
@@ -368,6 +404,28 @@ class RegistroView(APIView):
             return respuesta_error("Error interno del servidor",status=500)
 
 
+
+class SubirDocumentoRegistroView(APIView):
+    permission_classes=[AllowAny]
+    authentication_classes=[]
+    parser_classes=[MultiPartParser,FormParser]
+
+    def post(self,request):
+        serializer=SubirDocumentoRegistroSerializer(data=request.data)
+        if not serializer.is_valid(): return respuesta_serializer_invalido(serializer.errors)
+
+        resultado,status_code=subirDocumentoRegistroService(
+            serializer.validated_data["proceso_id"],
+            serializer.validated_data.get("documento_frente"),
+            serializer.validated_data.get("documento_reverso")
+        )
+
+        if status_code!=200:
+            return respuesta_error("No fue posible subir el documento",errores=resultado,status=status_code)
+
+        return respuesta_ok(data=resultado,mensaje="Documento cargado correctamente",status=200)
+
+
 class VerificarCorreoRegistroView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -418,21 +476,57 @@ class ReenviarCodigoRegistroView(APIView):
         return respuesta_ok( mensaje="Código reenviado",status=200)   
 
 
-class CompletarRegistroUsuarioView(APIView):
+class VerificarDocumentoRegistroView(APIView):
+    permission_classes=[AllowAny]
+    authentication_classes=[]
 
-    permission_classes = [AllowAny]
-    authentication_classes = []
-
-    def post(self, request):
-        serializer = CompletarRegistroSerializer(data=request.data)
-
+    def post(self,request):
+        serializer=VerificarDocumentoRegistroSerializer(data=request.data)
         if not serializer.is_valid():
             return respuesta_serializer_invalido(serializer.errors)
 
-        resultado, status_code = (completarRegistroUsuarioService(serializer.validated_data[ "proceso_id"]))
-        if status_code != 201:
-            return respuesta_error("No fue posible completar el registro", errores=resultado,status=status_code)
-        return respuesta_ok(data=resultado,mensaje="Registro exitoso",status=201)   
+        resultado,status_code=verificarDocumentoRegistroService(
+            serializer.validated_data["proceso_id"]
+        )
+
+        if status_code!=200:
+            return respuesta_error(
+                "No fue posible verificar el documento",
+                errores=resultado,
+                status=status_code
+            )
+
+        return respuesta_ok(
+            data=resultado,
+            mensaje="Documento verificado correctamente",
+            status=200
+        )
+    
+class CompletarRegistroUsuarioView(APIView):
+    permission_classes=[AllowAny]
+    authentication_classes=[]
+
+    def post(self,request):
+        serializer=CompletarRegistroUsuarioSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+
+        resultado,status_code=completarRegistroUsuarioService(
+            serializer.validated_data["proceso_id"]
+        )
+
+        if status_code!=201:
+            return respuesta_error(
+                "No fue posible completar el registro",
+                errores=resultado,
+                status=status_code
+            )
+
+        return respuesta_ok(
+            data=resultado,
+            mensaje="Registro completado correctamente",
+            status=201
+        ) 
 
 
 #!Metodos unicos del usuario - requiere Token

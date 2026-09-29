@@ -4,6 +4,13 @@ from medicos.models import Medico
 from utils import validarNumber,validarContraseña,calcular_edad
 import re
 from datetime import date
+
+
+
+class ExtraerDocumentoRegistroSerializer(serializers.Serializer):
+    proceso_id=serializers.UUIDField()
+
+
 #!SALIDA
 class UsuarioSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source='id_rol.nombre')
@@ -105,168 +112,78 @@ def msg_numero(campo, articulo = 'El'):
 #!ENTRADA
 
 class IniciarRegistroUsuarioSerializer(serializers.Serializer):
+    nombre=serializers.CharField(max_length=100,allow_blank=False,trim_whitespace=True,error_messages=msg("nombre"))
+    apellido=serializers.CharField(max_length=100,allow_blank=False,trim_whitespace=True,error_messages=msg("apellido"))
+    tipo_documento=serializers.ChoiceField(choices=Usuario.TIPOS_DOCUMENTO)
+    numero_documento=serializers.CharField(min_length=5,max_length=30,allow_blank=False,trim_whitespace=True)
+    fecha_nacimiento=serializers.DateField(error_messages={"required":"La fecha de nacimiento es obligatoria","invalid":"La fecha de nacimiento no tiene un formato válido"})
+    correo=serializers.EmailField(trim_whitespace=True,error_messages={**msg("correo"),"invalid":"El correo no tiene un formato válido"})
+    contraseña=serializers.CharField(min_length=8,write_only=True,error_messages={**msg("contraseña","La"),"min_length":"La contraseña debe tener mínimo 8 caracteres"})
+    telefono=serializers.CharField(min_length=10,max_length=10,allow_blank=False,trim_whitespace=True)
+    estatura=serializers.FloatField(min_value=0.5,max_value=2.5,error_messages=msg_numero("estatura","La"))
+    peso=serializers.FloatField(min_value=1.0,max_value=500.0,error_messages=msg_numero("peso"))
 
-    nombre = serializers.CharField(
-        max_length=100,
-        allow_blank=False,
-        trim_whitespace=True,
-        error_messages=msg("nombre")
-    )
-
-    apellido = serializers.CharField(
-        max_length=100,
-        allow_blank=False,
-        trim_whitespace=True,
-        error_messages=msg("apellido")
-    )
-
-    cedula = serializers.CharField(
-        min_length=6,
-        max_length=10,
-        allow_blank=False,
-        trim_whitespace=True,
-        error_messages={
-            **msg("cédula", "La"),
-            "min_length": "La cédula debe tener mínimo 6 dígitos",
-            "max_length": "La cédula debe tener máximo 10 dígitos",
-        }
-    )
-
-    fecha_nacimiento = serializers.DateField(
-        error_messages={
-            "required": "La fecha de nacimiento es obligatoria",
-            "invalid": "La fecha de nacimiento no tiene un formato válido",
-        }
-    )
-
-    correo = serializers.EmailField(
-        trim_whitespace=True,
-        error_messages={
-            **msg("correo"),
-            "invalid": "El correo no tiene un formato válido",
-        }
-    )
-
-    contraseña = serializers.CharField(
-        min_length=8,
-        write_only=True,
-        error_messages={
-            **msg("contraseña", "La"),
-            "min_length": "La contraseña debe tener mínimo 8 caracteres",
-        }
-    )
-
-    telefono = serializers.CharField(
-        min_length=10,
-        max_length=10,
-        allow_blank=False,
-        trim_whitespace=True,
-        error_messages={
-            **msg("teléfono"),
-            "min_length": "El teléfono debe tener 10 dígitos",
-            "max_length": "El teléfono debe tener 10 dígitos",
-        }
-    )
-
-    estatura = serializers.FloatField(
-        min_value=0.5,
-        max_value=2.5,
-        error_messages=msg_numero(
-            "estatura",
-            "La"
-        )
-    )
-
-    peso = serializers.FloatField(
-        min_value=1.0,
-        max_value=500.0,
-        error_messages=msg_numero("peso")
-    )
-
-    def validate_nombre(self, value):
-        value = value.strip()
-
-        if len(value) < 2:
-            raise serializers.ValidationError(
-                "El nombre debe tener al menos 2 caracteres"
-            )
-
-        if not re.fullmatch(
-            r"[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]+",
-            value
-        ):
-            raise serializers.ValidationError(
-                "El nombre solo puede contener letras"
-            )
-
+    def validate_nombre(self,value):
+        value=value.strip()
+        if len(value)<2: raise serializers.ValidationError("El nombre debe tener al menos 2 caracteres")
+        if not re.fullmatch(r"[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]+",value): raise serializers.ValidationError("El nombre solo puede contener letras")
         return value
 
-    def validate_apellido(self, value):
-        value = value.strip()
-
-        if len(value) < 2:
-            raise serializers.ValidationError(
-                "El apellido debe tener al menos 2 caracteres"
-            )
-
-        if not re.fullmatch(
-            r"[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]+",
-            value
-        ):
-            raise serializers.ValidationError(
-                "El apellido solo puede contener letras"
-            )
-
+    def validate_apellido(self,value):
+        value=value.strip()
+        if len(value)<2: raise serializers.ValidationError("El apellido debe tener al menos 2 caracteres")
+        if not re.fullmatch(r"[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]+",value): raise serializers.ValidationError("El apellido solo puede contener letras")
         return value
 
-    def validate_correo(self, value):
+    def validate_correo(self,value):
         return value.strip().lower()
 
-    def validate_contraseña(self, value):
-        error = validarContraseña(value)
-
-        if error:
-            raise serializers.ValidationError(error)
-
+    def validate_contraseña(self,value):
+        error=validarContraseña(value)
+        if error: raise serializers.ValidationError(error)
         return value
 
-    def validate_cedula(self, value):
-        error = validarNumber(value)
-
-        if error:
-            raise serializers.ValidationError(error)
-
+    def validate_numero_documento(self,value):
+        value=value.strip().upper()
+        if not re.fullmatch(r"[A-Z0-9\-]+",value): raise serializers.ValidationError("Número de documento inválido")
         return value
 
-    def validate_telefono(self, value):
-
-        if not value.isdigit():
-            raise serializers.ValidationError(
-                "El teléfono solo puede contener números"
-            )
-
-        if not value.startswith("3"):
-            raise serializers.ValidationError(
-                "El número de celular debe comenzar por 3"
-            )
-
+    def validate_telefono(self,value):
+        if not value.isdigit(): raise serializers.ValidationError("El teléfono solo puede contener números")
+        if not value.startswith("3"): raise serializers.ValidationError("El número de celular debe comenzar por 3")
         return value
 
-    def validate_fecha_nacimiento(self, value):
-        hoy = date.today()
-
-        if value > hoy:
-            raise serializers.ValidationError(
-                "La fecha de nacimiento no puede estar en el futuro"
-            )
-
-        if value.year < 1900:
-            raise serializers.ValidationError(
-                "La fecha de nacimiento no es válida"
-            )
-
+    def validate_fecha_nacimiento(self,value):
+        hoy=date.today()
+        if value>hoy: raise serializers.ValidationError("La fecha de nacimiento no puede estar en el futuro")
+        if value.year<1900: raise serializers.ValidationError("La fecha de nacimiento no es válida")
         return value
 
+    def validate(self,attrs):
+        tipo=attrs.get("tipo_documento")
+        numero=attrs.get("numero_documento","")
+
+        if tipo in ("CC","TI","RC") and not numero.isdigit():
+            raise serializers.ValidationError({"numero_documento":["Debe contener únicamente números"]})
+
+        if tipo=="PASAPORTE" and not re.fullmatch(r"[A-Z0-9]+",numero):
+            raise serializers.ValidationError({"numero_documento":["Formato de pasaporte inválido"]})
+
+        return attrs
+
+    
+class SubirDocumentoRegistroSerializer(serializers.Serializer):
+    proceso_id=serializers.UUIDField()
+    documento_frente=serializers.ImageField(required=False,allow_empty_file=False)
+    documento_reverso=serializers.ImageField(required=False,allow_empty_file=False)
+
+    def validate(self,attrs):
+        if not attrs.get("documento_frente") and not attrs.get("documento_reverso"):
+            raise serializers.ValidationError(
+                {"documento":["Debes enviar al menos una cara del documento"]}
+            )
+
+        return attrs
 
 class VerificarCorreoRegistroSerializer(serializers.Serializer):
 
@@ -292,8 +209,10 @@ class ReenviarCodigoRegistroSerializer(serializers.Serializer):
 
     proceso_id = serializers.UUIDField()
 
+class VerificarDocumentoRegistroSerializer(serializers.Serializer):
+    proceso_id=serializers.UUIDField()
 
-class CompletarRegistroSerializer(serializers.Serializer):
+class CompletarRegistroUsuarioSerializer(serializers.Serializer):
 
     proceso_id = serializers.UUIDField()
 

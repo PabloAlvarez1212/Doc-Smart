@@ -3,6 +3,7 @@ from django.urls import path
 
 from .views import (
     LoginView,
+    SubirDocumentoRegistroView,
     CambiarContraseñaView,
     UsuarioListView,
     UsuarioDetailView,
@@ -22,6 +23,9 @@ from .views import (
     PerfilAdminView,
     MetricasSistemaView,
     EstadisticasSistemaView,
+    ExtraerDocumentoRegistroView,
+    VerificarDocumentoRegistroView,
+
 )
 
 urlpatterns = [
@@ -30,6 +34,9 @@ urlpatterns = [
     path("cambiar-contraseña/",CambiarContraseñaView.as_view()),
     path("cambiar-contraseña-auth/",CambiarContraseñaAutenticadoView.as_view()),
     path("usuarios/registro/",RegistroView.as_view()),
+    path("usuarios/registro/subir-documento/",SubirDocumentoRegistroView.as_view()),
+    path("usuarios/registro/documento/extraer/",ExtraerDocumentoRegistroView.as_view()),
+    path("usuarios/registro/documento/verificar/",VerificarDocumentoRegistroView.as_view()),
     path("usuarios/registro/verificar-correo/",VerificarCorreoRegistroView.as_view()),
     path("usuarios/registro/reenviar-codigo/",ReenviarCodigoRegistroView.as_view()),
     path("usuarios/registro/completar/", CompletarRegistroUsuarioView.as_view()),
