@@ -1,10 +1,12 @@
+.doctors { min-width: 0; }
+
 .stats {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
     gap: 18px;
     width: 100%;
-    padding-top: 20px;
+    padding-top: 16px;
 }
 
 .chartCard {

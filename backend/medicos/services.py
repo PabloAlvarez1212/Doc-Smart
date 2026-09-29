@@ -2,6 +2,7 @@ import bcrypt
 import calendar
 import logging
 from django.utils import timezone
+from dateutil.relativedelta import relativedelta
 from datetime import timedelta
 from citas.models import Cita
 from notificaciones.models import Notificacion
@@ -25,8 +26,8 @@ from medicos.serializers import (
 from medicos.services_disponibilidad import (obtenerProximaDisponibilidad,)
 from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
-from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, OuterRef, Q, Subquery, Value
-from django.db.models.functions import TruncMonth, Coalesce
+from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, OuterRef, Q, Subquery, Value,Case,When,CharField
+from django.db.models.functions import TruncMonth, Coalesce,TruncDay
 from django.db.models.functions import Concat
 from storage_app.services import guardar_archivo_medico,eliminar_archivo
 from django.db import transaction
@@ -1684,21 +1685,226 @@ def eliminarExcepcionFechaService(
 
     return None, 204
 
-def obtenerEstadisticasMedicosService():
-    
-    medicosPorEpecialidad = filtrarMedicosAprobados(Medico.objects.all()).values('id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
-    solicitudesValidacionPorMes = (SolicitudValidacionMedico.objects.annotate(mes=TruncMonth("fecha_solicitud")).values("mes").annotate(total=Count("id")).order_by("mes"))
-    ultimaSolicitud = (SolicitudValidacionMedico.objects.filter(medico=OuterRef("pk")).order_by("-fecha_solicitud").values("estado")[:1])
-    medicosPorEstadoValidacion = (Medico.objects.annotate(estado_actual=Coalesce(Subquery(ultimaSolicitud),Value("sin_solicitud"))).values("estado_actual").annotate(total=Count("id")).order_by("-total"))
-    medicosQueMasAtienden = (Cita.objects.filter(id_estado__nombre__iexact="completada").values("id_medico","id_medico__nombre","id_medico__apellido").annotate(total=Count("id")).order_by("-total")[:5])
-    duracionValidacion = ExpressionWrapper(F("fecha_revision") - F("fecha_solicitud"),output_field=DurationField(),)
-    resumenTiempoValidacion = (SolicitudValidacionMedico.objects.filter(fecha_revision__isnull=False).aggregate(promedio=Avg(duracionValidacion),total_revisadas=Count("id"),))
+def obtenerEstadisticasMedicosService(anio=None, mes=None):
+
+    if mes is not None:
+        inicioPeriodo = timezone.localtime().replace(
+            year=anio,
+            month=mes,
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0
+        )
+
+        finPeriodo = inicioPeriodo + relativedelta(months=1)
+
+    else:
+        inicioPeriodo = timezone.localtime().replace(
+            year=anio,
+            month=1,
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0
+        )
+
+        finPeriodo = inicioPeriodo + relativedelta(years=1)
+
+    ultimaSolicitudPeriodo = (
+        SolicitudValidacionMedico.objects
+        .filter(
+            medico=OuterRef("pk"),
+            fecha_solicitud__lt=finPeriodo
+        )
+        .order_by("-fecha_solicitud")
+    )
+
+    ultimoEstado = Subquery(
+        ultimaSolicitudPeriodo.values("estado")[:1]
+    )
+
+    ultimaFechaSolicitud = Subquery(
+        ultimaSolicitudPeriodo.values("fecha_solicitud")[:1]
+    )
+
+    ultimaFechaRevision = Subquery(
+        ultimaSolicitudPeriodo.values("fecha_revision")[:1]
+    )
+
+    medicosConEstadoPeriodo = (
+        Medico.objects
+        .annotate(
+            ultimo_estado=ultimoEstado,
+            ultima_fecha_solicitud=ultimaFechaSolicitud,
+            ultima_fecha_revision=ultimaFechaRevision,
+        )
+        .annotate(
+            estado_periodo=Case(
+                When(
+                    ultima_fecha_solicitud__isnull=True,
+                    then=Value("sin_solicitud")
+                ),
+                When(
+                    ultima_fecha_revision__isnull=True,
+                    then=Value("pendiente")
+                ),
+                When(
+                    ultima_fecha_revision__gte=finPeriodo,
+                    then=Value("pendiente")
+                ),
+                default=F("ultimo_estado"),
+                output_field=CharField(),
+            )
+        )
+    )
+
+    medicosPorEspecialidad = (
+        medicosConEstadoPeriodo
+        .filter(
+            estado_periodo="aprobado"
+        )
+        .values(
+            "id_especialidad__nombre"
+        )
+        .annotate(
+            total=Count("id")
+        )
+        .order_by("-total")
+    )
+
+    medicosPorEstadoValidacion = (
+        medicosConEstadoPeriodo
+        .values(
+            "estado_periodo"
+        )
+        .annotate(
+            total=Count("id")
+        )
+        .order_by("-total")
+    )
+
+    solicitudesPeriodo = SolicitudValidacionMedico.objects.filter(
+        fecha_solicitud__gte=inicioPeriodo,
+        fecha_solicitud__lt=finPeriodo
+    )
+
+    if mes is not None:
+        solicitudesValidacionPorPeriodo = (
+            solicitudesPeriodo
+            .annotate(dia=TruncDay("fecha_solicitud"))
+            .values("dia")
+            .annotate(total=Count("id"))
+            .order_by("dia")
+        )
+
+        agrupacionSolicitudes = "dia"
+
+    else:
+        solicitudesValidacionPorPeriodo = (
+            solicitudesPeriodo
+            .annotate(mes=TruncMonth("fecha_solicitud"))
+            .values("mes")
+            .annotate(total=Count("id"))
+            .order_by("mes")
+        )
+
+        agrupacionSolicitudes = "mes"
+        
+    solicitudesValidacionData = []
+
+    for item in solicitudesValidacionPorPeriodo:
+        if agrupacionSolicitudes == "dia":
+            periodo = item["dia"].strftime("%Y-%m-%d")
+        else:
+            periodo = item["mes"].strftime("%Y-%m")
+
+        solicitudesValidacionData.append({
+            "periodo": periodo,
+            "total_solicitudes": item["total"]
+        })
+
+    medicosQueMasAtienden = (
+        Cita.objects
+        .filter(
+            id_estado__nombre__iexact="completada",
+            fecha_programada__gte=inicioPeriodo,
+            fecha_programada__lt=finPeriodo
+        )
+        .values(
+            "id_medico",
+            "id_medico__nombre",
+            "id_medico__apellido"
+        )
+        .annotate(
+            total=Count("id")
+        )
+        .order_by("-total")[:5]
+    )
+
+    duracionValidacion = ExpressionWrapper(
+        F("fecha_revision") - F("fecha_solicitud"),
+        output_field=DurationField(),
+    )
+
+    resumenTiempoValidacion = (
+        SolicitudValidacionMedico.objects
+        .filter(
+            fecha_revision__isnull=False,
+            fecha_revision__gte=inicioPeriodo,
+            fecha_revision__lt=finPeriodo
+        )
+        .aggregate(
+            promedio=Avg(duracionValidacion),
+            total_revisadas=Count("id"),
+        )
+    )
+
     promedioValidacion = resumenTiempoValidacion["promedio"]
+
+    aniosSolicitudes = SolicitudValidacionMedico.objects.dates(
+        "fecha_solicitud",
+        "year",
+        order="DESC"
+    )
+
+    aniosRevisiones = SolicitudValidacionMedico.objects.filter(
+        fecha_revision__isnull=False
+    ).dates(
+        "fecha_revision",
+        "year",
+        order="DESC"
+    )
+
+    aniosCitas = Cita.objects.filter(
+        id_estado__nombre__iexact="completada"
+    ).dates(
+        "fecha_programada",
+        "year",
+        order="DESC"
+    )
+
+    aniosDisponibles = sorted(
+        {
+            fecha.year
+            for fecha in [
+                *aniosSolicitudes,
+                *aniosRevisiones,
+                *aniosCitas
+            ]
+        },
+        reverse=True
+    )
     
     data = {
-        "medicos_por_especialidad" : [],
+        "medicos_por_especialidad": [],
         "medicos_por_estado_validacion": [],
-        "solicitudes_validacion_por_mes": [],
+        "solicitudes_validacion_por_periodo": {
+            "agrupacion": agrupacionSolicitudes,
+            "datos": solicitudesValidacionData
+        },
         "medicos_que_mas_atienden": [],
         "tiempo_promedio_validacion": {
             "segundos": (
@@ -1706,31 +1912,36 @@ def obtenerEstadisticasMedicosService():
                 if promedioValidacion is not None
                 else None
             ),
-            "solicitudes_revisadas": resumenTiempoValidacion["total_revisadas"],
+            "solicitudes_revisadas": resumenTiempoValidacion[
+                "total_revisadas"
+            ],
+        },
+        "filtros": {
+            "anio": anio,
+            "mes": mes,
+            "anios_disponibles": aniosDisponibles
         },
     }
-    
-    for item in medicosPorEpecialidad:
+
+    for item in medicosPorEspecialidad:
         data["medicos_por_especialidad"].append({
-            "especialidad" : item['id_especialidad__nombre'],
-            "total_medicos" : item['total']
-        })
-        
-    for item in medicosPorEstadoValidacion:
-        data["medicos_por_estado_validacion"].append({
-            "estado": item["estado_actual"],
+            "especialidad": item["id_especialidad__nombre"],
             "total_medicos": item["total"]
         })
-    
-    for item in solicitudesValidacionPorMes:
-        data["solicitudes_validacion_por_mes"].append({
-            "mes": item["mes"],
-            "total_solicitudes": item["total"]
+
+    for item in medicosPorEstadoValidacion:
+        data["medicos_por_estado_validacion"].append({
+            "estado": item["estado_periodo"],
+            "total_medicos": item["total"]
         })
-        
+
     for item in medicosQueMasAtienden:
         data["medicos_que_mas_atienden"].append({
-            "medico": f"{item['id_medico__nombre']} {item['id_medico__apellido']}",
+            "medico": (
+                f"{item['id_medico__nombre']} "
+                f"{item['id_medico__apellido']}"
+            ),
             "total_citas": item["total"]
         })
-    return data,200
+
+    return data, 200

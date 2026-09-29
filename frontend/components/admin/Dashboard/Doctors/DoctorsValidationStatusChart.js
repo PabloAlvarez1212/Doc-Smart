@@ -4,9 +4,9 @@ import { Cell, Label, Pie, PieChart, ResponsiveContainer, Tooltip } from "rechar
 import styles from "./DoctorStats/DoctorStats.module.css";
 
 const stateLabels = {
-    aprobado: "Aprobados",
-    pendiente: "Pendientes",
-    rechazado: "Rechazados",
+    aprobado: "Aprobado",
+    pendiente: "Pendiente",
+    rechazado: "Rechazado",
     sin_solicitud: "Sin solicitud",
 };
 const stateColors = {

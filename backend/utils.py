@@ -10,6 +10,8 @@ from medicos.models import Medico,SolicitudValidacionMedico
 from django.db.models import OuterRef, Subquery
 import os
 import resend
+from rest_framework import serializers
+from django.utils import timezone
 
 from django.template.loader import render_to_string
 
@@ -261,3 +263,27 @@ def filtrarMedicosAprobados(queryset):
             )
         )
     )
+
+class FiltroPeriodoSerializer(serializers.Serializer):
+    anio = serializers.IntegerField(
+        required=False
+    )
+    mes = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=12
+    )
+
+    def validate(self, data):
+        anio = data.get("anio")
+        mes = data.get("mes")
+
+        if mes is not None and anio is None:
+            raise serializers.ValidationError({
+                "anio": "Debes seleccionar un año para filtrar por mes."
+            })
+
+        if anio is None:
+            data["anio"] = timezone.localdate().year
+
+        return data

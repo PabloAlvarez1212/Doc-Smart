@@ -56,6 +56,9 @@ from medicos.serializers import (
     GuardarExcepcionFechaSerializer,
     FechaDisponibilidadSerializer,
 )
+
+from utils import FiltroPeriodoSerializer
+
 from .services_disponibilidad import (
     obtenerHorariosDisponiblesService,
     obtenerDiasDisponiblesService,
@@ -1323,7 +1326,15 @@ class EstadisticasMedicosView(APIView):
 
     def get(self, request):
         try:
-            data, status_code = obtenerEstadisticasMedicosService()
+            serializer = FiltroPeriodoSerializer(data=request.query_params)
+
+            if not serializer.is_valid():
+                return respuesta_serializer_invalido(serializer.errors)
+
+            anio = serializer.validated_data.get("anio")
+            mes = serializer.validated_data.get("mes")
+            
+            data, status_code = obtenerEstadisticasMedicosService(anio=anio,mes=mes)
 
             return respuesta_ok(
                 data=data,

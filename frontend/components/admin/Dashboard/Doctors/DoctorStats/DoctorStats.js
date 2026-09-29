@@ -4,9 +4,10 @@ import { Clock3 } from "lucide-react";
 import styles from "./DoctorStats.module.css";
 import DoctorsBySpecialtyChart from "../DoctorsBySpecialtyChart";
 import DoctorsValidationStatusChart from "../DoctorsValidationStatusChart";
-import ValidationRequestsByMonthChart from "../ValidationRequestsByMonthChart";
+import ValidationRequestsByPeriodChart from "../ValidationRequestsByPeriodChart";
 import DoctorsByAppointmentsChart from "../DoctorsByAppointmentsChart";
 import DashboardModuleState from "../../DashboardModuleState/DashboardModuleState";
+import DashboardPeriodFilters from "../../DashboardPeriodFilters/DashboardPeriodFilters";
 
 const numberFormatter = new Intl.NumberFormat("es-CO", {
     maximumFractionDigits: 1,
@@ -54,75 +55,85 @@ function formatValidationTime(seconds) {
 export default function DoctorStats({
     medicosPorEspecialidad,
     medicosPorEstadoValidacion,
-    solicitudesValidacionPorMes,
+    solicitudesValidacionPorPeriodo,
+    filtros,
+    cambiarAnio,
+    cambiarMes,
     medicosQueMasAtienden,
     tiempoPromedioValidacion,
     loading = false,
     error = false,
 }) {
-    if (loading || error) {
-        return (
-            <DashboardModuleState
-                loading={loading}
-                error={error}
-                cardCount={5}
-                moduleName="médicos"
-            />
-        );
-    }
-
     const formattedValidationTime = formatValidationTime(
         tiempoPromedioValidacion?.segundos
     );
     const reviewedRequests = tiempoPromedioValidacion?.solicitudes_revisadas ?? 0;
+    const grouping = solicitudesValidacionPorPeriodo?.agrupacion === "dia"
+        ? "dia"
+        : "mes";
+    const validationRequests = Array.isArray(solicitudesValidacionPorPeriodo?.datos)
+        ? solicitudesValidacionPorPeriodo.datos
+        : [];
 
     return (
-        <section className={styles.stats} aria-label="Estadísticas de médicos">
+        <section className={styles.doctors} aria-label="Estadísticas de médicos">
+            <DashboardPeriodFilters
+                filters={filtros}
+                onYearChange={cambiarAnio}
+                onMonthChange={cambiarMes}
+                moduleName="médicos"
+                idPrefix="doctors"
+                loading={loading}
+            />
+
+            {loading || error ? (
+                <DashboardModuleState
+                    loading={loading}
+                    error={error}
+                    cardCount={5}
+                    moduleName="médicos"
+                />
+            ) : (
+                <div className={styles.stats}>
 
             <article className={styles.chartCard}>
                 <div className={styles.chartHeader}>
-                    <h3>Médicos que más atienden</h3>
-                    <p>Médicos con mayor cantidad de citas completadas.</p>
+                    <h3>Médicos con más citas completadas</h3>
+                    <p>Médicos con mayor cantidad de citas completadas programadas en el período seleccionado.</p>
                 </div>
                 {medicosQueMasAtienden?.length ? (
                     <DoctorsByAppointmentsChart data={medicosQueMasAtienden} />
                 ) : (
                     <p className={`${styles.empty} ${styles.rankingEmpty}`}>
-                        No hay citas completadas para construir el ranking.
+                        No hay citas completadas en el período seleccionado.
                     </p>
                 )}
             </article>
 
             <article className={styles.chartCard}>
                 <div className={styles.chartHeader}>
-                    <h3>Distribución por estado de validación</h3>
-                    <p>
-                        Cantidad y proporción de médicos según su
-                        estado actual de validación.
-                    </p>
+                    <h3>Estado de validación de médicos</h3>
+                    <p>Estado de validación de los médicos al cierre del período seleccionado.</p>
                 </div>
 
                 {medicosPorEstadoValidacion?.length ? (
                     <DoctorsValidationStatusChart data={medicosPorEstadoValidacion} />
                 ) : (
-                    <p className={styles.empty}>No hay estados de validación para mostrar.</p>
+                    <p className={styles.empty}>No hay médicos registrados al cierre del período seleccionado.</p>
                 )}
             </article>
 
             <article className={styles.chartCard}>
                 <div className={styles.chartHeader}>
-                    <h3>Médicos por especialidad</h3>
-                    <p>
-                        Distribución de los médicos aprobados según
-                        su especialidad.
-                    </p>
+                    <h3>Médicos aprobados por especialidad</h3>
+                    <p>Distribución de médicos aprobados al cierre del período seleccionado.</p>
                 </div>
 
                 {medicosPorEspecialidad?.length ? (
                     <DoctorsBySpecialtyChart data={medicosPorEspecialidad} />
                 ) : (
                     <p className={`${styles.empty} ${styles.specialtyEmpty}`}>
-                        No hay médicos aprobados para mostrar.
+                        No hay médicos aprobados al cierre del período seleccionado.
                     </p>
                 )}
             </article>
@@ -131,17 +142,17 @@ export default function DoctorStats({
                 className={styles.chartCard}
             >
                 <div className={styles.chartHeader}>
-                    <h3>Solicitudes de validación</h3>
-                    <p>
-                        Cantidad de solicitudes de validación
-                        registradas por mes.
-                    </p>
+                    <h3>{`Solicitudes de validación por ${grouping === "dia" ? "día" : "mes"}`}</h3>
+                    <p>Solicitudes de validación recibidas durante el período seleccionado.</p>
                 </div>
 
-                {solicitudesValidacionPorMes?.length ? (
-                    <ValidationRequestsByMonthChart data={solicitudesValidacionPorMes} />
+                {validationRequests.length ? (
+                    <ValidationRequestsByPeriodChart
+                        data={validationRequests}
+                        grouping={grouping}
+                    />
                 ) : (
-                    <p className={styles.empty}>No hay solicitudes de validación para mostrar.</p>
+                    <p className={styles.empty}>No hay solicitudes de validación en el período seleccionado.</p>
                 )}
             </article>
 
@@ -152,7 +163,7 @@ export default function DoctorStats({
                     </span>
                     <div>
                         <h3 id="validation-time-title">Tiempo promedio de validación</h3>
-                        <p>Tiempo entre la solicitud del médico y su revisión administrativa.</p>
+                        <p>Tiempo promedio de las solicitudes revisadas durante el período seleccionado.</p>
                     </div>
                 </div>
 
@@ -168,7 +179,7 @@ export default function DoctorStats({
                     <span className={styles.validationTimeCaption}>
                         {formattedValidationTime
                             ? "Promedio de las solicitudes revisadas"
-                            : "Aún no hay solicitudes revisadas"}
+                            : "No hay solicitudes revisadas en este período"}
                     </span>
                 </div>
 
@@ -176,7 +187,8 @@ export default function DoctorStats({
                     {reviewedRequests} {reviewedRequests === 1 ? "solicitud revisada" : "solicitudes revisadas"}
                 </span>
             </article>
-
+                </div>
+            )}
         </section>
     );
 }

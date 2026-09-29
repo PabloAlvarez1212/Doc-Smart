@@ -8,10 +8,13 @@ import {
 } from "@/app/services/adminServices";
 import { useEffect, useRef, useState } from "react";
 
-/** @typedef {"mes"|"dia"} AgrupacionCitas */
+/** @typedef {"mes"|"dia"} AgrupacionPeriodo */
 /** @typedef {{periodo: string, total: number}} CitaPeriodo */
-/** @typedef {{agrupacion: AgrupacionCitas, datos: CitaPeriodo[]}} CitasCreadasPorPeriodo */
+/** @typedef {{agrupacion: AgrupacionPeriodo, datos: CitaPeriodo[]}} CitasCreadasPorPeriodo */
 /** @typedef {{anio: number|null, mes: number|null, anios_disponibles: number[]}} FiltrosCitas */
+/** @typedef {{periodo: string, total_solicitudes: number}} SolicitudValidacionPeriodo */
+/** @typedef {{agrupacion: AgrupacionPeriodo, datos: SolicitudValidacionPeriodo[]}} SolicitudesValidacionPorPeriodo */
+/** @typedef {{anio: number|null, mes: number|null, anios_disponibles: number[]}} FiltrosMedicos */
 
 const EMPTY_APPOINTMENT_ACTIVITY = {
     agrupacion: "mes",
@@ -19,6 +22,17 @@ const EMPTY_APPOINTMENT_ACTIVITY = {
 };
 
 const EMPTY_APPOINTMENT_FILTERS = {
+    anio: null,
+    mes: null,
+    anios_disponibles: [],
+};
+
+const EMPTY_VALIDATION_REQUESTS = {
+    agrupacion: "mes",
+    datos: [],
+};
+
+const EMPTY_DOCTOR_FILTERS = {
     anio: null,
     mes: null,
     anios_disponibles: [],
@@ -45,11 +59,17 @@ export function useDashboard() {
 
     const [medicosPorEspecialidad, setMedicosPorEspecialidad] = useState([]);
     const [medicosPorEstadoValidacion, setMedicosPorEstadoValidacion] = useState([]);
-    const [solicitudesValidacionPorMes, setSolicitudesValidacionPorMes] = useState([]);
+    const [solicitudesValidacionPorPeriodo, setSolicitudesValidacionPorPeriodo] = useState(
+        /** @type {SolicitudesValidacionPorPeriodo} */ (EMPTY_VALIDATION_REQUESTS)
+    );
+    const [filtrosMedicos, setFiltrosMedicos] = useState(
+        /** @type {FiltrosMedicos} */ (EMPTY_DOCTOR_FILTERS)
+    );
     const [medicosQueMasAtienden, setMedicosQueMasAtienden] = useState([]);
     const [tiempoPromedioValidacion, setTiempoPromedioValidacion] = useState(null);
     const [loadingMedicos, setLoadingMedicos] = useState(true);
     const [errorMedicos, setErrorMedicos] = useState(false);
+    const doctorRequestRef = useRef(null);
 
     const [pacientesPorEdad, setPacientesPorEdad] = useState([]);
     const [pacientesPorMes, setPacientesPorMes] = useState([]);
@@ -64,7 +84,10 @@ export function useDashboard() {
         cargarEstadisticasCitas();
         cargarEstadisticasMedicos();
 
-        return () => appointmentRequestRef.current?.abort();
+        return () => {
+            appointmentRequestRef.current?.abort();
+            doctorRequestRef.current?.abort();
+        };
     }, []);
 
     const cargarMetricasTarjetas = async () => {
@@ -157,22 +180,83 @@ export function useDashboard() {
         cargarEstadisticasCitas(filtrosCitas.anio, mes);
     };
 
-    const cargarEstadisticasMedicos = async () => {
+    const limpiarDatosMedicos = () => {
+        setMedicosPorEspecialidad([]);
+        setMedicosPorEstadoValidacion([]);
+        setSolicitudesValidacionPorPeriodo(EMPTY_VALIDATION_REQUESTS);
+        setMedicosQueMasAtienden([]);
+        setTiempoPromedioValidacion(null);
+    };
+
+    const cargarEstadisticasMedicos = async (anio, mes) => {
+        doctorRequestRef.current?.abort();
+        const controller = new AbortController();
+        doctorRequestRef.current = controller;
+
         try {
+            setLoadingMedicos(true);
             setErrorMedicos(false);
-            const data = await obtenerEstadisticasMedicosService();
+            limpiarDatosMedicos();
+
+            const data = await obtenerEstadisticasMedicosService(
+                anio,
+                mes,
+                controller.signal
+            );
+
+            if (controller.signal.aborted) return;
+
             const medicos = data.data;
+            const validationRequests = medicos.solicitudes_validacion_por_periodo;
+            const filters = medicos.filtros;
 
             setMedicosPorEspecialidad(medicos.medicos_por_especialidad ?? []);
             setMedicosPorEstadoValidacion(medicos.medicos_por_estado_validacion ?? []);
-            setSolicitudesValidacionPorMes(medicos.solicitudes_validacion_por_mes ?? []);
+            setSolicitudesValidacionPorPeriodo({
+                agrupacion: validationRequests?.agrupacion === "dia" ? "dia" : "mes",
+                datos: Array.isArray(validationRequests?.datos)
+                    ? validationRequests.datos
+                    : [],
+            });
             setMedicosQueMasAtienden(medicos.medicos_que_mas_atienden ?? []);
             setTiempoPromedioValidacion(medicos.tiempo_promedio_validacion ?? null);
+            setFiltrosMedicos({
+                anio: Number.isInteger(filters?.anio) ? filters.anio : null,
+                mes: Number.isInteger(filters?.mes) ? filters.mes : null,
+                anios_disponibles: Array.isArray(filters?.anios_disponibles)
+                    ? filters.anios_disponibles
+                    : [],
+            });
         } catch {
-            setErrorMedicos(true);
+            if (!controller.signal.aborted) {
+                setErrorMedicos(true);
+            }
         } finally {
-            setLoadingMedicos(false);
+            if (
+                !controller.signal.aborted
+                && doctorRequestRef.current === controller
+            ) {
+                setLoadingMedicos(false);
+            }
         }
+    };
+
+    const cambiarAnioMedicos = (value) => {
+        const anio = Number(value);
+        if (!Number.isInteger(anio)) return;
+
+        const mes = filtrosMedicos.mes;
+        setFiltrosMedicos((current) => ({ ...current, anio }));
+        cargarEstadisticasMedicos(anio, mes);
+    };
+
+    const cambiarMesMedicos = (value) => {
+        const mes = value === null || value === "" ? null : Number(value);
+        if (mes !== null && (!Number.isInteger(mes) || mes < 1 || mes > 12)) return;
+        if (!Number.isInteger(filtrosMedicos.anio)) return;
+
+        setFiltrosMedicos((current) => ({ ...current, mes }));
+        cargarEstadisticasMedicos(filtrosMedicos.anio, mes);
     };
 
     const cargarEstadisticasPacientes = async () => {
@@ -208,7 +292,10 @@ export function useDashboard() {
         errorCitas,
         medicosPorEspecialidad,
         medicosPorEstadoValidacion,
-        solicitudesValidacionPorMes,
+        solicitudesValidacionPorPeriodo,
+        filtrosMedicos,
+        cambiarAnioMedicos,
+        cambiarMesMedicos,
         medicosQueMasAtienden,
         tiempoPromedioValidacion,
         loadingMedicos,

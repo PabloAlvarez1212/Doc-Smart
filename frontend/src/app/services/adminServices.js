@@ -89,8 +89,21 @@ export const obtenerEstadisticasCitasService = async (anio, mes, signal) =>{
     return response.data
 }
 
-export const obtenerEstadisticasMedicosService = async () =>{
-    const response = await api.get("/medicos/admin/dashboard/");
+export const obtenerEstadisticasMedicosService = async (anio, mes, signal) =>{
+    const params = {};
+
+    if (Number.isInteger(anio)) {
+        params.anio = anio;
+    }
+
+    if (Number.isInteger(mes)) {
+        params.mes = mes;
+    }
+
+    const response = await api.get("/medicos/admin/dashboard/", {
+        params,
+        signal,
+    });
     return response.data
 }
 

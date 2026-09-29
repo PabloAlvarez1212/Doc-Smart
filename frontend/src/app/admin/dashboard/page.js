@@ -28,7 +28,10 @@ export default function Dashboard() {
         errorCitas,
         medicosPorEspecialidad,
         medicosPorEstadoValidacion,
-        solicitudesValidacionPorMes,
+        solicitudesValidacionPorPeriodo,
+        filtrosMedicos,
+        cambiarAnioMedicos,
+        cambiarMesMedicos,
         medicosQueMasAtienden,
         tiempoPromedioValidacion,
         loadingMedicos,
@@ -81,7 +84,10 @@ export default function Dashboard() {
                     <DoctorStats
                         medicosPorEspecialidad={medicosPorEspecialidad}
                         medicosPorEstadoValidacion={medicosPorEstadoValidacion}
-                        solicitudesValidacionPorMes={solicitudesValidacionPorMes}
+                        solicitudesValidacionPorPeriodo={solicitudesValidacionPorPeriodo}
+                        filtros={filtrosMedicos}
+                        cambiarAnio={cambiarAnioMedicos}
+                        cambiarMes={cambiarMesMedicos}
                         medicosQueMasAtienden={medicosQueMasAtienden}
                         tiempoPromedioValidacion={tiempoPromedioValidacion}
                         loading={loadingMedicos}
