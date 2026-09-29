@@ -1,5 +1,5 @@
 'use client'
-import { CheckCircle2, FileText, FileUp, RefreshCw } from 'lucide-react'
+import { CheckCircle2, FileText, FileUp, RefreshCw, MailCheck, CreditCard } from 'lucide-react'
 import Input from '../../ui/Input/Input.js'
 import Button from '../../ui/Button/Button.js'
 import styles from './RegisterForm.module.css'
@@ -27,6 +27,14 @@ export default function RegisterForm({ role, setRole }) {
         handleChange,
         handleNextStep,
         handleSubmit,
+        otp,
+        setOtp,
+        documentoFrente,
+        setDocumentoFrente,
+        documentoReverso,
+        setDocumentoReverso,
+        handleVerificarOtp,
+        handleDocumento,
     } = useRegister(role, setRole)
 
     return (
@@ -45,14 +53,21 @@ export default function RegisterForm({ role, setRole }) {
                                 <Input name="apellido" placeholder="Apellido" onChange={handleChange} value={form.apellido} />
                                 {errors.apellido && <p className={styles.error}>{errors.apellido}</p>}
 
-                                <Input name="cedula" placeholder="Cédula" onChange={handleChange} value={form.cedula} />
-                                {errors.cedula && <p className={styles.error}>{errors.cedula}</p>}
+                                <select name="tipo_documento" value={form.tipo_documento} onChange={handleChange} className={styles.select}>
+                                    <option value="CC">Cédula de ciudadanía</option>
+                                    <option value="TI">Tarjeta de identidad</option>
+                                    <option value="PASAPORTE">Pasaporte</option>
+                                    <option value="RC">Registro civil</option>
+                                </select>
+                                {errors.tipo_documento && <p className={styles.error}>{errors.tipo_documento}</p>}
+
+                                <Input name="numero_documento" placeholder="Número de documento" onChange={handleChange} value={form.numero_documento} />
+                                {errors.numero_documento && <p className={styles.error}>{errors.numero_documento}</p>}
 
                                 <Input type="date" name="fecha_nacimiento" placeholder="Fecha de nacimiento" onChange={handleChange} value={form.fecha_nacimiento} />
                                 {errors.fecha_nacimiento && <p className={styles.error}>{errors.fecha_nacimiento}</p>}
 
                                 <div className={styles.buttons}>
-                                    {/* Vuelve a la selección de rol */}
                                     <Button type="button" variant="secondary" onClick={() => setRole(null)}>Atrás</Button>
                                     <Button type="button" variant="primary" onClick={handleNextStep}>Siguiente</Button>
                                 </div>
@@ -78,7 +93,7 @@ export default function RegisterForm({ role, setRole }) {
                             </>
                         )}
 
-                        {/* Paso 3 — Credenciales de acceso */}
+                        {/* Paso 3 — Credenciales */}
                         {step === 3 && (
                             <>
                                 <Input name="correo" placeholder="Correo" onChange={handleChange} value={form.correo} />
@@ -91,10 +106,111 @@ export default function RegisterForm({ role, setRole }) {
                                 {errors.confirmar_contraseña && <p className={styles.error}>{errors.confirmar_contraseña}</p>}
 
                                 <div className={styles.buttons}>
-                                    {/* Retrocede 2 pasos para volver al paso 1 */}
-                                    <Button type="button" variant="secondary" onClick={() => setStep(step - 2)}>Atrás</Button>
+                                    <Button type="button" variant="secondary" onClick={() => setStep(step - 1)}>Atrás</Button>
                                     <Button type="submit" variant="primary" disabled={loading}>
-                                        {loading ? 'Registrando...' : 'Registrarse'}
+                                        {loading ? 'Enviando código...' : 'Continuar'}
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Paso 4 — Verificación de correo */}
+                        {step === 4 && (
+                            <>
+                                <div className={styles.uploadCopy}>
+                                    <MailCheck size={30} />
+                                    <strong>Verifica tu correo</strong>
+                                    <p>Ingresa el código enviado a {form.correo}</p>
+                                </div>
+
+                                <Input name="otp" placeholder="Código de verificación" value={otp} onChange={(e) => setOtp(e.target.value)} />
+
+                                <div className={styles.buttons}>
+                                    <Button type="button" variant="primary" onClick={handleVerificarOtp} disabled={loading}>
+                                        {loading ? 'Verificando...' : 'Verificar código'}
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Paso 5 — Documento de identidad */}
+                        {step === 5 && (
+                            <>
+                                <div className={styles.uploadCopy}>
+                                    <CreditCard size={30} />
+                                    <strong>Verifica tu identidad</strong>
+                                    <p>Carga imágenes claras de tu documento.</p>
+                                </div>
+
+                                <div className={styles.resumeUpload}>
+                                    <input id="documento-frente" className={styles.fileInput} type="file" accept="image/jpeg,image/png,image/webp"
+                                        onChange={(e) => setDocumentoFrente(e.target.files?.[0] ?? null)} />
+
+                                    {documentoFrente ? (
+                                        <div className={`${styles.uploadSurface} ${styles.selectedFile}`}>
+                                            <span className={styles.fileIcon}><FileText size={25} /></span>
+                                            <div className={styles.fileDetails}>
+                                                <div className={styles.fileNameRow}>
+                                                    <strong>{documentoFrente.name}</strong>
+                                                    <CheckCircle2 size={17} />
+                                                </div>
+                                                <span>{formatFileSize(documentoFrente.size)}</span>
+                                            </div>
+                                            <label className={styles.changeFile} htmlFor="documento-frente">
+                                                <RefreshCw size={15} /> Cambiar
+                                            </label>
+                                        </div>
+                                    ) : (
+                                        <div className={styles.uploadSurface}>
+                                            <span className={styles.uploadIcon}><FileUp size={28} /></span>
+                                            <div className={styles.uploadCopy}>
+                                                <strong>Frente del documento</strong>
+                                                <p>JPG, PNG o WEBP · máximo 8 MB</p>
+                                            </div>
+                                            <label className={styles.selectFile} htmlFor="documento-frente">
+                                                <FileUp size={17} /> Seleccionar imagen
+                                            </label>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {form.tipo_documento === 'CC' && (
+                                    <div className={styles.resumeUpload}>
+                                        <input id="documento-reverso" className={styles.fileInput} type="file" accept="image/jpeg,image/png,image/webp"
+                                            onChange={(e) => setDocumentoReverso(e.target.files?.[0] ?? null)} />
+
+                                        {documentoReverso ? (
+                                            <div className={`${styles.uploadSurface} ${styles.selectedFile}`}>
+                                                <span className={styles.fileIcon}><FileText size={25} /></span>
+                                                <div className={styles.fileDetails}>
+                                                    <div className={styles.fileNameRow}>
+                                                        <strong>{documentoReverso.name}</strong>
+                                                        <CheckCircle2 size={17} />
+                                                    </div>
+                                                    <span>{formatFileSize(documentoReverso.size)}</span>
+                                                </div>
+                                                <label className={styles.changeFile} htmlFor="documento-reverso">
+                                                    <RefreshCw size={15} /> Cambiar
+                                                </label>
+                                            </div>
+                                        ) : (
+                                            <div className={styles.uploadSurface}>
+                                                <span className={styles.uploadIcon}><FileUp size={28} /></span>
+                                                <div className={styles.uploadCopy}>
+                                                    <strong>Reverso del documento</strong>
+                                                    <p>JPG, PNG o WEBP · máximo 8 MB</p>
+                                                </div>
+                                                <label className={styles.selectFile} htmlFor="documento-reverso">
+                                                    <FileUp size={17} /> Seleccionar imagen
+                                                </label>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className={styles.buttons}>
+                                    <Button type="button" variant="primary" onClick={handleDocumento} disabled={loading}>
+                                        {loading ? 'Verificando identidad...' : 'Verificar y completar registro'}
                                     </Button>
                                 </div>
                             </>
