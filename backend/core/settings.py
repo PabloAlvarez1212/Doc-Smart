@@ -154,6 +154,7 @@ ELEVENLABS_MODEL_ID = os.getenv(
 # ──────────────────────────────────────────────────────────────────────────────
 
 INSTALLED_APPS = [
+    "chat_citas",
     "daphne",
 
     "django.contrib.admin",
