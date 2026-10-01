@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from utils import IsMedicoAprobado,IsPaciente,IsPacienteOrMedicoAprobado,IsAdmin
+from utils import IsMedicoAprobado,IsPaciente,IsPacienteOrMedicoAprobado,IsAdmin,FiltroPeriodoSerializer
 from rest_framework.permissions import IsAuthenticated
 from citas.services import (
     listarCitasService,
@@ -17,7 +17,7 @@ from citas.services import (
     eliminarRecordatorioService,
     obtenerEstadisticasCitas,
 )
-from citas.serializers import CrearCitaSerializer, EditarCitaSerializer,FiltroEstadisticasCitasSerializer
+from citas.serializers import CrearCitaSerializer, EditarCitaSerializer
 
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -233,7 +233,7 @@ class EstadisticasCitasView(APIView):
 
     def get(self, request):
         try:
-            serializer = FiltroEstadisticasCitasSerializer(data=request.query_params)
+            serializer = FiltroPeriodoSerializer(data=request.query_params)
 
             if not serializer.is_valid():
                 return respuesta_serializer_invalido(serializer.errors)
