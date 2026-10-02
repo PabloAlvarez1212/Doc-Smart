@@ -120,7 +120,8 @@ class TransicionInasistenciaTests(InasistenciaFixture):
         self.assertEqual(self.conv.fecha_cierre, self.cita.fecha_inasistencia)
         self.assertEqual(self.estado(), 'cerrado')
         self.assertFalse(Notificacion.objects.exists())
-        self.assertEqual(callbacks, [])
+        # Fase 3 añade historial + actualización WS, sin notificación persistente.
+        self.assertEqual(len(callbacks), 2)
 
     def test_propietario_aprobado_marca_confirmada_iniciada(self):
         self.comprobar_exito()

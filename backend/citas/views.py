@@ -38,6 +38,18 @@ def respuesta_serializer_invalido(errors):
 
 # ─── CITAS ───────────────────────────────────────────────────────────────────
 
+class CitaInasistenciaView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, pk):
+        if request.data:
+            return respuesta_error('Esta acción no admite campos del cliente', status=400)
+        from citas.services import marcarInasistenciaPacienteService
+        result, code = marcarInasistenciaPacienteService(pk, request.user)
+        if code != 200:
+            return respuesta_error(result, status=code)
+        return respuesta_ok(result)
+
 #!Metodo-administrador
 class CitaListView(APIView):
     permission_classes = [IsAuthenticated,IsAdmin]

@@ -140,7 +140,7 @@ def puedeAccederConversacionService(conversacion, solicitante):
 
 
 @transaction.atomic
-def habilitarConversacionAnticipadamenteService(conversacion_id, solicitante):
+def habilitarConversacionAnticipadamenteService(conversacion_id, solicitante, *, estricto=False):
     cita_id = Conversacion.objects.filter(pk=conversacion_id).values_list('cita_id', flat=True).first()
     if cita_id is None:
         return 'Conversación no encontrada', 404
@@ -151,7 +151,7 @@ def habilitarConversacionAnticipadamenteService(conversacion_id, solicitante):
     if conversacion.cita_id != cita.pk:
         raise RuntimeError('La cita de la conversación cambió; reintenta la operación')
     conversacion.cita = cita
-    if not _es_medico_propietario(cita, solicitante):
+    if not isinstance(solicitante, Medico) or not _es_medico_propietario(cita, Medico.objects.get(pk=solicitante.pk)):
         return 'Solo el médico propietario aprobado puede habilitar la conversación', 403
     if cita.id_estado.nombre.lower() not in ('confirmada', 'reprogramada'):
         return 'La cita no admite habilitación anticipada', 400
@@ -160,9 +160,15 @@ def habilitarConversacionAnticipadamenteService(conversacion_id, solicitante):
     if estado in (None, 'cerrado'):
         return 'La conversación no está disponible', 400
     if conversacion.fecha_habilitacion_anticipada is not None:
+        if estricto:
+            return 'La conversación ya fue habilitada', 409
         return conversacion, 200
     if estado == 'activo':
         return 'La conversación ya está habilitada automáticamente', 400
     conversacion.fecha_habilitacion_anticipada = ahora
     conversacion.save(update_fields=['fecha_habilitacion_anticipada'])
+    from .event_services import registrarEventoConversacionService
+    from uuid import uuid4
+    registrarEventoConversacionService(cita, clave=f'habilitada:{uuid4()}',
+        evento='chat_habilitado', metadata={'actor': {'tipo': 'medico', 'id': solicitante.pk}}, instante=ahora)
     return conversacion, 200

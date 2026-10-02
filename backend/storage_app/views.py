@@ -29,7 +29,7 @@ class ArchivoListaCrearView(APIView):
         archivos = Archivo.objects.filter(
             usuario_id=request.user.id,
             activo=True,
-        ).order_by("-fecha_subida")
+        ).exclude(categoria='chat_citas_privado').filter(adjunto_chat__isnull=True).order_by("-fecha_subida")
 
         serializer = ArchivoSerializer(
             archivos,
@@ -63,6 +63,9 @@ class ArchivoListaCrearView(APIView):
         referencia_id = serializer.validated_data.get(
             "referencia_id"
         )
+
+        if categoria == 'chat_citas_privado':
+            return Response({'ok': False, 'mensaje': 'Categoría reservada'}, status=400)
 
         try:
             registro = guardar_archivo_usuario(
@@ -99,7 +102,7 @@ class ArchivoDetalleView(APIView):
 
     def obtener_archivo(self, request, pk):
         try:
-            return Archivo.objects.get(
+            return Archivo.objects.exclude(categoria='chat_citas_privado').filter(adjunto_chat__isnull=True).get(
                 pk=pk,
                 usuario_id=request.user.id,
                 activo=True,
@@ -175,7 +178,7 @@ class ArchivoUrlView(APIView):
 
     def get(self, request, pk):
         try:
-            archivo = Archivo.objects.get(
+            archivo = Archivo.objects.exclude(categoria='chat_citas_privado').filter(adjunto_chat__isnull=True).get(
                 pk=pk,
                 usuario_id=request.user.id,
                 activo=True,

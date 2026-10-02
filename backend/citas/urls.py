@@ -1,5 +1,6 @@
 from django.urls import path
 from citas.views import (
+    CitaInasistenciaView,
     CitaListView,
     CitaPacienteView,
     CitaMedicoView,
@@ -14,6 +15,7 @@ from citas.views import (
 )
 
 urlpatterns = [
+    path('<int:pk>/inasistencia/', CitaInasistenciaView.as_view(), name='cita-inasistencia'),
     # ─── CITAS ───────────────────────────────────────────────────────────────
     
     #Obtener citas

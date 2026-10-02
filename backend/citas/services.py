@@ -680,6 +680,11 @@ def editarCitaService(id, datos, solicitante):
         from chat_citas.services import reiniciarConversacionPorReprogramacionService
 
         reiniciarConversacionPorReprogramacionService(cita)
+        from uuid import uuid4
+        from chat_citas.event_services import registrarEventoConversacionService
+        registrarEventoConversacionService(cita, clave=f'reprogramada:{uuid4()}',
+            evento='cita_reprogramada', instante=timezone.now(), metadata={
+                'fecha_anterior': fecha_antigua.isoformat(), 'fecha_nueva': nueva_fecha.isoformat()})
 
         fecha_fmt = cita.fecha_programada.strftime(
             "%d/%m/%Y a las %H:%M"
@@ -768,6 +773,10 @@ def cancelarCitaService(id, solicitante):
     from chat_citas.services import cerrarConversacionPorCancelacionService
 
     cerrarConversacionPorCancelacionService(cita)
+    from chat_citas.event_services import registrarEventoConversacionService
+    registrarEventoConversacionService(cita, clave=f'cancelada:{cita.fecha_cancelacion.isoformat()}',
+        evento='cita_cancelada', instante=cita.fecha_cancelacion,
+        metadata={'actor': {'tipo': 'medico' if isinstance(solicitante, Medico) else 'paciente', 'id': solicitante.pk}})
 
     fecha_fmt = cita.fecha_programada.strftime(
         "%d/%m/%Y a las %H:%M"
@@ -830,6 +839,11 @@ def completarCitaService(id, medico_id):
     # Desde esta transición fecha_final representa el instante real, no el previsto.
     cita.fecha_final  = timezone.now()
     cita.save()
+    from datetime import timedelta
+    from chat_citas.event_services import registrarEventoConversacionService
+    registrarEventoConversacionService(cita, clave=f'completada:{cita.fecha_final.isoformat()}',
+        evento='cita_completada', instante=cita.fecha_final,
+        metadata={'disponible_hasta': (cita.fecha_final + timedelta(hours=24)).isoformat()})
     fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
     cita_data = CitaSerializer(cita).data
     enviarNotificacion(
@@ -893,6 +907,9 @@ def marcarInasistenciaPacienteService(id, solicitante):
     from chat_citas.services import cerrarConversacionPorInasistenciaPacienteService
 
     cerrarConversacionPorInasistenciaPacienteService(cita)
+    from chat_citas.event_services import registrarEventoConversacionService
+    registrarEventoConversacionService(cita, clave=f'inasistencia:{ahora.isoformat()}',
+        evento='inasistencia_paciente', instante=ahora, metadata={})
     return CitaSerializer(cita).data, 200
 
 
