@@ -19,6 +19,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
 
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
 
 def env_bool(nombre, valor_predeterminado=False):
     return os.getenv(

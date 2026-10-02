@@ -29,7 +29,7 @@ REGLAS PARA DISTINGUIR CONSULTAS MÉDICAS DE CITAS:
 - Inicia agendar_cita únicamente cuando el último mensaje del usuario solicite
   explícitamente agendar, reservar, programar o pedir una cita.
 - Hablar de síntomas, edad, peso, alergias, medicamentos, dosis, fiebre,
-  dolor, mareo o diagnóstico siempre corresponde a accion "gemini", salvo que
+  dolor, mareo o diagnóstico siempre corresponde a accion "openai", salvo que
   el último mensaje solicite explícitamente una cita.
 - Respuestas como "tengo 20 años", "peso 70 kilos", "no tengo alergias" o
   "no tomo medicamentos" deben continuar la conversación médica anterior.

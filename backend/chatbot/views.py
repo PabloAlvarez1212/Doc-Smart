@@ -447,7 +447,7 @@ class ChatbotResponderView(APIView):
                 raise
 
             if imagen:
-                # Gemini debe leer la imagen completa
+                # OpenAI debe leer la imagen completa
                 # desde el primer byte.
                 imagen.seek(0)
 

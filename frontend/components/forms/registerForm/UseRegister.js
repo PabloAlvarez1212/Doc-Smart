@@ -10,45 +10,53 @@ import {
     validateRegisterStep3,
 } from '@/app/validations/registerValidate'
 import {
-    registerPacienteService,
+    iniciarRegistroPacienteService,
+    verificarCorreoRegistroService,
+    subirDocumentoRegistroService,
+    verificarDocumentoRegistroService,
+    completarRegistroPacienteService,
     registerMedicoService,
     getCiudadesByDepartamentoService,
 } from '@/app/services/authService'
 import { getDepartamentosService } from '@/app/services/catalogs'
 import { getEspecialidadesService } from '@/app/services/doctorServices'
-// Hook personalizado que centraliza toda la lógica del formulario de registro
+
 export const useRegister = (role, setRole) => {
     const router = useRouter()
 
-    const [step, setStep] = useState(1)           // Paso actual del formulario (1, 2 o 3)
-    const [loading, setLoading] = useState(false) // Controla el estado de carga al enviar
-    const [errors, setErrors] = useState({})      // Errores de validación por campo
+    const [step, setStep] = useState(1)
+    const [loading, setLoading] = useState(false)
+    const [errors, setErrors] = useState({})
 
-    // Listas de opciones para los selects del formulario de médico
+    const [procesoId, setProcesoId] = useState('')
+    const [otp, setOtp] = useState('')
+    const [documentoFrente, setDocumentoFrente] = useState(null)
+    const [documentoReverso, setDocumentoReverso] = useState(null)
+
     const [especialidades, setEspecialidades] = useState([])
     const [departamentos, setDepartamentos] = useState([])
     const [ciudades, setCiudades] = useState([])
 
-    // Estado unificado del formulario para ambos roles
     const [form, setForm] = useState({
         nombre: '',
         apellido: '',
         cedula: '',
+        tipo_documento: 'CC',
+        numero_documento: '',
         fecha_nacimiento: '',
         telefono: '',
         direccion: '',
-        departamento_filtro: '', // Solo para filtrar ciudades, no se envía a la BD
+        departamento_filtro: '',
         id_ciudad: '',
         id_especialidad: '',
         correo: '',
         contraseña: '',
         confirmar_contraseña: '',
-        estatura: '',            // Solo paciente
-        peso: '',                // Solo paciente
+        estatura: '',
+        peso: '',
         hoja_vida: null
     })
 
-    // Carga especialidades y departamentos cuando el rol es médico
     useEffect(() => {
         if (role === 'medico') {
             getEspecialidadesService()
@@ -61,70 +69,46 @@ export const useRegister = (role, setRole) => {
         }
     }, [role])
 
-    // Actualiza las ciudades disponibles cada vez que cambia el departamento seleccionado
     useEffect(() => {
         if (form.departamento_filtro) {
             getCiudadesByDepartamentoService(form.departamento_filtro)
                 .then((data) => setCiudades(data.data))
                 .catch(() => setCiudades([]))
         } else {
-            // Si no hay departamento seleccionado, limpia el listado de ciudades
             setCiudades([])
         }
     }, [form.departamento_filtro])
 
-    // Actualiza el campo modificado en el formulario y limpia su error
     const handleChange = (e) => {
         const { name, value, files } = e.target
 
-        if (name === "hoja_vida") {
-            setForm((prev) => ({
-                ...prev,
-                hoja_vida: files?.[0] ?? null,
-            }))
-
-            setErrors((prev) => ({
-                ...prev,
-                hoja_vida: "",
-            }))
-
+        if (name === 'hoja_vida') {
+            setForm((prev) => ({ ...prev, hoja_vida: files?.[0] ?? null }))
+            setErrors((prev) => ({ ...prev, hoja_vida: '' }))
             return
         }
 
-        if (name === "departamento_filtro") {
-            setForm((prev) => ({
-                ...prev,
-                departamento_filtro: value,
-                id_ciudad: "",
-            }))
+        if (name === 'departamento_filtro') {
+            setForm((prev) => ({ ...prev, departamento_filtro: value, id_ciudad: '' }))
         } else {
-            setForm((prev) => ({
-                ...prev,
-                [name]: value,
-            }))
+            setForm((prev) => ({ ...prev, [name]: value }))
         }
 
-        setErrors((prev) => ({
-            ...prev,
-            [name]: "",
-        }))
+        setErrors((prev) => ({ ...prev, [name]: '' }))
     }
 
-    // Valida el paso actual y avanza al siguiente si no hay errores
     const handleNextStep = () => {
         let validationErrors = {}
 
         if (step === 1) {
-            validationErrors = validateRegisterStep1(form)
+            validationErrors = validateRegisterStep1(form, role)
         } else if (step === 2) {
-            // Valida campos diferentes según el rol
             validationErrors = role === 'paciente'
                 ? validateRegisterPacienteStep2(form)
                 : validateRegisterMedicoStep2(form)
         }
 
         if (Object.keys(validationErrors).length > 0) {
-            // Muestra el primer error encontrado en un modal
             Swal.fire({
                 icon: 'error',
                 title: 'Campos inválidos',
@@ -137,7 +121,6 @@ export const useRegister = (role, setRole) => {
         setStep((prev) => prev + 1)
     }
 
-    // Valida el paso 3 y envía el formulario según el rol
     const handleSubmit = async (e) => {
         e.preventDefault()
 
@@ -156,73 +139,174 @@ export const useRegister = (role, setRole) => {
 
         try {
             if (role === 'paciente') {
-                // Construye el payload del paciente convirtiendo estatura y peso a float
                 const payload = {
                     nombre: form.nombre,
                     apellido: form.apellido,
+                    tipo_documento: form.tipo_documento,
+                    numero_documento: form.numero_documento,
+                    fecha_nacimiento: form.fecha_nacimiento,
                     correo: form.correo,
                     contraseña: form.contraseña,
-                    fecha_nacimiento: form.fecha_nacimiento,
-                    estatura: parseFloat(String(form.estatura).replace(',', '.')), // Acepta coma o punto decimal
-                    peso: parseFloat(String(form.peso).replace(',', '.')),
-                    cedula: form.cedula,
                     telefono: form.telefono,
-                }
-                await registerPacienteService(payload)
-            } else {
-                const formData = new FormData()
-
-                formData.append("nombre", form.nombre)
-                formData.append("apellido", form.apellido)
-                formData.append("correo", form.correo)
-                formData.append("contraseña", form.contraseña)
-                formData.append("cedula", form.cedula)
-                formData.append("fecha_nacimiento", form.fecha_nacimiento)
-                formData.append("telefono", form.telefono)
-                formData.append("direccion", form.direccion)
-                formData.append("ciudad", String(form.id_ciudad))
-                formData.append("id_especialidad", String(form.id_especialidad))
-
-                if (form.hoja_vida) {
-                    formData.append("hoja_vida", form.hoja_vida)
+                    estatura: parseFloat(String(form.estatura).replace(',', '.')),
+                    peso: parseFloat(String(form.peso).replace(',', '.')),
                 }
 
-                await registerMedicoService(formData)
+                const response = await iniciarRegistroPacienteService(payload)
+                const id = response.data?.proceso_id || response.proceso_id
+
+                if (!id) throw new Error('La API no devolvió el proceso de registro')
+
+                setProcesoId(id)
+                setStep(4)
+                return
             }
 
-            // Registro exitoso: notifica al usuario y redirige al login
+            const formData = new FormData()
+
+            formData.append('nombre', form.nombre)
+            formData.append('apellido', form.apellido)
+            formData.append('correo', form.correo)
+            formData.append('contraseña', form.contraseña)
+            formData.append('cedula', form.cedula)
+            formData.append('fecha_nacimiento', form.fecha_nacimiento)
+            formData.append('telefono', form.telefono)
+            formData.append('direccion', form.direccion)
+            formData.append('ciudad', String(form.id_ciudad))
+            formData.append('id_especialidad', String(form.id_especialidad))
+
+            if (form.hoja_vida) formData.append('hoja_vida', form.hoja_vida)
+
+            await registerMedicoService(formData)
+
             await Swal.fire({
                 icon: 'success',
-                title: role === 'medico'
-                    ? '¡Solicitud enviada!'
-                    : '¡Registro exitoso!',
-                text: role === 'medico'
-                    ? `${form.nombre}, hemos recibido tu solicitud y hoja de vida. Nuestro equipo revisará tu información y, si tu perfil continúa en el proceso, nos pondremos en contacto contigo para coordinar una entrevista.`
-                    : `Bienvenido ${form.nombre}, tu cuenta ha sido creada correctamente.`,
+                title: '¡Solicitud enviada!',
+                text: `${form.nombre}, hemos recibido tu solicitud y hoja de vida. Nuestro equipo revisará tu información y, si tu perfil continúa en el proceso, nos pondremos en contacto contigo para coordinar una entrevista.`,
                 confirmButtonText: 'Aceptar',
             })
 
             router.push('/login')
 
         } catch (error) {
-            // Extrae el primer mensaje de error devuelto por la API
             console.log('error completo:', JSON.stringify(error.response?.data))
-            const errores = error.response?.data?.errores;
-            let mensaje = error.response?.data?.mensaje || 'Error al conectar con el servidor';
-            const errorExtraido = obtenerPrimerError(errores);
-            if (errorExtraido) {
-                mensaje = errorExtraido;
-            }
+
+            const errores = error.response?.data?.errores
+            let mensaje =
+                error.response?.data?.mensaje ||
+                error.message ||
+                'Error al conectar con el servidor'
+
+            const errorExtraido = obtenerPrimerError(errores)
+            if (errorExtraido) mensaje = errorExtraido
+
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
                 text: mensaje,
             })
 
-            // Propaga los errores al formulario para resaltar los campos inválidos
             if (errores) setErrors(errores)
         } finally {
-            // Siempre desactiva el estado de carga al finalizar
+            setLoading(false)
+        }
+    }
+
+    const handleVerificarOtp = async () => {
+        if (!otp.trim()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Código requerido',
+                text: 'Ingresa el código enviado a tu correo.',
+            })
+            return
+        }
+
+        setLoading(true)
+
+        try {
+            await verificarCorreoRegistroService({
+                proceso_id: procesoId,
+                codigo: otp.trim(),
+            })
+
+            setStep(5)
+
+        } catch (error) {
+            const errores = error.response?.data?.errores
+
+            Swal.fire({
+                icon: 'error',
+                title: 'Código inválido',
+                text:
+                    obtenerPrimerError(errores) ||
+                    error.response?.data?.mensaje ||
+                    'No fue posible verificar el código',
+            })
+
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleDocumento = async () => {
+        if (!documentoFrente || (form.tipo_documento === 'CC' && !documentoReverso)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Documento incompleto',
+                text: form.tipo_documento === 'CC'
+                    ? 'Debes cargar frente y reverso del documento.'
+                    : 'Debes cargar el documento.',
+            })
+            return
+        }
+
+        setLoading(true)
+
+        try {
+            const formData = new FormData()
+
+            formData.append('proceso_id', procesoId)
+            formData.append('documento_frente', documentoFrente)
+
+            if (documentoReverso) {
+                formData.append('documento_reverso', documentoReverso)
+            }
+
+            await subirDocumentoRegistroService(formData)
+
+            await verificarDocumentoRegistroService({
+                proceso_id: procesoId,
+            })
+
+            await completarRegistroPacienteService({
+                proceso_id: procesoId,
+            })
+
+            await Swal.fire({
+                icon: 'success',
+                title: '¡Registro exitoso!',
+                text: `Bienvenido ${form.nombre}, tu identidad fue verificada correctamente.`,
+                confirmButtonText: 'Aceptar',
+            })
+
+            router.push('/login')
+
+        } catch (error) {
+            console.log('error documento:', JSON.stringify(error.response?.data))
+
+            const errores = error.response?.data?.errores
+
+            Swal.fire({
+                icon: 'error',
+                title: 'No fue posible verificar tu identidad',
+                text:
+                    obtenerPrimerError(errores) ||
+                    error.response?.data?.mensaje ||
+                    'Intenta nuevamente.',
+            })
+
+        } finally {
             setLoading(false)
         }
     }
@@ -240,5 +324,14 @@ export const useRegister = (role, setRole) => {
         handleNextStep,
         handleSubmit,
         setRole,
+        procesoId,
+        otp,
+        setOtp,
+        documentoFrente,
+        setDocumentoFrente,
+        documentoReverso,
+        setDocumentoReverso,
+        handleVerificarOtp,
+        handleDocumento,
     }
 }

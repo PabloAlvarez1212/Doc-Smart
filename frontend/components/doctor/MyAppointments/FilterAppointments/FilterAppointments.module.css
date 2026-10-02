@@ -1,0 +1,129 @@
+.container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+/* ========================================
+   CAMPOS
+======================================== */
+
+.searchField,
+.dateField {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid #dce2ea;
+    border-radius: 10px;
+    background: #fff;
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease;
+}
+
+
+.searchField {
+    flex: 1;
+    max-width: 420px;
+}
+
+
+.dateField {
+    min-width: 190px;
+}
+
+
+.searchField:focus-within,
+.dateField:focus-within {
+    border-color: #22c55e;
+
+    box-shadow:
+        0 0 0 3px rgba(34, 197, 94, .10);
+}
+
+
+.searchField svg,
+.dateField svg {
+    flex-shrink: 0;
+    color: #98a2b3;
+}
+
+
+/* ========================================
+   INPUTS
+======================================== */
+
+.searchField input,
+.dateField input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    color: #172033;
+    background: transparent;
+    font: inherit;
+    font-size: .88rem;
+}
+
+
+.searchField input::placeholder {
+    color: #98a2b3;
+}
+
+
+/* ========================================
+   LIMPIAR
+======================================== */
+
+.clearButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid #dce2ea;
+    border-radius: 10px;
+    color: #566174;
+    background: #fff;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        color .2s ease,
+        border-color .2s ease,
+        background .2s ease;
+}
+
+
+.clearButton:hover {
+    color: #15803d;
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+}
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+
+@media (max-width: 760px) {
+
+    .container {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .searchField,
+    .dateField {
+        width: 100%;
+        max-width: none;
+    }
+
+    .clearButton {
+        width: 100%;
+    }
+
+}

@@ -120,6 +120,7 @@ export default function PersonalInfo({
 
                         <Input
                             id="fechaNacimiento"
+                            readOnly
                             name="fechaNacimiento"
                             type="date"
                             value={fechaNacimiento}

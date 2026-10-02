@@ -313,7 +313,7 @@ class IntencionesDeterministasTests(SimpleTestCase):
             solicita_buscar_medicos("Muéstrame todos los médicos disponibles")
         )
 
-    @patch("chatbot.ai.router.client.models.generate_content")
+    @patch("chatbot.ai.router.obtener_cliente")
     def test_router_no_consulta_gemini_para_listar_medicos(
         self,
         generate_content,
@@ -510,15 +510,15 @@ class AgendarCitaToolTests(SimpleTestCase):
 
 class RouterTests(SimpleTestCase):
 
-    @patch("chatbot.ai.router.client.models.generate_content")
+    @patch("chatbot.ai.router.obtener_cliente")
     def test_router_recibe_el_historial_para_preguntas_de_seguimiento(
         self,
         generate_content,
     ):
         from chatbot.ai.router import procesar_mensaje
 
-        generate_content.return_value = SimpleNamespace(
-            text=(
+        generate_content.return_value.responses.create.return_value = SimpleNamespace(
+            output_text=(
                 '{"accion":"tool","tool":"agendar_cita",'
                 '"parametros":{"nombre":"Edilma",'
                 '"apellido":"Echeverry",'
@@ -541,11 +541,14 @@ class RouterTests(SimpleTestCase):
         self.assertTrue(decision.usa_tool)
         self.assertEqual(decision.tool_name, "agendar_cita")
         self.assertEqual(
-            generate_content.call_args.kwargs["contents"],
-            historial,
+            generate_content.return_value.responses.create.call_args.kwargs["input"],
+            [
+                {"role": "user", "content": [{"type": "input_text", "text": "Quiero una cita con Edilma Echeverry"}]},
+                {"role": "user", "content": [{"type": "input_text", "text": "¿Está disponible?"}]},
+            ],
         )
 
-    @patch("chatbot.ai.router.client.models.generate_content")
+    @patch("chatbot.ai.router.obtener_cliente")
     def test_error_del_proveedor_no_produce_error_500(self, generate_content):
         from chatbot.ai.router import procesar_mensaje
 
@@ -710,12 +713,12 @@ class PerfilUsuarioBymaxTests(SimpleTestCase):
 
 class IdiomaUniversalBymaxTests(SimpleTestCase):
 
-    @patch("chatbot.ai.language.client.models.generate_content")
+    @patch("chatbot.ai.language.obtener_cliente")
     def test_gemini_traduce_respuesta_a_frances(self, generate_content):
         from chatbot.ai.language import LanguageService
 
-        generate_content.return_value = SimpleNamespace(
-            text="Votre nom enregistré est [[VALOR_0]]."
+        generate_content.return_value.responses.create.return_value = SimpleNamespace(
+            output_text="Votre nom enregistré est [[VALOR_0]]."
         )
         respuesta = LanguageService.adaptar(
             "Tu nombre registrado es Kleider.",
@@ -725,12 +728,12 @@ class IdiomaUniversalBymaxTests(SimpleTestCase):
 
         self.assertEqual(respuesta, "Votre nom enregistré est Kleider.")
 
-    @patch("chatbot.ai.language.client.models.generate_content")
+    @patch("chatbot.ai.language.obtener_cliente")
     def test_datos_privados_no_se_envian_a_gemini(self, generate_content):
         from chatbot.ai.language import LanguageService
 
-        generate_content.return_value = SimpleNamespace(
-            text="E-mail : [[VALOR_0]]"
+        generate_content.return_value.responses.create.return_value = SimpleNamespace(
+            output_text="E-mail : [[VALOR_0]]"
         )
         LanguageService.adaptar(
             "- Correo: privado@example.com",
@@ -738,7 +741,7 @@ class IdiomaUniversalBymaxTests(SimpleTestCase):
             ["privado@example.com"],
         )
 
-        prompt = generate_content.call_args.kwargs["contents"]
+        prompt = generate_content.return_value.responses.create.call_args.kwargs["input"]
         self.assertNotIn("privado@example.com", prompt)
         self.assertIn("[[VALOR_0]]", prompt)
 

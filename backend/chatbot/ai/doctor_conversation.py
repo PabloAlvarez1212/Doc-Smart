@@ -3,11 +3,10 @@ import json
 import re
 import unicodedata
 
-from google.genai import types
 from django.db import transaction
 
 from chatbot.ai.filters import contiene_prompt_injection, limpiar_mensaje
-from chatbot.ai.gemini_service import preguntar_gemini
+from chatbot.ai.openai_service import preguntar_openai
 from chatbot.ai.tool_manager import ToolManager
 from chatbot.models import Chat
 from chatbot.services.cita_service import CitaService
@@ -418,8 +417,9 @@ def procesar_medico(chat, mensaje, streaming=False, imagen=None):
     if tono:
         contents.insert(0, {"role": "user", "parts": [{"text": tono}]})
     if imagen is not None:
-        imagen.seek(0)
-        contents[-1]["parts"].append(types.Part.from_bytes(data=imagen.read(), mime_type=imagen.content_type))
+        from chatbot.services.imagen_medica_service import imagen_sin_metadatos
+        datos, mime = imagen_sin_metadatos(imagen)
+        contents[-1]["parts"].append({"image_bytes": datos, "mime_type": mime})
     if streaming:
         return {"stream": True, "contents": contents}
-    return preguntar_gemini(contents, system_prompt=DOCTOR_SYSTEM_PROMPT)
+    return preguntar_openai(contents, system_prompt=DOCTOR_SYSTEM_PROMPT)
