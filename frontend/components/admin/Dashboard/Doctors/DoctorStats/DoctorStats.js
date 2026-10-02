@@ -3,6 +3,7 @@
 import { Clock3 } from "lucide-react";
 import styles from "./DoctorStats.module.css";
 import DoctorsBySpecialtyChart from "../DoctorsBySpecialtyChart";
+import DoctorsNotApprovedBySpecialtyChart from "../DoctorsNotApprovedBySpecialtyChart";
 import DoctorsValidationStatusChart from "../DoctorsValidationStatusChart";
 import ValidationRequestsByPeriodChart from "../ValidationRequestsByPeriodChart";
 import DoctorsByAppointmentsChart from "../DoctorsByAppointmentsChart";
@@ -54,6 +55,7 @@ function formatValidationTime(seconds) {
 
 export default function DoctorStats({
     medicosPorEspecialidad,
+    medicosNoAprobadosPorEspecialidad,
     medicosPorEstadoValidacion,
     solicitudesValidacionPorPeriodo,
     filtros,
@@ -90,7 +92,7 @@ export default function DoctorStats({
                 <DashboardModuleState
                     loading={loading}
                     error={error}
-                    cardCount={5}
+                    cardCount={6}
                     moduleName="médicos"
                 />
             ) : (
@@ -99,7 +101,7 @@ export default function DoctorStats({
             <article className={styles.chartCard}>
                 <div className={styles.chartHeader}>
                     <h3>Médicos con más citas completadas</h3>
-                    <p>Médicos con mayor cantidad de citas completadas programadas en el período seleccionado.</p>
+                    <p>Médicos con mayor cantidad de citas finalizadas durante el período seleccionado.</p>
                 </div>
                 {medicosQueMasAtienden?.length ? (
                     <DoctorsByAppointmentsChart data={medicosQueMasAtienden} />
@@ -112,8 +114,8 @@ export default function DoctorStats({
 
             <article className={styles.chartCard}>
                 <div className={styles.chartHeader}>
-                    <h3>Estado de validación de médicos</h3>
-                    <p>Estado de validación de los médicos al cierre del período seleccionado.</p>
+                    <h3>Distribución por estado de validación</h3>
+                    <p>Situación de los médicos según su estado de validación al cierre del período seleccionado.</p>
                 </div>
 
                 {medicosPorEstadoValidacion?.length ? (
@@ -126,7 +128,7 @@ export default function DoctorStats({
             <article className={styles.chartCard}>
                 <div className={styles.chartHeader}>
                     <h3>Médicos aprobados por especialidad</h3>
-                    <p>Distribución de médicos aprobados al cierre del período seleccionado.</p>
+                    <p>Distribución de médicos aprobados al cierre del período seleccionado, agrupados por especialidad.</p>
                 </div>
 
                 {medicosPorEspecialidad?.length ? (
@@ -138,12 +140,27 @@ export default function DoctorStats({
                 )}
             </article>
 
-            <article
-                className={styles.chartCard}
-            >
+            <article className={styles.chartCard}>
+                <div className={styles.chartHeader}>
+                    <h3>Médicos no aprobados por especialidad</h3>
+                    <p>Distribución de médicos que no se encuentran aprobados al cierre del período seleccionado, agrupados por especialidad y estado de validación.</p>
+                </div>
+
+                {medicosNoAprobadosPorEspecialidad?.length ? (
+                    <DoctorsNotApprovedBySpecialtyChart
+                        data={medicosNoAprobadosPorEspecialidad}
+                    />
+                ) : (
+                    <p className={`${styles.empty} ${styles.specialtyEmpty}`}>
+                        No hay médicos no aprobados en el período seleccionado.
+                    </p>
+                )}
+            </article>
+
+            <article className={`${styles.chartCard} ${styles.fullWidth}`}>
                 <div className={styles.chartHeader}>
                     <h3>{`Solicitudes de validación por ${grouping === "dia" ? "día" : "mes"}`}</h3>
-                    <p>Solicitudes de validación recibidas durante el período seleccionado.</p>
+                    <p>Solicitudes realizadas dentro del período seleccionado, agrupadas por mes al filtrar por año y por día al seleccionar un mes.</p>
                 </div>
 
                 {validationRequests.length ? (
@@ -163,7 +180,7 @@ export default function DoctorStats({
                     </span>
                     <div>
                         <h3 id="validation-time-title">Tiempo promedio de validación</h3>
-                        <p>Tiempo promedio de las solicitudes revisadas durante el período seleccionado.</p>
+                        <p>Tiempo promedio de las solicitudes revisadas y finalizadas dentro del período seleccionado.</p>
                     </div>
                 </div>
 

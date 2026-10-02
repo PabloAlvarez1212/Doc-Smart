@@ -7,7 +7,7 @@
 
 .metricsGrid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
     min-width: 0;
 }
@@ -111,7 +111,7 @@
 
 .sideColumn {
     display: grid;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto repeat(2, minmax(0, 1fr));
     gap: 18px;
     min-width: 0;
 }
@@ -163,7 +163,14 @@
 }
 
 .demandIcon { background: #e9f8f6; color: #13796f; }
+.scheduleIcon { background: #edf4ff; color: #2563eb; }
 .demandContent { min-width: 0; }
+.demandDescription {
+    margin: 5px 0 0;
+    color: #64748b;
+    font-size: .72rem;
+    line-height: 1.45;
+}
 .demandMetric { margin-top: 13px; }
 .demandMetric strong {
     display: block;
@@ -224,6 +231,7 @@
     .overviewGrid,
     .loadingLayout { grid-template-columns: minmax(0, 1fr); }
     .sideColumn { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }
+    .attentionCard { grid-column: 1 / -1; }
     .loadingChart,
     .loadingPanel { min-height: 300px; }
 }
@@ -232,6 +240,7 @@
     .summary { gap: 14px; padding-top: 16px; }
     .metricsGrid,
     .sideColumn { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .attentionCard { grid-column: auto; }
     .overviewGrid,
     .loadingLayout { gap: 14px; }
     .activityCard { min-height: 330px; padding: 18px 16px; }

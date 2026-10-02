@@ -58,7 +58,10 @@ function DonutCenterLabel({ viewBox, total }) {
     );
 }
 
-export default function AppointmentStatusChart({ data }) {
+export default function AppointmentStatusChart({
+    data,
+    ariaLabel = "Citas programadas por estado",
+}) {
     const totalAppointments = data.reduce(
         (total, item) => total + Math.max(0, Number(item.total) || 0),
         0
@@ -76,7 +79,7 @@ export default function AppointmentStatusChart({ data }) {
     });
 
     return (
-        <div className={styles.statusDistribution} aria-label="Citas programadas por estado">
+        <div className={styles.statusDistribution} aria-label={ariaLabel}>
             <div className={styles.statusChartArea}>
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>

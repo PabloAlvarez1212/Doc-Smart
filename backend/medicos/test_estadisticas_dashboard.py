@@ -1,12 +1,16 @@
 from datetime import timedelta
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from catalogos.models import Rol
 from medicos.models import Especialidad, Medico, SolicitudValidacionMedico
 from medicos.services import obtenerEstadisticasMedicosService
 from storage_app.models import Archivo
+from medicos.views import EstadisticasMedicosView
 
 
 class TiempoPromedioValidacionTests(TestCase):
@@ -129,3 +133,27 @@ class TiempoPromedioValidacionTests(TestCase):
         }
 
         self.assertEqual(estados_actuales, {"sin_solicitud": 1})
+
+
+class EstadisticasMedicosErrorPrivacyTests(TestCase):
+    def test_error_interno_no_expone_detalle_de_excepcion(self):
+        request = APIRequestFactory().get(
+            "/medicos/admin/dashboard/",
+            {"anio": timezone.localdate().year},
+        )
+        force_authenticate(
+            request,
+            user=SimpleNamespace(
+                is_authenticated=True,
+                id_rol=SimpleNamespace(nombre="admin"),
+            ),
+        )
+
+        with patch(
+            "medicos.views.obtenerEstadisticasMedicosService",
+            side_effect=RuntimeError("detalle-interno-secreto"),
+        ):
+            response = EstadisticasMedicosView.as_view()(request)
+
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn("detalle-interno-secreto", str(response.data))

@@ -1342,9 +1342,11 @@ class EstadisticasMedicosView(APIView):
                 status=status_code
             )
 
-        except Exception as e:
+        except Exception:
+            logger.exception(
+                "Error obteniendo estadísticas administrativas de médicos"
+            )
             return respuesta_error(
-                mensaje="Error al obtener las estadísticas de medicos",
-                errores={"detalle": str(e)},
+                mensaje="Error interno del servidor",
                 status=500
             )

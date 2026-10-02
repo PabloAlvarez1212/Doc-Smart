@@ -107,7 +107,20 @@ export const obtenerEstadisticasMedicosService = async (anio, mes, signal) =>{
     return response.data
 }
 
-export const obtenerEstadisticasPacientesService = async () =>{
-    const response = await api.get("/pacientes/admin/dashboard/");
+export const obtenerEstadisticasPacientesService = async (anio, mes, signal) =>{
+    const params = {};
+
+    if (Number.isInteger(anio)) {
+        params.anio = anio;
+    }
+
+    if (Number.isInteger(mes)) {
+        params.mes = mes;
+    }
+
+    const response = await api.get("/pacientes/admin/dashboard/", {
+        params,
+        signal,
+    });
     return response.data
 }

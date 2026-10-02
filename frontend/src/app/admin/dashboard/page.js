@@ -17,16 +17,19 @@ export default function Dashboard() {
         loadingMetricas,
         errorMetricas,
         citasPorEstado,
+        citasCreadasPorEstado,
         citasCreadasPorPeriodo,
         filtrosCitas,
         cambiarAnioCitas,
         cambiarMesCitas,
         citasPorEspecialidad,
+        citasCreadasPorEspecialidad,
         citasPorDiaSemana,
         citasPorHora,
         loadingCitas,
         errorCitas,
         medicosPorEspecialidad,
+        medicosNoAprobadosPorEspecialidad,
         medicosPorEstadoValidacion,
         solicitudesValidacionPorPeriodo,
         filtrosMedicos,
@@ -37,9 +40,12 @@ export default function Dashboard() {
         loadingMedicos,
         errorMedicos,
         pacientesPorEdad,
-        pacientesPorMes,
+        pacientesRegistradosPorPeriodo,
         pacientesPorCantidadCitas,
-        pacientesActivosPorMes,
+        pacientesActivosPorPeriodo,
+        filtrosPacientes,
+        cambiarAnioPacientes,
+        cambiarMesPacientes,
         loadingPacientes,
         errorPacientes,
     } = useDashboard();
@@ -68,11 +74,13 @@ export default function Dashboard() {
                 {activeTab === "citas" && (
                     <AppointmentStats
                         citasPorEstado={citasPorEstado}
+                        citasCreadasPorEstado={citasCreadasPorEstado}
                         citasCreadasPorPeriodo={citasCreadasPorPeriodo}
                         filtros={filtrosCitas}
                         cambiarAnio={cambiarAnioCitas}
                         cambiarMes={cambiarMesCitas}
                         citasPorEspecialidad={citasPorEspecialidad}
+                        citasCreadasPorEspecialidad={citasCreadasPorEspecialidad}
                         citasPorDiaSemana={citasPorDiaSemana}
                         citasPorHora={citasPorHora}
                         loading={loadingCitas}
@@ -83,6 +91,7 @@ export default function Dashboard() {
                 {activeTab === "medicos" && (
                     <DoctorStats
                         medicosPorEspecialidad={medicosPorEspecialidad}
+                        medicosNoAprobadosPorEspecialidad={medicosNoAprobadosPorEspecialidad}
                         medicosPorEstadoValidacion={medicosPorEstadoValidacion}
                         solicitudesValidacionPorPeriodo={solicitudesValidacionPorPeriodo}
                         filtros={filtrosMedicos}
@@ -98,9 +107,12 @@ export default function Dashboard() {
                 {activeTab === "pacientes" && (
                     <PatientStats
                         pacientesPorEdad={pacientesPorEdad}
-                        pacientesPorMes={pacientesPorMes}
+                        pacientesRegistradosPorPeriodo={pacientesRegistradosPorPeriodo}
                         pacientesPorCantidadCitas={pacientesPorCantidadCitas}
-                        pacientesActivosPorMes={pacientesActivosPorMes}
+                        pacientesActivosPorPeriodo={pacientesActivosPorPeriodo}
+                        filtros={filtrosPacientes}
+                        cambiarAnio={cambiarAnioPacientes}
+                        cambiarMes={cambiarMesPacientes}
                         loading={loadingPacientes}
                         error={errorPacientes}
                     />

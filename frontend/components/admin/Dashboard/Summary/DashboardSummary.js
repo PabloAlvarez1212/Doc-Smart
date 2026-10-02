@@ -2,16 +2,19 @@
 
 import {
     CalendarCheck2,
+    CalendarDays,
     CalendarX2,
     CircleUserRound,
     ClipboardClock,
     Clock3,
     Stethoscope,
+    UserRound,
     UsersRound,
 } from "lucide-react";
 import AdminMetricCard from "../AdminMetricCard/AdminMetricCard";
 import DashboardModuleState from "../DashboardModuleState/DashboardModuleState";
 import RecentAppointmentsChart from "./RecentAppointmentsChart";
+import { buildSpecialtyMetric } from "./summarySpecialtyMetrics";
 import styles from "./DashboardSummary.module.css";
 
 /**
@@ -24,11 +27,33 @@ import styles from "./DashboardSummary.module.css";
  * @property {number} pacientes_activos_mes
  * @property {number|null} antiguedad_solicitud_pendiente_dias
  * @property {{mes: string, total: number}[]} citas_creadas_ultimos_3_meses
- * @property {{especialidad: string, total_citas: number}|null} especialidad_mayor_demanda_mes
+ * @property {{especialidad: string|null, total_citas: number}|null} especialidad_mas_solicitada_mes
+ * @property {{especialidad: string|null, total_citas: number}|null} especialidad_mas_programada_mes
  * @property {number} cancelaciones_mes
  */
 
 const summaryMetrics = [
+    {
+        key: "total_medicos_aprobados",
+        label: "Médicos aprobados",
+        supportingText: "Disponibles actualmente en el sistema",
+        icon: Stethoscope,
+        tone: "blue",
+    },
+    {
+        key: "total_pacientes",
+        label: "Pacientes registrados",
+        supportingText: "Pacientes registrados en el sistema",
+        icon: UserRound,
+        tone: "teal",
+    },
+    {
+        key: "total_citas",
+        label: "Total de citas",
+        supportingText: "Citas registradas en el sistema",
+        icon: CalendarDays,
+        tone: "violet",
+    },
     {
         key: "citas_hoy",
         label: "Citas de hoy",
@@ -39,16 +64,9 @@ const summaryMetrics = [
     {
         key: "pacientes_activos_mes",
         label: "Pacientes activos este mes",
-        supportingText: "Pacientes únicos con citas creadas",
+        supportingText: "Pacientes únicos con citas programadas",
         icon: UsersRound,
         tone: "teal",
-    },
-    {
-        key: "total_medicos_aprobados",
-        label: "Médicos aprobados",
-        supportingText: "Disponibles actualmente en el sistema",
-        icon: Stethoscope,
-        tone: "blue",
     },
     {
         key: "total_solicitudes_pendientes",
@@ -79,7 +97,14 @@ export default function DashboardSummary({ metrics, loading = false, error = fal
     const recentActivity = Array.isArray(metrics?.citas_creadas_ultimos_3_meses)
         ? metrics.citas_creadas_ultimos_3_meses
         : [];
-    const specialtyDemand = metrics?.especialidad_mayor_demanda_mes ?? null;
+    const requestedSpecialty = buildSpecialtyMetric(
+        metrics?.especialidad_mas_solicitada_mes,
+        "creada"
+    );
+    const scheduledSpecialty = buildSpecialtyMetric(
+        metrics?.especialidad_mas_programada_mes,
+        "programada"
+    );
 
     return (
         <section className={styles.summary} aria-label="Resumen operativo del sistema">
@@ -133,17 +158,21 @@ export default function DashboardSummary({ metrics, loading = false, error = fal
                             </div>
 
                             <dl className={styles.attentionList}>
-                                <div>
-                                    <dt>
-                                        <ClipboardClock size={17} aria-hidden="true" />
-                                        Solicitudes pendientes
-                                    </dt>
-                                    <dd>{pendingRequests}</dd>
-                                </div>
+                                {/**
+                                 * <div>
+                                        <dt>
+                                            <ClipboardClock size={17} aria-hidden="true" />
+                                            Solicitudes pendientes
+                                        </dt>
+                                        <dd>{pendingRequests}</dd>
+                                    </div>
+                                 *
+                                 */}
+
                                 <div>
                                     <dt>
                                         <Clock3 size={17} aria-hidden="true" />
-                                        Pendiente más antigua
+                                        Solicitud médica pendiente más antigua
                                     </dt>
                                     <dd>
                                         {oldestRequestDays === null || oldestRequestDays === undefined
@@ -154,7 +183,7 @@ export default function DashboardSummary({ metrics, loading = false, error = fal
                                 <div>
                                     <dt>
                                         <CalendarX2 size={17} aria-hidden="true" />
-                                        Cancelaciones este mes
+                                        Citas canceladas este mes
                                     </dt>
                                     <dd>{cancellations}</dd>
                                 </div>
@@ -166,17 +195,39 @@ export default function DashboardSummary({ metrics, loading = false, error = fal
                                 <CircleUserRound size={22} strokeWidth={1.9} />
                             </div>
                             <div className={styles.demandContent}>
-                                <span>Contexto del mes</span>
-                                <h3>Especialidad con mayor demanda</h3>
-                                {specialtyDemand ? (
+                                <span>Demanda generada</span>
+                                <h3>Especialidad más solicitada este mes</h3>
+                                <p className={styles.demandDescription}>
+                                    Especialidad con mayor cantidad de citas creadas durante el mes actual.
+                                </p>
+                                {requestedSpecialty ? (
                                     <div className={styles.demandMetric}>
-                                        <strong>{specialtyDemand.especialidad}</strong>
-                                        <p>
-                                            {safeCount(specialtyDemand.total_citas)} {safeCount(specialtyDemand.total_citas) === 1 ? "cita" : "citas"} este mes
-                                        </p>
+                                        <strong>{requestedSpecialty.especialidad}</strong>
+                                        <p>{requestedSpecialty.textoTotal}</p>
                                     </div>
                                 ) : (
-                                    <p className={styles.demandEmpty}>Sin datos de demanda este mes.</p>
+                                    <p className={styles.demandEmpty}>No hay citas creadas este mes.</p>
+                                )}
+                            </div>
+                        </article>
+
+                        <article className={styles.demandCard}>
+                            <div className={`${styles.demandIcon} ${styles.scheduleIcon}`} aria-hidden="true">
+                                <CalendarCheck2 size={22} strokeWidth={1.9} />
+                            </div>
+                            <div className={styles.demandContent}>
+                                <span>Carga de agenda</span>
+                                <h3>Especialidad con más citas programadas este mes</h3>
+                                <p className={styles.demandDescription}>
+                                    Especialidad con mayor cantidad de citas cuya fecha de atención está programada durante el mes actual.
+                                </p>
+                                {scheduledSpecialty ? (
+                                    <div className={styles.demandMetric}>
+                                        <strong>{scheduledSpecialty.especialidad}</strong>
+                                        <p>{scheduledSpecialty.textoTotal}</p>
+                                    </div>
+                                ) : (
+                                    <p className={styles.demandEmpty}>No hay citas programadas este mes.</p>
                                 )}
                             </div>
                         </article>

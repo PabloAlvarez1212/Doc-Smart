@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import styles from "./DoctorStats/DoctorStats.module.css";
 import { SpecialtyTick, wrapSpecialtyLabel } from "../specialtyChartLayout";
+import { getSpecialtyChartMinWidth } from "../specialtyChartSizing";
 
 function getDoctorsSpecialtyLayout(data) {
     const wrappedLabels = data.map((item) => wrapSpecialtyLabel(item.especialidad));
@@ -44,10 +45,19 @@ function SpecialtyTooltip({ active, payload }) {
 
 export default function DoctorsBySpecialtyChart({ data }) {
     const { axisWidth, chartHeight, axisMax, ticks } = getDoctorsSpecialtyLayout(data);
+    const chartMinWidth = getSpecialtyChartMinWidth(axisWidth);
 
     return (
-        <div className={styles.specialtyChart} role="img" aria-label="Médicos aprobados por especialidad">
-            <div className={styles.specialtyArea} style={{ height: chartHeight }}>
+        <div
+            className={styles.specialtyChart}
+            role="region"
+            tabIndex={0}
+            aria-label="Médicos aprobados por especialidad"
+        >
+            <div
+                className={styles.specialtyArea}
+                style={{ height: chartHeight, minWidth: chartMinWidth }}
+            >
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                         data={data}

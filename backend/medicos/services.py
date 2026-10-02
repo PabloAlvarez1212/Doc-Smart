@@ -1712,12 +1712,17 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
         )
 
         finPeriodo = inicioPeriodo + relativedelta(years=1)
+        
+    ahora = timezone.localtime()
+
+    periodoFuturo = inicioPeriodo >= ahora
+    fechaCorte = min(finPeriodo, ahora)
 
     ultimaSolicitudPeriodo = (
         SolicitudValidacionMedico.objects
         .filter(
             medico=OuterRef("pk"),
-            fecha_solicitud__lt=finPeriodo
+            fecha_solicitud__lt=fechaCorte
         )
         .order_by("-fecha_solicitud")
     )
@@ -1752,7 +1757,7 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
                     then=Value("pendiente")
                 ),
                 When(
-                    ultima_fecha_revision__gte=finPeriodo,
+                    ultima_fecha_revision__gte=fechaCorte,
                     then=Value("pendiente")
                 ),
                 default=F("ultimo_estado"),
@@ -1761,31 +1766,17 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
         )
     )
 
-    medicosPorEspecialidad = (
-        medicosConEstadoPeriodo
-        .filter(
-            estado_periodo="aprobado"
-        )
-        .values(
-            "id_especialidad__nombre"
-        )
-        .annotate(
-            total=Count("id")
-        )
-        .order_by("-total")
-    )
+    if periodoFuturo:
+        medicosPorEspecialidad = []
+        medicosNoAprobadosPorEspecialidad = []
+        medicosPorEstadoValidacion = []
+    else:
+        medicosPorEspecialidad = (medicosConEstadoPeriodo.filter(estado_periodo="aprobado").values("id_especialidad__nombre").annotate(total=Count("id")).order_by("-total"))
 
-    medicosPorEstadoValidacion = (
-        medicosConEstadoPeriodo
-        .values(
-            "estado_periodo"
-        )
-        .annotate(
-            total=Count("id")
-        )
-        .order_by("-total")
-    )
+        medicosNoAprobadosPorEspecialidad = (medicosConEstadoPeriodo.exclude(estado_periodo="aprobado").values("id_especialidad__nombre","estado_periodo").annotate(total=Count("id")).order_by("id_especialidad__nombre","estado_periodo"))
 
+        medicosPorEstadoValidacion = (medicosConEstadoPeriodo.values("estado_periodo").annotate(total=Count("id")).order_by("-total"))
+    
     solicitudesPeriodo = SolicitudValidacionMedico.objects.filter(
         fecha_solicitud__gte=inicioPeriodo,
         fecha_solicitud__lt=finPeriodo
@@ -1830,8 +1821,9 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
         Cita.objects
         .filter(
             id_estado__nombre__iexact="completada",
-            fecha_programada__gte=inicioPeriodo,
-            fecha_programada__lt=finPeriodo
+            fecha_final__isnull=False,
+            fecha_final__gte=inicioPeriodo,
+            fecha_final__lt=finPeriodo
         )
         .values(
             "id_medico",
@@ -1881,7 +1873,7 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
     aniosCitas = Cita.objects.filter(
         id_estado__nombre__iexact="completada"
     ).dates(
-        "fecha_programada",
+        "fecha_final",
         "year",
         order="DESC"
     )
@@ -1921,11 +1913,19 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
             "mes": mes,
             "anios_disponibles": aniosDisponibles
         },
+        "medicos_no_aprobados_por_especialidad": [],
     }
 
     for item in medicosPorEspecialidad:
         data["medicos_por_especialidad"].append({
             "especialidad": item["id_especialidad__nombre"],
+            "total_medicos": item["total"]
+        })
+        
+    for item in medicosNoAprobadosPorEspecialidad:
+        data["medicos_no_aprobados_por_especialidad"].append({
+            "especialidad": item["id_especialidad__nombre"],
+            "estado": item["estado_periodo"],
             "total_medicos": item["total"]
         })
 

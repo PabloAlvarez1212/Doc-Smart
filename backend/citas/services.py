@@ -602,14 +602,18 @@ def eliminarRecordatorioService(id):
 
 def obtenerEstadisticasCitas(anio=None,mes=None):
     citas = Cita.objects.all()
-
+    citasCreadas = Cita.objects.all()
+    
     if anio is not None:
         citas = citas.filter(fecha_programada__year=anio)
+        citasCreadas = citasCreadas.filter(fecha_creacion__year=anio)
 
     if mes is not None:
         citas = citas.filter(fecha_programada__month=mes)
+        citasCreadas = citasCreadas.filter(fecha_creacion__month=mes)
         
-    citaPorEstado = citas.filter(Q(id_estado__nombre__iexact="cancelada",fecha_cancelacion__isnull=False)|~Q(id_estado__nombre__iexact="cancelada")).values('id_estado__nombre').annotate(total=Count('id')).order_by('-total')
+    citaPorEstado = citas.values('id_estado__nombre').annotate(total=Count('id')).order_by('-total')
+    citasCreadasPorEstado = (citasCreadas.values("id_estado__nombre").annotate(total=Count("id")).order_by("-total"))
     
     if mes is not None:
         citaPorPeriodo = (Cita.objects.filter(fecha_creacion__year=anio,fecha_creacion__month=mes).annotate(dia=TruncDay("fecha_creacion")).values("dia").annotate(total=Count("id")).order_by("dia"))
@@ -622,6 +626,7 @@ def obtenerEstadisticasCitas(anio=None,mes=None):
         agrupacion = "mes"
         
     citaPorEspecialidad = citas.values('id_medico__id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
+    citasCreadasPorEspecialidad = (citasCreadas.values("id_medico__id_especialidad__nombre").annotate(total=Count("id")).order_by("-total"))
     citaPorDiaSemana = citas.annotate(dia_semana = ExtractWeekDay("fecha_programada")).values("dia_semana").annotate(total=Count("id")).order_by("dia_semana")
     citasPorHora = (citas.annotate(hora=ExtractHour("fecha_programada")).values("hora").annotate(total=Count("id")).order_by("hora"))  
     ordenDias = [
@@ -662,8 +667,10 @@ def obtenerEstadisticasCitas(anio=None,mes=None):
     
     data = {
         "citas_por_estado" : [],
+        "citas_creadas_por_estado": [],
         "citas_por_periodo" : [],
         "citas_por_especialidad" : [],
+        "citas_creadas_por_especialidad": [],
         "citas_por_dia_semana" : [],
         "citas_por_hora": [],
         "citas_creadas_por_periodo": {
@@ -683,11 +690,23 @@ def obtenerEstadisticasCitas(anio=None,mes=None):
             "estado" : item['id_estado__nombre'],
             "total" : item['total']
         })
-        
+    
+    for item in citasCreadasPorEstado:
+        data["citas_creadas_por_estado"].append({
+            "estado": item["id_estado__nombre"],
+            "total": item["total"]
+        })   
+   
     for item in citaPorEspecialidad:
         data["citas_por_especialidad"].append({
             "especialidad" : item['id_medico__id_especialidad__nombre'],
             "total_citas" : item["total"]
+        })
+    
+    for item in citasCreadasPorEspecialidad:
+        data["citas_creadas_por_especialidad"].append({
+            "especialidad": item["id_medico__id_especialidad__nombre"],
+            "total_citas": item["total"]
         })
         
     for numero, nombre in ordenDias:

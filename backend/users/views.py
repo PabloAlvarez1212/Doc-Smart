@@ -5,7 +5,7 @@ from django.middleware.csrf import get_token
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
-from utils import IsAdmin,IsPaciente
+from utils import IsAdmin,IsPaciente,FiltroPeriodoSerializer
 from django.conf import settings
 from users.services import (
     loginService,
@@ -510,7 +510,15 @@ class EstadisticasPacienteView(APIView):
     permission_classes = [IsAuthenticated,IsAdmin]
     def get(self,request):
         try:
-            data, status_code = obtenerEstadisticasPacientesService()
+            serializer = FiltroPeriodoSerializer(data=request.query_params)
+
+            if not serializer.is_valid():
+                return Response({"ok": False,"mensaje": "Filtros inválidos","errores": serializer.errors},status=400)
+
+            anio = serializer.validated_data["anio"]
+            mes = serializer.validated_data.get("mes")
+            
+            data, status_code = obtenerEstadisticasPacientesService(anio=anio,mes=mes)
 
             if status_code != 200:
                 return respuesta_error(

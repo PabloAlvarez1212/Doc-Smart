@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from utils import IsMedicoAprobado,IsPaciente,IsPacienteOrMedicoAprobado,IsAdmin,FiltroPeriodoSerializer
@@ -18,6 +20,9 @@ from citas.services import (
     obtenerEstadisticasCitas,
 )
 from citas.serializers import CrearCitaSerializer, EditarCitaSerializer
+
+
+logger = logging.getLogger(__name__)
 
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -249,9 +254,11 @@ class EstadisticasCitasView(APIView):
                 status=status_code
             )
 
-        except Exception as e:
+        except Exception:
+            logger.exception(
+                "Error obteniendo estadísticas administrativas de citas"
+            )
             return respuesta_error(
-                mensaje="Error al obtener las estadísticas de citas",
-                errores={"detalle": str(e)},
+                mensaje="Error interno del servidor",
                 status=500
             )

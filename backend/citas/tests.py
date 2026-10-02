@@ -1,13 +1,17 @@
 from datetime import timedelta
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from catalogos.models import Estado, Rol
 from citas.models import Cita
 from citas.services import obtenerEstadisticasCitas
 from medicos.models import Especialidad, Medico
 from users.models import Usuario
+from citas.views import EstadisticasCitasView
 
 
 class EstadisticasCitasPorEstadoTests(TestCase):
@@ -80,3 +84,27 @@ class EstadisticasCitasPorEstadoTests(TestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data["citas_por_estado"], [])
         self.assertNotIn("tasa_cancelacion", data)
+
+
+class EstadisticasCitasErrorPrivacyTests(TestCase):
+    def test_error_interno_no_expone_detalle_de_excepcion(self):
+        request = APIRequestFactory().get(
+            "/citas/admin/dashboard/",
+            {"anio": timezone.localdate().year},
+        )
+        force_authenticate(
+            request,
+            user=SimpleNamespace(
+                is_authenticated=True,
+                id_rol=SimpleNamespace(nombre="admin"),
+            ),
+        )
+
+        with patch(
+            "citas.views.obtenerEstadisticasCitas",
+            side_effect=RuntimeError("detalle-interno-secreto"),
+        ):
+            response = EstadisticasCitasView.as_view()(request)
+
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn("detalle-interno-secreto", str(response.data))
