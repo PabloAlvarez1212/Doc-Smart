@@ -16,10 +16,12 @@
 .loadingLayout {
     display: grid;
     grid-template-columns: minmax(0, 1.45fr) minmax(280px, .85fr);
-    align-items: stretch;
     gap: 18px;
     min-width: 0;
 }
+
+.overviewGrid { align-items: start; }
+.loadingLayout { align-items: stretch; }
 
 .activityCard,
 .attentionCard,
@@ -90,7 +92,6 @@
     width: 100%;
     min-width: 0;
     height: 276px;
-    margin-top: auto;
 }
 
 .chartTooltip {
