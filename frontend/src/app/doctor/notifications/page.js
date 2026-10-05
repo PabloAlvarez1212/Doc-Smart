@@ -116,6 +116,7 @@ export default function Notifications() {
 
                 <div>
                     <NotificationsList
+                        rol="medico"
                         data={{
                             notificaciones:
                                 notificacionesFiltradas

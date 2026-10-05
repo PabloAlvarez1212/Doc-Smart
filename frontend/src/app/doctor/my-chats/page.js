@@ -1,7 +1,2 @@
-export default function MyChats(){
-    return(
-        <div>
-            <h1>Pagina del chat del Medico</h1>
-        </div>
-    )
-}
+import ChatList from '../../../../components/chat/ChatList';
+export default function MyChats() { return <ChatList role="medico" />; }

@@ -1,5 +1,10 @@
 import api from "./api";
 
+export const marcarInasistenciaPacienteService = async (id_cita) => {
+    const response = await api.put(`/citas/${id_cita}/inasistencia/`, {});
+    return response.data;
+};
+
 
 // ==========================================
 // LISTAR CITAS
