@@ -1,68 +1,110 @@
-"use client"
+"use client";
+
+import { ArrowRight, CalendarDays, Clock3, MapPin, Stethoscope } from "lucide-react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import Image from "next/image";
+import Link from "next/link";
+import formatearFecha from "@/app/utils/fechaFormaterUtils";
+import { getNextAppointment } from "../patientHomeData";
+import { getContentTransition } from "../patientHomeMotion";
 import styles from "./AppointmentsList.module.css";
-import { Calendar, Clock12Icon,MapPin,Stethoscope } from "lucide-react";
-import Button from "../../../ui/Button/Button";
-import formatearFecha from '@/app/utils/fechaFormaterUtils';
-import { estadoDiseño } from "@/app/utils/estadoDise/estadoDiseUtils";
-import { useRouter } from "next/navigation";
-export default function AppointmentsList({ data }) {
-    const proximasCitas = (data?.proximas_citas || []).slice(0, 3);
-    const ruta = useRouter()
+
+function capitalize(value) {
+    const text = String(value || "").trim();
+    return text ? `${text[0].toUpperCase()}${text.slice(1)}` : "Sin estado";
+}
+
+export default function AppointmentsList({ appointments = [] }) {
+    const nextAppointment = getNextAppointment(appointments);
+    const reduceMotion = useReducedMotion();
 
     return (
-        <div className={styles.containerMain}>
-            <div className={styles.header}>
-                <h2>Próximas Citas</h2>
-                <Button onClick={() => ruta.push('/patient/my-appointments')} className={styles.btn} size="sm" >Ver más &nbsp;&nbsp;&gt;</Button>
+        <section className={styles.section} aria-labelledby="next-appointment-title">
+            <div className={styles.heading}>
+                <div>
+                    <h2 id="next-appointment-title">Tu próxima cita</h2>
+                    <p>La atención confirmada más cercana en tu agenda.</p>
+                </div>
+                <Link href="/patient/my-appointments">
+                    Ver agenda <ArrowRight size={16} aria-hidden="true" />
+                </Link>
             </div>
 
-            {proximasCitas.length > 0 ? (
-                <div className={styles.containerCards}>
-                    {proximasCitas.map((cita) => {
-                        // Pasamos directamente fecha_programada
-                        const { fecha, hora } = formatearFecha(cita?.fecha_programada) || { fecha: '', hora: '' };
+            <AnimatePresence initial={false} mode="wait">
+                <m.div
+                    key={nextAppointment ? `appointment-${nextAppointment.id}` : "empty"}
+                    {...getContentTransition(reduceMotion)}
+                >
+                    {nextAppointment
+                        ? <AppointmentCard appointment={nextAppointment} />
+                        : <AppointmentEmpty />}
+                </m.div>
+            </AnimatePresence>
+        </section>
+    );
+}
 
-                        return (
-                            <div className={styles.card} key={cita?.id}>
-                                <div className={styles.container}>
-                                    <Image 
-                                        src={cita?.foto_medico ? cita.foto_medico : "/images/foto_default.png"} 
-                                        width={80} 
-                                        height={80} 
-                                        alt="foto de perfil" 
-                                    />
-                                    <div className={styles.description}>
-                                        <h3>Dr. {cita?.medico}</h3>
-                                        <div className={styles.especialidad}>
-                                            <Stethoscope size={20} color="#8B5CF6"/>
-                                            <p>{cita?.especialidad}</p>
-                                        </div>
-                                        <div className={styles.direccion}>
-                                            <MapPin size={20} color="#3B82F6"/>
-                                            <p>{`${cita?.ciudad} - ${cita?.direccion}`}</p>
-                                        </div>
-                                        
-                                        <div className={styles.schedule}>
-                                            <div className={styles.containerFecha}>
-                                                <Calendar size={20}/>
-                                                <p>{fecha}</p>
-                                            </div>
-                                            <div className={styles.containerFecha}>
-                                                <Clock12Icon size={20} />
-                                                <p>{hora}</p>
-                                            </div>      
-                                        </div>
-                                    </div>
-                                </div>
-                                <p className={estadoDiseño(cita?.estado)}>{cita?.estado}</p>
-                            </div>
-                        );
-                    })}
+function AppointmentCard({ appointment }) {
+    const { fecha, hora } = formatearFecha(appointment.fecha_programada);
+    const location = [appointment.ciudad, appointment.direccion].filter(Boolean).join(" · ");
+    const status = String(appointment.estado || "").toLowerCase();
+
+    return (
+        <article className={styles.appointment}>
+            <div className={styles.schedule}>
+                <span className={styles.calendarIcon} aria-hidden="true"><CalendarDays size={22} /></span>
+                <div>
+                    <span>Fecha y hora</span>
+                    <strong>{fecha}</strong>
+                    <small><Clock3 size={15} aria-hidden="true" />{hora}</small>
                 </div>
-            ) : (
-                <p className={styles.textNotCitas}>No hay próximas citas que mostrar</p>
-            )}
+            </div>
+
+            <div className={styles.details}>
+                <div className={styles.doctor}>
+                    <Image
+                        src={appointment.foto_medico || "/images/foto_default.png"}
+                        alt={`Foto de ${appointment.medico || "médico"}`}
+                        width={64}
+                        height={64}
+                    />
+                    <div>
+                        <span>Atención con</span>
+                        <h3>Dr. {appointment.medico || "Profesional de DocSmart"}</h3>
+                        <p><Stethoscope size={16} aria-hidden="true" />{appointment.especialidad || "Especialidad no disponible"}</p>
+                    </div>
+                </div>
+
+                <div className={styles.location}>
+                    <MapPin size={19} aria-hidden="true" />
+                    <div>
+                        <span>Consultorio</span>
+                        <strong>{location || "Ubicación no disponible"}</strong>
+                        {appointment.departamento && <small>{appointment.departamento}</small>}
+                    </div>
+                </div>
+            </div>
+
+            <div className={styles.footer}>
+                <span className={`${styles.status} ${styles[status] || ""}`}>{capitalize(appointment.estado)}</span>
+                <p>Consulta los detalles o gestiona esta cita desde tu agenda.</p>
+                <Link href="/patient/my-appointments">
+                    Ver detalles <ArrowRight size={16} aria-hidden="true" />
+                </Link>
+            </div>
+        </article>
+    );
+}
+
+function AppointmentEmpty() {
+    return (
+        <div className={styles.empty}>
+            <span aria-hidden="true"><CalendarDays size={26} /></span>
+            <div>
+                <h3>No tienes citas próximas confirmadas</h3>
+                <p>Cuando quieras programar tu siguiente atención, explora los profesionales disponibles.</p>
+            </div>
+            <Link href="/patient/find-doctors">Encontrar un doctor <ArrowRight size={16} aria-hidden="true" /></Link>
         </div>
     );
 }

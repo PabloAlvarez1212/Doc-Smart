@@ -1,25 +1,40 @@
-'use client'
-import styles from "./Hero.module.css"
-import Button from '../../../../components/ui/Button/Button'
-import Image from 'next/image'
+import { Bell, ChevronRight } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import styles from "./Hero.module.css";
 
-export default function Hero({ nombre, proximasCitas, noLeidas, foto_perfil}) {
+export default function Hero({ nombre, noLeidas, foto_perfil }) {
+    const primerNombre = String(nombre || "Paciente").trim().split(/\s+/)[0];
+    const unreadCount = Number.isFinite(Number(noLeidas))
+        ? Math.max(0, Number(noLeidas))
+        : 0;
+
     return (
-        <div className={styles.containerMain}>
-            <div className={styles.saludo}>
-                <div className={styles.containerText}>
-                    <p>¡Bienvenido de vuelta!,</p>
-                    <h2>{nombre ?? 'Usuario'}</h2>
-                    <p>
-                        Tienes <strong>{proximasCitas ?? 0}</strong> citas próximas 
-                        y <strong>{noLeidas ?? 0}</strong> notificaciones sin leer.
-                    </p>
+        <header className={styles.hero}>
+            <div className={styles.identity}>
+                <div className={styles.avatar}>
+                    <Image
+                        src={foto_perfil || "/images/foto_default.png"}
+                        alt={`Foto de perfil de ${primerNombre}`}
+                        width={68}
+                        height={68}
+                        priority
+                    />
                 </div>
-
-                <div className={styles.img}>
-                    <Image src={foto_perfil ? foto_perfil : "/images/foto_default.png"} alt='foto de perfil' width={150} height={100} />
+                <div className={styles.copy}>
+                    <h1>Hola, {primerNombre}</h1>
+                    <p>Tu información de salud y tus próximos pasos, en un solo lugar.</p>
                 </div>
             </div>
-        </div>
-    )
+
+            <Link className={styles.notifications} href="/patient/notifications">
+                <span className={styles.notificationIcon} aria-hidden="true"><Bell size={19} /></span>
+                <span>
+                    <strong>{unreadCount}</strong>
+                    <small>{unreadCount === 1 ? "notificación sin leer" : "notificaciones sin leer"}</small>
+                </span>
+                <ChevronRight size={17} aria-hidden="true" />
+            </Link>
+        </header>
+    );
 }
