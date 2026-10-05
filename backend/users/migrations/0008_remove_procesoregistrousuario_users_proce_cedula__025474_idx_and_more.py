@@ -3,6 +3,21 @@
 from django.db import migrations, models
 
 
+def eliminar_indice_anterior(apps, schema_editor):
+    vendor = schema_editor.connection.vendor
+
+    if vendor == "mysql":
+        schema_editor.execute(
+            "DROP INDEX `users_proce_cedula__025474_idx` "
+            "ON `users_procesoregistrousuario`;"
+        )
+
+    elif vendor == "sqlite":
+        schema_editor.execute(
+            'DROP INDEX IF EXISTS "users_proce_cedula__025474_idx";'
+        )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -13,9 +28,9 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
-                    "DROP INDEX `users_proce_cedula__025474_idx` ON `users_procesoregistrousuario`;",
-                    reverse_sql=migrations.RunSQL.noop,
+                migrations.RunPython(
+                    eliminar_indice_anterior,
+                    reverse_code=migrations.RunPython.noop,
                 )
             ],
             state_operations=[
@@ -28,12 +43,26 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='procesoregistrousuario',
             name='documento_sha256',
-            field=models.CharField(blank=True, db_index=True, max_length=64, null=True),
+            field=models.CharField(
+                blank=True,
+                db_index=True,
+                max_length=64,
+                null=True
+            ),
         ),
         migrations.AddField(
             model_name='procesoregistrousuario',
             name='tipo_documento',
-            field=models.CharField(choices=[('CC', 'Cédula de ciudadanía'), ('TI', 'Tarjeta de identidad'), ('PASAPORTE', 'Pasaporte'), ('RC', 'Registro civil')], default='CC', max_length=20),
+            field=models.CharField(
+                choices=[
+                    ('CC', 'Cédula de ciudadanía'),
+                    ('TI', 'Tarjeta de identidad'),
+                    ('PASAPORTE', 'Pasaporte'),
+                    ('RC', 'Registro civil')
+                ],
+                default='CC',
+                max_length=20
+            ),
             preserve_default=False,
         ),
         migrations.AlterField(
@@ -44,10 +73,21 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='procesoregistrousuario',
             name='numero_documento_verificado',
-            field=models.CharField(blank=True, max_length=30, null=True),
+            field=models.CharField(
+                blank=True,
+                max_length=30,
+                null=True
+            ),
         ),
         migrations.AddIndex(
             model_name='procesoregistrousuario',
-            index=models.Index(fields=['tipo_documento', 'numero_documento_declarado', 'estado'], name='users_proce_tipo_do_c9fe76_idx'),
+            index=models.Index(
+                fields=[
+                    'tipo_documento',
+                    'numero_documento_declarado',
+                    'estado'
+                ],
+                name='users_proce_tipo_do_c9fe76_idx',
+            ),
         ),
     ]

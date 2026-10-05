@@ -10,14 +10,15 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from .serializers import NotificacionSerializer
 
-def enviarNotificacion(titulo, mensaje, tipo, id_usuario=None, id_medico=None, extra_data=None):
+def enviarNotificacion(titulo, mensaje, tipo, id_usuario=None, id_medico=None, extra_data=None, *, conversacion_id=None):
     # 1. Crear registro en BD
     notificacion = Notificacion.objects.create(
         titulo=titulo,
         mensaje=mensaje,
         tipo=tipo,
         id_usuario_id=id_usuario,
-        id_medico_id=id_medico
+        id_medico_id=id_medico,
+        conversacion_id=conversacion_id,
     )
     
     # 2. Definir destinatario y conteo de no leídas

@@ -19,6 +19,7 @@ django_asgi_app = get_asgi_application()
 # Importar routing después de inicializar Django
 import notificaciones.routing
 import chatbot.routing
+import chat_citas.routing
 
 from chatbot.middleware import JwtCookieAuthMiddleware
 
@@ -26,6 +27,7 @@ from chatbot.middleware import JwtCookieAuthMiddleware
 websocket_urlpatterns = (
     notificaciones.routing.websocket_urlpatterns
     + chatbot.routing.websocket_urlpatterns
+    + chat_citas.routing.websocket_urlpatterns
 )
 
 

@@ -14,6 +14,8 @@ class Notificacion(models.Model):
     tipo        = models.CharField(max_length=50, choices=TIPOS)
     leida       = models.BooleanField(default=False)
     fecha       = models.DateTimeField(auto_now_add=True)
+    conversacion = models.ForeignKey('chat_citas.Conversacion', on_delete=models.PROTECT,
+                                     null=True, blank=True, related_name='notificaciones')
 
     # destinatario — puede ser usuario o médico
     id_usuario  = models.ForeignKey('users.Usuario', on_delete=models.CASCADE, null=True, blank=True)
