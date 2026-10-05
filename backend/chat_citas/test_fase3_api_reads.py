@@ -108,3 +108,11 @@ class ApiReadTests(Fase3Fixture):
         self.assertEqual(client.get(f'/api/chat-citas/conversaciones/{self.conv.pk}/').status_code, 200)
         SolicitudValidacionMedico.objects.filter(medico=self.doctor).update(estado='rechazado')
         self.assertEqual(client.get(f'/api/chat-citas/conversaciones/{self.conv.pk}/').status_code, 403)
+
+
+    def test_medico_aprobado_con_rol_doctor_lista_sus_conversaciones(self):
+        client = self.client_for(self.doctor,'medico')
+        response = client.get('/api/chat-citas/conversaciones/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['data']['count'], 1)
+        self.assertEqual(response.data['data']['results'][0]['id'], self.conv.pk)

@@ -16,14 +16,48 @@ def identidadActor(actor):
 
 def actorVigente(actor):
     if not getattr(actor, 'is_authenticated', False):
-        raise ChatError(403, 'forbidden', 'Autenticación requerida')
-    kind, pk = identidadActor(actor)
-    model = Medico if kind == 'medico' else Usuario
-    fresh = model.objects.select_related('id_rol').filter(pk=pk).first()
-    if fresh is None or fresh.id_rol.nombre != kind:
-        raise ChatError(403, 'forbidden', 'Participante no autorizado')
-    return fresh
+        raise ChatError(
+            403,
+            'forbidden',
+            'Autenticación requerida'
+        )
 
+    kind, pk = identidadActor(actor)
+
+    model = (
+        Medico
+        if kind == 'medico'
+        else Usuario
+    )
+
+    fresh = (
+        model.objects
+        .select_related('id_rol')
+        .filter(pk=pk)
+        .first()
+    )
+
+    if fresh is None:
+        raise ChatError(
+            403,
+            'forbidden',
+            'Participante no autorizado'
+        )
+
+    roles_validos = {
+        'paciente': {'paciente'},
+        'medico': {'doctor', 'medico'},
+    }
+
+    rol_actual = fresh.id_rol.nombre.strip().lower()
+
+    if rol_actual not in roles_validos[kind]:
+        raise ChatError(
+            403,
+            'forbidden',
+            'Participante no autorizado'
+        )
+    return fresh
 
 def _autorizar(conv, actor):
     fresh = actorVigente(actor)

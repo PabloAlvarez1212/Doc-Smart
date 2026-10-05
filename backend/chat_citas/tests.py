@@ -26,7 +26,7 @@ class ChatFixture(TestCase):
         cls.states = {name: Estado.objects.create(nombre=name) for name in
                       ('pendiente', 'confirmada', 'cancelada', 'completada')}
         patient_role = Rol.objects.create(nombre='paciente')
-        doctor_role = Rol.objects.create(nombre='medico')
+        doctor_role = Rol.objects.create(nombre='doctor')
         specialty = Especialidad.objects.create(nombre='General')
         cls.patients = [Usuario.objects.create(
             pk=pk, nombre='Paciente', apellido='Prueba', fecha_nacimiento='1990-01-01',

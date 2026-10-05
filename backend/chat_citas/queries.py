@@ -38,8 +38,17 @@ def _project(conv, actor, last):
     state = {k: v.isoformat() if hasattr(v, 'isoformat') else v for k, v in state.items()}
     return dict(state, id=conv.pk, cita={'id': conv.cita_id,
         'fecha_programada': conv.cita.fecha_programada.isoformat(), 'estado': conv.cita.id_estado.nombre},
-        otro_participante={'id': other.pk, 'tipo': 'paciente' if kind == 'medico' else 'medico',
-                          'nombre': other.nombre, 'apellido': other.apellido},
+        otro_participante={
+            'id': other.pk,
+            'tipo': 'paciente' if kind == 'medico' else 'medico',
+            'nombre': other.nombre,
+            'apellido': other.apellido,
+            'foto_perfil': (
+                other.foto_perfil.url
+                if other.foto_perfil
+                else None
+            ),
+        },
         ultimo_mensaje=MensajeSerializer(last).data if last else None,
         fecha_ultimo_mensaje=last.fecha_creacion.isoformat() if last else None,
         no_leidos=conv.no_leidos, tiene_nota_previa=conv.tiene_nota_previa,
