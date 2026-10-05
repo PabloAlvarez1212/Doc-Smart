@@ -35,25 +35,33 @@ export default function RegisterForm({ role, setRole }) {
         setDocumentoReverso,
         handleVerificarOtp,
         handleDocumento,
+        handleBack,
+        handleReenviarOtp,
+        procesoId,
+        documentoVerificado,
+        correoConfigurado,
+        correoVerificado,
     } = useRegister(role, setRole)
 
     return (
         <form className={styles.form} onSubmit={handleSubmit}>
             <div className={styles.inputs}>
+                {role === 'paciente' && <p className={styles.stepTitle}>Paso {step} de 5 · {['Datos personales', 'Documento de identidad', 'Datos adicionales', 'Correo y contraseña', 'Verificación de correo'][step - 1]}</p>}
+                {role === 'paciente' && ((step === 1 && procesoId) || ([3, 4].includes(step) && correoConfigurado)) && <p className={styles.savedNotice}>Estos datos ya están guardados y se muestran solo para consulta.</p>}
 
-                {/* ── FORMULARIO PARA PACIENTE (3 pasos) ───────────────────── */}
+                {/* ── FORMULARIO PARA PACIENTE (5 pasos) ───────────────────── */}
                 {role === 'paciente' && (
                     <>
                         {/* Paso 1 — Datos personales básicos */}
                         {step === 1 && (
                             <>
-                                <Input name="nombre" placeholder="Nombre" onChange={handleChange} value={form.nombre} />
+                                <Input name="nombre" placeholder="Nombre" onChange={handleChange} value={form.nombre} readOnly={Boolean(procesoId) || loading} />
                                 {errors.nombre && <p className={styles.error}>{errors.nombre}</p>}
 
-                                <Input name="apellido" placeholder="Apellido" onChange={handleChange} value={form.apellido} />
+                                <Input name="apellido" placeholder="Apellido" onChange={handleChange} value={form.apellido} readOnly={Boolean(procesoId) || loading} />
                                 {errors.apellido && <p className={styles.error}>{errors.apellido}</p>}
 
-                                <select name="tipo_documento" value={form.tipo_documento} onChange={handleChange} className={styles.select}>
+                                <select disabled={Boolean(procesoId) || loading} name="tipo_documento" value={form.tipo_documento} onChange={handleChange} className={styles.select}>
                                     <option value="CC">Cédula de ciudadanía</option>
                                     <option value="TI">Tarjeta de identidad</option>
                                     <option value="PASAPORTE">Pasaporte</option>
@@ -61,61 +69,61 @@ export default function RegisterForm({ role, setRole }) {
                                 </select>
                                 {errors.tipo_documento && <p className={styles.error}>{errors.tipo_documento}</p>}
 
-                                <Input name="numero_documento" placeholder="Número de documento" onChange={handleChange} value={form.numero_documento} />
+                                <Input name="numero_documento" placeholder="Número de documento" onChange={handleChange} value={form.numero_documento} readOnly={Boolean(procesoId) || loading} />
                                 {errors.numero_documento && <p className={styles.error}>{errors.numero_documento}</p>}
 
-                                <Input type="date" name="fecha_nacimiento" placeholder="Fecha de nacimiento" onChange={handleChange} value={form.fecha_nacimiento} />
+                                <Input type="date" name="fecha_nacimiento" placeholder="Fecha de nacimiento" onChange={handleChange} value={form.fecha_nacimiento} readOnly={Boolean(procesoId) || loading} />
                                 {errors.fecha_nacimiento && <p className={styles.error}>{errors.fecha_nacimiento}</p>}
 
                                 <div className={styles.buttons}>
-                                    <Button type="button" variant="secondary" onClick={() => setRole(null)}>Atrás</Button>
-                                    <Button type="button" variant="primary" onClick={handleNextStep}>Siguiente</Button>
+                                    <Button type="button" disabled={loading} variant="secondary" onClick={handleBack}>Atrás</Button>
+                                    <Button type="button" disabled={loading} variant="primary" onClick={handleNextStep}>Siguiente</Button>
                                 </div>
                             </>
                         )}
 
-                        {/* Paso 2 — Datos de salud */}
-                        {step === 2 && (
+                        {/* Paso 3 — Datos adicionales */}
+                        {step === 3 && (
                             <>
-                                <Input name="telefono" placeholder="Teléfono" onChange={handleChange} value={form.telefono} />
+                                <Input name="telefono" placeholder="Teléfono" onChange={handleChange} value={form.telefono} readOnly={correoConfigurado || loading} />
                                 {errors.telefono && <p className={styles.error}>{errors.telefono}</p>}
 
-                                <Input type="text" name="estatura" placeholder="Estatura (ej: 1.75)" onChange={handleChange} value={form.estatura} />
+                                <Input type="text" name="estatura" placeholder="Estatura (ej: 1.75)" onChange={handleChange} value={form.estatura} readOnly={correoConfigurado || loading} />
                                 {errors.estatura && <p className={styles.error}>{errors.estatura}</p>}
 
-                                <Input type="text" name="peso" placeholder="Peso en kg (ej: 70)" onChange={handleChange} value={form.peso} />
+                                <Input type="text" name="peso" placeholder="Peso en kg (ej: 70)" onChange={handleChange} value={form.peso} readOnly={correoConfigurado || loading} />
                                 {errors.peso && <p className={styles.error}>{errors.peso}</p>}
 
                                 <div className={styles.buttons}>
-                                    <Button type="button" variant="secondary" onClick={() => setStep(step - 1)}>Atrás</Button>
-                                    <Button type="button" variant="primary" onClick={handleNextStep}>Siguiente</Button>
+                                    <Button type="button" disabled={loading} variant="secondary" onClick={handleBack}>Atrás</Button>
+                                    <Button type="button" disabled={loading} variant="primary" onClick={handleNextStep}>Siguiente</Button>
                                 </div>
                             </>
                         )}
 
-                        {/* Paso 3 — Credenciales */}
-                        {step === 3 && (
+                        {/* Paso 4 — Credenciales */}
+                        {step === 4 && (
                             <>
-                                <Input name="correo" placeholder="Correo" onChange={handleChange} value={form.correo} />
+                                <Input name="correo" placeholder="Correo" onChange={handleChange} value={form.correo} readOnly={correoConfigurado || loading} />
                                 {errors.correo && <p className={styles.error}>{errors.correo}</p>}
 
-                                <Input type="password" name="contraseña" placeholder="Contraseña" onChange={handleChange} value={form.contraseña} />
+                                <Input type="password" name="contraseña" placeholder="Contraseña" onChange={handleChange} value={form.contraseña} readOnly={correoConfigurado || loading} />
                                 {errors.contraseña && <p className={styles.error}>{errors.contraseña}</p>}
 
-                                <Input type="password" name="confirmar_contraseña" placeholder="Confirmar contraseña" onChange={handleChange} value={form.confirmar_contraseña} />
+                                <Input type="password" name="confirmar_contraseña" placeholder="Confirmar contraseña" onChange={handleChange} value={form.confirmar_contraseña} readOnly={correoConfigurado || loading} />
                                 {errors.confirmar_contraseña && <p className={styles.error}>{errors.confirmar_contraseña}</p>}
 
                                 <div className={styles.buttons}>
-                                    <Button type="button" variant="secondary" onClick={() => setStep(step - 1)}>Atrás</Button>
+                                    <Button type="button" disabled={loading} variant="secondary" onClick={handleBack}>Atrás</Button>
                                     <Button type="submit" variant="primary" disabled={loading}>
-                                        {loading ? 'Enviando código...' : 'Continuar'}
+                                        {loading ? 'Enviando código...' : 'Siguiente'}
                                     </Button>
                                 </div>
                             </>
                         )}
 
-                        {/* Paso 4 — Verificación de correo */}
-                        {step === 4 && (
+                        {/* Paso 5 — Verificación de correo */}
+                        {step === 5 && (
                             <>
                                 <div className={styles.uploadCopy}>
                                     <MailCheck size={30} />
@@ -123,27 +131,29 @@ export default function RegisterForm({ role, setRole }) {
                                     <p>Ingresa el código enviado a {form.correo}</p>
                                 </div>
 
-                                <Input name="otp" placeholder="Código de verificación" value={otp} onChange={(e) => setOtp(e.target.value)} />
+                                <Button type="button" variant="secondary" onClick={handleReenviarOtp} disabled={loading || correoVerificado}>Reenviar código</Button>
+                                <Input name="otp" placeholder="Código de verificación" value={otp} readOnly={correoVerificado || loading} autoComplete="one-time-code" onChange={(e) => setOtp(e.target.value)} />
 
                                 <div className={styles.buttons}>
-                                    <Button type="button" variant="primary" onClick={handleVerificarOtp} disabled={loading}>
-                                        {loading ? 'Verificando...' : 'Verificar código'}
+                                    <Button type="button" disabled={loading} variant="secondary" onClick={handleBack}>Atrás</Button>
+                                    <Button type="button" disabled={loading} variant="primary" onClick={handleVerificarOtp}>
+                                        {loading ? 'Completando registro...' : correoVerificado ? 'Completar registro' : 'Verificar y completar'}
                                     </Button>
                                 </div>
                             </>
                         )}
 
-                        {/* Paso 5 — Documento de identidad */}
-                        {step === 5 && (
+                        {/* Paso 2 — Documento de identidad */}
+                        {step === 2 && (
                             <>
                                 <div className={styles.uploadCopy}>
                                     <CreditCard size={30} />
                                     <strong>Verifica tu identidad</strong>
-                                    <p>Carga imágenes claras de tu documento.</p>
+                                    <p>{documentoVerificado ? 'Identidad verificada. El documento ya no se puede modificar.' : 'Carga imágenes claras de tu documento.'}</p>
                                 </div>
 
                                 <div className={styles.resumeUpload}>
-                                    <input id="documento-frente" className={styles.fileInput} type="file" accept="image/jpeg,image/png,image/webp"
+                                    <input disabled={documentoVerificado || loading} id="documento-frente" className={styles.fileInput} type="file" accept="image/jpeg,image/png,image/webp"
                                         onChange={(e) => setDocumentoFrente(e.target.files?.[0] ?? null)} />
 
                                     {documentoFrente ? (
@@ -176,7 +186,7 @@ export default function RegisterForm({ role, setRole }) {
 
                                 {form.tipo_documento === 'CC' && (
                                     <div className={styles.resumeUpload}>
-                                        <input id="documento-reverso" className={styles.fileInput} type="file" accept="image/jpeg,image/png,image/webp"
+                                        <input disabled={documentoVerificado || loading} id="documento-reverso" className={styles.fileInput} type="file" accept="image/jpeg,image/png,image/webp"
                                             onChange={(e) => setDocumentoReverso(e.target.files?.[0] ?? null)} />
 
                                         {documentoReverso ? (
@@ -209,8 +219,9 @@ export default function RegisterForm({ role, setRole }) {
                                 )}
 
                                 <div className={styles.buttons}>
-                                    <Button type="button" variant="primary" onClick={handleDocumento} disabled={loading}>
-                                        {loading ? 'Verificando identidad...' : 'Verificar y completar registro'}
+                                    <Button type="button" disabled={loading} variant="secondary" onClick={handleBack}>Atrás</Button>
+                                    <Button type="button" disabled={loading} variant="primary" onClick={handleDocumento}>
+                                        {loading ? 'Verificando identidad...' : documentoVerificado ? 'Siguiente' : 'Verificar y continuar'}
                                     </Button>
                                 </div>
                             </>

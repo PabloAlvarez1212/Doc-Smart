@@ -39,11 +39,12 @@ export const validateRegisterPacienteStep2 = ({ telefono, estatura, peso }) => {
 
     if (!telefono) errors.telefono = 'El teléfono es requerido'
     else if (!/^\d+$/.test(telefono)) errors.telefono = 'El teléfono debe contener solo números'
+    else if (!/^3\d{9}$/.test(telefono)) errors.telefono = 'El celular debe tener 10 dígitos y comenzar por 3'
 
     if (!estatura) {
         errors.estatura = 'La estatura es requerida'
     } else {
-        const estaturaNum = parseFloat(String(estatura).replace(',', '.'))
+        const estaturaNum = Number(String(estatura).replace(',', '.'))
         if (isNaN(estaturaNum) || estaturaNum < 0.5 || estaturaNum > 2.5)
             errors.estatura = 'La estatura debe estar entre 0.5 y 2.5 metros'
     }
@@ -51,7 +52,7 @@ export const validateRegisterPacienteStep2 = ({ telefono, estatura, peso }) => {
     if (!peso) {
         errors.peso = 'El peso es requerido'
     } else {
-        const pesoNum = parseFloat(String(peso).replace(',', '.'))
+        const pesoNum = Number(String(peso).replace(',', '.'))
         if (isNaN(pesoNum) || pesoNum < 1 || pesoNum > 500)
             errors.peso = 'El peso debe estar entre 1 y 500 kg'
     }
@@ -90,3 +91,15 @@ export const validateRegisterStep3 = ({ correo, contraseña, confirmar_contrase�
 
     return errors
 }
+
+export const validateRegisterDocumento = (tipo, frente, reverso) => {
+    const errors = {}
+    if (!frente || (tipo === 'CC' && !reverso)) errors.documento = tipo === 'CC' ? 'Debes cargar frente y reverso del documento.' : 'Debes cargar el documento.'
+    for (const archivo of [frente, tipo === 'CC' ? reverso : null].filter(Boolean)) {
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(archivo.type)) errors.documento = 'Solo se permiten JPG, PNG o WEBP.'
+        else if (!archivo.size || archivo.size > 8 * 1024 * 1024) errors.documento = 'Cada imagen debe contener datos y no superar 8 MB.'
+    }
+    return errors
+}
+
+export const validateRegisterOtp = (otp) => /^\d{6}$/.test(otp.trim()) ? {} : { codigo: 'Ingresa el código de 6 dígitos enviado a tu correo.' }

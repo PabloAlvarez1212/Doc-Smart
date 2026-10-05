@@ -117,11 +117,6 @@ class IniciarRegistroUsuarioSerializer(serializers.Serializer):
     tipo_documento=serializers.ChoiceField(choices=Usuario.TIPOS_DOCUMENTO)
     numero_documento=serializers.CharField(min_length=5,max_length=30,allow_blank=False,trim_whitespace=True)
     fecha_nacimiento=serializers.DateField(error_messages={"required":"La fecha de nacimiento es obligatoria","invalid":"La fecha de nacimiento no tiene un formato válido"})
-    correo=serializers.EmailField(trim_whitespace=True,error_messages={**msg("correo"),"invalid":"El correo no tiene un formato válido"})
-    contraseña=serializers.CharField(min_length=8,write_only=True,error_messages={**msg("contraseña","La"),"min_length":"La contraseña debe tener mínimo 8 caracteres"})
-    telefono=serializers.CharField(min_length=10,max_length=10,allow_blank=False,trim_whitespace=True)
-    estatura=serializers.FloatField(min_value=0.5,max_value=2.5,error_messages=msg_numero("estatura","La"))
-    peso=serializers.FloatField(min_value=1.0,max_value=500.0,error_messages=msg_numero("peso"))
 
     def validate_nombre(self,value):
         value=value.strip()
@@ -135,22 +130,9 @@ class IniciarRegistroUsuarioSerializer(serializers.Serializer):
         if not re.fullmatch(r"[A-Za-zÁÉÍÓÚáéíóúÑñÜü' -]+",value): raise serializers.ValidationError("El apellido solo puede contener letras")
         return value
 
-    def validate_correo(self,value):
-        return value.strip().lower()
-
-    def validate_contraseña(self,value):
-        error=validarContraseña(value)
-        if error: raise serializers.ValidationError(error)
-        return value
-
     def validate_numero_documento(self,value):
         value=value.strip().upper()
         if not re.fullmatch(r"[A-Z0-9\-]+",value): raise serializers.ValidationError("Número de documento inválido")
-        return value
-
-    def validate_telefono(self,value):
-        if not value.isdigit(): raise serializers.ValidationError("El teléfono solo puede contener números")
-        if not value.startswith("3"): raise serializers.ValidationError("El número de celular debe comenzar por 3")
         return value
 
     def validate_fecha_nacimiento(self,value):
@@ -172,6 +154,33 @@ class IniciarRegistroUsuarioSerializer(serializers.Serializer):
         return attrs
 
     
+class DatosAdicionalesRegistroSerializer(serializers.Serializer):
+    proceso_id=serializers.UUIDField()
+    telefono=serializers.CharField(min_length=10,max_length=10,allow_blank=False,trim_whitespace=True)
+    estatura=serializers.FloatField(min_value=0.5,max_value=2.5,error_messages=msg_numero("estatura","La"))
+    peso=serializers.FloatField(min_value=1.0,max_value=500.0,error_messages=msg_numero("peso"))
+
+    def validate_telefono(self,value):
+        if not value.isdigit(): raise serializers.ValidationError("El teléfono solo puede contener números")
+        if not value.startswith("3"): raise serializers.ValidationError("El número de celular debe comenzar por 3")
+        return value
+
+
+class CredencialesRegistroSerializer(serializers.Serializer):
+    proceso_id=serializers.UUIDField()
+    correo=serializers.EmailField(trim_whitespace=True,error_messages={**msg("correo"),"invalid":"El correo no tiene un formato válido"})
+    contraseña=serializers.CharField(min_length=8,max_length=72,trim_whitespace=False,write_only=True,error_messages={**msg("contraseña","La"),"min_length":"La contraseña debe tener mínimo 8 caracteres"})
+
+    def validate_correo(self,value):
+        return value.strip().lower()
+
+    def validate_contraseña(self,value):
+        error=validarContraseña(value)
+        if error: raise serializers.ValidationError(error)
+        if len(value.encode())>72: raise serializers.ValidationError("La contraseña supera el máximo de 72 bytes")
+        return value
+
+
 class SubirDocumentoRegistroSerializer(serializers.Serializer):
     proceso_id=serializers.UUIDField()
     documento_frente=serializers.ImageField(required=False,allow_empty_file=False)

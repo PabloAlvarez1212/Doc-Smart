@@ -47,7 +47,7 @@ MAX_INTENTOS_OTP = 5
 MAX_REENVIOS_OTP = 5
 
 DURACION_OTP_MINUTOS = 10
-DURACION_PROCESO_MINUTOS = 240
+DURACION_PROCESO_MINUTOS = 30
 
 TIEMPO_REENVIO_SEGUNDOS = 60
 
@@ -371,42 +371,75 @@ def cambiarContraseñaAutenticadoService(persona,contraseña_actual,nueva_contra
     return 'Contraseña actualizada correctamente', 200
         
 def registrarUsuarioService(datos):
-    correo=datos["correo"].strip().lower()
     tipo=datos["tipo_documento"]
     numero=datos["numero_documento"].strip().upper()
 
-    if Usuario.objects.filter(correo__iexact=correo).exists() or Medico.objects.filter(correo__iexact=correo).exists():
-        return {"correo":["No fue posible utilizar este correo"]},400
-
-    if Usuario.objects.filter(tipo_documento=tipo,cedula=numero).exists() or Medico.objects.filter(cedula=numero).exists():
+    if Usuario.objects.filter(cedula=numero).exists() or Medico.objects.filter(cedula=numero).exists():
         return {"numero_documento":["Este documento ya está registrado"]},400
 
-    ProcesoRegistroUsuario.objects.filter(correo__iexact=correo).exclude(
-        estado=ProcesoRegistroUsuario.Estado.COMPLETADO
-    ).update(estado=ProcesoRegistroUsuario.Estado.EXPIRADO)
-
-    codigo=generarCodigoOTP()
     ahora=timezone.now()
-    contraseña_hash=bcrypt.hashpw(datos["contraseña"].encode(),bcrypt.gensalt()).decode()
-
     proceso=ProcesoRegistroUsuario.objects.create(
         nombre_declarado=datos["nombre"],
         apellido_declarado=datos["apellido"],
         fecha_nacimiento_declarada=datos["fecha_nacimiento"],
         tipo_documento=tipo,
         numero_documento_declarado=numero,
-        correo=correo,
-        contraseña_hash=contraseña_hash,
-
-        telefono=datos["telefono"],
-        estatura=datos["estatura"],
-        peso=datos["peso"],
-
-        otp_hash=make_password(codigo),
-        otp_expira_en=ahora+timedelta(minutes=DURACION_OTP_MINUTOS),
-        ultimo_envio_otp=ahora,
         expira_en=ahora+timedelta(minutes=DURACION_PROCESO_MINUTOS)
     )
+    return {"proceso_id":str(proceso.id)},201
+
+
+def validarProcesoRegistro(proceso):
+    if not proceso:return {"general":["Proceso de registro inválido"]},400
+    if proceso.estado in [ProcesoRegistroUsuario.Estado.BLOQUEADO,ProcesoRegistroUsuario.Estado.EXPIRADO,ProcesoRegistroUsuario.Estado.COMPLETADO]:
+        return {"general":["El proceso ya no está disponible"]},400
+    if proceso.expira_en<=timezone.now():
+        proceso.estado=ProcesoRegistroUsuario.Estado.EXPIRADO
+        proceso.save(update_fields=["estado"])
+        return {"general":["El proceso ha expirado"]},400
+    return None
+
+
+@transaction.atomic
+def guardarDatosAdicionalesRegistroService(datos):
+    proceso=ProcesoRegistroUsuario.objects.select_for_update().filter(id=datos["proceso_id"]).first()
+    error=validarProcesoRegistro(proceso)
+    if error:return error
+    if not proceso.documento_verificado:return {"documento":["Primero debes verificar el documento"]},403
+    if proceso.contraseña_hash:return {"general":["Los datos ya están fijados para la verificación de correo"]},400
+    proceso.telefono=datos["telefono"]
+    proceso.estatura=datos["estatura"]
+    proceso.peso=datos["peso"]
+    proceso.save(update_fields=["telefono","estatura","peso"])
+    return {"datos_guardados":True},200
+
+
+@transaction.atomic
+def configurarCredencialesRegistroService(datos):
+    proceso=ProcesoRegistroUsuario.objects.select_for_update().filter(id=datos["proceso_id"]).first()
+    error=validarProcesoRegistro(proceso)
+    if error:return error
+    if not proceso.documento_verificado:return {"documento":["Primero debes verificar el documento"]},403
+    if not proceso.telefono or proceso.estatura is None or proceso.peso is None:
+        return {"general":["Primero debes guardar los datos adicionales"]},403
+    # No reiniciar intentos ni cambiar credenciales de un OTP ya emitido.
+    correo=datos["correo"].strip().lower()
+    if proceso.contraseña_hash:
+        if proceso.correo==correo and bcrypt.checkpw(datos["contraseña"].encode(),proceso.contraseña_hash.encode()):
+            return {"correo_configurado":True},200
+        return {"correo":["El correo ya está configurado; utiliza reenviar código"]},400
+    if Usuario.objects.filter(correo__iexact=correo).exists() or Medico.objects.filter(correo__iexact=correo).exists():
+        return {"correo":["No fue posible utilizar este correo"]},400
+
+    codigo=generarCodigoOTP()
+    ahora=timezone.now()
+    proceso.correo=correo
+    proceso.contraseña_hash=bcrypt.hashpw(datos["contraseña"].encode(),bcrypt.gensalt()).decode()
+    proceso.otp_hash=make_password(codigo)
+    proceso.otp_expira_en=ahora+timedelta(minutes=DURACION_OTP_MINUTOS)
+    proceso.ultimo_envio_otp=ahora
+    proceso.intentos_otp=0
+    proceso.reenvios_otp=0
 
     try:
         resend.Emails.send({
@@ -418,10 +451,10 @@ def registrarUsuarioService(datos):
 
     except Exception:
         logger.exception("Error enviando OTP de registro")
-        proceso.delete()
         return {"general":["No fue posible enviar el código de verificación"]},500
 
-    return {"proceso_id":str(proceso.id)},201
+    proceso.save(update_fields=["correo","contraseña_hash","otp_hash","otp_expira_en","ultimo_envio_otp","intentos_otp","reenvios_otp"])
+    return {"correo_configurado":True},200
 
 
 def validarArchivoDocumentoService(archivo):
@@ -452,12 +485,13 @@ def validarArchivoDocumentoService(archivo):
         "tamano":len(contenido)
     },None,200
 
+@transaction.atomic
 def subirDocumentoRegistroService(
     proceso_id,
     documento_frente=None,
     documento_reverso=None
 ):
-    proceso=ProcesoRegistroUsuario.objects.filter(id=proceso_id).first()
+    proceso=ProcesoRegistroUsuario.objects.select_for_update().filter(id=proceso_id).first()
 
     if not proceso:
         return {"general":["Proceso inválido"]},400
@@ -473,9 +507,6 @@ def subirDocumentoRegistroService(
         proceso.estado=ProcesoRegistroUsuario.Estado.EXPIRADO
         proceso.save(update_fields=["estado"])
         return {"general":["El proceso ha expirado"]},400
-
-    if not proceso.correo_verificado:
-        return {"correo":["Primero debes verificar el correo"]},403
 
     if proceso.documento_verificado:
         return {"documento":["El documento ya fue verificado"]},400
@@ -543,7 +574,7 @@ def subirDocumentoRegistroService(
         logger.exception("Error guardando documento de registro")
         return {"general":["No fue posible guardar el documento"]},500
 
-    if proceso.documento and proceso.documento_reverso:
+    if proceso.documento and (proceso.tipo_documento!="CC" or proceso.documento_reverso):
         proceso.estado=ProcesoRegistroUsuario.Estado.DOCUMENTO_CARGADO
         campos.append("estado")
 
@@ -578,9 +609,6 @@ def extraerDocumentoRegistroService(proceso_id):
         proceso.estado=ProcesoRegistroUsuario.Estado.EXPIRADO
         proceso.save(update_fields=["estado"])
         return {"general":["El proceso ha expirado"]},400
-
-    if not proceso.correo_verificado:
-        return {"correo":["Primero debes verificar el correo"]},403
 
     if not proceso.documento:
         return {"documento":["Debes cargar el frente del documento"]},400
@@ -618,9 +646,10 @@ def extraerDocumentoRegistroService(proceso_id):
 
     return datos,200
 
+@transaction.atomic
 def verificarCorreoRegistroService(proceso_id,codigo):
     ahora = timezone.now()
-    proceso = (ProcesoRegistroUsuario.objects.filter(id=proceso_id).first())
+    proceso = (ProcesoRegistroUsuario.objects.select_for_update().filter(id=proceso_id).first())
 
     if not proceso:
         return {"general": ["Proceso de registro inválido"]}, 400
@@ -637,6 +666,9 @@ def verificarCorreoRegistroService(proceso_id,codigo):
         proceso.save(update_fields=["estado"])
 
         return {"general": ["El proceso de registro ha expirado"]}, 400
+
+    if not proceso.documento_verificado or not proceso.correo or not proceso.contraseña_hash:
+        return {"general":["Primero debes verificar el documento y configurar el correo"]},403
 
     if proceso.correo_verificado:
         return {"correo_verificado": True}, 200
@@ -698,9 +730,10 @@ def verificarCorreoRegistroService(proceso_id,codigo):
     return {"correo_verificado": True}, 200
 
 
+@transaction.atomic
 def reenviarCodigoRegistroService(proceso_id):
 
-    proceso = (ProcesoRegistroUsuario.objects.filter(id=proceso_id).first())
+    proceso = (ProcesoRegistroUsuario.objects.select_for_update().filter(id=proceso_id).first())
 
     if not proceso:
         return {"general": ["Proceso de registro inválido"]}, 400
@@ -726,6 +759,9 @@ def reenviarCodigoRegistroService(proceso_id):
 
     if proceso.reenvios_otp >= MAX_REENVIOS_OTP:
         return {"general": ["Se alcanzó el máximo de reenvíos"]}, 429
+
+    if not proceso.documento_verificado or not proceso.correo or not proceso.contraseña_hash:
+        return {"general":["Primero debes verificar el documento y configurar el correo"]},403
 
     if proceso.ultimo_envio_otp:
 
@@ -782,8 +818,9 @@ def reenviarCodigoRegistroService(proceso_id):
     return {"general": ["Código reenviado correctamente"]}, 200
 
 
+@transaction.atomic
 def verificarDocumentoRegistroService(proceso_id):
-    proceso=ProcesoRegistroUsuario.objects.filter(id=proceso_id).select_related(
+    proceso=ProcesoRegistroUsuario.objects.select_for_update().filter(id=proceso_id).select_related(
         "documento","documento_reverso"
     ).first()
 
@@ -794,7 +831,7 @@ def verificarDocumentoRegistroService(proceso_id):
         proceso.estado=ProcesoRegistroUsuario.Estado.EXPIRADO
         proceso.save(update_fields=["estado"])
         return {"general":["El proceso ha expirado"]},400
-    if not proceso.correo_verificado:return {"correo":["Primero debes verificar el correo"]},403
+    if proceso.documento_verificado:return {"documento_verificado":True},200
     if not proceso.documento:return {"documento":["Debes cargar el frente"]},400
     if proceso.tipo_documento=="CC" and not proceso.documento_reverso:
         return {"documento":["Debes cargar el reverso"]},400
@@ -892,6 +929,9 @@ def completarRegistroUsuarioService(proceso_id):
     if not proceso.documento_verificado:
         return {"documento":["El documento no ha sido verificado"]},400
 
+    if not proceso.telefono or proceso.estatura is None or proceso.peso is None or not proceso.contraseña_hash or not proceso.correo:
+        return {"general":["Los datos adicionales o las credenciales están incompletos"]},400
+
     if not all([
         proceso.nombre_verificado,
         proceso.apellido_verificado,
@@ -904,7 +944,6 @@ def completarRegistroUsuarioService(proceso_id):
         return {"correo":["No fue posible completar el registro"]},400
 
     if Usuario.objects.filter(
-        tipo_documento=proceso.tipo_documento,
         cedula=proceso.numero_documento_verificado
     ).exists() or Medico.objects.filter(
         cedula=proceso.numero_documento_verificado

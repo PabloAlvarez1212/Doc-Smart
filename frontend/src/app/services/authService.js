@@ -7,6 +7,15 @@ export const forgotPasswordService = async (formData) =>
 export const iniciarRegistroPacienteService = async (data) =>
     (await api.post("/usuarios/registro/", data)).data;
 
+export const guardarDatosAdicionalesRegistroService = async (data) =>
+    (await api.post("/usuarios/registro/datos-adicionales/", data)).data;
+
+export const configurarCredencialesRegistroService = async (data) =>
+    (await api.post("/usuarios/registro/credenciales/", data)).data;
+
+export const reenviarCodigoRegistroService = async (data) =>
+    (await api.post("/usuarios/registro/reenviar-codigo/", data)).data;
+
 export const verificarCorreoRegistroService = async (data) =>
     (await api.post("/usuarios/registro/verificar-correo/", data)).data;
 

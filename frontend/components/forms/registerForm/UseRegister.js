@@ -1,6 +1,6 @@
 'use client'
 import { obtenerPrimerError } from '@/app/utils/errrorUtils'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Swal from 'sweetalert2'
 import {
@@ -8,9 +8,14 @@ import {
     validateRegisterPacienteStep2,
     validateRegisterMedicoStep2,
     validateRegisterStep3,
+    validateRegisterDocumento,
+    validateRegisterOtp,
 } from '@/app/validations/registerValidate'
 import {
     iniciarRegistroPacienteService,
+    guardarDatosAdicionalesRegistroService,
+    configurarCredencialesRegistroService,
+    reenviarCodigoRegistroService,
     verificarCorreoRegistroService,
     subirDocumentoRegistroService,
     verificarDocumentoRegistroService,
@@ -32,6 +37,12 @@ export const useRegister = (role, setRole) => {
     const [otp, setOtp] = useState('')
     const [documentoFrente, setDocumentoFrente] = useState(null)
     const [documentoReverso, setDocumentoReverso] = useState(null)
+    const [documentoVerificado, setDocumentoVerificado] = useState(false)
+    const [documentoCargado, setDocumentoCargado] = useState(false)
+    const [datosGuardados, setDatosGuardados] = useState(false)
+    const [correoConfigurado, setCorreoConfigurado] = useState(false)
+    const [correoVerificado, setCorreoVerificado] = useState(false)
+    const ocupado = useRef(false)
 
     const [especialidades, setEspecialidades] = useState([])
     const [departamentos, setDepartamentos] = useState([])
@@ -81,6 +92,12 @@ export const useRegister = (role, setRole) => {
 
     const handleChange = (e) => {
         const { name, value, files } = e.target
+        if (loading) return
+        if (role === 'paciente') {
+            if (procesoId && ['nombre', 'apellido', 'tipo_documento', 'numero_documento', 'fecha_nacimiento'].includes(name)) return
+            if (correoConfigurado) return
+            if (['telefono', 'estatura', 'peso'].includes(name)) setDatosGuardados(false)
+        }
 
         if (name === 'hoja_vida') {
             setForm((prev) => ({ ...prev, hoja_vida: files?.[0] ?? null }))
@@ -97,7 +114,64 @@ export const useRegister = (role, setRole) => {
         setErrors((prev) => ({ ...prev, [name]: '' }))
     }
 
-    const handleNextStep = () => {
+    const mostrarValidacion = (validationErrors) => {
+        setErrors(validationErrors)
+        if (!Object.keys(validationErrors).length) return false
+        Swal.fire({ icon: 'error', title: 'Campos inválidos', text: Object.values(validationErrors)[0] })
+        return true
+    }
+
+    const ejecutarPaso = async (accion) => {
+        if (ocupado.current) return
+        ocupado.current = true
+        setLoading(true)
+        try {
+            await accion()
+        } catch (error) {
+            const errores = error.response?.data?.errores
+            setErrors(errores || {})
+            Swal.fire({ icon: 'error', title: 'No fue posible continuar', text: obtenerPrimerError(errores) || error.response?.data?.mensaje || error.message || 'Intenta nuevamente.' })
+        } finally {
+            ocupado.current = false
+            setLoading(false)
+        }
+    }
+
+    const handleBack = () => {
+        if (ocupado.current || loading) return
+        setErrors({})
+        if (step === 1) setRole(null)
+        else setStep((prev) => prev - 1)
+    }
+
+    const handleNextStep = async () => {
+        if (loading) return
+        if (role === 'paciente') {
+            if (step === 2) return handleDocumento()
+            if (step === 1) {
+                if (mostrarValidacion(validateRegisterStep1(form, role))) return
+                return ejecutarPaso(async () => {
+                    if (!procesoId) {
+                        const { nombre, apellido, tipo_documento, numero_documento, fecha_nacimiento } = form
+                        const response = await iniciarRegistroPacienteService({ nombre, apellido, tipo_documento, numero_documento, fecha_nacimiento })
+                        const id = response.data?.proceso_id || response.proceso_id
+                        if (!id) throw new Error('La API no devolvió el proceso de registro')
+                        setProcesoId(id)
+                    }
+                    setStep(2)
+                })
+            }
+            if (step !== 3 || !procesoId || !documentoVerificado) return
+            if (mostrarValidacion(validateRegisterPacienteStep2(form))) return
+            return ejecutarPaso(async () => {
+                if (!datosGuardados) {
+                    await guardarDatosAdicionalesRegistroService({ proceso_id: procesoId, telefono: form.telefono,
+                        estatura: Number(String(form.estatura).replace(',', '.')), peso: Number(String(form.peso).replace(',', '.')) })
+                    setDatosGuardados(true)
+                }
+                setStep(4)
+            })
+        }
         let validationErrors = {}
 
         if (step === 1) {
@@ -123,6 +197,19 @@ export const useRegister = (role, setRole) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        if (loading) return
+        if (role === 'paciente') {
+            if (step < 4) return handleNextStep()
+            if (step === 5) return handleVerificarOtp()
+            if (!procesoId || !documentoVerificado || !datosGuardados) return
+            if (correoConfigurado) return setStep(5)
+            if (mostrarValidacion(validateRegisterStep3(form))) return
+            return ejecutarPaso(async () => {
+                await configurarCredencialesRegistroService({ proceso_id: procesoId, correo: form.correo, contraseña: form.contraseña })
+                setCorreoConfigurado(true)
+                setStep(5)
+            })
+        }
 
         const validationErrors = validateRegisterStep3(form)
         if (Object.keys(validationErrors).length > 0) {
@@ -138,30 +225,6 @@ export const useRegister = (role, setRole) => {
         setLoading(true)
 
         try {
-            if (role === 'paciente') {
-                const payload = {
-                    nombre: form.nombre,
-                    apellido: form.apellido,
-                    tipo_documento: form.tipo_documento,
-                    numero_documento: form.numero_documento,
-                    fecha_nacimiento: form.fecha_nacimiento,
-                    correo: form.correo,
-                    contraseña: form.contraseña,
-                    telefono: form.telefono,
-                    estatura: parseFloat(String(form.estatura).replace(',', '.')),
-                    peso: parseFloat(String(form.peso).replace(',', '.')),
-                }
-
-                const response = await iniciarRegistroPacienteService(payload)
-                const id = response.data?.proceso_id || response.proceso_id
-
-                if (!id) throw new Error('La API no devolvió el proceso de registro')
-
-                setProcesoId(id)
-                setStep(4)
-                return
-            }
-
             const formData = new FormData()
 
             formData.append('nombre', form.nombre)
@@ -213,108 +276,60 @@ export const useRegister = (role, setRole) => {
     }
 
     const handleVerificarOtp = async () => {
-        if (!otp.trim()) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Código requerido',
-                text: 'Ingresa el código enviado a tu correo.',
-            })
-            return
-        }
-
-        setLoading(true)
-
-        try {
-            await verificarCorreoRegistroService({
-                proceso_id: procesoId,
-                codigo: otp.trim(),
-            })
-
-            setStep(5)
-
-        } catch (error) {
-            const errores = error.response?.data?.errores
-
-            Swal.fire({
-                icon: 'error',
-                title: 'Código inválido',
-                text:
-                    obtenerPrimerError(errores) ||
-                    error.response?.data?.mensaje ||
-                    'No fue posible verificar el código',
-            })
-
-        } finally {
-            setLoading(false)
-        }
+        if (role !== 'paciente' || step !== 5 || !procesoId || !documentoVerificado || !datosGuardados || !correoConfigurado) return
+        if (!correoVerificado && mostrarValidacion(validateRegisterOtp(otp))) return
+        return ejecutarPaso(async () => {
+            if (!correoVerificado) {
+                const response = await verificarCorreoRegistroService({ proceso_id: procesoId, codigo: otp.trim() })
+                if (response.data?.correo_verificado !== true) throw new Error('El correo todavía no está verificado')
+                setCorreoVerificado(true)
+            }
+            await completarRegistroPacienteService({ proceso_id: procesoId })
+            await Swal.fire({ icon: 'success', title: '¡Registro exitoso!', text: `Bienvenido ${form.nombre}, tu registro está completo.`, confirmButtonText: 'Aceptar' })
+            router.push('/login')
+        })
     }
 
     const handleDocumento = async () => {
-        if (!documentoFrente || (form.tipo_documento === 'CC' && !documentoReverso)) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Documento incompleto',
-                text: form.tipo_documento === 'CC'
-                    ? 'Debes cargar frente y reverso del documento.'
-                    : 'Debes cargar el documento.',
-            })
-            return
-        }
-
-        setLoading(true)
-
-        try {
-            const formData = new FormData()
-
-            formData.append('proceso_id', procesoId)
-            formData.append('documento_frente', documentoFrente)
-
-            if (documentoReverso) {
-                formData.append('documento_reverso', documentoReverso)
+        if (role !== 'paciente' || step !== 2 || !procesoId) return
+        if (documentoVerificado) return setStep(3)
+        if (mostrarValidacion(validateRegisterDocumento(form.tipo_documento, documentoFrente, documentoReverso))) return
+        return ejecutarPaso(async () => {
+            if (!documentoCargado) {
+                const formData = new FormData()
+                formData.append('proceso_id', procesoId)
+                formData.append('documento_frente', documentoFrente)
+                if (form.tipo_documento === 'CC') formData.append('documento_reverso', documentoReverso)
+                await subirDocumentoRegistroService(formData)
+                setDocumentoCargado(true)
             }
-
-            await subirDocumentoRegistroService(formData)
-
-            await verificarDocumentoRegistroService({
-                proceso_id: procesoId,
-            })
-
-            await completarRegistroPacienteService({
-                proceso_id: procesoId,
-            })
-
-            await Swal.fire({
-                icon: 'success',
-                title: '¡Registro exitoso!',
-                text: `Bienvenido ${form.nombre}, tu identidad fue verificada correctamente.`,
-                confirmButtonText: 'Aceptar',
-            })
-
-            router.push('/login')
-
-        } catch (error) {
-            console.log('error documento:', JSON.stringify(error.response?.data))
-
-            const errores = error.response?.data?.errores
-
-            Swal.fire({
-                icon: 'error',
-                title: 'No fue posible verificar tu identidad',
-                text:
-                    obtenerPrimerError(errores) ||
-                    error.response?.data?.mensaje ||
-                    'Intenta nuevamente.',
-            })
-
-        } finally {
-            setLoading(false)
-        }
+            const response = await verificarDocumentoRegistroService({ proceso_id: procesoId })
+            if (response.data?.documento_verificado !== true) throw new Error('La identidad todavía no está verificada')
+            setDocumentoVerificado(true)
+            setStep(3)
+        })
     }
 
+    const handleArchivoDocumento = (cara, archivo) => {
+        if (ocupado.current || documentoVerificado) return
+        if (cara === 'frente') setDocumentoFrente(archivo)
+        else setDocumentoReverso(archivo)
+        setDocumentoCargado(false)
+        setErrors({})
+    }
+
+    const handleReenviarOtp = () => {
+        if (step !== 5 || !correoConfigurado || correoVerificado) return
+        return ejecutarPaso(async () => {
+            await reenviarCodigoRegistroService({ proceso_id: procesoId })
+            setOtp('')
+            await Swal.fire({ icon: 'success', title: 'Código reenviado', text: 'Revisa tu correo.' })
+        })
+    }
     return {
         form,
         step,
-        setStep,
+        setStep: role === 'medico' ? setStep : undefined,
         loading,
         errors,
         especialidades,
@@ -328,10 +343,15 @@ export const useRegister = (role, setRole) => {
         otp,
         setOtp,
         documentoFrente,
-        setDocumentoFrente,
+        setDocumentoFrente: (archivo) => handleArchivoDocumento('frente', archivo),
         documentoReverso,
-        setDocumentoReverso,
+        setDocumentoReverso: (archivo) => handleArchivoDocumento('reverso', archivo),
         handleVerificarOtp,
         handleDocumento,
+        handleBack,
+        handleReenviarOtp,
+        documentoVerificado,
+        correoConfigurado,
+        correoVerificado,
     }
 }
