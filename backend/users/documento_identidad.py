@@ -210,9 +210,13 @@ def extraer_datos_documento(contenido_frente,tipo,contenido_reverso=None,nombre_
         )
 
     texto=ejecutar_ocr(contenido_frente)
+    nc,cn=comparar_nombre_ocr(texto,nombre_declarado) if nombre_declarado else (None,None)
+    ac,ca=comparar_nombre_ocr(texto,apellido_declarado) if apellido_declarado else (None,None)
 
     return {
         "tipo_documento":tipo,
+        "nombre_coincide":nc,"confianza_nombre":cn,
+        "apellido_coincide":ac,"confianza_apellido":ca,
         "numero_documento":extraer_numero_pasaporte(texto) if tipo=="PASAPORTE" else extraer_numero_cc(texto),
         "fecha_nacimiento":extraer_fecha(texto)
     }

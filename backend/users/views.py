@@ -12,6 +12,8 @@ from users.services import (
     loginService,
     cambiarContraseñaService,
     registrarUsuarioService,
+    guardarDatosAdicionalesRegistroService,
+    configurarCredencialesRegistroService,
     verificarCorreoRegistroService,
     reenviarCodigoRegistroService,
     completarRegistroUsuarioService,
@@ -37,6 +39,8 @@ from users.serializers import (
     LoginSerializer,
     CambiarContraseñaSerializer,
     IniciarRegistroUsuarioSerializer,
+    DatosAdicionalesRegistroSerializer,
+    CredencialesRegistroSerializer,
     VerificarCorreoRegistroSerializer,
     ReenviarCodigoRegistroSerializer,
     EditarUsuarioSerializer,
@@ -397,12 +401,36 @@ class RegistroView(APIView):
             respuesta, status_code = (registrarUsuarioService(serializer.validated_data))
             if status_code != 201:
                 return respuesta_error("No fue posible iniciar el registro",errores=respuesta,status=status_code)
-            return respuesta_ok(data=respuesta,mensaje=("Código de verificación enviado"),status=201)
+            return respuesta_ok(data=respuesta,mensaje="Proceso de registro iniciado",status=201)
 
         except Exception as e:
             print(e)
             return respuesta_error("Error interno del servidor",status=500)
 
+
+
+class DatosAdicionalesRegistroView(APIView):
+    permission_classes=[AllowAny]
+    authentication_classes=[]
+
+    def post(self,request):
+        serializer=DatosAdicionalesRegistroSerializer(data=request.data)
+        if not serializer.is_valid():return respuesta_serializer_invalido(serializer.errors)
+        resultado,status_code=guardarDatosAdicionalesRegistroService(serializer.validated_data)
+        if status_code!=200:return respuesta_error("No fue posible guardar los datos",errores=resultado,status=status_code)
+        return respuesta_ok(data=resultado,mensaje="Datos adicionales guardados",status=200)
+
+
+class CredencialesRegistroView(APIView):
+    permission_classes=[AllowAny]
+    authentication_classes=[]
+
+    def post(self,request):
+        serializer=CredencialesRegistroSerializer(data=request.data)
+        if not serializer.is_valid():return respuesta_serializer_invalido(serializer.errors)
+        resultado,status_code=configurarCredencialesRegistroService(serializer.validated_data)
+        if status_code!=200:return respuesta_error("No fue posible configurar el correo",errores=resultado,status=status_code)
+        return respuesta_ok(data=resultado,mensaje="Código de verificación enviado",status=200)
 
 
 class SubirDocumentoRegistroView(APIView):
