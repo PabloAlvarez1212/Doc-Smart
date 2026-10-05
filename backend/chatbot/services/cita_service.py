@@ -14,6 +14,7 @@ from citas.services import (
     editarCitaService,
     confirmarCitaService,
     completarCitaService,
+    esHorarioDisponible,
 )
 from medicos.models import Medico
 
@@ -76,6 +77,10 @@ class CitaService:
 
         return fecha
 
+    @staticmethod
+    def horario_disponible(medico, fecha):
+        return esHorarioDisponible(medico, fecha)
+    
     @staticmethod
     def _parsear_fecha_espanol(valor):
         texto = unicodedata.normalize("NFKD", valor.lower())

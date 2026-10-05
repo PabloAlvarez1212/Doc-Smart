@@ -479,14 +479,14 @@ class ExtraccionDatosCitaTests(SimpleTestCase):
 class AgendarCitaToolTests(SimpleTestCase):
 
     @patch("chatbot.tools.citas.CitaService.agendar")
-    @patch("chatbot.tools.citas.CitaService.medico_tiene_cita", return_value=False)
+    @patch("chatbot.tools.citas.CitaService.horario_disponible", return_value=True)
     @patch("chatbot.tools.citas.MedicoService.obtener_por_id")
     @patch("chatbot.tools.citas.CitaService.normalizar_fecha")
     def test_solicita_confirmacion_antes_de_crear(
         self,
         normalizar_fecha,
         obtener_medico,
-        _medico_tiene_cita,
+        _horario_disponible,
         agendar,
     ):
         from django.utils import timezone

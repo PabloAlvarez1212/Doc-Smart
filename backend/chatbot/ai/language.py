@@ -16,6 +16,14 @@ class LanguageService:
         texto = (texto or "").strip().lower()
         if re.search(r"[\u0370-\u03ff\u1f00-\u1fff]", texto):
             return "el"
+
+        if re.search(
+            r"\b(busca|buscar|disponibilidad|m[eé]dico|cita|"
+            r"ese|mismo|para|las|tarde|ma[nñ]ana|quiero)\b",
+            texto,
+        ):
+            return "es"
+        
         if re.search(r"\b(hi|hello|please|show|what|when|do you|my name|doctors?)\b", texto):
             return "en"
         return "es"

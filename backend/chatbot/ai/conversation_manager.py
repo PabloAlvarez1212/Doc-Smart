@@ -113,9 +113,6 @@ class ConversationManager:
                 parametros={},
             )
 
-            ConversationManager._resolver(chat, state)
-            return state.respuesta
-
         if (
             chat.estado_conversacion != "normal"
             and PATRON_CONSULTA_MEDICA.search(state.mensaje)

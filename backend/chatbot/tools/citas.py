@@ -76,30 +76,29 @@ class ConsultarDisponibilidadTool(BaseTool):
 
 
 class AgendarCitaTool(BaseTool):
-
     name = "agendar_cita"
-
     description = "Agenda una nueva cita médica."
-
     category = "citas"
-
     requires_confirmation = True
 
     @staticmethod
     def _pedir_seleccion(candidatos, fecha):
         disponibles = [
             medico for medico in candidatos
-            if not CitaService.medico_tiene_cita(medico.id, fecha)
+            if CitaService.horario_disponible(medico, fecha)
         ]
         if not disponibles:
             return None
+
         opciones = []
-        lineas = ["Encontré varios médicos con ese nombre disponibles para esa fecha:"]
+        lineas = ["Encontré varios médicos disponibles para ese horario:"]
+
         for indice, medico in enumerate(disponibles[:10], start=1):
             ciudad = medico.ciudad.nombre if medico.ciudad else "Ciudad no registrada"
             nombre = f"{medico.nombre} {medico.apellido}".strip()
             lineas.append(
-                f"{indice}. Dr(a). {nombre} — {medico.id_especialidad.nombre}, {ciudad}"
+                f"{indice}. Dr(a). {nombre} — "
+                f"{medico.id_especialidad.nombre}, {ciudad}"
             )
             opciones.append({
                 "id_medico": medico.id,
@@ -107,6 +106,7 @@ class AgendarCitaTool(BaseTool):
                 "especialidad": medico.id_especialidad.nombre,
                 "ciudad": ciudad,
             })
+
         lineas.append("Indícame el nombre o el número del médico que prefieres.")
         return {
             "success": True,
@@ -115,66 +115,44 @@ class AgendarCitaTool(BaseTool):
             "data": {"medicos": opciones, "fecha": fecha.isoformat()},
         }
 
-    def execute(
-        self,
-        chat,
-        mensaje,
-        parametros,
-    ):
-
+    def execute(self, chat, mensaje, parametros):
+        parametros = parametros or {}
         nombre = parametros.get("nombre")
-
         apellido = parametros.get("apellido")
-
         especialidad = parametros.get("especialidad")
-
         ciudad = parametros.get("ciudad")
-
+        id_medico = parametros.get("id_medico")
+        confirmado = parametros.get("confirmado", False)
         fecha = parametros.get("fecha") or parametros.get("fecha_programada")
 
-        id_medico = parametros.get("id_medico")
-
-        confirmado = parametros.get("confirmado", False)
-
         if not fecha:
-
             return {
-
                 "success": False,
-
-                "message": (
-                    "Necesito la fecha y hora para programar la cita."
-                ),
-
-                "data": {}
-
+                "message": "Necesito la fecha y hora para programar la cita.",
+                "data": {},
             }
+
         fecha_normalizada = CitaService.normalizar_fecha(fecha)
-
         if fecha_normalizada is None:
-
             return {
                 "success": False,
                 "message": (
                     "No reconocí la fecha. Escríbela, por ejemplo, "
-                    "como 2026-08-20 14:30."
+                    "como 2026-10-06 14:00."
                 ),
                 "data": {},
             }
 
         if fecha_normalizada < timezone.now() + timedelta(hours=1):
-
             return {
                 "success": False,
-                "message": (
-                    "La cita debe programarse con al menos una hora "
-                    "de anticipación."
-                ),
+                "message": "La cita debe programarse con al menos una hora de anticipación.",
                 "data": {},
             }
 
         if id_medico:
             medico = MedicoService.obtener_por_id(id_medico)
+
         elif not nombre and not apellido:
             candidatos = list(
                 MedicoService.buscar_medicos(
@@ -184,18 +162,18 @@ class AgendarCitaTool(BaseTool):
             )
 
             if not candidatos and especialidad:
-                candidatos = MedicoService.buscar_por_especialidad_aproximada(
-                    especialidad=especialidad,
-                    ciudad=ciudad,
-                    limite=20,
+                candidatos = list(
+                    MedicoService.buscar_por_especialidad_aproximada(
+                        especialidad=especialidad,
+                        ciudad=ciudad,
+                        limite=20,
+                    )
                 )
 
             disponibles = [
-                candidato
-                for candidato in candidatos
-                if not CitaService.medico_tiene_cita(
-                    candidato.id,
-                    fecha_normalizada,
+                candidato for candidato in candidatos
+                if CitaService.horario_disponible(
+                    candidato, fecha_normalizada
                 )
             ]
 
@@ -204,136 +182,97 @@ class AgendarCitaTool(BaseTool):
                     "success": False,
                     "message": (
                         "No encontré médicos disponibles con esas "
-                        "características para la fecha indicada."
+                        "características para ese horario."
                     ),
                     "data": {"medicos": []},
                 }
 
             if len(disponibles) > 1:
-                opciones = []
-                lineas = [
-                    "Encontré estos médicos disponibles para esa fecha:"
-                ]
-
-                for indice, candidato in enumerate(disponibles[:10], start=1):
-                    ciudad_nombre = (
-                        candidato.ciudad.nombre
-                        if candidato.ciudad
-                        else "Ciudad no registrada"
-                    )
-                    lineas.append(
-                        f"{indice}. Dr(a). {candidato.nombre} "
-                        f"{candidato.apellido} — "
-                        f"{candidato.id_especialidad.nombre}, {ciudad_nombre}"
-                    )
-                    opciones.append({
-                        "id_medico": candidato.id,
-                        "nombre": f"{candidato.nombre} {candidato.apellido}",
-                        "especialidad": candidato.id_especialidad.nombre,
-                        "ciudad": ciudad_nombre,
-                    })
-
-                lineas.append("Indícame el nombre o el número del médico que prefieres.")
-
-                return {
-                    "success": True,
-                    "requires_selection": True,
-                    "message": "\n".join(lineas),
-                    "data": {
-                        "medicos": opciones,
-                        "fecha": fecha_normalizada.isoformat(),
-                    },
-                }
+                return self._pedir_seleccion(disponibles, fecha_normalizada)
 
             medico = disponibles[0]
-        else:
-            candidatos = list(MedicoService.buscar_medicos(
-                nombre=nombre,
-                apellido=apellido,
-                especialidad=especialidad,
-                ciudad=ciudad,
-            )[:11])
 
-            # Cuando el usuario dio un nombre concreto, una especialidad mal
-            # inferida por el modelo no debe impedir encontrar a la persona.
-            if not candidatos and especialidad:
-                candidatos = list(MedicoService.buscar_medicos(
+        else:
+            candidatos = list(
+                MedicoService.buscar_medicos(
                     nombre=nombre,
                     apellido=apellido,
+                    especialidad=especialidad,
                     ciudad=ciudad,
-                )[:11])
+                )[:11]
+            )
+
+            # Una especialidad inferida incorrectamente no debe impedir
+            # encontrar al médico indicado por nombre.
+            if not candidatos and especialidad:
+                candidatos = list(
+                    MedicoService.buscar_medicos(
+                        nombre=nombre,
+                        apellido=apellido,
+                        ciudad=ciudad,
+                    )[:11]
+                )
 
             if len(candidatos) > 1:
-                seleccion = self._pedir_seleccion(candidatos, fecha_normalizada)
+                seleccion = self._pedir_seleccion(
+                    candidatos, fecha_normalizada
+                )
                 if seleccion:
                     return seleccion
                 return {
                     "success": False,
-                    "message": "Los médicos encontrados no tienen disponibilidad en ese horario.",
+                    "message": (
+                        "Los médicos encontrados no tienen disponibilidad "
+                        "en ese horario."
+                    ),
                     "data": {"medicos": []},
                 }
 
-            medico = candidatos[0] if candidatos else MedicoService.obtener_medico(
-                nombre=nombre,
-                apellido=apellido,
-                ciudad=ciudad,
+            medico = (
+                candidatos[0]
+                if candidatos
+                else MedicoService.obtener_medico(
+                    nombre=nombre,
+                    apellido=apellido,
+                    ciudad=ciudad,
+                )
             )
+
         if medico is None:
-
             return {
-
                 "success": False,
-
-                "message": (
-                    "No encontré un médico con esas características."
-                ),
-
-                "data": {}
-
+                "message": "No encontré un médico con esas características.",
+                "data": {},
             }
-        ocupado = CitaService.medico_tiene_cita(
 
-            id_medico=medico.id,
-            fecha=fecha_normalizada,
-
-        )
-
-        if ocupado:
-
+        if not CitaService.horario_disponible(
+            medico, fecha_normalizada
+        ):
             return {
-
                 "success": False,
-
                 "message": (
-                    f"El Dr. {medico.nombre} "
-                    f"{medico.apellido} "
-                    "ya tiene una cita en ese horario."
+                    f"El horario solicitado con el Dr. "
+                    f"{medico.nombre} {medico.apellido} "
+                    "no está disponible en su agenda. No se creó la cita."
                 ),
-
-                "data": {}
-
+                "data": {},
             }
 
         if not confirmado:
-
+            fecha_local = timezone.localtime(fecha_normalizada)
             return {
-
                 "success": True,
-
                 "requires_confirmation": True,
-
                 "message": (
                     f"Encontré disponibilidad con el Dr. "
                     f"{medico.nombre} {medico.apellido} para el "
-                    f"{fecha_normalizada.strftime('%d/%m/%Y a las %H:%M')}. "
+                    f"{fecha_local.strftime('%d/%m/%Y a las %H:%M')}. "
                     "¿Confirmas que deseas agendarla?"
                 ),
-
                 "data": {
                     "id_medico": medico.id,
                     "fecha": fecha_normalizada.isoformat(),
                 },
-
             }
 
         resultado, status = CitaService.agendar(
@@ -343,25 +282,29 @@ class AgendarCitaTool(BaseTool):
         )
 
         if status != 201:
+            # La validación oficial vuelve a comprobar el horario al crear.
+            if status == 400 and "horario" in str(resultado).lower():
+                mensaje_error = (
+                    "El horario dejó de estar disponible. "
+                    "No se creó la cita. Indícame otro horario."
+                )
+            else:
+                mensaje_error = str(resultado)
 
             return {
                 "success": False,
-                "message": str(resultado),
+                "message": mensaje_error,
                 "data": {},
             }
 
         return {
-
             "success": True,
-
             "message": (
                 f"Tu cita con el Dr. {medico.nombre} "
                 f"{medico.apellido} fue solicitada correctamente. "
                 "Queda pendiente de confirmación por el médico."
             ),
-
             "data": resultado,
-
         }
 
 
