@@ -10,6 +10,7 @@ class Cita(models.Model):
     id_usuario = models.ForeignKey(Usuario,  on_delete=models.PROTECT)
     id_medico = models.ForeignKey(Medico,   on_delete=models.PROTECT) 
     fecha_cancelacion = models.DateTimeField(null=True,blank=True)
+    fecha_inasistencia = models.DateTimeField(null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -5,15 +5,14 @@ from medicos.models import Medico
 from users.models import Usuario
 from django.utils import timezone
 from django.db import transaction
-from datetime import timedelta
-from notificaciones.services import enviarNotificacion
-from django.db.models import Count,Value,Q
-from django.db.models.functions import Concat
-from datetime import datetime, timedelta
+from django.db.models import Count, Value, Q
+from django.db.models.functions import (Concat,TruncMonth,ExtractWeekDay,ExtractHour,TruncDay,)
 from django.core.paginator import Paginator
-from medicos.services_disponibilidad import (esHorarioDisponible,)
+from datetime import datetime, timedelta, timezone as dt_timezone
 from functools import wraps
-from django.db.models.functions import TruncMonth, ExtractWeekDay,ExtractHour,TruncDay
+from notificaciones.services import enviarNotificacion
+from medicos.services_disponibilidad import esHorarioDisponible
+
 
 
 def serializar_agenda(funcion):
@@ -624,13 +623,13 @@ def crearCitaService(
 @serializar_agenda
 def editarCitaService(id, datos, solicitante):
     if isinstance(solicitante, Usuario):
-        cita = Cita.objects.filter(
+        cita = Cita.objects.select_for_update().filter(
             id=id,
             id_usuario=solicitante.id
         ).first()
 
     elif isinstance(solicitante, Medico):
-        cita = Cita.objects.filter(
+        cita = Cita.objects.select_for_update().filter(
             id=id,
             id_medico=solicitante.id
         ).first()
@@ -641,6 +640,9 @@ def editarCitaService(id, datos, solicitante):
     if not cita:
         return 'Cita no encontrada o no te pertenece', 404
 
+    if cita.id_estado.nombre.lower() == 'inasistencia_paciente':
+        return 'No se puede editar una cita con inasistencia del paciente', 400
+
     if cita.id_estado.nombre in ['cancelada', 'completada']:
         return 'No se puede editar una cita cancelada o completada', 400
 
@@ -648,6 +650,8 @@ def editarCitaService(id, datos, solicitante):
     nueva_fecha = datos.get('fecha_programada')
     
     if nueva_fecha:
+        if timezone.is_naive(nueva_fecha):
+            return 'La fecha programada debe incluir zona horaria', 400
         if nueva_fecha < timezone.now():
             return 'La fecha programada debe ser futura', 400
 
@@ -672,6 +676,15 @@ def editarCitaService(id, datos, solicitante):
     cita.save()
     
     if nueva_fecha and nueva_fecha != fecha_antigua:
+        from chat_citas.services import reiniciarConversacionPorReprogramacionService
+
+        reiniciarConversacionPorReprogramacionService(cita)
+        from uuid import uuid4
+        from chat_citas.event_services import registrarEventoConversacionService
+        registrarEventoConversacionService(cita, clave=f'reprogramada:{uuid4()}',
+            evento='cita_reprogramada', instante=timezone.now(), metadata={
+                'fecha_anterior': fecha_antigua.isoformat(), 'fecha_nueva': nueva_fecha.isoformat()})
+
         fecha_fmt = cita.fecha_programada.strftime(
             "%d/%m/%Y a las %H:%M"
         )
@@ -713,7 +726,7 @@ def editarCitaService(id, datos, solicitante):
 
 @serializar_agenda
 def cancelarCitaService(id, solicitante):
-    cita = Cita.objects.filter(
+    cita = Cita.objects.select_for_update().filter(
         id=id
     ).first()
 
@@ -736,6 +749,9 @@ def cancelarCitaService(id, solicitante):
     if not autorizado:
         return 'No tienes permiso para cancelar esta cita', 403
 
+    if cita.id_estado.nombre.lower() == 'inasistencia_paciente':
+        return 'No se puede cancelar una cita con inasistencia del paciente', 400
+
     if cita.id_estado.nombre == 'cancelada':
         return 'La cita ya está cancelada', 400
 
@@ -752,6 +768,14 @@ def cancelarCitaService(id, solicitante):
     cita.id_estado = estado_cancelada
     cita.fecha_cancelacion = timezone.now()
     cita.save()
+
+    from chat_citas.services import cerrarConversacionPorCancelacionService
+
+    cerrarConversacionPorCancelacionService(cita)
+    from chat_citas.event_services import registrarEventoConversacionService
+    registrarEventoConversacionService(cita, clave=f'cancelada:{cita.fecha_cancelacion.isoformat()}',
+        evento='cita_cancelada', instante=cita.fecha_cancelacion,
+        metadata={'actor': {'tipo': 'medico' if isinstance(solicitante, Medico) else 'paciente', 'id': solicitante.pk}})
 
     fecha_fmt = cita.fecha_programada.strftime(
         "%d/%m/%Y a las %H:%M"
@@ -794,9 +818,12 @@ def cancelarCitaService(id, solicitante):
 
 @serializar_agenda
 def completarCitaService(id, medico_id):
-    cita = Cita.objects.filter(id=id, id_medico=medico_id).first()
+    cita = Cita.objects.select_for_update().filter(id=id, id_medico=medico_id).first()
     if not cita:
         return 'Cita no encontrada o no te pertenece', 404
+
+    if cita.id_estado.nombre.lower() == 'inasistencia_paciente':
+        return 'No se puede completar una cita con inasistencia del paciente', 400
 
     if cita.id_estado.nombre == 'completada':
         return 'La cita ya está completada', 400
@@ -808,8 +835,14 @@ def completarCitaService(id, medico_id):
     if not estado_completada:
         return "Estado 'completada' no configurado", 500
     cita.id_estado    = estado_completada
+    # Desde esta transición fecha_final representa el instante real, no el previsto.
     cita.fecha_final  = timezone.now()
     cita.save()
+    from datetime import timedelta
+    from chat_citas.event_services import registrarEventoConversacionService
+    registrarEventoConversacionService(cita, clave=f'completada:{cita.fecha_final.isoformat()}',
+        evento='cita_completada', instante=cita.fecha_final,
+        metadata={'disponible_hasta': (cita.fecha_final + timedelta(hours=24)).isoformat()})
     fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
     cita_data = CitaSerializer(cita).data
     enviarNotificacion(
@@ -836,6 +869,50 @@ def completarCitaService(id, medico_id):
     return cita_data, 200
 
 @serializar_agenda
+def marcarInasistenciaPacienteService(id, solicitante):
+    """Acción clínica explícita; recibe al actor autenticado, nunca un ID de actor."""
+    if not isinstance(solicitante, Medico) or not solicitante.is_authenticated:
+        return 'Solo el médico propietario aprobado puede marcar inasistencia del paciente', 403
+
+    cita = Cita.objects.select_for_update().filter(pk=id).first()
+    if cita is None:
+        return 'Cita no encontrada', 404
+
+    # La agenda del propietario está bloqueada por serializar_agenda.
+    # Leer aprobación y rol vigentes, no confiar en relaciones cacheadas del actor.
+    medico = cita.id_medico
+    if (medico.pk != solicitante.pk or medico.id_rol.nombre.lower() == 'admin'
+            or not medico.esta_aprobado):
+        return 'Solo el médico propietario aprobado puede marcar inasistencia del paciente', 403
+
+    if (cita.id_estado.nombre.lower() not in ('confirmada', 'reprogramada')
+            or cita.fecha_inasistencia is not None):
+        return 'La cita no admite registrar inasistencia del paciente', 400
+
+    ahora = timezone.now()
+    if timezone.is_naive(ahora) or timezone.is_naive(cita.fecha_programada):
+        return 'La transición requiere fechas con zona horaria', 400
+    if ahora.astimezone(dt_timezone.utc) < cita.fecha_programada.astimezone(dt_timezone.utc):
+        return 'No se puede marcar inasistencia antes del inicio programado', 400
+
+    estado = Estado.objects.filter(nombre__iexact='inasistencia_paciente').first()
+    if estado is None:
+        return "Estado 'inasistencia_paciente' no configurado", 500
+
+    cita.id_estado = estado
+    cita.fecha_inasistencia = ahora
+    cita.save(update_fields=['id_estado', 'fecha_inasistencia'])
+
+    from chat_citas.services import cerrarConversacionPorInasistenciaPacienteService
+
+    cerrarConversacionPorInasistenciaPacienteService(cita)
+    from chat_citas.event_services import registrarEventoConversacionService
+    registrarEventoConversacionService(cita, clave=f'inasistencia:{ahora.isoformat()}',
+        evento='inasistencia_paciente', instante=ahora, metadata={})
+    return CitaSerializer(cita).data, 200
+
+
+@serializar_agenda
 def confirmarCitaService(id, medico_id):
     cita = Cita.objects.filter(
         id=id,
@@ -846,6 +923,9 @@ def confirmarCitaService(id, medico_id):
         return 'Cita no encontrada o no te pertenece', 404
 
     estado_actual = cita.id_estado.nombre.lower()
+
+    if estado_actual == 'inasistencia_paciente':
+        return 'No se puede confirmar una cita con inasistencia del paciente', 400
 
     if estado_actual == 'confirmada':
         return 'La cita ya está confirmada', 400
@@ -865,6 +945,12 @@ def confirmarCitaService(id, medico_id):
 
     cita.id_estado = estado_confirmada
     cita.save()
+
+    from chat_citas.services import prepararConversacionService
+
+    resultado_chat, codigo_chat = prepararConversacionService(cita.pk)
+    if codigo_chat not in (200, 201):
+        raise RuntimeError(f'No se pudo preparar la conversación: {resultado_chat}')
 
     fecha_fmt = cita.fecha_programada.strftime(
         "%d/%m/%Y a las %H:%M"
@@ -937,9 +1023,14 @@ def eliminarRecordatorioService(id):
 
 #!Service para estadisticas del modulo citas
 
-def obtenerEstadisticasCitas(anio=None,mes=None):
-    citas = Cita.objects.all()
-    citasCreadas = Cita.objects.all()
+def obtenerEstadisticasCitas(anio=None, mes=None):
+    cancelacion_invalida = Q(
+        id_estado__nombre__iexact="cancelada",
+        fecha_cancelacion__isnull=True,
+    )
+
+    citas = Cita.objects.exclude(cancelacion_invalida)
+    citasCreadas = Cita.objects.exclude(cancelacion_invalida)
     
     if anio is not None:
         citas = citas.filter(fecha_programada__year=anio)

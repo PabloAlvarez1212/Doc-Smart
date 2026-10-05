@@ -64,3 +64,41 @@ def validar_tipo_archivo(archivo, allowed_types=None):
 def validar_archivo(archivo):
     validar_tamano_archivo(archivo)
     validar_tipo_archivo(archivo)
+
+
+def validar_archivo_chat(archivo):
+    """Formatos limitados de chat; conserva el cursor de la transferencia."""
+    from pathlib import Path
+    import warnings
+    from PIL import Image, UnidentifiedImageError
+    mime = getattr(archivo, 'content_type', '')
+    formats = {'image/jpeg': ('JPEG', {'.jpg', '.jpeg'}),
+               'image/png': ('PNG', {'.png'}), 'image/webp': ('WEBP', {'.webp'}),
+               'application/pdf': ('PDF', {'.pdf'})}
+    validar_tipo_archivo(archivo, set(formats))
+    validar_tamano_archivo(archivo, (10 if mime == 'application/pdf' else 8) * 1024 * 1024)
+    expected, extensions = formats[mime]
+    if Path(archivo.name).suffix.lower() not in extensions:
+        raise ValidationError('La extensión no coincide con el tipo')
+    position = archivo.tell()
+    try:
+        archivo.seek(0)
+        if expected == 'PDF':
+            if not archivo.read(5) == b'%PDF-':
+                raise ValidationError('PDF inválido')
+        else:
+            with warnings.catch_warnings():
+                warnings.simplefilter('error', Image.DecompressionBombWarning)
+                with Image.open(archivo) as image:
+                    if image.format != expected:
+                        raise ValidationError('Formato de imagen incoherente')
+                    image.verify()
+                # JPEG verify() no decodifica los píxeles: detectar datos truncados.
+                archivo.seek(0)
+                with Image.open(archivo) as image:
+                    image.load()
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError,
+            Image.DecompressionBombWarning):
+        raise ValidationError('Imagen inválida o demasiado grande')
+    finally:
+        archivo.seek(position)

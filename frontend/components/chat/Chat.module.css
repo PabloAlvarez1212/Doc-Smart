@@ -1,0 +1,203 @@
+.page {
+  --chat-accent: #1733a4;
+  --chat-soft: #ebf4ff;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 24px 40px;
+  color: #16243b;
+  min-width: 0;
+}
+.doctor {
+  --chat-accent: #157347;
+  --chat-soft: #eaf7ef;
+}
+
+.heading, .row, .toolbar, .actions, .pagination { display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+
+.heading {
+  margin-bottom: 24px;
+}
+.heading h1 {
+  margin: 0 0 6px;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.heading p, .meta {
+  color: #52617a;
+  font-size: .9rem;
+  line-height: 1.5;
+  margin: 6px 0;
+}
+
+.page .primary {
+  background: var(--chat-accent);
+  color: white;
+}
+.back {
+  color: var(--chat-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.card {
+  display: flex;
+  min-width: 0;
+  gap: 16px;
+  align-items: flex-start;
+  border: 1px solid #dbe2ed;
+  border-radius: 16px;
+  background: white;
+  padding: 20px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color .15s;
+}
+
+.card:hover {
+  border-color: var(--chat-accent);
+}
+
+.card:focus-visible, .back:focus-visible, .page button:focus-visible, .page input:focus-visible {
+  outline: 3px solid var(--chat-accent);
+  outline-offset: 3px;
+}
+
+.cardContent {
+  min-width: 0;
+  flex: 1;
+}
+
+.card h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+.preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 12px 0;
+}
+
+.avatar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--chat-soft);
+    color: var(--chat-accent);
+    font-weight: 700;
+    overflow: hidden;
+}
+
+.avatarImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.status, .unread {
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: .8rem;
+  font-weight: 600;
+  background: #edf0f5;
+  color: #45536b;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.activo {
+  background: #e5f6ed;
+  color: #15633d;
+}
+
+.programado {
+  background: #fff3d9;
+  color: #74500b;
+}
+
+.cerrado {
+  background: #edf0f5;
+  color: #45536b;
+}
+
+.unread {
+  background: var(--chat-accent);
+  color: white;
+}
+
+.card small {
+  display: block;
+  color: #52617a;
+  margin-top: 6px;
+}
+
+.pagination {
+  margin-top: 24px;
+  justify-content: center;
+}
+
+.panel, .composer { border: 1px solid #dbe2ed; border-radius: 16px; background: white; }
+.chatHeader { padding: 20px; border-bottom: 1px solid #dbe2ed; }
+.participant { display: flex; gap: 12px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
+.participant h1 { font-size: 1.3rem; margin: 0; }
+.toolbar { justify-content: flex-end; }
+.actions { justify-content: flex-start; margin-top: 12px; }
+.history { max-height: 58vh; min-height: 180px; overflow-y: auto; overscroll-behavior: contain; padding: 20px; }
+.messages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.messageRow { display: flex; }
+.own { justify-content: flex-end; }
+.received { justify-content: flex-start; }
+.bubble { padding: 12px 16px; border-radius: 14px; max-width: min(85%, 640px); background: #f0f3f8; min-width: 0; }
+.own .bubble { background: var(--chat-soft); border: 1px solid #d5e4e2; }
+.bubble strong { font-size: .8rem; color: #36435a; }
+.messageText { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; line-height: 1.55; }
+.bubble time, .system time { display: block; font-size: .75rem; color: #52617a; margin-top: 8px; }
+.system { text-align: center; color: #52617a; font-size: .85rem; padding: 10px; }
+.system p { margin: 0; }
+.page .file { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; width: 100%; overflow-wrap: anywhere; margin-top: 8px; color: var(--chat-accent); border: 1px solid #dbe2ed; }
+.file small { color: #52617a; font-size: .75rem; }
+.older { display: flex; justify-content: center; margin-bottom: 18px; }
+.composer { margin-top: 16px; padding: 20px; }
+.label { display: block; font-size: .85rem; font-weight: 600; margin: 8px 0 6px; }
+.composer textarea { width: 100%; box-sizing: border-box; resize: vertical; border-radius: 10px; border: 1px solid #aebbd0; padding: 12px; font: inherit; min-height: 90px; }
+.composer textarea:focus { outline: 2px solid var(--chat-accent); }
+.composer textarea:disabled { background: #f0f3f8; color: #52617a; cursor: not-allowed; }
+.composer input { max-width: 100%; font: inherit; font-size: .85rem; }
+.composerFooter { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.composerFooter small { display: block; color: #52617a; font-size: .75rem; margin-top: 5px; }
+.send { display: flex; align-items: flex-end; flex-direction: column; gap: 10px; }
+.pendingFiles { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.pendingFiles span { background: var(--chat-soft); border-radius: 8px; padding: 6px 10px; font-size: .85rem; overflow-wrap: anywhere; max-width: 100%; }
+.pendingFiles button { margin-left: 10px; border: none; background: transparent; cursor: pointer; font-size: 1.1rem; }
+.error, .empty, .notice { padding: 16px; border-radius: 12px; margin: 12px 0; line-height: 1.5; }
+.error { background: #fff0f0; color: #8a2222; border: 1px solid #f0cbcb; }
+.empty, .notice { background: var(--chat-soft); color: #34435b; }
+.loading { padding: 16px; color: #52617a; }
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #dbe2ed; border-top-color: var(--chat-accent); border-radius: 50%; animation: spin .8s linear infinite; margin-right: 8px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+@media (max-width: 640px) {
+  .page { padding: 20px 12px; }
+  .card, .chatHeader, .composer { padding: 14px; }
+  .history { padding: 14px 10px; max-height: 52svh; }
+  .bubble { max-width: 92%; }
+  .card .avatar { flex-basis: 38px; width: 38px; height: 38px; }
+  .card { gap: 10px; }
+  .composerFooter > div, .send { width: 100%; }
+  .send { align-items: stretch; }
+  .pagination { font-size: .8rem; gap: 8px; }
+}
