@@ -1,13 +1,18 @@
+.patients { min-width: 0; }
+
 .stats {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
     gap: 18px;
     width: 100%;
     min-width: 0;
-    padding-top: 20px;
+    padding-top: 16px;
 }
 
 .chartCard {
+    display: flex;
+    flex-direction: column;
     width: 100%;
     min-width: 0;
     padding: 22px 24px 20px;
@@ -17,45 +22,81 @@
     box-shadow: 0 8px 24px rgba(28, 54, 92, .045);
 }
 
-.fullWidth { grid-column: 1 / -1; }
-.chartHeader { margin-bottom: 18px; }
+.chartHeader { margin-bottom: 15px; }
+
 .chartHeader h3 {
     margin: 0;
     color: #172033;
-    font-size: 1rem;
+    font-size: .92rem;
     font-weight: 700;
     line-height: 1.35;
 }
+
 .chartHeader p {
-    margin: 5px 0 0;
+    margin: 4px 0 0;
     color: #526078;
-    font-size: .81rem;
+    font-size: .76rem;
     line-height: 1.5;
 }
 
-.chartArea { width: 100%; min-width: 0; height: 272px; }
-.patientsChartArea { width: 100%; min-width: 0; }
+.chartArea {
+    width: 100%;
+    min-width: 0;
+    height: 286px;
+    margin-block: auto;
+}
+
+.demographicChart,
+.trendChart,
+.frequencyChart,
+.activeTrendChart { height: 286px; }
+
+.chartTooltip {
+    display: grid;
+    gap: 4px;
+    max-width: min(230px, 72vw);
+    padding: 10px 12px;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .98);
+    box-shadow: 0 10px 26px rgba(28, 54, 92, .12);
+    color: #526078;
+    font-size: .71rem;
+    line-height: 1.4;
+}
+
+.chartTooltip strong {
+    color: #172033;
+    font-size: .76rem;
+}
 
 .empty {
     display: grid;
+    flex: 1;
+    min-height: 286px;
     place-items: center;
-    min-height: 272px;
     margin: 0;
+    padding: 20px;
     border: 1px dashed #dce5ef;
     border-radius: 10px;
     background: #f8fafc;
     color: #64748b;
-    font-size: .87rem;
+    font-size: .81rem;
     text-align: center;
 }
 
 @container (max-width: 820px) {
     .stats { grid-template-columns: minmax(0, 1fr); }
-    .fullWidth { grid-column: auto; }
 }
 
 @media (max-width: 600px) {
     .stats { gap: 14px; }
     .chartCard { padding: 18px 16px; }
-    .chartArea { height: 250px; }
+    .chartHeader { margin-bottom: 15px; }
+    .chartArea,
+    .demographicChart,
+    .trendChart,
+    .frequencyChart,
+    .activeTrendChart { height: 250px; }
+    .empty { min-height: 250px; }
 }

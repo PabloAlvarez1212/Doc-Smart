@@ -1,0 +1,96 @@
+.loadingGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    width: 100%;
+    min-width: 0;
+    padding-top: 20px;
+}
+
+.skeletonCard {
+    display: grid;
+    min-width: 0;
+    min-height: 340px;
+    grid-template-rows: auto auto 1fr;
+    gap: 10px;
+    padding: 22px 24px 20px;
+    border: 1px solid #e1e7f0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(28, 54, 92, .045);
+}
+
+.skeletonTitle,
+.skeletonDescription,
+.skeletonChart {
+    display: block;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #f1f4f8 25%, #e5ebf2 50%, #f1f4f8 75%);
+    background-size: 200% 100%;
+    animation: dashboard-shimmer 1.35s ease-in-out infinite;
+}
+
+.skeletonTitle { width: min(220px, 62%); height: 19px; }
+.skeletonDescription { width: min(360px, 84%); height: 13px; }
+.skeletonChart { width: 100%; min-height: 245px; margin-top: 11px; }
+
+.errorState {
+    display: flex;
+    min-height: 190px;
+    align-items: center;
+    justify-content: center;
+    gap: 13px;
+    margin-top: 20px;
+    padding: 28px;
+    border: 1px solid #f0d5d8;
+    border-radius: 14px;
+    background: #fffafb;
+    color: #526078;
+    text-align: left;
+}
+
+.errorIcon {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 12px;
+    background: #fff0f1;
+    color: #b42335;
+}
+
+.errorState h3 {
+    margin: 0;
+    color: #172033;
+    font-size: .9rem;
+    font-weight: 750;
+}
+
+.errorState p {
+    margin: 5px 0 0;
+    font-size: .77rem;
+    line-height: 1.5;
+}
+
+@keyframes dashboard-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@container (max-width: 820px) {
+    .loadingGrid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 600px) {
+    .loadingGrid { gap: 14px; }
+    .skeletonCard { min-height: 310px; padding: 18px 16px; }
+    .skeletonChart { min-height: 225px; }
+    .errorState { min-height: 170px; padding: 22px 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeletonTitle,
+    .skeletonDescription,
+    .skeletonChart { animation: none; }
+}

@@ -1,6 +1,8 @@
+import logging
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from utils import IsMedicoAprobado,IsPaciente,IsPacienteOrMedicoAprobado,IsAdmin
+from utils import IsMedicoAprobado,IsPaciente,IsPacienteOrMedicoAprobado,IsAdmin,FiltroPeriodoSerializer
 from rest_framework.permissions import IsAuthenticated
 from citas.services import (
     listarCitasService,
@@ -16,8 +18,12 @@ from citas.services import (
     crearRecordatorioService,
     confirmarCitaService,
     eliminarRecordatorioService,
+    obtenerEstadisticasCitas,
 )
 from citas.serializers import CrearCitaSerializer, EditarCitaSerializer
+
+
+logger = logging.getLogger(__name__)
 
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -320,3 +326,35 @@ class RecordatorioDetailView(APIView):
         except Exception as e:
             print(e)
             return respuesta_error('Error interno del servidor', status=500)
+
+#Estadisticas Dashboard
+
+class EstadisticasCitasView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        try:
+            serializer = FiltroPeriodoSerializer(data=request.query_params)
+
+            if not serializer.is_valid():
+                return respuesta_serializer_invalido(serializer.errors)
+            
+            anio = serializer.validated_data.get("anio")
+            mes = serializer.validated_data.get("mes")
+            
+            data, status_code = obtenerEstadisticasCitas(anio,mes)
+
+            return respuesta_ok(
+                data=data,
+                mensaje="Estadísticas de citas obtenidas correctamente",
+                status=status_code
+            )
+
+        except Exception:
+            logger.exception(
+                "Error obteniendo estadísticas administrativas de citas"
+            )
+            return respuesta_error(
+                mensaje="Error interno del servidor",
+                status=500
+            )

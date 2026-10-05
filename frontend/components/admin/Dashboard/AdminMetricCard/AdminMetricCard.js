@@ -9,6 +9,7 @@ export default function AdminMetricCard({
     tone = "blue",
     variation,
     comparisonLabel,
+    supportingText,
 }) {
     const hasValue = value !== null && value !== undefined;
     const isLoading = status === "loading";
@@ -58,7 +59,7 @@ export default function AdminMetricCard({
                         {isLoading
                             ? "Cargando información"
                             : isAvailable
-                                ? "Datos actuales"
+                                ? supportingText ?? "Datos actuales"
                                 : "Dato no disponible"}
                     </span>
                 )}

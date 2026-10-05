@@ -1,86 +1,120 @@
-"use client"
-import { CalendarDays, CircleUserRound, ClipboardClock, Stethoscope } from "lucide-react";
-import AdminMetricCard from "../../../../components/admin/Dashboard/AdminMetricCard/AdminMetricCard";
-import DashboardTabs from "../../../../components/admin/Dashboard/DashboardTabs/DashboardTabs";
-import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
-import styles from "./dashboard.module.css";
-import { useDashboard } from "../../../../components/admin/Dashboard/useDashboard";
-import AppointmentStats from "../../../../components/admin/Dashboard/Appointments/AppointmentsStats/AppointmentsStats";
+"use client";
+
 import { useState } from "react";
+import AppointmentStats from "../../../../components/admin/Dashboard/Appointments/AppointmentsStats/AppointmentsStats";
+import DashboardTabs from "../../../../components/admin/Dashboard/DashboardTabs/DashboardTabs";
 import DoctorStats from "../../../../components/admin/Dashboard/Doctors/DoctorStats/DoctorStats";
 import PatientStats from "../../../../components/admin/Dashboard/Patients/PatientStats/PatientStats";
-
-const metricDefinitions = [
-    { key: "total_medicos_aprobados", label: "Total de médicos", icon: Stethoscope, tone: "blue" },
-    { key: "total_pacientes", label: "Total de pacientes", icon: CircleUserRound, tone: "teal" },
-    { key: "total_citas", label: "Total de citas", icon: CalendarDays, tone: "amber" },
-    { key: "total_solicitudes_pendientes", label: "Solicitudes pendientes", icon: ClipboardClock, tone: "violet" },
-];
+import DashboardSummary from "../../../../components/admin/Dashboard/Summary/DashboardSummary";
+import { useDashboard } from "../../../../components/admin/Dashboard/useDashboard";
+import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
+import styles from "./dashboard.module.css";
 
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState("resumen");
-    const { metricasTarjetas, citasPorEstado, citasPorMes, citasPorEspecialidad, medicosPorEspecialidad, medicosPorEstadoValidacion, solicitudesValidacionPorMes,pacientesPorCitas,pacientesPorEdad,pacientesPorMes } = useDashboard()
+    const {
+        metricasTarjetas,
+        loadingMetricas,
+        errorMetricas,
+        citasPorEstado,
+        citasCreadasPorEstado,
+        citasCreadasPorPeriodo,
+        filtrosCitas,
+        cambiarAnioCitas,
+        cambiarMesCitas,
+        citasPorEspecialidad,
+        citasCreadasPorEspecialidad,
+        citasPorDiaSemana,
+        citasPorHora,
+        loadingCitas,
+        errorCitas,
+        medicosPorEspecialidad,
+        medicosNoAprobadosPorEspecialidad,
+        medicosPorEstadoValidacion,
+        solicitudesValidacionPorPeriodo,
+        filtrosMedicos,
+        cambiarAnioMedicos,
+        cambiarMesMedicos,
+        medicosQueMasAtienden,
+        tiempoPromedioValidacion,
+        loadingMedicos,
+        errorMedicos,
+        pacientesPorEdad,
+        pacientesRegistradosPorPeriodo,
+        pacientesPorCantidadCitas,
+        pacientesActivosPorPeriodo,
+        filtrosPacientes,
+        cambiarAnioPacientes,
+        cambiarMesPacientes,
+        loadingPacientes,
+        errorPacientes,
+    } = useDashboard();
+
     return (
         <div className={styles.page}>
-            <AdminPageHeader
-                eyebrow="Vista general"
-                title="Métricas del sistema"
-                description="Resumen consolidado del estado general de DocSmart."
-            />
-
-            <section aria-labelledby="primary-metrics-title">
-                <div className={styles.sectionHeading}>
-                    <div>
-                        <span>Indicadores generales</span>
-                        <h2 id="primary-metrics-title">Métricas principales</h2>
-                    </div>
-                </div>
-
-                <div className={styles.metricsGrid}>
-                    {metricDefinitions.map(({ key, ...metric }) => (
-                        <AdminMetricCard
-                            key={key}
-                            {...metric}
-                            value={metricasTarjetas?.[key]}
-                            status={metricasTarjetas ? "available" : "loading"}
-                        />
-                    ))}
-                </div>
-            </section>
+            <div className={styles.pageHeader}>
+                <AdminPageHeader
+                    eyebrow="Vista general"
+                    title="Dashboard administrativo"
+                    description="Resumen consolidado del estado general de DocSmart."
+                />
+            </div>
 
             <section className={styles.analyticsPanel} aria-labelledby="analytics-title">
-                <div className={styles.sectionHeading}>
-                    <div>
-                        <span>Análisis</span>
-                        <h2 id="analytics-title">Información detallada sobre la actividad de DocSmart.</h2>
-                    </div>
-                </div>
-                <DashboardTabs
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                />
+                <DashboardTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+
+                {activeTab === "resumen" && (
+                    <DashboardSummary
+                        metrics={metricasTarjetas}
+                        loading={loadingMetricas}
+                        error={errorMetricas}
+                    />
+                )}
 
                 {activeTab === "citas" && (
                     <AppointmentStats
                         citasPorEstado={citasPorEstado}
-                        citasPorMes={citasPorMes}
+                        citasCreadasPorEstado={citasCreadasPorEstado}
+                        citasCreadasPorPeriodo={citasCreadasPorPeriodo}
+                        filtros={filtrosCitas}
+                        cambiarAnio={cambiarAnioCitas}
+                        cambiarMes={cambiarMesCitas}
                         citasPorEspecialidad={citasPorEspecialidad}
+                        citasCreadasPorEspecialidad={citasCreadasPorEspecialidad}
+                        citasPorDiaSemana={citasPorDiaSemana}
+                        citasPorHora={citasPorHora}
+                        loading={loadingCitas}
+                        error={errorCitas}
                     />
                 )}
 
                 {activeTab === "medicos" && (
                     <DoctorStats
                         medicosPorEspecialidad={medicosPorEspecialidad}
+                        medicosNoAprobadosPorEspecialidad={medicosNoAprobadosPorEspecialidad}
                         medicosPorEstadoValidacion={medicosPorEstadoValidacion}
-                        solicitudesValidacionPorMes={solicitudesValidacionPorMes}
+                        solicitudesValidacionPorPeriodo={solicitudesValidacionPorPeriodo}
+                        filtros={filtrosMedicos}
+                        cambiarAnio={cambiarAnioMedicos}
+                        cambiarMes={cambiarMesMedicos}
+                        medicosQueMasAtienden={medicosQueMasAtienden}
+                        tiempoPromedioValidacion={tiempoPromedioValidacion}
+                        loading={loadingMedicos}
+                        error={errorMedicos}
                     />
                 )}
 
                 {activeTab === "pacientes" && (
                     <PatientStats
-                        pacientesPorCitas={pacientesPorCitas}
                         pacientesPorEdad={pacientesPorEdad}
-                        pacientesPorMes={pacientesPorMes}
+                        pacientesRegistradosPorPeriodo={pacientesRegistradosPorPeriodo}
+                        pacientesPorCantidadCitas={pacientesPorCantidadCitas}
+                        pacientesActivosPorPeriodo={pacientesActivosPorPeriodo}
+                        filtros={filtrosPacientes}
+                        cambiarAnio={cambiarAnioPacientes}
+                        cambiarMes={cambiarMesPacientes}
+                        loading={loadingPacientes}
+                        error={errorPacientes}
                     />
                 )}
             </section>

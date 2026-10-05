@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from citas import serializers
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
-from utils import IsAdmin,IsPaciente
+from utils import IsAdmin,IsPaciente,FiltroPeriodoSerializer
 from django.conf import settings
 from users.services import (
     loginService,
@@ -29,7 +29,7 @@ from users.services import (
     refreshTokenService,
     cambiarContraseñaAutenticadoService,
     obtenerMetricasSistema,
-    obtenerEstadisticasSistemaService,
+    obtenerEstadisticasPacientesService,
     subirDocumentoRegistroService,
     extraerDocumentoRegistroService,
     verificarDocumentoRegistroService,
@@ -766,15 +766,23 @@ class MetricasSistemaView(APIView):
             print(e)
             return respuesta_error('Error en el servidor: ',status=500)
         
-class EstadisticasSistemaView(APIView):
+class EstadisticasPacienteView(APIView):
     permission_classes = [IsAuthenticated,IsAdmin]
     def get(self,request):
         try:
-            data, status_code = obtenerEstadisticasSistemaService()
+            serializer = FiltroPeriodoSerializer(data=request.query_params)
+
+            if not serializer.is_valid():
+                return Response({"ok": False,"mensaje": "Filtros inválidos","errores": serializer.errors},status=400)
+
+            anio = serializer.validated_data["anio"]
+            mes = serializer.validated_data.get("mes")
+            
+            data, status_code = obtenerEstadisticasPacientesService(anio=anio,mes=mes)
 
             if status_code != 200:
                 return respuesta_error(
-                    "Error al cargar las estadísticas",
+                    "Error al cargar las estadísticas del paciente",
                     status=status_code
                 )
 

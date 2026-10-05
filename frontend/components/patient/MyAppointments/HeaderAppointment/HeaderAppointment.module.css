@@ -1,42 +1,38 @@
-.containerMain{
-    width: 90%;
-    margin: 0 auto;
-}
-.filtros{
-    display: flex;
+.statusBar {
+    display: grid;
+    grid-template-columns: minmax(170px, .52fr) minmax(0, 1.48fr);
     align-items: center;
-    gap: 55px;
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    padding-left: 20px;
-    padding-top: 10px;
-    font-size: 18px;
-    padding-bottom: 10px;
+    gap: 24px;
+    padding: 22px 24px 18px;
+    border-bottom: 1px solid #e1e8f0;
 }
-
-.filtros p{
-    padding: 5px 15px;
+.statusBar h2 { margin: 0; color: #26354a; font-size: .94rem; line-height: 1.35; }
+.statusBar p { margin: 4px 0 0; color: #718095; font-size: .78rem; line-height: 1.4; }
+.tabs { display: flex; min-width: 0; gap: 4px; overflow-x: auto; padding: 3px; scrollbar-width: thin; scrollbar-color: #aab9ca transparent; }
+.tabs button {
+    min-height: 38px;
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 9px;
+    color: #5e6e83;
+    background: transparent;
     cursor: pointer;
+    font: inherit;
+    font-size: .81rem;
+    font-weight: 680;
+    white-space: nowrap;
+    transition: color 180ms ease, background-color 180ms ease, transform 120ms cubic-bezier(.23, 1, .32, 1);
+}
+.tabs button:hover { color: #17366f; background: #edf3fa; }
+.tabs button:active { transform: scale(.97); }
+.tabs .active { color: #fff; background: #17366f; }
+
+@media (max-width: 900px) {
+    .statusBar { grid-template-columns: minmax(0, 1fr); gap: 13px; }
 }
 
-.filtros p:hover{
-    background-color: #CAE1FF;
-    color: #2B7FFF;
-    border-radius: 12px;
-    padding: 5px 15px;
+@media (max-width: 560px) {
+    .statusBar { padding: 19px 17px 15px; }
+    .tabs { margin-inline: -4px; padding-bottom: 7px; }
 }
-
-.activo{
-    background-color: #CAE1FF;
-    color: #2B7FFF;
-    border-radius: 12px;
-    padding: 5px 15px;
-}
-
-.filtros:hover{
-    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25);
-}
-.filtros { flex-wrap: wrap; gap: 8px; padding: 12px; }
-.filtros p { min-height: 44px; display: flex; align-items: center; }
-@media (max-width: 640px) { .filtros { font-size: 1rem; } }

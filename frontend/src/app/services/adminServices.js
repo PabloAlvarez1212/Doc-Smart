@@ -71,7 +71,56 @@ export const obtenerMetricasSistemaService = async () => {
     return response.data;
 };
 
-export const obtenerEstadisticasSistemaService = async () => {
-    const response = await api.get("/admin/dashboard/estadisticas/");
-    return response.data;
-};
+export const obtenerEstadisticasCitasService = async (anio, mes, signal) =>{
+    const params = {};
+
+    if (Number.isInteger(anio)) {
+        params.anio = anio;
+    }
+
+    if (Number.isInteger(mes)) {
+        params.mes = mes;
+    }
+
+    const response = await api.get("/citas/admin/dashboard/", {
+        params,
+        signal,
+    });
+    return response.data
+}
+
+export const obtenerEstadisticasMedicosService = async (anio, mes, signal) =>{
+    const params = {};
+
+    if (Number.isInteger(anio)) {
+        params.anio = anio;
+    }
+
+    if (Number.isInteger(mes)) {
+        params.mes = mes;
+    }
+
+    const response = await api.get("/medicos/admin/dashboard/", {
+        params,
+        signal,
+    });
+    return response.data
+}
+
+export const obtenerEstadisticasPacientesService = async (anio, mes, signal) =>{
+    const params = {};
+
+    if (Number.isInteger(anio)) {
+        params.anio = anio;
+    }
+
+    if (Number.isInteger(mes)) {
+        params.mes = mes;
+    }
+
+    const response = await api.get("/pacientes/admin/dashboard/", {
+        params,
+        signal,
+    });
+    return response.data
+}

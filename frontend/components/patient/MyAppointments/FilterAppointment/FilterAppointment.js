@@ -1,76 +1,92 @@
 "use client";
-import Input from "../../../ui/Input/Input";
-import styles from "./FilterAppointment.module.css"
 
-export default function FilterAppointment({ dataEspecialidades, dataDepartamentos, dataCiudades,filtros, cambiarFiltro }) {
+import { Search, SlidersHorizontal } from "lucide-react";
+import styles from "./FilterAppointment.module.css";
 
+export default function FilterAppointment({
+    dataEspecialidades,
+    dataDepartamentos,
+    dataCiudades,
+    filtros,
+    cambiarFiltro,
+}) {
     return (
-        <div className={styles.containerMain}>
-            <div className={styles.filtros}>
-                <div className={styles.input}>
-                    <Input
-                        type="text"
-                        placeholder="Buscar por doctor"
-                        value={filtros.doctor}
-                        onChange={(e) =>
-                            cambiarFiltro("doctor", e.target.value)
-                        }
-                    />
+        <div className={styles.filterPanel}>
+            <div className={styles.heading}>
+                <span aria-hidden="true"><SlidersHorizontal size={17} /></span>
+                <div>
+                    <h2>Buscar en tu agenda</h2>
+                    <p>Combina los filtros para encontrar una cita específica.</p>
                 </div>
+            </div>
 
-                <div className={styles.input}>
+            <div className={styles.controls} role="search">
+                <label className={`${styles.field} ${styles.searchField}`}>
+                    <span>Profesional</span>
+                    <span className={styles.searchControl}>
+                        <Search size={17} aria-hidden="true" />
+                        <input
+                            type="search"
+                            placeholder="Buscar por nombre"
+                            value={filtros.doctor}
+                            onChange={(event) => cambiarFiltro("doctor", event.target.value)}
+                        />
+                    </span>
+                </label>
+
+                <label className={styles.field}>
+                    <span>Especialidad</span>
                     <select
-                        className={styles.select}
                         value={filtros.especialidad}
-                        onChange={(e) => cambiarFiltro("especialidad", e.target.value)}
+                        onChange={(event) => cambiarFiltro("especialidad", event.target.value)}
                     >
-                        <option value="">Selecciona una especialidad...</option>
-                        {dataEspecialidades.map((data) => (
-                            <option key={data.id} value={data.nombre}>
-                                {data.nombre}
-                            </option>
+                        <option value="">Todas</option>
+                        {dataEspecialidades.map((item) => (
+                            <option key={item.id} value={item.nombre}>{item.nombre}</option>
                         ))}
                     </select>
-                </div>
-                <div className={styles.input}>
+                </label>
+
+                <label className={styles.field}>
+                    <span>Departamento</span>
                     <select
-                        className={styles.select}
                         value={filtros.departamento}
-                        onChange={(e) => {
-                            cambiarFiltro("departamento", e.target.value);
+                        onChange={(event) => {
+                            cambiarFiltro("departamento", event.target.value);
                             cambiarFiltro("ciudad", "");
                         }}
                     >
-                        <option value="">Selecciona un departamento...</option>
-                        {dataDepartamentos.map((data) => (
-                            <option key={data.id} value={data.id}>
-                                {data.nombre}
-                            </option>
+                        <option value="">Todos</option>
+                        {dataDepartamentos.map((item) => (
+                            <option key={item.id} value={item.id}>{item.nombre}</option>
                         ))}
                     </select>
-                </div>
-                <div className={styles.input}>
+                </label>
+
+                <label className={styles.field}>
+                    <span>Ciudad</span>
                     <select
-                        className={styles.select}
                         value={filtros.ciudad}
-                        onChange={(e) => cambiarFiltro("ciudad",e.target.value)}
+                        disabled={!filtros.departamento}
+                        onChange={(event) => cambiarFiltro("ciudad", event.target.value)}
                     >
-                        <option value="">Selecciona una ciudad...</option>
-                        {dataCiudades.map((data) => (
-                            <option key={data.id_ciudad} value={data.id_ciudad}>
-                                {data.nombre_ciudad}
-                            </option>
+                        <option value="">
+                            {filtros.departamento ? "Todas" : "Selecciona departamento"}
+                        </option>
+                        {dataCiudades.map((item) => (
+                            <option key={item.id_ciudad} value={item.id_ciudad}>{item.nombre_ciudad}</option>
                         ))}
                     </select>
-                </div>
-                <div className={styles.input}>
-                    <Input
+                </label>
+
+                <label className={styles.field}>
+                    <span>Fecha programada</span>
+                    <input
                         type="date"
                         value={filtros.fecha_programada}
-                        placeholder="Buscar por fecha"
-                        onChange={(e) => cambiarFiltro("fecha_programada", e.target.value)}/>
-                </div>
-
+                        onChange={(event) => cambiarFiltro("fecha_programada", event.target.value)}
+                    />
+                </label>
             </div>
         </div>
     );

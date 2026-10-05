@@ -1,0 +1,266 @@
+.summary {
+    display: grid;
+    gap: 18px;
+    min-width: 0;
+    padding-top: 20px;
+}
+
+.metricsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    min-width: 0;
+}
+
+.overviewGrid,
+.loadingLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, .85fr);
+    gap: 18px;
+    min-width: 0;
+}
+
+.overviewGrid { align-items: start; }
+.loadingLayout { align-items: stretch; }
+
+.activityCard,
+.attentionCard,
+.demandCard {
+    min-width: 0;
+    border: 1px solid #e1e7f0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(28, 54, 92, .045);
+}
+
+.activityCard {
+    display: flex;
+    min-height: 370px;
+    flex-direction: column;
+    padding: 22px 24px 20px;
+}
+
+.cardHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.cardHeader > div { min-width: 0; }
+.cardHeader > div > span,
+.demandContent > span {
+    display: block;
+    margin-bottom: 4px;
+    color: #2563eb;
+    font-size: .62rem;
+    font-weight: 750;
+    letter-spacing: .085em;
+    text-transform: uppercase;
+}
+
+.cardHeader h3,
+.demandContent h3 {
+    margin: 0;
+    color: #172033;
+    font-size: .92rem;
+    font-weight: 720;
+    line-height: 1.35;
+}
+
+.cardHeader p {
+    margin: 4px 0 0;
+    color: #64748b;
+    font-size: .75rem;
+    line-height: 1.45;
+}
+
+.headerIcon,
+.demandIcon {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 11px;
+    background: #edf4ff;
+    color: #2563eb;
+}
+
+.chartArea {
+    width: 100%;
+    min-width: 0;
+    height: 276px;
+}
+
+.chartTooltip {
+    display: grid;
+    gap: 4px;
+    max-width: min(230px, 72vw);
+    padding: 10px 12px;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .98);
+    box-shadow: 0 10px 26px rgba(28, 54, 92, .12);
+    color: #526078;
+    font-size: .71rem;
+    line-height: 1.4;
+}
+
+.chartTooltip strong { color: #172033; font-size: .76rem; }
+
+.sideColumn {
+    display: grid;
+    grid-template-rows: auto repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    min-width: 0;
+}
+
+.attentionCard { padding: 20px; }
+
+.attentionList {
+    display: grid;
+    gap: 0;
+    margin: 0;
+}
+
+.attentionList > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 0;
+    border-top: 1px solid #edf1f5;
+}
+
+.attentionList dt {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 9px;
+    color: #526078;
+    font-size: .73rem;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.attentionList dt svg { flex: 0 0 auto; color: #6b7b91; }
+.attentionList dd {
+    margin: 0;
+    color: #172033;
+    font-size: .78rem;
+    font-weight: 780;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.35;
+    text-align: right;
+}
+
+.demandCard {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 20px;
+}
+
+.demandIcon { background: #e9f8f6; color: #13796f; }
+.scheduleIcon { background: #edf4ff; color: #2563eb; }
+.demandContent { min-width: 0; }
+.demandDescription {
+    margin: 5px 0 0;
+    color: #64748b;
+    font-size: .72rem;
+    line-height: 1.45;
+}
+.demandMetric { margin-top: 13px; }
+.demandMetric strong {
+    display: block;
+    color: #172033;
+    font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+    font-weight: 780;
+    letter-spacing: -.035em;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.demandMetric p,
+.demandEmpty {
+    margin: 6px 0 0;
+    color: #64748b;
+    font-size: .74rem;
+    line-height: 1.45;
+}
+
+.demandEmpty { margin-top: 13px; }
+
+.emptyState {
+    display: grid;
+    flex: 1;
+    min-height: 250px;
+    place-items: center;
+    margin: 0;
+    padding: 20px;
+    border: 1px dashed #dce5ef;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: .8rem;
+    text-align: center;
+}
+
+.loadingChart,
+.loadingPanel {
+    display: block;
+    min-height: 370px;
+    border: 1px solid #e1e7f0;
+    border-radius: 14px;
+    background: linear-gradient(90deg, #f1f4f8 25%, #e5ebf2 50%, #f1f4f8 75%);
+    background-size: 200% 100%;
+    animation: summary-shimmer 1.35s ease-in-out infinite;
+}
+
+@keyframes summary-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@container (max-width: 980px) {
+    .metricsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container (max-width: 760px) {
+    .overviewGrid,
+    .loadingLayout { grid-template-columns: minmax(0, 1fr); }
+    .sideColumn { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }
+    .attentionCard { grid-column: 1 / -1; }
+    .loadingChart,
+    .loadingPanel { min-height: 300px; }
+}
+
+@media (max-width: 620px) {
+    .summary { gap: 14px; padding-top: 16px; }
+    .metricsGrid,
+    .sideColumn { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .attentionCard { grid-column: auto; }
+    .overviewGrid,
+    .loadingLayout { gap: 14px; }
+    .activityCard { min-height: 330px; padding: 18px 16px; }
+    .attentionCard,
+    .demandCard { padding: 17px 16px; }
+    .chartArea { height: 240px; }
+    .emptyState { min-height: 220px; }
+    .attentionList > div { align-items: start; }
+    .attentionList dd { max-width: 145px; }
+    .loadingChart,
+    .loadingPanel { min-height: 260px; }
+}
+
+@media (max-width: 360px) {
+    .attentionList > div { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .attentionList dd { max-width: none; padding-left: 26px; text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loadingChart,
+    .loadingPanel { animation: none; }
+}

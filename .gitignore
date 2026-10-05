@@ -1,0 +1,4 @@
+# Configuración local de Codex / AI Skills
+.codex/
+.agents/
+skills-lock.json

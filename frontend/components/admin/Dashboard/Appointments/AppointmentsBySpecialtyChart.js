@@ -5,13 +5,37 @@ import {
 } from "recharts";
 import styles from "./AppointmentsStats/AppointmentStats.module.css";
 import { getSpecialtyChartLayout, SpecialtyTick } from "../specialtyChartLayout";
+import { getSpecialtyChartMinWidth } from "../specialtyChartSizing";
 
-export default function AppointmentsBySpecialtyChart({ data }) {
+const CHART_VARIANTS = {
+    created: {
+        ariaLabel: "Citas creadas por especialidad",
+        seriesLabel: "Citas creadas",
+        color: "#2563eb",
+    },
+    scheduled: {
+        ariaLabel: "Citas programadas por especialidad",
+        seriesLabel: "Citas programadas",
+        color: "#13796f",
+    },
+};
+
+export default function AppointmentsBySpecialtyChart({ data, variant = "scheduled" }) {
+    const chartVariant = CHART_VARIANTS[variant] ?? CHART_VARIANTS.scheduled;
     const { axisWidth, chartHeight, axisMax, ticks } = getSpecialtyChartLayout(data, "total_citas");
+    const chartMinWidth = getSpecialtyChartMinWidth(axisWidth);
 
     return (
-        <div className={styles.specialtyScroll} aria-label="Citas por especialidad">
-            <div className={styles.specialtyArea} style={{ height: chartHeight }}>
+        <div
+            className={styles.specialtyScroll}
+            role="region"
+            tabIndex={0}
+            aria-label={chartVariant.ariaLabel}
+        >
+            <div
+                className={styles.specialtyArea}
+                style={{ height: chartHeight, minWidth: chartMinWidth }}
+            >
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                         data={data}
@@ -40,10 +64,16 @@ export default function AppointmentsBySpecialtyChart({ data }) {
                             axisLine={false}
                         />
                         <Tooltip
-                            formatter={(value) => [value, "Total de citas"]}
+                            formatter={(value) => [value, chartVariant.seriesLabel]}
                             contentStyle={{ borderRadius: 10, borderColor: "#e1e7f0", fontSize: 13 }}
                         />
-                        <Bar dataKey="total_citas" name="Total de citas" fill="#13796f" radius={[0, 5, 5, 0]} maxBarSize={25} />
+                        <Bar
+                            dataKey="total_citas"
+                            name={chartVariant.seriesLabel}
+                            fill={chartVariant.color}
+                            radius={[0, 5, 5, 0]}
+                            maxBarSize={25}
+                        />
                     </BarChart>
                 </ResponsiveContainer>
             </div>

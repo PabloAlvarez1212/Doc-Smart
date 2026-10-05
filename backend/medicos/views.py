@@ -39,6 +39,7 @@ from medicos.services import (
     guardarExcepcionFechaService,
     obtenerExcepcionFechaService,
     eliminarExcepcionFechaService,
+    obtenerEstadisticasMedicosService,
 )
 from medicos.serializers import (
     RegistrarMedicoSerializer,
@@ -55,6 +56,9 @@ from medicos.serializers import (
     GuardarExcepcionFechaSerializer,
     FechaDisponibilidadSerializer,
 )
+
+from utils import FiltroPeriodoSerializer
+
 from .services_disponibilidad import (
     obtenerHorariosDisponiblesService,
     obtenerDiasDisponiblesService,
@@ -1314,5 +1318,35 @@ class CrearExcepcionDisponibilidadFechaView(
 
             return respuesta_error(
                 "Error interno del servidor",
+                status=500
+            )
+
+class EstadisticasMedicosView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        try:
+            serializer = FiltroPeriodoSerializer(data=request.query_params)
+
+            if not serializer.is_valid():
+                return respuesta_serializer_invalido(serializer.errors)
+
+            anio = serializer.validated_data.get("anio")
+            mes = serializer.validated_data.get("mes")
+            
+            data, status_code = obtenerEstadisticasMedicosService(anio=anio,mes=mes)
+
+            return respuesta_ok(
+                data=data,
+                mensaje="Estadísticas de medicos obtenidas correctamente",
+                status=status_code
+            )
+
+        except Exception:
+            logger.exception(
+                "Error obteniendo estadísticas administrativas de médicos"
+            )
+            return respuesta_error(
+                mensaje="Error interno del servidor",
                 status=500
             )

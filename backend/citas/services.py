@@ -7,12 +7,13 @@ from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
 from notificaciones.services import enviarNotificacion
-from django.db.models import Q, Value, Count
+from django.db.models import Count,Value,Q
 from django.db.models.functions import Concat
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator
 from medicos.services_disponibilidad import (esHorarioDisponible,)
 from functools import wraps
+from django.db.models.functions import TruncMonth, ExtractWeekDay,ExtractHour,TruncDay
 
 
 def serializar_agenda(funcion):
@@ -933,3 +934,128 @@ def eliminarRecordatorioService(id):
         return 'Recordatorio no encontrado', 404
     recordatorio.delete()
     return 'Recordatorio eliminado correctamente', 200
+
+#!Service para estadisticas del modulo citas
+
+def obtenerEstadisticasCitas(anio=None,mes=None):
+    citas = Cita.objects.all()
+    citasCreadas = Cita.objects.all()
+    
+    if anio is not None:
+        citas = citas.filter(fecha_programada__year=anio)
+        citasCreadas = citasCreadas.filter(fecha_creacion__year=anio)
+
+    if mes is not None:
+        citas = citas.filter(fecha_programada__month=mes)
+        citasCreadas = citasCreadas.filter(fecha_creacion__month=mes)
+        
+    citaPorEstado = citas.values('id_estado__nombre').annotate(total=Count('id')).order_by('-total')
+    citasCreadasPorEstado = (citasCreadas.values("id_estado__nombre").annotate(total=Count("id")).order_by("-total"))
+    
+    if mes is not None:
+        citaPorPeriodo = (Cita.objects.filter(fecha_creacion__year=anio,fecha_creacion__month=mes).annotate(dia=TruncDay("fecha_creacion")).values("dia").annotate(total=Count("id")).order_by("dia"))
+        
+        agrupacion = "dia"
+        
+    else:
+        citaPorPeriodo = (Cita.objects.filter(fecha_creacion__year=anio).annotate(mes=TruncMonth("fecha_creacion")).values("mes").annotate(total=Count("id")).order_by("mes"))
+
+        agrupacion = "mes"
+        
+    citaPorEspecialidad = citas.values('id_medico__id_especialidad__nombre').annotate(total=Count('id')).order_by('-total')
+    citasCreadasPorEspecialidad = (citasCreadas.values("id_medico__id_especialidad__nombre").annotate(total=Count("id")).order_by("-total"))
+    citaPorDiaSemana = citas.annotate(dia_semana = ExtractWeekDay("fecha_programada")).values("dia_semana").annotate(total=Count("id")).order_by("dia_semana")
+    citasPorHora = (citas.annotate(hora=ExtractHour("fecha_programada")).values("hora").annotate(total=Count("id")).order_by("hora"))  
+    ordenDias = [
+        (2, "Lunes"),
+        (3, "Martes"),
+        (4, "Miércoles"),
+        (5, "Jueves"),
+        (6, "Viernes"),
+        (7, "Sábado"),
+        (1, "Domingo"),
+    ]
+    
+    totalesPorDia = {
+        item["dia_semana"]: item["total"]
+        for item in citaPorDiaSemana
+    }
+    
+    citasPorPeriodoData = []
+        
+    for item in citaPorPeriodo:
+        if agrupacion == "dia":
+            citasPorPeriodoData.append({
+                "periodo": item["dia"].strftime("%Y-%m-%d"),
+                "total": item["total"]
+            })
+        else:
+            citasPorPeriodoData.append({
+                "periodo": item["mes"].strftime("%Y-%m"),
+                "total": item["total"]
+            })
+            
+    aniosDisponibles = (Cita.objects.dates("fecha_programada", "year", order="DESC"))
+    
+    aniosDisponibles = [
+        fecha.year
+        for fecha in aniosDisponibles
+    ]
+    
+    data = {
+        "citas_por_estado" : [],
+        "citas_creadas_por_estado": [],
+        "citas_por_periodo" : [],
+        "citas_por_especialidad" : [],
+        "citas_creadas_por_especialidad": [],
+        "citas_por_dia_semana" : [],
+        "citas_por_hora": [],
+        "citas_creadas_por_periodo": {
+            "agrupacion": agrupacion,
+            "datos": citasPorPeriodoData
+        },
+        "filtros": {
+            "anio": anio,
+            "mes": mes,
+            "anios_disponibles": aniosDisponibles
+        },
+    }
+                
+    #citas
+    for item in citaPorEstado:
+        data["citas_por_estado"].append({
+            "estado" : item['id_estado__nombre'],
+            "total" : item['total']
+        })
+    
+    for item in citasCreadasPorEstado:
+        data["citas_creadas_por_estado"].append({
+            "estado": item["id_estado__nombre"],
+            "total": item["total"]
+        })   
+   
+    for item in citaPorEspecialidad:
+        data["citas_por_especialidad"].append({
+            "especialidad" : item['id_medico__id_especialidad__nombre'],
+            "total_citas" : item["total"]
+        })
+    
+    for item in citasCreadasPorEspecialidad:
+        data["citas_creadas_por_especialidad"].append({
+            "especialidad": item["id_medico__id_especialidad__nombre"],
+            "total_citas": item["total"]
+        })
+        
+    for numero, nombre in ordenDias:
+        data["citas_por_dia_semana"].append({
+            "dia": nombre,
+            "total_citas": totalesPorDia.get(numero, 0)
+        })
+    
+    for item in citasPorHora:
+        data["citas_por_hora"].append({
+            "hora": f"{item['hora']:02d}:00",
+            "total_citas": item["total"]
+        })
+        
+    return data,200

@@ -1,13 +1,14 @@
-"use client";
+import { CalendarRange } from "lucide-react";
 import styles from "./Hero.module.css";
 
 export default function Hero() {
     return (
-        <div className={styles.containerMain}>
-            <div className={styles.container}>
-                <h2>Mis citas</h2>
-                <p>En esta sección podrás ver, filtrar y administrar todas tus citas</p>
+        <header className={styles.hero}>
+            <span aria-hidden="true"><CalendarRange size={23} /></span>
+            <div>
+                <h1>Mis citas</h1>
+                <p>Consulta tu agenda, encuentra una cita específica y gestiona las acciones disponibles.</p>
             </div>
-        </div>
+        </header>
     );
 }

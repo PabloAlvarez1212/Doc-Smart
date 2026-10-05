@@ -1,9 +1,11 @@
+.appointments { min-width: 0; }
+
 .grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
     width: 100%;
-    padding-top: 20px;
+    padding-top: 16px;
 }
 
 .chartCard {
@@ -20,41 +22,175 @@
 }
 
 .chartHeader {
-    margin-bottom: 18px;
+    margin-bottom: 15px;
 }
 
 .chartHeader h3 {
     margin: 0;
-    font-size: 1rem;
+    font-size: .92rem;
     font-weight: 700;
     line-height: 1.35;
     color: #172033;
 }
 
 .chartHeader p {
-    margin: 5px 0 0;
-    font-size: .81rem;
+    margin: 4px 0 0;
+    font-size: .76rem;
     line-height: 1.5;
     color: #526078;
 }
 
 .chartArea { width: 100%; min-width: 0; height: 272px; }
-.donutArea { height: 232px; }
+.chartScroller { width: 100%; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.hourChartArea { width: 100%; height: 272px; }
 .specialtyScroll { width: 100%; min-width: 0; overflow-x: auto; }
 .specialtyArea { width: 100%; min-width: 0; }
 
-.legend {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px 16px;
-    margin: 8px 0 0;
+.statusDistribution {
+    display: grid;
+    grid-template-columns: minmax(175px, .78fr) minmax(220px, 1.22fr);
+    align-items: center;
+    gap: clamp(16px, 2.5vw, 28px);
+    min-width: 0;
+}
+
+.statusChartArea {
+    width: 100%;
+    min-width: 0;
+    height: 220px;
+}
+
+.donutTotal {
+    fill: #172033;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -.04em;
+    font-variant-numeric: tabular-nums;
+}
+
+.donutTotalLabel {
+    fill: #697586;
+    font-size: .65rem;
+    font-weight: 700;
+}
+
+.statusBreakdown {
+    min-width: 0;
+}
+
+.statusBreakdownHeader,
+.statusLegendItem {
+    display: grid;
+    grid-template-columns: minmax(95px, 1fr) auto minmax(58px, auto);
+    align-items: center;
+    gap: 12px;
+}
+
+.statusBreakdownHeader {
+    padding: 0 9px 7px;
+    color: #8994a5;
+    font-size: .62rem;
+    font-weight: 750;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.statusBreakdownHeader span:not(:first-child) {
+    text-align: right;
+}
+
+.statusLegend {
+    display: grid;
+    gap: 4px;
+    margin: 0;
     padding: 0;
     list-style: none;
 }
-.legendItem { display: inline-flex; align-items: center; gap: 7px; color: #526078; font-size: .78rem; line-height: 1.4; }
-.legendSwatch { width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%; background: var(--segment-color); }
-.legendValue { color: #172033; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.statusLegendItem {
+    min-width: 0;
+    padding: 9px;
+    border-radius: 9px;
+    background: #f8fafc;
+}
+
+.statusName {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    color: #334155;
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+.legendSwatch {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--segment-color);
+}
+
+.statusCount,
+.statusPercentage {
+    color: #526078;
+    font-size: .72rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.statusCount small {
+    color: #8994a5;
+    font-size: .62rem;
+    font-weight: 600;
+}
+
+.statusPercentage {
+    color: #172033;
+    font-weight: 800;
+}
+
+.statusTotalSummary {
+    margin: 10px 0 0;
+    color: #7b8798;
+    font-size: .64rem;
+    line-height: 1.4;
+    text-align: right;
+}
+
+.statusTotalSummary strong {
+    color: #526078;
+    font-variant-numeric: tabular-nums;
+}
+
+.statusTooltip {
+    display: grid;
+    gap: 3px;
+    min-width: 132px;
+    padding: 10px 12px;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .98);
+    box-shadow: 0 10px 26px rgba(28, 54, 92, .12);
+    color: #526078;
+    font-size: .71rem;
+    line-height: 1.35;
+}
+
+.statusTooltip strong {
+    margin-bottom: 2px;
+    color: #172033;
+    font-size: .77rem;
+}
+
+.groupHeading { grid-column: 1 / -1; min-width: 0; padding: 8px 2px 0; }
+.groupHeading span { display: block; margin-bottom: 4px; font-size: .62rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.groupHeading h3 { margin: 0; color: #25334a; font-size: .92rem; font-weight: 720; line-height: 1.4; }
+.groupHeading p { margin: 3px 0 0; color: #64748b; font-size: .75rem; line-height: 1.5; }
+.creationHeading span { color: #2563eb; }
+.scheduleHeading span { color: #13796f; }
 
 .empty {
     display: grid;
@@ -65,8 +201,19 @@
     border-radius: 10px;
     background: #f8fafc;
     color: #64748b;
-    font-size: .87rem;
+    font-size: .81rem;
     text-align: center;
+}
+
+@container (max-width: 1050px) {
+    .statusDistribution {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .statusChartArea {
+        height: 210px;
+    }
 }
 
 @container (max-width: 820px) {
@@ -77,6 +224,8 @@
     .fullWidth {
         grid-column: auto;
     }
+
+    .groupHeading { grid-column: auto; }
 }
 
 @media (max-width: 600px) {
@@ -85,5 +234,9 @@
     }
     .grid { gap: 14px; }
     .chartArea { height: 250px; }
-    .donutArea { height: 220px; }
+    .hourChartArea { height: 250px; }
+    .statusChartArea { height: 210px; }
+    .statusBreakdownHeader,
+    .statusLegendItem { grid-template-columns: minmax(90px, 1fr) auto minmax(54px, auto); gap: 8px; }
+    .statusTotalSummary { text-align: left; }
 }

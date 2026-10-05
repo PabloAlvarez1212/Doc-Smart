@@ -24,7 +24,7 @@ from .views import (
     CambiarContraseñaAutenticadoView,
     PerfilAdminView,
     MetricasSistemaView,
-    EstadisticasSistemaView,
+    EstadisticasPacienteView,
     ExtraerDocumentoRegistroView,
     VerificarDocumentoRegistroView,
 
@@ -55,6 +55,6 @@ urlpatterns = [
     path("perfil/foto/",FotoPerfilPacienteView.as_view(),name="foto-perfil-paciente"),
     path("refresh/",RefreshTokenView.as_view(),name="refresh-token"),
     path("csrf/",CSRFTokenView.as_view(),name="csrf-token"),
-    path("admin/dashboard/metricas/",MetricasSistemaView.as_view(),name="metricas-sistema"),
-    path("admin/dashboard/estadisticas/",EstadisticasSistemaView.as_view()),
+    path('admin/dashboard/metricas/',MetricasSistemaView.as_view(),name='metricas-sistema'),
+    path("pacientes/admin/dashboard/",EstadisticasPacienteView.as_view()),
 ]

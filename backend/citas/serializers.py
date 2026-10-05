@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 from .models import Cita, RecordatorioCita
 
 def msg(campo, articulo='El'):
@@ -100,3 +101,28 @@ class EditarCitaSerializer(serializers.Serializer):
                            error_messages={
                                'invalid': 'La fecha programada no tiene un formato válido'
                            })
+
+class FiltroEstadisticasCitasSerializer(serializers.Serializer):
+    anio = serializers.IntegerField(
+        required=False
+    )
+
+    mes = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=12
+    )
+
+    def validate(self, data):
+        anio = data.get("anio")
+        mes = data.get("mes")
+
+        if mes is not None and anio is None:
+            raise serializers.ValidationError({
+                "anio": "Debes seleccionar un año para filtrar por mes."
+            })
+            
+        if anio is None:
+            data["anio"] = timezone.localdate().year
+            
+        return data
