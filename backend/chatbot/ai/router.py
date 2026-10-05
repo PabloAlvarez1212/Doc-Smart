@@ -142,7 +142,8 @@ PATRON_CONSULTA_MEDICA = re.compile(
     r"s[ií]ntoma|fiebre|dolor|mareo|n[aá]usea|v[oó]mito|"
     r"diagn[oó]stico|medicamento|acetaminof[eé]n|paracetamol|"
     r"dosis|alergia|peso|edad|a[nñ]os|me siento|me duele|"
-    r"tom[eé]|tomado|enfermedad|temperatura"
+    r"tom[eé]|tomado|tomar|enfermedad|temperatura|"
+    r"mejorarme|sentirme mejor"
     r")\b",
     re.IGNORECASE,
 )
@@ -269,7 +270,10 @@ def procesar_mensaje(historial, mensaje, streaming=False):
         response = obtener_cliente().responses.create(
             model=OPENAI_MODEL,
             instructions=instruccion_router,
-            input=convertir_historial(contents),
+            input=[
+                {"role": "developer", "content": "Devuelve únicamente un objeto JSON válido."},
+                *convertir_historial(contents),
+            ],
             text={"format": {"type": "json_object"}},
             max_output_tokens=600,
             store=False,

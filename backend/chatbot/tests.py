@@ -543,6 +543,7 @@ class RouterTests(SimpleTestCase):
         self.assertEqual(
             generate_content.return_value.responses.create.call_args.kwargs["input"],
             [
+                {"role": "developer", "content": "Devuelve únicamente un objeto JSON válido."},
                 {"role": "user", "content": [{"type": "input_text", "text": "Quiero una cita con Edilma Echeverry"}]},
                 {"role": "user", "content": [{"type": "input_text", "text": "¿Está disponible?"}]},
             ],

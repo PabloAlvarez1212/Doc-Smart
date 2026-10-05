@@ -20,7 +20,7 @@ from chatbot.ai.context_manager import (
 )
 from chatbot.ai.memory_extractor import extraer_y_guardar_memoria
 
-from chatbot.ai.router import procesar_mensaje
+from chatbot.ai.router import PATRON_CONSULTA_MEDICA,procesar_mensaje
 
 from chatbot.ai.tool_manager import ToolManager
 
@@ -95,12 +95,12 @@ class ConversationManager:
             nombre = perfil.get("nombre")
             if idioma == "en":
                 saludo = f"Hello, {nombre}!" if nombre else "Hello!"
-                return f"{saludo} 👋 I'm Bymax. How can I help you today?"
+                return f"{saludo}  I'm Bymax. How can I help you today?"
             if idioma == "el":
                 saludo = f"Γεια σας, {nombre}!" if nombre else "Γεια σας!"
-                return f"{saludo} 👋 Είμαι ο Bymax. Πώς μπορώ να σας βοηθήσω σήμερα;"
+                return f"{saludo}  Είμαι ο Bymax. Πώς μπορώ να σας βοηθήσω σήμερα;"
             saludo = f"¡Hola, {nombre}!" if nombre else "¡Hola!"
-            return f"{saludo} 👋 Soy Bymax. ¿En qué puedo ayudarte hoy?"
+            return f"{saludo}  Soy Bymax. ¿En qué puedo ayudarte hoy?"
 
         if solicita_buscar_medicos(state.mensaje):
 
@@ -116,13 +116,14 @@ class ConversationManager:
             ConversationManager._resolver(chat, state)
             return state.respuesta
 
+        if (
+            chat.estado_conversacion != "normal"
+            and PATRON_CONSULTA_MEDICA.search(state.mensaje)
+        ):
+            ConversationFlow.finalizar(chat)
 
         if chat.estado_conversacion != "normal":
-
-            resultado = FlowManager.continuar(
-                chat,
-                state.mensaje
-            )
+            resultado = FlowManager.continuar(chat, state.mensaje)
 
             if isinstance(resultado, str):
                 return LanguageService.adaptar(resultado, state.mensaje)
