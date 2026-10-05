@@ -1,0 +1,9 @@
+.list { min-width: 0; border-top: 1px solid #dce5ee; }
+.empty { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 16px; min-height: 166px; padding: 28px 24px; border-top: 1px solid #dce5ee; border-bottom: 1px solid #dce5ee; background: #fff; }
+.empty > span { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 12px; color: #17664e; background: #dff0e9; }
+.empty h3 { margin: 0; color: #26354a; font-size: .98rem; line-height: 1.35; }
+.empty p { max-width: 600px; margin: 6px 0 0; color: #657489; font-size: .84rem; line-height: 1.5; }
+
+@media (max-width: 430px) {
+    .empty { grid-template-columns: minmax(0, 1fr); padding: 25px 4px; }
+}

@@ -1,212 +1,146 @@
 "use client";
 
 import { useState } from "react";
-
-import Hero from "../../../../components/doctor/MyAppointments/Hero/Hero";
-import HeaderAppointments from "../../../../components/doctor/MyAppointments/HeaderAppointments/HeaderAppointments";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { m, useReducedMotion } from "motion/react";
+import DoctorAppointmentList from "../../../../components/doctor/MyAppointments/AppointmentList/DoctorAppointmentList";
 import FilterAppointments from "../../../../components/doctor/MyAppointments/FilterAppointments/FilterAppointments";
-import AppointmentList from "../../../../components/patient/MyAppointments/AppointmentList/Appointment";
-import useAppointments from "../../../../components/doctor/MyAppointments/useAppointments";
+import HeaderAppointments from "../../../../components/doctor/MyAppointments/HeaderAppointments/HeaderAppointments";
+import Hero from "../../../../components/doctor/MyAppointments/Hero/Hero";
 import ReprogramAppointment from "../../../../components/doctor/MyAppointments/ReprogramAppointmets/ReprogramAppointments";
+import useAppointments from "../../../../components/doctor/MyAppointments/useAppointments";
+import Pagination from "../../../../components/ui/Pagination/Pagination";
+import {
+    getAppointmentsResultKey,
+    getAppointmentsResultMotion,
+    hasActiveAppointmentFilters,
+} from "../../../../components/ui/AppointmentCard/appointmentViewState";
 import styles from "./myAppointments.module.css";
 
-
 export default function MyAppointments() {
-
-    // ==========================================
-    // MODAL REPROGRAMAR
-    // ==========================================
-
-    const [
-        citaSeleccionada,
-        setCitaSeleccionada
-    ] = useState(null);
-
-
-    const [
-        modalReprogramar,
-        setModalReprogramar
-    ] = useState(false);
-
-
-    // ==========================================
-    // HOOK CITAS
-    // ==========================================
-
+    const reduceMotion = useReducedMotion();
+    const [citaSeleccionada, setCitaSeleccionada] = useState(null);
+    const [modalReprogramar, setModalReprogramar] = useState(false);
     const {
-
         citas,
         resumen,
-
         estado,
         paciente,
         fecha,
-
         cambiarEstado,
         cambiarPaciente,
         cambiarFecha,
         limpiarFiltros,
-
         loading,
         loadingResumen,
         error,
-
+        paginaActual,
+        totalPaginas,
+        totalRegistros,
+        cambiarPagina,
         cancelarCita,
         confirmarCita,
         completarCita,
         reprogramarCita,
-
+        recargarCitas,
     } = useAppointments();
 
+    const hasActiveFilters = hasActiveAppointmentFilters(estado, { paciente, fecha });
+    const resultKey = getAppointmentsResultKey(citas, totalRegistros);
+    const resultMotion = getAppointmentsResultMotion(reduceMotion);
 
-    // ==========================================
-    // ABRIR MODAL
-    // ==========================================
-
-    const abrirReprogramacion = (
-        cita
-    ) => {
-
-        setCitaSeleccionada(
-            cita
-        );
-
-        setModalReprogramar(
-            true
-        );
-
+    const abrirReprogramacion = (cita) => {
+        setCitaSeleccionada(cita);
+        setModalReprogramar(true);
     };
-
-
-    // ==========================================
-    // CERRAR MODAL
-    // ==========================================
 
     const cerrarReprogramacion = () => {
-
-        setModalReprogramar(
-            false
-        );
-
-        setCitaSeleccionada(
-            null
-        );
-
+        setModalReprogramar(false);
+        setCitaSeleccionada(null);
     };
 
-
-    // ==========================================
-    // RENDER
-    // ==========================================
-
     return (
-
         <main className={styles.page}>
+            <Hero resumen={resumen} loading={loadingResumen} />
 
-            {/* HERO */}
-
-            <Hero
-                resumen={resumen}
-                loading={loadingResumen}
-            />
-
-
-            {/* ESTADOS */}
-
-            <HeaderAppointments
-                estado={estado}
-                cambiarEstado={
-                    cambiarEstado
-                }
-                resumen={resumen}
-            />
-
-
-            {/* FILTROS */}
-
-            <FilterAppointments
-                paciente={paciente}
-                fecha={fecha}
-                cambiarPaciente={
-                    cambiarPaciente
-                }
-                cambiarFecha={
-                    cambiarFecha
-                }
-                limpiarFiltros={
-                    limpiarFiltros
-                }
-            />
-
-
-            {/* ERROR */}
-
-            {error && (
-
-                <p>
-                    {error}
-                </p>
-
-            )}
-
-
-            {/* LOADING */}
-
-            {!error && loading && (
-
-                <p>
-                    Cargando citas...
-                </p>
-
-            )}
-
-
-            {/* LISTADO */}
-
-            {!error && !loading && (
-
-                <AppointmentList
-                    citas={citas}
-                    rol="medico"
-                    cancelarCita={
-                        cancelarCita
-                    }
-                    confirmarCita={
-                        confirmarCita
-                    }
-                    completarCita={
-                        completarCita
-                    }
-                    reprogramarCita={
-                        abrirReprogramacion
-                    }
+            <section className={styles.workspace} aria-label="Gestión de agenda médica">
+                <HeaderAppointments estado={estado} cambiarEstado={cambiarEstado} resumen={resumen} />
+                <FilterAppointments
+                    paciente={paciente}
+                    fecha={fecha}
+                    cambiarPaciente={cambiarPaciente}
+                    cambiarFecha={cambiarFecha}
+                    limpiarFiltros={limpiarFiltros}
                 />
+            </section>
 
-            )}
+            <section className={styles.results} aria-labelledby="doctor-appointments-results-title" aria-busy={loading}>
+                <div className={styles.resultsHeader}>
+                    <div>
+                        <h2 id="doctor-appointments-results-title">Agenda de consultas</h2>
+                        <p aria-live="polite">
+                            {loading && !citas.length
+                                ? "Consultando tu agenda"
+                                : `${totalRegistros} ${totalRegistros === 1 ? "cita encontrada" : "citas encontradas"}`}
+                        </p>
+                    </div>
+                    {loading && citas.length > 0 && <span className={styles.updating} role="status">Actualizando</span>}
+                </div>
 
+                {error ? (
+                    <div className={styles.errorState} role="alert">
+                        <span aria-hidden="true"><AlertCircle size={24} /></span>
+                        <div>
+                            <h3>No pudimos cargar tu agenda</h3>
+                            <p>Revisa tu conexión e inténtalo nuevamente.</p>
+                        </div>
+                        <button type="button" onClick={recargarCitas}>
+                            <RefreshCw size={16} aria-hidden="true" /> Reintentar
+                        </button>
+                    </div>
+                ) : loading && !citas.length ? (
+                    <AppointmentSkeleton />
+                ) : (
+                    <m.div key={resultKey} {...resultMotion}>
+                        <DoctorAppointmentList
+                            citas={citas}
+                            hasActiveFilters={hasActiveFilters}
+                            cancelarCita={cancelarCita}
+                            confirmarCita={confirmarCita}
+                            completarCita={completarCita}
+                            reprogramarCita={abrirReprogramacion}
+                        />
+                    </m.div>
+                )}
 
-            {/* MODAL REPROGRAMAR */}
+                {!error && citas.length > 0 && (
+                    <Pagination
+                        paginaActual={paginaActual}
+                        totalPaginas={totalPaginas}
+                        totalRegistros={totalRegistros}
+                        onCambiarPagina={cambiarPagina}
+                        cargando={loading}
+                        variant="appointments"
+                    />
+                )}
+            </section>
 
             {citaSeleccionada && (
-
                 <ReprogramAppointment
-                    abierto={
-                        modalReprogramar
-                    }
-                    onCerrar={
-                        cerrarReprogramacion
-                    }
-                    cita={
-                        citaSeleccionada
-                    }
-                    reprogramarCita={
-                        reprogramarCita
-                    }
+                    abierto={modalReprogramar}
+                    onCerrar={cerrarReprogramacion}
+                    cita={citaSeleccionada}
+                    reprogramarCita={reprogramarCita}
                 />
-
             )}
-
         </main>
+    );
+}
 
+function AppointmentSkeleton() {
+    return (
+        <div className={styles.skeletonList} role="status" aria-label="Cargando citas">
+            {[0, 1, 2].map((item) => <span key={item} />)}
+        </div>
     );
 }

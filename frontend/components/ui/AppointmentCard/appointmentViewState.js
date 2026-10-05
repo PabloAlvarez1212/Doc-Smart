@@ -1,6 +1,5 @@
 export function hasActiveAppointmentFilters(status, filters = {}) {
     if (status && status !== "todas") return true;
-
     return Object.values(filters).some((value) => String(value ?? "").trim() !== "");
 }
 
@@ -8,7 +7,6 @@ export function getAppointmentsResultKey(appointments = [], totalRecords = 0) {
     const ids = Array.isArray(appointments)
         ? appointments.map((appointment) => appointment?.id).filter((id) => id != null)
         : [];
-
     return `${Math.max(0, Number(totalRecords) || 0)}-${ids.length ? ids.join("-") : "empty"}`;
 }
 
