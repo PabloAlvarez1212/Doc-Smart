@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from django.utils import timezone
+from django.db.models import Q
 
 from citas.models import Cita
 from medicos.models import (
@@ -93,7 +94,8 @@ def intervalosSeSolapan(
 def obtenerCitasBloqueantes(
     medico,
     inicio_dia,
-    fin_dia
+    fin_dia,
+    excluir_cita_id=None,
 ):
     """
     Obtiene las citas potencialmente bloqueantes del día.
@@ -108,8 +110,14 @@ def obtenerCitasBloqueantes(
         .filter(
             id_medico=medico,
             fecha_programada__lt=fin_dia,
-            fecha_programada__gte=inicio_dia,
         )
+        .filter(
+            Q(fecha_final__gt=inicio_dia)
+            | Q(fecha_final__isnull=True, fecha_programada__gt=(
+                inicio_dia - timedelta(minutes=medico.duracion_consulta)
+            ))
+        )
+        .exclude(pk=excluir_cita_id)
         .exclude(
             id_estado__nombre__iexact="cancelada"
         )
@@ -120,7 +128,8 @@ def obtenerCitasBloqueantes(
 
 def generarSlotsDisponibles(
     medico,
-    fecha
+    fecha,
+    excluir_cita_id=None,
 ):
     """
     Genera los slots realmente disponibles de un médico
@@ -154,7 +163,8 @@ def generarSlotsDisponibles(
     citas = obtenerCitasBloqueantes(
         medico,
         inicio_dia,
-        fin_dia
+        fin_dia,
+        excluir_cita_id=excluir_cita_id,
     )
 
     ahora = timezone.now()
@@ -245,20 +255,25 @@ def generarSlotsDisponibles(
 
 def esHorarioDisponible(
     medico,
-    fecha_programada
+    fecha_programada,
+    excluir_cita_id=None,
 ):
     """
     Comprueba si fecha_programada corresponde exactamente
     a uno de los slots actualmente disponibles del médico.
     """
 
-    fecha = timezone.localtime(
-        fecha_programada
-    ).date()
+    if not isinstance(fecha_programada, datetime) or timezone.is_naive(fecha_programada):
+        return False
+    fecha_local = timezone.localtime(fecha_programada)
+    if fecha_local.second or fecha_local.microsecond:
+        return False
+    fecha = fecha_local.date()
 
     slots = generarSlotsDisponibles(
         medico,
-        fecha
+        fecha,
+        excluir_cita_id=excluir_cita_id,
     )
 
     hora_solicitada = timezone.localtime(

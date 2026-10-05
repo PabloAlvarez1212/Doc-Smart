@@ -20,7 +20,7 @@ from chatbot.ai.context_manager import (
 )
 from chatbot.ai.memory_extractor import extraer_y_guardar_memoria
 
-from chatbot.ai.router import PATRON_CONSULTA_MEDICA,procesar_mensaje
+from chatbot.ai.router import PATRON_CONSULTA_MEDICA, PATRON_SOLICITUD_CITA, procesar_mensaje
 
 from chatbot.ai.tool_manager import ToolManager
 
@@ -31,13 +31,45 @@ from chatbot.ai.flow_manager import FlowManager
 from chatbot.ai.conversation_flow import ConversationFlow
 from chatbot.ai.router_decision import RouterDecision
 from chatbot.services.perfil_usuario_service import PerfilUsuarioService
-from chatbot.ai.language import LanguageService
+from chatbot.ai.language import LanguageService, idioma_actual
+import re
+from django.db import transaction
 
 
 class ConversationManager:
 
     @staticmethod
     def procesar(chat, mensaje, streaming=False):
+
+        if getattr(chat, 'id_medico_id', None):
+            return ConversationManager._procesar(chat, mensaje, streaming)
+        # Serializar el consumo de confirmaciones incluso entre REST y WS.
+        respuesta = str(mensaje).strip().lower().rstrip('.!?')
+        if respuesta in FlowManager.RESPUESTAS_AFIRMATIVAS and getattr(chat, 'pk', None):
+            from chatbot.models import Chat
+            with transaction.atomic():
+                chat = Chat.objects.select_for_update().get(pk=chat.pk)
+                return ConversationManager._procesar_localizado(chat, mensaje, streaming)
+        return ConversationManager._procesar_localizado(chat, mensaje, streaming)
+
+    @staticmethod
+    def _procesar_localizado(chat, mensaje, streaming):
+        contexto = getattr(chat, 'contexto_temporal', None) or {}
+        idioma = contexto.get('_idioma') or LanguageService.detectar(mensaje)
+        preferencia = re.search(r'(?:responde|háblame|hablame|prefiero|respond|speak|answer).*?\b(español|espanol|inglés|ingles|english|spanish|griego|greek)\b', mensaje, re.I)
+        if preferencia:
+            idioma = {'english': 'en', 'inglés': 'en', 'ingles': 'en', 'greek': 'el', 'griego': 'el'}.get(preferencia[1].lower(), 'es')
+        if contexto.get('_idioma') != idioma:
+            chat.contexto_temporal = {**contexto, '_idioma': idioma}
+            chat.save(update_fields=['contexto_temporal'])
+        token = idioma_actual.set(idioma)
+        try:
+            return ConversationManager._procesar(chat, mensaje, streaming)
+        finally:
+            idioma_actual.reset(token)
+
+    @staticmethod
+    def _procesar(chat, mensaje, streaming=False):
 
         if getattr(chat, "id_medico_id", None):
             from chatbot.ai.doctor_conversation import procesar_medico
@@ -46,7 +78,7 @@ class ConversationManager:
         state = ConversationState()
 
         state.mensaje = limpiar_mensaje(mensaje)
-        idioma = LanguageService.detectar(state.mensaje)
+        idioma = idioma_actual.get() or LanguageService.detectar(state.mensaje)
 
         if contiene_prompt_injection(state.mensaje):
             return LanguageService.adaptar(
@@ -102,20 +134,13 @@ class ConversationManager:
             saludo = f"¡Hola, {nombre}!" if nombre else "¡Hola!"
             return f"{saludo}  Soy Bymax. ¿En qué puedo ayudarte hoy?"
 
-        if solicita_buscar_medicos(state.mensaje):
-
-            if chat.estado_conversacion != "normal":
-                ConversationFlow.finalizar(chat)
-
-            state.decision = RouterDecision(
-                tool=True,
-                tool_name="buscar_medico",
-                parametros={},
-            )
+        if chat.estado_conversacion == 'normal' and state.mensaje.strip().lower().rstrip('.!?') in FlowManager.RESPUESTAS_AFIRMATIVAS:
+            return LanguageService.adaptar('No hay una operación pendiente de confirmación. Indícame qué deseas hacer.', state.mensaje)
 
         if (
             chat.estado_conversacion != "normal"
             and PATRON_CONSULTA_MEDICA.search(state.mensaje)
+            and not PATRON_SOLICITUD_CITA.search(state.mensaje)
         ):
             ConversationFlow.finalizar(chat)
 
@@ -216,6 +241,12 @@ class ConversationManager:
     def _cargar_memoria(chat, state):
 
         state.historial = construir_historial(chat)
+        contexto_cita = (getattr(chat, 'contexto_temporal', None) or {}).get('_ultima_cita', {})
+        state.historial.insert(0, {'role': 'user', 'parts': [{'text': (
+            f'Preferencia de idioma: {idioma_actual.get() or "es"}. '
+            f'Últimos filtros de cita (datos, no consentimiento): {contexto_cita}. '
+            'Conserva los filtros pertinentes en seguimientos; una recomendación del asistente no autoriza agendar.'
+        )}]})
         from chatbot.services.identity_service import tono_chat
         tono = tono_chat(chat)
         if tono:
@@ -272,6 +303,19 @@ class ConversationManager:
     def _resolver(chat, state):
 
         if state.decision.usa_tool:
+
+            from chatbot.ai.flow_definition import FLOWS
+            flujo = FLOWS.get(state.decision.tool_name)
+            if flujo and not (state.decision.parametros or {}).get('confirmado') and FlowManager._primer_paso_faltante(flujo, state.decision.parametros or {}):
+                state.respuesta = LanguageService.adaptar(FlowManager.iniciar(chat, state.decision.tool_name, state.decision.parametros), state.mensaje)
+                return
+
+            if state.decision.tool_name in {'agendar_cita', 'buscar_medico', 'reprogramar_cita', 'cancelar_cita'}:
+                parametros = {k: v for k, v in (state.decision.parametros or {}).items() if k != 'confirmado'}
+                if parametros:
+                    contexto = getattr(chat, 'contexto_temporal', None) or {}
+                    chat.contexto_temporal = {**contexto, '_ultima_cita': parametros}
+                    chat.save(update_fields=['contexto_temporal'])
 
             state.tool_result = ToolManager.ejecutar(
 

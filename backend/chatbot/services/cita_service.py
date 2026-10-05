@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 import re
 import unicodedata
@@ -48,6 +48,15 @@ class CitaService:
         if isinstance(valor, datetime):
             fecha = valor
         elif isinstance(valor, str):
+            # Una fecha sin hora no autoriza a inventar un slot a medianoche.
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}", valor.strip()):
+                return None
+            relativo = re.match(r"^(pasado mañana|mañana|hoy)\b(.*)$", valor.strip(), re.I)
+            if relativo:
+                dias = {"hoy": 0, "mañana": 1, "pasado mañana": 2}[relativo[1].lower()]
+                dia = timezone.localdate() + timedelta(days=dias)
+                mes = next(nombre for nombre, numero in CitaService.MESES.items() if numero == dia.month)
+                valor = f"{dia.day} de {mes} de {dia.year}{relativo[2]}"
             try:
                 fecha = parse_datetime(valor.strip())
             except ValueError:
@@ -78,8 +87,8 @@ class CitaService:
         return fecha
 
     @staticmethod
-    def horario_disponible(medico, fecha):
-        return esHorarioDisponible(medico, fecha)
+    def horario_disponible(medico, fecha, excluir_cita_id=None):
+        return esHorarioDisponible(medico, fecha, excluir_cita_id=excluir_cita_id)
     
     @staticmethod
     def _parsear_fecha_espanol(valor):

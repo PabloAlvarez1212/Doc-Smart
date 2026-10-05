@@ -4,7 +4,7 @@ import re
 
 from django.utils import timezone
 
-from chatbot.ai.filters import solicita_buscar_medicos
+from chatbot.ai.filters import normalizar_intencion
 from chatbot.ai.model_config import OPENAI_MODEL
 from chatbot.ai.openai_service import (
     convertir_historial,
@@ -217,7 +217,10 @@ def procesar_mensaje(historial, mensaje, streaming=False):
     menciona_fecha = bool(PATRON_FECHA.search(mensaje_actual))
 
     if (
-        solicita_buscar_medicos(mensaje_actual)
+        normalizar_intencion(mensaje_actual) in {
+            'muestrame todos los medicos disponibles', 'busca medicos',
+            'buscar medicos', 'muestrame los medicos',
+        }
         and not menciona_gestion_cita
         and not menciona_fecha
     ):
@@ -228,7 +231,7 @@ def procesar_mensaje(historial, mensaje, streaming=False):
         )
 
     # Copia el historial para evitar modificar la lista original.
-    contents = list(historial or [])[-12:]
+    contents = list(historial or [])
 
     # ConversationManager puede haber incluido ya el mensaje actual.
     if mensaje_actual and _ultimo_texto(contents) != mensaje_actual:
@@ -300,6 +303,12 @@ def procesar_mensaje(historial, mensaje, streaming=False):
 
     if not isinstance(parametros, dict):
         parametros = {}
+    # La confirmación procede exclusivamente del estado pendiente del backend.
+    parametros = {
+        clave: valor for clave, valor in parametros.items()
+        if clave in {'id_medico', 'nombre', 'apellido', 'especialidad', 'ciudad',
+                     'fecha', 'fecha_programada', 'id_cita', 'tipo'}
+    }
 
     if accion == "flujo":
         nombre = decision.get("nombre")

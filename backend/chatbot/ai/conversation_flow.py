@@ -7,7 +7,7 @@ class ConversationFlow:
     def iniciar(chat, accion):
 
         chat.estado_conversacion = accion
-        chat.contexto_temporal = {}
+        chat.contexto_temporal = {k: v for k, v in (chat.contexto_temporal or {}).items() if k.startswith('_')}
 
         chat.save(
             update_fields=[
@@ -30,14 +30,14 @@ class ConversationFlow:
     @staticmethod
     def obtener(chat):
 
-        return chat.contexto_temporal or {}
+        return {k: v for k, v in (chat.contexto_temporal or {}).items() if not k.startswith('_')}
 
     @staticmethod
     def finalizar(chat):
 
         chat.estado_conversacion = "normal"
 
-        chat.contexto_temporal = {}
+        chat.contexto_temporal = {k: v for k, v in (chat.contexto_temporal or {}).items() if k.startswith('_')}
 
         chat.save(
             update_fields=[

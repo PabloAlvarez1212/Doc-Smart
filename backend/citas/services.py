@@ -652,18 +652,14 @@ def editarCitaService(id, datos, solicitante):
     if nueva_fecha:
         if timezone.is_naive(nueva_fecha):
             return 'La fecha programada debe incluir zona horaria', 400
-        if nueva_fecha < timezone.now():
-            return 'La fecha programada debe ser futura', 400
+        if nueva_fecha < timezone.now() + timedelta(hours=1):
+            return 'La cita debe programarse con al menos 1 hora de anticipación', 400
 
-        if Cita.objects.filter(
-            id_medico=cita.id_medico,
-            fecha_programada=nueva_fecha
-        ).exclude(
-            id=cita.id
-        ).exists():
-            return 'El médico ya tiene una cita en esa fecha', 400
+        if not esHorarioDisponible(cita.id_medico, nueva_fecha, excluir_cita_id=cita.pk):
+            return 'El horario seleccionado ya no está disponible', 400
 
         cita.fecha_programada = nueva_fecha
+        cita.fecha_final = nueva_fecha + timedelta(minutes=cita.id_medico.duracion_consulta)
         estado_reprogramado = Estado.objects.filter(
             nombre__iexact='reprogramada'
         ).first()

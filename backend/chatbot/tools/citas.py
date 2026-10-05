@@ -350,14 +350,14 @@ class ReprogramarCitaTool(BaseTool):
                 "data": {},
             }
 
-        if CitaService.medico_tiene_cita(
-            cita.id_medico_id,
+        if not CitaService.horario_disponible(
+            cita.id_medico,
             fecha,
             excluir_cita_id=cita.id,
         ):
             return {
                 "success": False,
-                "message": "El médico ya tiene una cita en esa fecha y hora.",
+                "message": "Ese horario no está disponible en la agenda del médico. No se reprogramó la cita.",
                 "data": {},
             }
 
@@ -367,7 +367,7 @@ class ReprogramarCitaTool(BaseTool):
                 "requires_confirmation": True,
                 "message": (
                     f"¿Confirmas reprogramar la cita {cita.id} para el "
-                    f"{fecha.strftime('%d/%m/%Y a las %H:%M')}?"
+                    f"{timezone.localtime(fecha).strftime('%d/%m/%Y a las %H:%M')}?"
                 ),
                 "data": {
                     "id_cita": cita.id,
@@ -386,7 +386,7 @@ class ReprogramarCitaTool(BaseTool):
             "message": (
                 "La cita fue reprogramada correctamente."
                 if status == 200
-                else str(resultado)
+                else f"No se reprogramó la cita. {resultado}"
             ),
             "data": resultado if status == 200 else {},
         }
@@ -441,7 +441,7 @@ class CancelarCitaTool(BaseTool):
                 "requires_confirmation": True,
                 "message": (
                     f"¿Confirmas que deseas cancelar la cita {cita.id} del "
-                    f"{cita.fecha_programada.strftime('%d/%m/%Y a las %H:%M')}?"
+                    f"{timezone.localtime(cita.fecha_programada).strftime('%d/%m/%Y a las %H:%M')}?"
                 ),
                 "data": {"id_cita": cita.id},
             }
@@ -450,6 +450,6 @@ class CancelarCitaTool(BaseTool):
 
         return {
             "success": status == 200,
-            "message": str(resultado),
+            "message": str(resultado) if status == 200 else f"No se canceló la cita. {resultado}",
             "data": {"id_cita": cita.id} if status == 200 else {},
         }

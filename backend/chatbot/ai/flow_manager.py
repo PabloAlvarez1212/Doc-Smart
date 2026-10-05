@@ -13,6 +13,8 @@ class FlowManager:
         "confirmo",
         "acepto",
         "de acuerdo",
+        "yes",
+        "confirm",
     }
 
     RESPUESTAS_NEGATIVAS = {
@@ -77,16 +79,10 @@ class FlowManager:
         paso = FlowManager._primer_paso_faltante(flujo, contexto)
 
         if paso is not None:
-
-            campo = paso["campo"]
-
-            ConversationFlow.guardar(
-                chat,
-                {
-                    campo: mensaje
-                }
-            )
-
+            parametros = FlowManager._extraer_seguimiento(chat, mensaje, chat.estado_conversacion, contexto)
+            if not parametros:
+                return paso['pregunta']
+            ConversationFlow.guardar(chat, parametros)
             contexto = ConversationFlow.obtener(chat)
 
         paso = FlowManager._primer_paso_faltante(flujo, contexto)
@@ -114,7 +110,29 @@ class FlowManager:
             ):
                 return paso
 
+            if paso['campo'] == 'fecha':
+                from chatbot.services.cita_service import CitaService
+                fecha = contexto.get('fecha') or contexto.get('fecha_programada')
+                if CitaService.normalizar_fecha(fecha) is None:
+                    return {**paso, 'pregunta': '¿Qué hora prefieres para esa fecha?' if fecha else paso['pregunta']}
+
         return None
+
+    @staticmethod
+    def _extraer_seguimiento(chat, mensaje, accion, contexto):
+        from chatbot.ai.router import procesar_mensaje
+        from chatbot.ai.memory import construir_historial
+        historial = construir_historial(chat) if getattr(chat, 'pk', None) else []
+        historial.append({'role': 'user', 'parts': [{'text': (
+            f'Datos de la operación pendiente {accion}: {contexto}. '
+            'Extrae únicamente los campos que aporta el siguiente mensaje y conserva los restantes. '
+            'No hay consentimiento para ejecutar todavía.'
+        )}]})
+        decision = procesar_mensaje(historial, mensaje)
+        nombre = decision.tool_name if decision.usa_tool else decision.iniciar_flujo
+        if nombre != accion:
+            return {}
+        return {k: v for k, v in (decision.parametros or {}).items() if k != 'confirmado' and v not in (None, '')}
 
     @staticmethod
     def _continuar_confirmacion(chat, mensaje):
@@ -126,6 +144,11 @@ class FlowManager:
             return "Entendido. La operación fue cancelada y no hice cambios."
 
         if respuesta not in FlowManager.RESPUESTAS_AFIRMATIVAS:
+            contexto = ConversationFlow.obtener(chat)
+            accion = chat.estado_conversacion.split(':', 1)[1]
+            parametros = FlowManager._extraer_seguimiento(chat, mensaje, accion, contexto)
+            if parametros:
+                return FlowManager.iniciar(chat, accion, {**contexto, **parametros})
             return "Por seguridad, responde «sí» para confirmar o «no» para cancelar."
 
         tool_name = chat.estado_conversacion.split(":", 1)[1]
@@ -179,8 +202,11 @@ class FlowManager:
         tool_name = chat.estado_conversacion.split(":", 1)[1]
         parametros = {
             "id_medico": seleccion["id_medico"],
-            "fecha": contexto["fecha"],
+            "fecha": contexto.get("fecha"),
         }
+
+        if not parametros['fecha']:
+            return FlowManager.iniciar(chat, tool_name, parametros)
 
         ConversationFlow.finalizar(chat)
 

@@ -366,6 +366,33 @@ class CopilotoWebSocketTests(TransactionTestCase):
     def setUpTestData(cls):
         fixtures.BymaxMedicoTests.setUpTestData.__func__(cls)
 
+    @patch('chatbot.ai.conversation_manager.procesar_mensaje')
+    def test_peticion_incompleta_pide_fecha_y_conserva_socket(self, router):
+        from chatbot.ai.router_decision import RouterDecision
+        self.chat = Chat.objects.create(id_usuario=self.paciente)
+        router.return_value = RouterDecision(tool=True, tool_name='agendar_cita', parametros={'id_medico': self.medico.pk})
+
+        async def conversar():
+            async def application(scope, receive, send):
+                scope.update(user=self.paciente, url_route={'kwargs': {'id_chat': self.chat.pk}})
+                await BymaxConsumer.as_asgi()(scope, receive, send)
+            socket = WebsocketCommunicator(application, '/ws/chatbot/')
+            self.assertTrue((await socket.connect())[0])
+            await socket.receive_json_from()
+            await socket.send_json_to({'mensaje': 'Agenda una cita', 'request_id': str(uuid4())})
+            while True:
+                respuesta = await socket.receive_json_from(timeout=5)
+                if respuesta['tipo'] == 'fin':
+                    self.assertIn('fecha', respuesta['respuesta'])
+                    break
+            await socket.send_json_to({'mensaje': ''})
+            self.assertEqual((await socket.receive_json_from())['tipo'], 'error')
+            await socket.disconnect()
+        async_to_sync(conversar)()
+        self.chat.refresh_from_db()
+        self.assertEqual(self.chat.estado_conversacion, 'agendar_cita')
+        self.assertEqual(self.chat.contexto_temporal['id_medico'], self.medico.pk)
+
     def test_websocket_repite_turno_rest_sin_guardar_otra_vez(self):
         data = {"mensaje": "Mis próximas citas", "request_id": str(uuid4())}
         self.request(ChatbotResponderView, self.medico, "post", data, id_chat=self.chat.pk)

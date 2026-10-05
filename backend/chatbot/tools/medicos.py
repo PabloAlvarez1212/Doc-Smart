@@ -1,6 +1,7 @@
 from chatbot.tools.base_tool import BaseTool
 from chatbot.services.medico_service import MedicoService
 from chatbot.ai.language import LanguageService
+from chatbot.services.cita_service import CitaService
 
 
 class BuscarMedicoTool(BaseTool):
@@ -37,7 +38,14 @@ class BuscarMedicoTool(BaseTool):
             ciudad=ciudad
         )
 
-        if not medicos.exists():
+        fecha = parametros.get('fecha') or parametros.get('fecha_programada')
+        if fecha:
+            fecha = CitaService.normalizar_fecha(fecha)
+            if fecha is None:
+                return 'Necesito la fecha y hora para comprobar la disponibilidad de esos médicos.'
+            medicos = [medico for medico in medicos if CitaService.horario_disponible(medico, fecha)]
+
+        if not (bool(medicos) if isinstance(medicos, list) else medicos.exists()):
 
             return LanguageService.elegir(idioma,
                 "No encontré médicos con los criterios indicados.",
