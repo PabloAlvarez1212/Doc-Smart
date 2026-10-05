@@ -20,7 +20,7 @@ function normalizarMensaje(item) {
     resultado: item.resultado || null, imagen: item.imagen || null, error: Boolean(item.error),
   };
 }
-export default function BymaxAssistant({ modo = "paciente" }) {
+export default function BymaxAssistant({ modo = "paciente", actorKey }) {
   const saludo = modo === "medico" ? "Hola, soy Bymax Médico, tu copiloto clínico y operativo. Selecciona un paciente para revisar tus registros, estudiar diferenciales o preparar borradores para tu valoración." : SALUDO;
   const [ventanaAbierta, setVentanaAbierta] = useState(false);
   const [copilotoAbierto, setCopilotoAbierto] = useState(false);
@@ -49,9 +49,10 @@ export default function BymaxAssistant({ modo = "paciente" }) {
   const voiceRef = useRef(null);
   const abrirVentana = useCallback(() => { setVentanaAbierta(true); }, []);
   const voice = useBymaxVoice({
+    actorKey,
     generateVoice: bymaxService.generarVoz,
     available: Boolean(chatId) && !cargando,
-    onEnd: () => setMensajes(previous => [...previous, normalizarMensaje({remitente:"bot", texto:"De acuerdo. He terminado la conversación."})]),
+    onEnd: () => { setMensaje(""); setMensajes(previous => [...previous, normalizarMensaje({remitente:"bot", texto:"Conversación terminada. Di «Bymax» cuando quieras volver a conversar."})]); },
     onTranscript: text => sendRef.current?.(text),
     onPartial: setMensaje, onWake: abrirVentana,
     isBusy: () => sendingRef.current || cargando || !chatId,

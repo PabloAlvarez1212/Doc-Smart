@@ -55,6 +55,7 @@ from medicos.serializers import (
     ConsultarDiasDisponiblesSerializer,
     GuardarExcepcionFechaSerializer,
     FechaDisponibilidadSerializer,
+    EliminarExcepcionFechaSerializer,
 )
 
 from utils import FiltroPeriodoSerializer
@@ -1201,11 +1202,7 @@ class ExcepcionDisponibilidadFechaView(
 
     def delete(self, request, fecha):
         try:
-            serializer = FechaDisponibilidadSerializer(
-                data={
-                    "fecha": fecha
-                }
-            )
+            serializer = EliminarExcepcionFechaSerializer(data={"fecha": fecha})
 
             if not serializer.is_valid():
                 return respuesta_serializer_invalido(

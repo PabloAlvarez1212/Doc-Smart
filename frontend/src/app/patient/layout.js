@@ -87,7 +87,7 @@ export default function PacienteLayout({ children }) {
                     </main>
                 </div>
 
-                <BymaxAssistant />
+                <BymaxAssistant key={`paciente:${perfil.id}`} actorKey={`paciente:${perfil.id}`} />
             </div>
         </NotificationsProvider>
     );

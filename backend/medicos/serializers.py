@@ -813,20 +813,18 @@ class GuardarExcepcionDisponibilidadSerializer(
 
         return data
 
-
-class ConsultarHorariosDisponiblesSerializer(
-    serializers.Serializer
-):
-
+class EliminarExcepcionFechaSerializer(serializers.Serializer):
+    fecha = serializers.DateField()
+    
+class ConsultarHorariosDisponiblesSerializer(serializers.Serializer):
     fecha = serializers.DateField(
         required=True,
         error_messages={
             "required": "La fecha es obligatoria",
-            "invalid": (
-                "La fecha debe tener formato YYYY-MM-DD"
-            ),
-        }
+            "invalid": "La fecha debe tener formato YYYY-MM-DD",
+        },
     )
+    excluir_cita_id = serializers.IntegerField(required=False, min_value=1)
 
 
 class ConsultarDiasDisponiblesSerializer(

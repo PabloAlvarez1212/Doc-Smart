@@ -229,15 +229,19 @@ export const obtenerDiasDisponiblesMedicoService = async function (
     return response.data;
 };
 
-export const obtenerHorariosDisponiblesMedicoService = async function (
+export const obtenerHorariosDisponiblesMedicoService = async (
     medicoId,
-    fecha
-) {
+    fecha,
+    excluirCitaId
+) => {
     const response = await api.get(
         `/medicos/${medicoId}/horarios-disponibles/`,
         {
             params: {
                 fecha,
+                ...(excluirCitaId != null
+                    ? { excluir_cita_id: excluirCitaId }
+                    : {}),
             },
         }
     );

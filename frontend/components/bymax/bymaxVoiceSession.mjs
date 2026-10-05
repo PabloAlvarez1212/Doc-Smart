@@ -3,7 +3,7 @@ const normalize = text => text.toLowerCase().normalize("NFD").replace(/[\u0300-\
 const wake = /^(?:(?:hey|hola|oye|ey)\s+)?(?:bymax|by max|baymax|bai max|bei max|vaimax)\b[\s,.:;!?¿¡]*/i;
 export function isEndCommand(text) {
   const value = normalize(text.replace(wake, "")).replace(/^(?:por favor\s+)/, "").replace(/\s+por favor$/, "");
-  return /^(?:(?:terminar|termina|finalizar|finaliza|detener|deten|para)(?: la)? conversacion|terminemos|ya terminamos|terminar|deja de escuchar|no quiero continuar|adios bymax|hasta luego bymax)$/.test(value);
+  return /^(?:(?:terminar|termina|finalizar|finaliza|cerrar|cierra|detener|deten|para)(?: la| el)? (?:conversacion|chat)|terminemos|ya terminamos|terminar|deja de escuchar|no quiero continuar|adios bymax|hasta luego bymax)$/.test(value);
 }
 
 export function createVoiceSession({ browser, notify, onTranscript, onPartial, onWake, onEnd, canListen, errors }) {
@@ -13,6 +13,7 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
   let active = false, disposed = false, hidden = Boolean(browser.document?.hidden);
   let phase = "off", running = false, stopping = false, intentional = false;
   let failures = 0, restartTimer, startTimer, stableTimer, quietTimer, requestTimer, endTimer;
+  let conversation = false;
   let mode = "wake", request = "", lastFinal = -1, interim = "", requestDeadline = 0;
   const state = (mic, notice = "", error) => { phase = mic; if (!disposed) notify({mic, active, notice, ...(error !== undefined ? {error} : {})}); };
   const clearCapture = () => { browser.clearTimeout(quietTimer); browser.clearTimeout(requestTimer); };
@@ -39,10 +40,18 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
   }
   function stop(ended = false) {
     active = false;
+    conversation = false;
     pause();
     state(ended ? "ended" : "stopped", ended ? "Conversación terminada. Pulsa Activar para volver a escuchar." : "Micrófono desactivado. Pulsa Activar para escuchar «Bymax».");
   }
-  function terminate() { stop(true); onEnd(); }
+  function terminate() {
+    conversation = false;
+    mode = "wake";
+    pause();
+    onPartial("");
+    onEnd();
+    resume();
+  }
   function fail(code) {
     active = false;
     pause();
@@ -64,7 +73,7 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
     browser.clearTimeout(requestTimer);
     requestTimer = browser.setTimeout(() => {
       if (request.trim()) submit();
-      else { pause(); mode = "wake"; resume(); }
+      else { pause(); resume(); }
     }, Math.max(0, requestDeadline - now()));
   }
   function settleRequest() {
@@ -103,10 +112,11 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
         interim = "";
         const match = text.match(wake);
         // Bare, ambiguous 'terminar' is not acted on in ambient conversation.
-        if ((mode === "request" || match || normalize(text) !== "terminar") && isEndCommand(text)) { terminate(); return; }
+        if ((mode === "request" || match) && isEndCommand(text)) { terminate(); return; }
         if (mode === "wake") {
           if (!match) continue;
           mode = "request";
+          conversation = true;
           requestDeadline = now() + 20000;
           failures = 0;
           request = "";
@@ -115,6 +125,7 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
           onWake();
           armRequest();
         }
+        else if (match) text = text.slice(match[0].length).trim();
         request = [request, text].filter(Boolean).join(" ");
         if (request) { onPartial(request); settleRequest(); }
       }
@@ -143,7 +154,7 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
       clearCapture();
       if (!wasIntentional) failures += 1;
       if (failures >= 4) { fail(); return; }
-      if (wasIntentional || mode !== "request" || now() >= requestDeadline) mode = "wake";
+      mode = conversation ? "request" : "wake";
       state("recovering", "Reconectando la escucha…");
       resume(wasIntentional ? 350 : Math.min(8000, 500 * 2 ** failures));
     };
@@ -153,6 +164,7 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
     if (disposed || !active || hidden || running || !canListen()) return;
     request = interim = "";
     lastFinal = -1;
+    if (mode === "request") requestDeadline = now() + 20000;
     intentional = false;
     try {
       const instance = obtain();
@@ -174,7 +186,8 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
     active = true;
     state("starting", "Preparando escucha…", "");
     failures = 0;
-    mode = nextMode === "dictation" ? "request" : "wake";
+    conversation = nextMode === "dictation";
+    mode = conversation ? "request" : "wake";
     if (mode === "request") requestDeadline = now() + 20000;
     clearTimers();
     if (hidden) { state("suspended", "Vuelve a la página para activar la escucha."); return; }
@@ -183,7 +196,7 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
   function visibility(visible) {
     hidden = !visible;
     if (hidden) { if (active) pause(); }
-    else if (active) { mode = "wake"; resume(); }
+    else if (active) { mode = conversation ? "request" : "wake"; resume(); }
   }
   function dispose() {
     disposed = true;

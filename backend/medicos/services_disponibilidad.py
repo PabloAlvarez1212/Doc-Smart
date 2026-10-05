@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from django.utils import timezone
 from django.db.models import Q
-
+from users.models import Usuario
 from citas.models import Cita
 from medicos.models import (
     Medico,
@@ -288,33 +288,42 @@ def esHorarioDisponible(
 
 def obtenerHorariosDisponiblesService(
     medico_id,
-    fecha
+    fecha,
+    excluir_cita_id=None,
+    solicitante=None,
 ):
-
     medico = (
         Medico.objects
-        .select_related(
-            "id_especialidad"
-        )
-        .filter(
-            id=medico_id
-        )
+        .select_related("id_especialidad")
+        .filter(id=medico_id)
         .first()
     )
-
     if not medico:
         return "Médico no encontrado", 404
 
     if fecha < timezone.localdate():
-        return (
-            "No puedes consultar disponibilidad "
-            "de una fecha pasada",
-            400
+        return "No puedes consultar disponibilidad de una fecha pasada", 400
+
+    if excluir_cita_id is not None:
+        citas = Cita.objects.filter(
+            pk=excluir_cita_id,
+            id_medico_id=medico.id,
         )
+
+        if isinstance(solicitante, Medico):
+            citas = citas.filter(id_medico_id=solicitante.id)
+        elif isinstance(solicitante, Usuario):
+            citas = citas.filter(id_usuario_id=solicitante.id)
+        else:
+            return "No tienes permiso para consultar esta cita", 403
+
+        if not citas.exists():
+            return "Cita no encontrada o no te pertenece", 404
 
     slots = generarSlotsDisponibles(
         medico,
-        fecha
+        fecha,
+        excluir_cita_id=excluir_cita_id,
     )
 
     return {
@@ -322,15 +331,11 @@ def obtenerHorariosDisponiblesService(
             "id": medico.id,
             "nombre": medico.nombre,
             "apellido": medico.apellido,
-            "especialidad": (
-                medico.id_especialidad.nombre
-            ),
+            "especialidad": medico.id_especialidad.nombre,
         },
         "fecha": fecha.isoformat(),
-        "duracion_consulta": (
-            medico.duracion_consulta
-        ),
-        "disponible": len(slots) > 0,
+        "duracion_consulta": medico.duracion_consulta,
+        "disponible": bool(slots),
         "horarios": slots,
     }, 200
 

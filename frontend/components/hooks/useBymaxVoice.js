@@ -2,96 +2,103 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createBymaxVoiceController, DEFAULT_VOICE } from "../bymax/bymaxVoiceController.mjs";
 
+const initialState = { mic: "off", active: false, playback: "idle", enabled: false, messageId: null, error: "", notice: "", supported: false };
 export default function useBymaxVoice(options) {
   const latest = useRef(options);
+  latest.current = options;
   const controller = useRef(null);
-  const [state, setState] = useState({ mic: "off", active: false, playback: "idle", enabled: true, messageId: null, error: "", notice: "", supported: false });
-  const initialized = useRef(false);
-  const interaction = useRef(0);
-  const save = (key, value) => { try { localStorage.setItem(key, value); } catch {} };
+  const [state, setState] = useState(initialState);
   const [voices, setVoices] = useState([]);
   const [config, setConfig] = useState(DEFAULT_VOICE);
   const [ready, setReady] = useState(false);
-  useEffect(() => { latest.current = options; }, [options]);
+  const initialized = useRef(false);
+  const preference = useRef(false);
+  const actor = options.actorKey;
+  const save = useCallback((key, value) => {
+    if (actor) { try { localStorage.setItem(`${key}:${actor}`, value); } catch {} }
+  }, [actor]);
   useEffect(() => {
+    if (!actor) return;
+    initialized.current = false;
+    let closed = false;
     const instance = createBymaxVoiceController({
-      browser: window, notify: setState,
+      browser: window,
+      notify: next => {
+        setState(next);
+        window.dispatchEvent(new CustomEvent("bymax:voice-state", { detail: { ...next, actor } }));
+      },
       generateVoice: (...args) => latest.current.generateVoice(...args),
       onTranscript: text => latest.current.onTranscript(text),
       onPartial: text => latest.current.onPartial(text),
       onWake: () => latest.current.onWake(),
-      onEnd: () => { save("bymax_voice_session", "ended"); latest.current.onEnd?.(); },
+      onEnd: () => latest.current.onEnd?.(),
       isBusy: () => latest.current.isBusy(),
     });
     controller.current = instance;
-    setState(instance.snapshot());
+    let saved;
     try {
-      if (localStorage.getItem("bymax_voice_responses") === "false") instance.setEnabled(false);
-      const saved = JSON.parse(localStorage.getItem("bymax_configuracion_voz") || "null");
-      if (saved) setConfig({
-        motor: saved.motor === "browser" ? "browser" : "neural",
-        voiceURI: typeof saved.voiceURI === "string" ? saved.voiceURI : "",
-        rate: Math.min(1.2, Math.max(0.75, Number(saved.rate) || 0.96)),
-        pitch: Math.min(1.3, Math.max(0.75, Number(saved.pitch) || 1.02)),
-        volume: Math.min(1, Math.max(0.2, Number(saved.volume) || 1)),
-      });
-    } catch { /* Voice preferences must not prevent using the chat. */ }
+      preference.current = localStorage.getItem(`bymax_voice_responses:${actor}`) === "true";
+      saved = JSON.parse(localStorage.getItem(`bymax_configuracion_voz:${actor}`) || "null");
+    } catch { preference.current = false; }
+    const restored = saved ? {
+      motor: saved.motor === "browser" ? "browser" : "neural",
+      voiceURI: typeof saved.voiceURI === "string" ? saved.voiceURI : "",
+      rate: Math.min(1.2, Math.max(0.75, Number(saved.rate) || 0.96)),
+      pitch: Math.min(1.3, Math.max(0.75, Number(saved.pitch) || 1.02)),
+      volume: Math.min(1, Math.max(0.2, Number(saved.volume) || 1)),
+    } : DEFAULT_VOICE;
+    setConfig(restored);
+    instance.configure(restored);
+    instance.setEnabled(preference.current);
     const loadVoices = () => setVoices(window.speechSynthesis?.getVoices() || []);
+    const publish = () => window.dispatchEvent(new CustomEvent("bymax:voice-state", { detail: closed ? null : { ...instance.snapshot(), actor } }));
+    const command = event => {
+      if (closed) return;
+      const enabled = Boolean(event.detail?.enabled);
+      initialized.current = true;
+      preference.current = enabled;
+      save("bymax_voice_responses", String(enabled));
+      instance.setEnabled(enabled);
+      if (enabled) instance.startListening("wake"); // Synchronous click from Configuration preserves user activation.
+    };
+    const shutdown = () => { closed = true; instance.dispose(); controller.current = null; setState(initialState); window.dispatchEvent(new CustomEvent("bymax:voice-state", {detail:null})); };
     loadVoices();
     window.speechSynthesis?.addEventListener("voiceschanged", loadVoices);
-    const stopWhenHidden = () => instance.setVisible(!document.hidden);
+    const visibility = () => instance.setVisible(!document.hidden);
     const pageHide = () => instance.setVisible(false);
-    document.addEventListener("visibilitychange", stopWhenHidden);
+    document.addEventListener("visibilitychange", visibility);
     window.addEventListener("pagehide", pageHide);
-    window.addEventListener("pageshow", stopWhenHidden);
+    window.addEventListener("pageshow", visibility);
+    window.addEventListener("bymax:voice-query", publish);
+    window.addEventListener("bymax:voice-command", command);
+    window.addEventListener("docsmart:session-ending", shutdown);
     setReady(true);
     return () => {
-      instance.dispose();
-      controller.current = null;
+      shutdown();
       window.speechSynthesis?.removeEventListener("voiceschanged", loadVoices);
-      document.removeEventListener("visibilitychange", stopWhenHidden);
+      document.removeEventListener("visibilitychange", visibility);
       window.removeEventListener("pagehide", pageHide);
-      window.removeEventListener("pageshow", stopWhenHidden);
+      window.removeEventListener("pageshow", visibility);
+      window.removeEventListener("bymax:voice-query", publish);
+      window.removeEventListener("bymax:voice-command", command);
+      window.removeEventListener("docsmart:session-ending", shutdown);
     };
-  }, []);
+  }, [actor, save]);
+  useEffect(() => { controller.current?.configure(config, voices); }, [config, voices]);
   useEffect(() => {
-    controller.current?.configure(config, voices);
-    if (ready) { try { localStorage.setItem("bymax_configuracion_voz", JSON.stringify(config)); } catch {} }
-  }, [config, voices, ready]);
-  useEffect(() => {
-    if (!ready || !options.available || initialized.current) return;
+    if (!ready || !options.available || initialized.current || !controller.current) return;
     initialized.current = true;
-    const version = interaction.current;
-    const instance = controller.current;
-    (async () => {
-      let preference, previouslyAllowed = false;
-      try {
-        preference = localStorage.getItem("bymax_voice_session");
-        previouslyAllowed = preference === "active" || localStorage.getItem("bymax_escucha_activa") === "true";
-      } catch {}
-      if (preference === "ended" || preference === "off") { instance.restoreStopped(preference === "ended"); return; }
-      try {
-        const permission = await navigator.permissions?.query({ name: "microphone" });
-        if (permission?.state === "denied") {
-          if (controller.current === instance && interaction.current === version) instance.permissionDenied();
-          return;
-        }
-        previouslyAllowed ||= permission?.state === "granted";
-      } catch { /* Safari may not expose the microphone permission descriptor. */ }
-      if (controller.current !== instance || interaction.current !== version) return;
-      if (previouslyAllowed) instance.startListening("wake");
-    })();
-  }, [ready, options.available]);
-  const startListening = useCallback(mode => { interaction.current += 1; save("bymax_voice_session", "active"); controller.current?.startListening(mode); }, []);
-  const stopListening = useCallback(() => { interaction.current += 1; save("bymax_voice_session", "off"); controller.current?.stopListening(); }, []);
-  const endConversation = useCallback(() => { interaction.current += 1; controller.current?.endConversation(); }, []);
+    if (preference.current) controller.current.startListening("wake");
+  }, [ready, options.available, actor]);
   const beginTurn = useCallback(() => controller.current?.beginTurn(), []);
   const completeTurn = useCallback(() => controller.current?.completeTurn(), []);
   const stopPlayback = useCallback(() => controller.current?.stopPlayback(), []);
   const play = useCallback((text, id) => controller.current?.play(text, id), []);
   const enqueue = useCallback((text, id) => controller.current?.enqueue(text, id), []);
-  const setEnabled = useCallback(value => { save("bymax_voice_responses", String(value)); controller.current?.setEnabled(value); }, []);
   const clearError = useCallback(() => controller.current?.clearError(), []);
-  const updateConfig = useCallback(next => { controller.current?.stopPlayback(); setConfig(previous => ({ ...previous, ...next })); }, []);
-  return { ...state, config, voices, startListening, stopListening, endConversation, beginTurn, completeTurn, stopPlayback, play, enqueue, setEnabled, clearError, updateConfig };
+  const updateConfig = useCallback(next => {
+    controller.current?.stopPlayback();
+    setConfig(previous => { const value = { ...previous, ...next }; save("bymax_configuracion_voz", JSON.stringify(value)); return value; });
+  }, [save]);
+  return { ...state, config, voices, beginTurn, completeTurn, stopPlayback, play, enqueue, clearError, updateConfig };
 }

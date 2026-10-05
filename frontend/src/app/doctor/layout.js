@@ -142,7 +142,7 @@ function DoctorAccess({ children, esPaginaValidacion }) {
             <div>
                 <Header />
 
-                <BymaxAssistant modo="medico" />
+                <BymaxAssistant modo="medico" key={`medico:${perfil.id}`} actorKey={`medico:${perfil.id}`} />
 
                 <div className={styles.mainContent}>
                     <main>

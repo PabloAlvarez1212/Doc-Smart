@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { AudioLines, Check, ChevronDown, Menu, Mic, Minus, Play, Plus, Settings2, ShieldCheck, Square, Stethoscope, Trash2, Volume2, VolumeX, X } from "lucide-react";
+import { AudioLines, ChevronDown, Menu, Minus, Play, Plus, Settings2, ShieldCheck, Square, Stethoscope, Trash2, X } from "lucide-react";
 import BymaxMessage from "./BymaxMessage";
 import BymaxComposer from "./BymaxComposer";
 import useDraggableBymaxWindow from "./useDraggableBymaxWindow";
@@ -83,7 +83,6 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
         <div className={styles.headerActions}>
           {modo === "medico" && <button type="button" onClick={onOpenClinical} aria-label="Abrir copiloto clínico" title="Copiloto clínico"><Stethoscope size={19}/></button>}
           <button ref={settingsButtonRef} type="button" onClick={() => setSettings(true)} aria-label="Configurar voz" title="Configurar voz"><Settings2 size={19}/></button>
-          <button type="button" className={voice.enabled ? styles.activeAction : ""} onClick={() => voice.setEnabled(!voice.enabled)} aria-pressed={voice.enabled} aria-label={voice.enabled ? "Desactivar respuestas por voz" : "Activar respuestas por voz"} title="Respuestas por voz">{voice.enabled ? <Volume2 size={19}/> : <VolumeX size={19}/>}</button>
           <button ref={closeRef} type="button" onClick={close} aria-label="Minimizar chat" title="Minimizar chat"><Minus size={21}/></button>
         </div>
       </header>
@@ -189,16 +188,14 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
     {settings && <div className={styles.voiceOverlay} onClick={closeSettings}>
       <section ref={settingsRef} className={styles.voicePanel} role="dialog" aria-modal="true" aria-labelledby="bymax-voice-title" onClick={event => event.stopPropagation()}>
         <div className={styles.voicePanelHeader}><div><span className={styles.voiceIdentity}><AudioLines size={16}/> A TU RITMO</span><h2 id="bymax-voice-title">Voz de Bymax</h2></div><button type="button" onClick={closeSettings} aria-label="Cerrar configuración de voz"><X size={20}/></button></div>
-        <p className={styles.voiceIntro}>Minimizar el chat mantiene la sesión de voz. Para dejar de escuchar, desactiva el micrófono o termina la conversación.</p>
-        <button type="button" className={styles.voiceToggle} role="switch" aria-checked={voice.enabled} onClick={() => voice.setEnabled(!voice.enabled)}>Respuestas por voz: {voice.enabled ? "ON" : "OFF"}</button>
+        <p className={styles.voiceIntro}>Activa o desactiva la voz desde Configuración de tu cuenta. Di «terminar conversación» para volver a esperar «Bymax».</p>
         <label className={styles.voiceField}><span>Voz del asistente</span><select value={voice.config.motor === "neural" ? "__neural__" : voice.config.voiceURI} onChange={event => voice.updateConfig(event.target.value === "__neural__" ? { motor: "neural" } : { motor: "browser", voiceURI: event.target.value })}>
           <option value="__neural__">Bymax Neural · ElevenLabs</option><option value="">Voz en español del dispositivo</option>{voice.voices.map(item => <option key={item.voiceURI} value={item.voiceURI}>{item.name} · {item.lang}</option>)}
         </select></label>
         {[{key:"rate",label:"Velocidad",min:.75,max:1.2},{key:"pitch",label:"Tono · voz del dispositivo",min:.75,max:1.3},{key:"volume",label:"Volumen",min:.2,max:1}].map(field => <label className={styles.voiceRange} key={field.key}><span>{field.label}<output>{Number(voice.config[field.key]).toFixed(2)}</output></span><input type="range" min={field.min} max={field.max} step="0.01" value={voice.config[field.key]} onChange={event => voice.updateConfig({ [field.key]: Number(event.target.value) })}/></label>)}
-        <div className={styles.voiceActions}><button type="button" onClick={() => voice.updateConfig(DEFAULT_VOICE)}>Restaurar</button><button type="button" className={styles.primaryButton} onClick={() => playing && voice.messageId === "voice-test" && voice.playback !== "ready" ? voice.stopPlayback() : voice.play("Hola, soy Bymax. Estoy aquí para acompañarte y ayudarte con tu salud.", "voice-test")}>{playing && voice.messageId === "voice-test" && voice.playback !== "ready" ? <Square size={16}/> : <Play size={16}/>} {voice.messageId === "voice-test" && voice.playback === "ready" ? "Reproducir" : playing && voice.messageId === "voice-test" ? "Detener" : "Probar voz"}</button></div>
+        <div className={styles.voiceActions}><button type="button" onClick={() => voice.updateConfig(DEFAULT_VOICE)}>Restaurar</button><button type="button" className={styles.primaryButton} disabled={!voice.enabled} onClick={() => playing && voice.messageId === "voice-test" && voice.playback !== "ready" ? voice.stopPlayback() : voice.play("Hola, soy Bymax. Estoy aquí para acompañarte y ayudarte con tu salud.", "voice-test")}>{playing && voice.messageId === "voice-test" && voice.playback !== "ready" ? <Square size={16}/> : <Play size={16}/>} {voice.messageId === "voice-test" && voice.playback === "ready" ? "Reproducir" : playing && voice.messageId === "voice-test" ? "Detener" : "Probar voz"}</button></div>
         <p className={styles.voiceNote} role="status">{voice.error || voice.notice || "La disponibilidad depende del navegador, sus permisos y las voces del dispositivo."}</p>
-        <div className={styles.wakeOption}><Mic size={19}/><div><strong>Activación por «Bymax»</strong><p>Espera tu indicación y vuelve a esperar después de responder. Puede suspenderse al ocultar la página o bloquear el teléfono.</p></div><button type="button" onClick={() => { if (voice.active) voice.stopListening(); else voice.startListening("wake"); closeSettings(); }}>{voice.active ? "Desactivar" : "Activar"}</button></div>
-        <p className={styles.voiceNote}>El reconocimiento puede usar servicios del navegador para transcribir audio. Las conversaciones sin «Bymax» no se envían al backend de DocSmart. Mientras Bymax habla, usa Terminar conversación para interrumpirlo: el micrófono se pausa para evitar que escuche su propia voz.</p>
+        <p className={styles.voiceNote}>El reconocimiento puede usar servicios del navegador para transcribir audio. Di «Bymax» para iniciar; después puedes conversar sin repetir su nombre. Mientras Bymax habla, el micrófono se pausa para evitar que escuche su propia voz. Puedes detener toda la voz desde Configuración.</p>
       </section>
     </div>}
   </section>;

@@ -31,21 +31,18 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
   const mutedIds = new Set();
   const update = (next) => { state = { ...state, ...next }; if (!disposed) notify({ ...state }); };
   const session = createVoiceSession({
-    browser, errors: VOICE_ERRORS, notify: update, onPartial, onWake,
+    browser, errors: VOICE_ERRORS, notify: update, onPartial, onWake: () => { ended = false; onWake(); },
     onTranscript: text => { beginTurn(); onTranscript(text); },
     onEnd: () => {
       ended = true; turnPending = false; stopPlayback(false); onEnd();
-      if (state.enabled && browser.speechSynthesis && browser.SpeechSynthesisUtterance && !suspended) {
-        current = {id:"session-ended", text:"De acuerdo. He terminado la conversación.", engine:"browser"};
-        update({messageId:current.id});
-        beginPlayback();
-      }
+
     },
-    canListen: () => !turnPending && (!current || state.playback === "ready"),
+    canListen: () => state.enabled && !turnPending && (!current || state.playback === "ready"),
   });
   function startListening(mode = "wake") {
     if (disposed) return;
-    if (isBusy?.()) { update({notice:"Espera a que Bymax termine de procesar para activar el micrófono."}); return; }
+    if (isBusy?.()) turnPending = true;
+    if (!state.enabled) return;
     ended = false;
     stopPlayback(false);
     session.start(mode);
@@ -231,7 +228,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
   }
 
   function play(text, id) {
-    if (disposed) return;
+    if (disposed || !state.enabled) return;
     if (current?.id === id && state.playback === "ready") { beginPlayback(); return; }
     stopPlayback(false);
     mutedIds.delete(id);
@@ -240,8 +237,8 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
   }
 
   function setEnabled(enabled) {
-    if (!enabled) stopPlayback();
-    update({ enabled, error: "", notice: enabled ? "Respuestas por voz activadas." : "Respuestas por voz desactivadas." });
+    if (!enabled) { session.stop(); stopPlayback(false); }
+    update({ enabled, error: "", notice: enabled ? "Voz habilitada. Actívala desde Configuración si el navegador requiere permiso." : "Voz desactivada." });
   }
 
   function configure(next, availableVoices = voices) {

@@ -101,6 +101,7 @@ const resolverCola = (error = null) => {
 
 export const iniciarCierreSesion = () => {
     cerrandoSesion = true;
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("docsmart:session-ending"));
 
     resolverCola(
         new Error("La sesión se está cerrando")
@@ -115,6 +116,7 @@ const cerrarSesionPorExpiracion = async () => {
     if (mostrandoSesionExpirada) return;
 
     mostrandoSesionExpirada = true;
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("docsmart:session-ending"));
 
     await Swal.fire({
         icon: "warning",

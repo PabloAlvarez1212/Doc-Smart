@@ -30,7 +30,7 @@ class CitaSerializer(serializers.ModelSerializer):
     especialidad = serializers.CharField(source='id_medico.id_especialidad.nombre')
     foto_paciente = serializers.SerializerMethodField()
     foto_medico = serializers.SerializerMethodField()
-
+    id_medico = serializers.IntegerField(source="id_medico_id",read_only=True,)
     class Meta:
         model  = Cita
         fields = [
@@ -47,6 +47,7 @@ class CitaSerializer(serializers.ModelSerializer):
             'especialidad',
             'foto_paciente',
             'foto_medico',
+            'id_medico',
         ]
 
     def get_medico(self, obj):

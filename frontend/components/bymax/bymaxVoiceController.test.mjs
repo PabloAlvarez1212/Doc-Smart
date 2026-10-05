@@ -88,17 +88,17 @@ test("separate wake and multi-part request accumulate final results", () => {
   r.onresult(result("mis próximas citas",2)); e.timeout(1600);
   assert.ok(e.received.includes("Cuáles son mis próximas citas"));
 });
-test("a wake without a request times out back to waiting, not off", () => {
+test("a quiet active conversation continues listening until explicitly ended", () => {
   const e=setup(); const r=listen(e); r.onresult(result("Bymax"));
   e.timeout(20000); e.timeout(350); r.onstart();
-  assert.equal(e.controller.snapshot().mic,"waiting"); assert.equal(e.recognitions.length,1);
+  assert.equal(e.controller.snapshot().mic,"listening"); assert.equal(e.recognitions.length,1);
 });
 test("mobile recognition ending after just Bymax retains the request phase", () => {
   const e=setup();const r=listen(e);r.onresult(result("Bymax"));r.onend();e.timeout(1000);r.onstart();
   assert.equal(e.controller.snapshot().mic,"listening");
   r.onresult(result("consulta mis citas"));e.timeout(1600);assert.ok(e.received.includes("consulta mis citas"));assert.equal(e.recognitions.length,1);
 });
-test("complete response and audio queue must both finish before returning to waiting", async () => {
+test("complete response and audio queue must both finish before continuous listening", async () => {
   const e=setup(); const r=listen(e);
   r.onresult(result("Bymax consulta mis citas")); e.timeout(1600);
   e.controller.enqueue("Primera.","a"); e.controller.enqueue("Segunda.","a"); await flush();
@@ -106,7 +106,8 @@ test("complete response and audio queue must both finish before returning to wai
   assert.equal(r.starts,1);
   e.controller.completeTurn(); e.timeout(350); assert.equal(r.starts,1);
   e.audios[0].onplaying(); e.audios[0].onended(); e.timeout(350); r.onstart();
-  assert.equal(r.starts,2); assert.equal(e.recognitions.length,1); assert.equal(e.controller.snapshot().mic,"waiting");
+  assert.equal(r.starts,2); assert.equal(e.recognitions.length,1); assert.equal(e.controller.snapshot().mic,"listening");
+  r.onresult(result("sí")); e.timeout(1600); assert.ok(e.received.includes("sí"));
 });
 test("a gap between stream fragments never reopens recognition", async () => {
   const e=setup(); const r=listen(e); e.controller.beginTurn();
@@ -114,13 +115,12 @@ test("a gap between stream fragments never reopens recognition", async () => {
   assert.equal(r.starts,1); e.controller.enqueue("Segunda.","a"); await flush();
   assert.equal(e.audios[0].plays,2);
 });
-test("voice OFF preserves recognition and skips all response synthesis", () => {
+test("voice OFF stops recognition and cannot restart after a response", () => {
   const e=setup(); const r=listen(e); e.controller.setEnabled(false);
   r.onresult(result("Bymax consulta mis citas")); e.timeout(1600);
-  e.controller.enqueue("Respuesta.","a"); e.controller.completeTurn(); e.timeout(350); r.onstart();
-  assert.equal(e.audios.length,0); assert.equal(e.utterances.length,0);
-  assert.equal(e.controller.snapshot().mic,"waiting");
-  e.controller.startListening(); assert.equal(e.controller.snapshot().enabled,false);
+  e.controller.enqueue("Respuesta.","a"); e.controller.completeTurn(); e.timeout(350);
+  assert.equal(e.audios.length,0); assert.equal(e.controller.snapshot().active,false);
+  assert.equal(r.starts,1); assert.deepEqual(e.received,[]);
 });
 test("bounded recovery reuses one recognition and stops after repeated immediate ends", () => {
   const e=setup(); const r=listen(e);
@@ -150,27 +150,34 @@ test("webkit prefix starts in the user call without another microphone acquisiti
   second.controller.startListening();assert.equal(e.recognitions[0].starts,1);
 });
 test("end phrases are recognized while negations and unrelated text are preserved", () => {
-  for(const phrase of ["terminar conversación","termina la conversación","finalizar conversación","finaliza la conversación","terminemos","ya terminamos","terminar","detener conversación","para la conversación","deja de escuchar","no quiero continuar"]) {
+  for(const phrase of ["terminar conversación","termina la conversación","finalizar conversación","finalizar chat","cerrar conversación","finaliza la conversación","terminemos","ya terminamos","terminar","detener conversación","para la conversación","deja de escuchar","no quiero continuar"]) {
     assert.equal(isEndCommand(phrase),true,phrase); assert.equal(isEndCommand("Bymax, "+phrase),true,phrase);
   }
   for(const phrase of ["no quiero terminar conversación","quiero terminar mi tratamiento","cuándo debo terminar","no terminemos"]) assert.equal(isEndCommand(phrase),false,phrase);
 });
-test("ending by voice prevents later responses, visibility recovery and restart", async () => {
-  const e=setup(); const r=listen(e); r.onresult(result("Bymax, termina la conversación"));
-  assert.equal(e.controller.snapshot().mic,"ended"); assert.equal(e.controller.snapshot().active,false);
-  e.controller.enqueue("Respuesta atrasada.","late"); e.controller.completeTurn();
-  e.controller.setVisible(false);e.controller.setVisible(true);e.timeout(350);await flush();
-  assert.equal(r.starts,1);assert.equal(e.audios.length,0);
-  e.controller.startListening();r.onstart();assert.equal(e.controller.snapshot().mic,"waiting");assert.equal(e.recognitions.length,1);
+test("ending by voice returns to wake without sending a medical request", () => {
+  const e=setup(); const r=listen(e); r.onresult(result("Bymax"));
+  r.onresult(result("finalizar chat",1)); e.timeout(350); r.onstart();
+  assert.equal(e.controller.snapshot().mic,"waiting"); assert.equal(e.controller.snapshot().enabled,true);
+  assert.ok(!e.received.includes("finalizar chat"));
+  r.onresult(result("sí")); e.timeout(1600); assert.ok(!e.received.includes("sí"));
+  r.onresult(result("Bymax",1)); r.onresult(result("cancelar mi cita",2)); e.timeout(1600);
+  assert.ok(e.received.includes("cancelar mi cita"));
 });
-test("an explicit end intention works in waiting without repeating the wake word", () => {
-  const e=setup();const r=listen(e);r.onresult(result("terminar conversación"));
-  assert.equal(e.controller.snapshot().mic,"ended");assert.equal(e.controller.snapshot().active,false);
+test("ending during an audio download ignores its result and returns to wake", async () => {
+  let resolve;const e=setup({generateVoice:()=>new Promise(done=>{resolve=done;})});const r=listen(e);
+  e.controller.enqueue("Respuesta.","a");e.controller.endConversation();resolve({size:10,type:"audio/mpeg"});await flush();e.timeout(350);r.onstart();
+  assert.equal(e.audios.length,0);assert.equal(e.controller.snapshot().mic,"waiting");
 });
-test("ending during an in-flight audio download ignores its result", async () => {
-  let resolve;const e=setup({generateVoice:()=>new Promise(done=>{resolve=done;})});listen(e);
-  e.controller.enqueue("Respuesta.","a");e.controller.endConversation();resolve({size:10,type:"audio/mpeg"});await flush();
-  assert.equal(e.audios.length,0);assert.equal(e.controller.snapshot().mic,"ended");
+test("assistant playback and stale recognition cannot transcribe the assistant", async () => {
+  const e=setup();const r=listen(e);r.onresult(result("Bymax mis citas"));e.timeout(1600);
+  e.controller.enqueue("Su cita está pendiente.","a");await flush();e.controller.completeTurn();
+  r.onresult(result("sí confirmar",1));e.timeout(1600);assert.ok(!e.received.includes("sí confirmar"));
+  e.controller.setEnabled(false);assert.ok(e.audios[0].pauses>0);e.timeout(350);assert.equal(r.starts,1);
+});
+test("wake alone in continuous conversation never becomes a confirmation", () => {
+  const e=setup();const r=listen(e);r.onresult(result("Bymax"));
+  r.onresult(result("Bymax",1));e.timeout(1600);assert.deepEqual(e.received,["wake"]);
 });
 test("disabling microphone does not resume after a text response", () => {
   const e=setup();const r=listen(e);e.controller.stopListening();e.controller.beginTurn();e.controller.completeTurn();e.timeout(350);
@@ -216,4 +223,33 @@ test("old phrase callbacks cannot finish the next playing phrase", async () => {
 test("dispose clears microphone, timers, pending synthesis and late callbacks", async () => {
   let resolve;const e=setup({generateVoice:()=>new Promise(done=>{resolve=done;})});listen(e);e.controller.enqueue("hola","a");e.controller.dispose();resolve({size:10,type:"audio/mpeg"});await flush();
   assert.equal(e.audios.length,0);assert.equal(e.timers.size,0);
+});
+
+test("manual playback cannot override disabled voice", async () => {
+  const e=setup();e.controller.setEnabled(false);e.controller.play("No hablar", "a");await flush();
+  assert.equal(e.audios.length,0);assert.equal(e.utterances.length,0);
+});
+test("reenabling voice during a written turn waits for completion", () => {
+  const e=setup({busy:true});e.controller.setEnabled(false);e.controller.beginTurn();
+  e.controller.setEnabled(true);e.controller.startListening();assert.equal(e.recognitions.length,0);
+  e.controller.completeTurn();e.timeout(350);assert.equal(e.recognitions.length,1);
+});
+test("three consecutive requests need one wake and each follows completed text", () => {
+  const e=setup();const r=listen(e);r.onresult(result("Bymax"));
+  for (const [index,text] of ["consulta mis citas","sí","cancelar mi cita"].entries()) {
+    r.onresult(result(text,index===0?1:0));e.timeout(1600);
+    assert.ok(e.received.includes(text));e.timeout(350);assert.equal(r.starts,index+1);
+    e.controller.completeTurn();e.timeout(350);r.onstart();assert.equal(e.controller.snapshot().mic,"listening");
+  }
+  assert.equal(e.received.filter(value=>value==="wake").length,1);
+});
+test("absent microphone stops with no automatic recovery", () => {
+  const e=setup();const r=listen(e);r.onerror({error:"audio-capture"});e.timeout(350);e.timeout(1000);
+  assert.equal(r.starts,1);assert.equal(e.controller.snapshot().active,false);assert.match(e.controller.snapshot().error,/micrófono/);
+});
+test("neural and device voice unavailable still completes text and resumes conversation", async () => {
+  const e=setup({generateVoice:()=>Promise.reject(Error("network")),browser:{speechSynthesis:null}});const r=listen(e);
+  r.onresult(result("Bymax mis citas"));e.timeout(1600);e.controller.enqueue("Respuesta", "a");await flush();
+  assert.equal(e.controller.snapshot().playback,"error");e.controller.completeTurn();e.timeout(350);r.onstart();
+  assert.equal(e.controller.snapshot().mic,"listening");assert.equal(e.audios.length,0);
 });
