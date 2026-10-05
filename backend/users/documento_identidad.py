@@ -1,9 +1,10 @@
-import io,re,unicodedata,pytesseract
+import io,re,unicodedata,os,pytesseract
 from datetime import date
 from difflib import SequenceMatcher
 from PIL import Image,ImageOps,ImageEnhance,ImageFilter
 
-pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+if os.name=="nt":
+    pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 class DocumentoError(Exception):pass
 
