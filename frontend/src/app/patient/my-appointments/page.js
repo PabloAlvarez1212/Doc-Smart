@@ -10,7 +10,7 @@ import {
     getAppointmentsResultKey,
     getAppointmentsResultMotion,
     hasActiveAppointmentFilters,
-} from "../../../../components/patient/MyAppointments/appointmentsViewState";
+} from "../../../../components/ui/AppointmentCard/appointmentViewState";
 import useAppointments from "../../../../components/patient/MyAppointments/useAppointments";
 import Pagination from "../../../../components/ui/Pagination/Pagination";
 import styles from "./myAppointments.module.css";
@@ -99,7 +99,7 @@ export default function MyAppointments() {
                         totalRegistros={totalRegistros}
                         onCambiarPagina={cambiarPagina}
                         cargando={loading}
-                        variant="patient"
+                        variant="appointments"
                     />
                 )}
             </section>

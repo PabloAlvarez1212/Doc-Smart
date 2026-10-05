@@ -60,18 +60,12 @@ export default function Hero({
 
                 <div>
 
-                    <p className={styles.eyebrow}>
-                        Agenda médica
-                    </p>
-
                     <h1>
                         Mis citas
                     </h1>
 
                     <p className={styles.description}>
-                        Gestiona tus consultas,
-                        confirma solicitudes y mantén
-                        tu agenda organizada.
+                        Revisa tus pacientes, confirma solicitudes y mantén tu agenda organizada.
                     </p>
 
                 </div>

@@ -1,13 +1,47 @@
 .page {
-    width: min(90%, 1420px);
+    --appointments-ink: #172033;
+    --appointments-muted: #657489;
+    --appointments-line: #dce5ee;
+    display: grid;
+    width: min(calc(100% - 64px), 1240px);
     margin: 0 auto;
-    padding: 20px 0 72px;
+    gap: 30px;
+    padding: 42px 0 82px;
+    color: var(--appointments-ink);
+    overflow-wrap: normal;
 }
 
+.page ::selection { color: #fff; background: #17664e; }
+.workspace { overflow: hidden; border: 1px solid var(--appointments-line); border-radius: 15px; background: #fff; box-shadow: 0 14px 38px rgba(30, 60, 98, .06); }
+.results { min-width: 0; }
+.resultsHeader { display: flex; align-items: flex-end; justify-content: space-between; min-height: 47px; gap: 20px; margin-bottom: 15px; }
+.resultsHeader h2 { margin: 0; font-size: 1.16rem; letter-spacing: -.02em; line-height: 1.3; }
+.resultsHeader p { margin: 5px 0 0; color: var(--appointments-muted); font-size: .84rem; line-height: 1.4; }
+.updating { display: inline-flex; align-items: center; gap: 7px; color: #17664e; font-size: .79rem; font-weight: 700; }
+.updating::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 900ms ease-in-out infinite alternate; }
 
-@media (max-width: 640px) {
-    .page{
-        width: min(92%, 1320px);
-        padding-top: 28px;
-    }
+.errorState { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 15px; min-height: 138px; padding: 23px; border: 1px solid #ead5d9; border-radius: 14px; background: #fff8f8; }
+.errorState > span { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 11px; color: #9f3040; background: #f8dfe3; }
+.errorState h3 { margin: 0; font-size: .98rem; }
+.errorState p { margin: 5px 0 0; color: #725e63; font-size: .84rem; line-height: 1.45; }
+.errorState button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 9px 13px; border: 0; border-radius: 9px; color: #fff; background: #17664e; cursor: pointer; font: inherit; font-size: .82rem; font-weight: 720; transition: background-color 180ms ease, transform 140ms cubic-bezier(.23, 1, .32, 1); }
+.errorState button:hover { background: #12533f; }
+.errorState button:active { transform: scale(.98); }
+
+.skeletonList { display: grid; overflow: hidden; border-top: 1px solid var(--appointments-line); }
+.skeletonList span { display: block; height: 142px; border-bottom: 1px solid var(--appointments-line); background: linear-gradient(90deg, #f4f6f8 25%, #e7ecf1 50%, #f4f6f8 75%); background-size: 200% 100%; animation: shimmer 1.3s ease-in-out infinite; }
+
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@keyframes pulse { to { opacity: .35; transform: scale(.8); } }
+
+@media (max-width: 900px) { .page { width: min(calc(100% - 44px), 1240px); padding-top: 36px; } }
+@media (max-width: 560px) {
+    .page { width: min(calc(100% - 32px), 1240px); gap: 25px; padding: 28px 0 58px; }
+    .workspace { margin-inline: -4px; }
+    .resultsHeader { align-items: flex-start; }
+    .errorState { grid-template-columns: auto minmax(0, 1fr); padding: 19px 17px; }
+    .errorState button { grid-column: 1 / -1; width: 100%; }
+    .skeletonList span { height: 260px; }
 }
+
+@media (prefers-reduced-motion: reduce) { .skeletonList span, .updating::before { animation: none; } }

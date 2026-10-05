@@ -3,7 +3,8 @@ import Styles from "./NotificationsList.module.css"
 import { renderIcono } from "@/app/utils/estadoDise/estadoDiseUtils"
 import { Check, X } from 'lucide-react';
 import { formatearFechaRelativa } from "@/app/utils/fechaFormaterUtils"
-export default function NotificationsList({ data, marcarLeida, eliminarNotificacion }) {
+import Link from "next/link"
+export default function NotificationsList({ data, marcarLeida, eliminarNotificacion, rol = "paciente" }) {
     const listNotificaciones = data?.notificaciones || []
     return (
         <div className={Styles.containerMan}>
@@ -20,6 +21,7 @@ export default function NotificationsList({ data, marcarLeida, eliminarNotificac
                                     )}
                                 </div>
                                 <p>{notificacion.mensaje}</p>
+                                {notificacion.conversacion_id && <Link href={`/${rol === "medico" ? "doctor" : "patient"}/my-chats/${notificacion.conversacion_id}`}>Abrir conversación</Link>}
                             </div>
                         </div>
                         <div className={Styles.containerAcciones}>

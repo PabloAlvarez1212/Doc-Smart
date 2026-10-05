@@ -114,16 +114,19 @@ def subir_archivo(
 def generar_url_firmada(
     storage_key,
     expiracion=600,
+    *, nombre_descarga=None,
 ):
     cliente = obtener_cliente_s3()
 
+    params = {"Bucket": settings.AWS_STORAGE_BUCKET_NAME, "Key": storage_key}
+    if nombre_descarga is not None:
+        from urllib.parse import quote
+        name = nombre_descarga.replace('\r', '').replace('\n', '').replace('\\', '/').split('/')[-1]
+        params['ResponseContentDisposition'] = "attachment; filename*=UTF-8''" + quote(name, safe='')
     try:
         return cliente.generate_presigned_url(
             "get_object",
-            Params={
-                "Bucket": settings.AWS_STORAGE_BUCKET_NAME,
-                "Key": storage_key,
-            },
+            Params=params,
             ExpiresIn=expiracion,
         )
 
@@ -283,6 +286,8 @@ def eliminar_archivo_usuario(archivo):
     el registro como inactivo en MySQL.
     """
 
+    if archivo.categoria == 'chat_citas_privado' or hasattr(archivo, 'adjunto_chat'):
+        return False
     eliminado = eliminar_archivo(
         archivo.storage_key
     )

@@ -356,7 +356,7 @@ class CitaService:
         return editarCitaService(
             cita.id,
             {"fecha_programada": fecha},
-            usuario.id,
+            usuario,
         )
 
     @staticmethod
@@ -365,4 +365,4 @@ class CitaService:
         if cita.id_usuario_id != usuario.id:
             return "La cita no pertenece al usuario autenticado", 403
 
-        return cancelarCitaService(cita.id, usuario.id)
+        return cancelarCitaService(cita.id, usuario)

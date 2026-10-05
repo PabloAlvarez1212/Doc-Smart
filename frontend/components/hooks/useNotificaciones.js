@@ -23,6 +23,11 @@ export const useNotificaciones = () => {
     const [totalRegistros, setTotalRegistros] = useState(0);
 
     const ws = useRef(null)
+    const notificacionesRef = useRef([])
+
+    useEffect(() => {
+        notificacionesRef.current = notificaciones
+    }, [notificaciones])
 
     const cargarNotificaciones = async () => {
         try {
@@ -138,22 +143,20 @@ export const useNotificaciones = () => {
                         setNoLeidas(data.count)
 
                         if (data.notificacion) {
-                            setNotificaciones(prev => {
-                                const existe = prev.some(
-                                    notificacion =>
-                                        notificacion.id ===
-                                        data.notificacion.id
-                                )
+                            const existe = notificacionesRef.current.some(
+                                notificacion => notificacion.id === data.notificacion.id
+                            )
 
-                                if (existe) {
-                                    return prev
-                                }
-
-                                return [
+                            if (!existe) {
+                                const nuevasNotificaciones = [
                                     data.notificacion,
-                                    ...prev
+                                    ...notificacionesRef.current
                                 ]
-                            })
+
+                                notificacionesRef.current = nuevasNotificaciones
+                                setNotificaciones(nuevasNotificaciones)
+                                setTotalRegistros(prev => prev + 1)
+                            }
 
                             const citaData =
                                 data.cita ||
@@ -281,10 +284,10 @@ export const useNotificaciones = () => {
             const mensajeBackend = obtenerPrimerError(error.response?.data?.errores)
             await Swal.fire({
                 icon: "error",
-                title: "No se pudo eliminar",
+                title: "No se pudo marcar como leída",
                 text:
                     mensajeBackend ||
-                    "Ocurrió un error al eliminar la notificación."
+                    "Ocurrió un error al actualizar la notificación."
             })
         }
     }
@@ -319,12 +322,13 @@ export const useNotificaciones = () => {
         }
         catch (error) {
             console.error("Error al marcar todas las notificaciones como leídas", error)
+            const mensajeBackend = obtenerPrimerError(error.response?.data?.errores)
             await Swal.fire({
                 icon: "error",
-                title: "No se pudo eliminar",
+                title: "No se pudieron actualizar",
                 text:
                     mensajeBackend ||
-                    "Ocurrió un error al eliminar la notificación."
+                    "Ocurrió un error al marcar las notificaciones como leídas."
             })
 
         }
@@ -332,6 +336,9 @@ export const useNotificaciones = () => {
     }
 
     const eliminarNotificacion = async (idNotificacion) => {
+        const notificacionEliminada = notificaciones.find(
+            notificacion => notificacion.id === idNotificacion
+        )
         const respuesta = await Swal.fire({
             title: "¿Eliminar notificación?",
             text: "Esta notificación será eliminada permanentemente.",
@@ -354,8 +361,19 @@ export const useNotificaciones = () => {
                 )
             )
 
+            setTotalRegistros(prev => Math.max(0, prev - 1))
+
+            if (notificacionEliminada && !notificacionEliminada.leida) {
+                setNoLeidas(prev => Math.max(0, prev - 1))
+            }
+
+            if (notificaciones.length === 1 && paginaActual > 1) {
+                setPaginaActual(prev => prev - 1)
+            }
+
         } catch (error) {
             console.error("Error al eliminar notificacion como leídas", error)
+            const mensajeBackend = obtenerPrimerError(error.response?.data?.errores)
             await Swal.fire({
                 icon: "error",
                 title: "No se pudo eliminar",
@@ -383,6 +401,9 @@ export const useNotificaciones = () => {
             await eliminarTodasNotificacionesService()
             setNotificaciones([])
             setNoLeidas(0)
+            setPaginaActual(1)
+            setTotalPaginas(1)
+            setTotalRegistros(0)
             await Swal.fire({
                 icon: "success",
                 title: "Notificaciones eliminadas",

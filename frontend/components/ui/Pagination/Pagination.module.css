@@ -15,20 +15,20 @@
 .admin { justify-content: flex-end; margin-top: 14px; padding: 0; }
 .admin button { min-height: 38px; padding: 0 13px; font-size: .8rem; font-weight: 650; }
 .admin .info { color: #667085; font-size: .78rem; }
-.patient { justify-content: flex-end; margin-top: 18px; padding: 0; }
-.patient button { min-height: 40px; padding: 8px 12px; font-size: .8rem; font-weight: 700; }
-.patient .info { color: #657489; font-size: .8rem; }
-.patient button:hover { opacity: 1; transform: none; }
+.appointments { justify-content: flex-end; margin-top: 18px; padding: 0; }
+.appointments button { min-height: 40px; padding: 8px 12px; font-size: .8rem; font-weight: 700; }
+.appointments .info { color: #657489; font-size: .8rem; }
+.appointments button:hover { opacity: 1; transform: none; }
 .wrapper { flex-wrap: wrap; padding-inline: 12px; gap: 12px; }
 .info { white-space: normal; text-align: center; }
 
 @media (max-width: 640px) {
     .admin { justify-content: space-between; padding: 0; }
     .admin .info { order: -1; width: 100%; }
-    .patient { justify-content: space-between; }
-    .patient .info { order: -1; width: 100%; }
+    .appointments { justify-content: space-between; }
+    .appointments .info { order: -1; width: 100%; }
 }
 
 @media (hover: hover) and (pointer: fine) {
-    .patient button:not(:disabled):hover { transform: translateY(-1px); }
+    .appointments button:not(:disabled):hover { transform: translateY(-1px); }
 }
