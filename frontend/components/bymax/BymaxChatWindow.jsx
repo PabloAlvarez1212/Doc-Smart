@@ -1,17 +1,25 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { AudioLines, ChevronDown, Menu, Minus, Play, Plus, Settings2, ShieldCheck, Square, Stethoscope, Trash2, X } from "lucide-react";
+import { AudioLines, ChevronDown, Menu, Minus, Play, Plus, Settings2, ShieldCheck, Square, Stethoscope, Trash2, WifiOff, X } from "lucide-react";
+import BymaxCharacter from "./BymaxCharacter";
 import BymaxMessage from "./BymaxMessage";
 import BymaxComposer from "./BymaxComposer";
 import useDraggableBymaxWindow from "./useDraggableBymaxWindow";
 import { DEFAULT_VOICE } from "./bymaxVoiceController.mjs";
 import styles from "./BymaxAssistant.module.css";
 
-export default function BymaxChatWindow({ open, close, status, label, chats, chatId, messages, loading, sending, streamingId, sidebar, setSidebar, loadChat, newChat, deleteChat, voice, viewportStyle, composer, modo = "paciente", onOpenClinical, daily }) {
+export default function BymaxChatWindow({ open, close, status, label, chats, chatId, messages, loading, sending, streamingId, sidebar, setSidebar, loadChat, newChat, deleteChat, voice, viewportStyle, composer, connection, reconnect, modo = "paciente", onOpenClinical, daily }) {
   const [present, setPresent] = useState(open);
   const [settings, setSettings] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
+  const [announcement, setAnnouncement] = useState("");
+  const wasSending = useRef(false);
+  useEffect(() => {
+    if (sending) setAnnouncement("");
+    else if (wasSending.current) setAnnouncement("Respuesta de Bymax disponible al final de la conversación.");
+    wasSending.current = sending;
+  }, [sending]);
   const panelRef = useRef(null);
   const draggable = useDraggableBymaxWindow(panelRef, open && present);
   const scrollRef = useRef(null);
@@ -53,7 +61,7 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
     }
     if (event.key !== "Tab") return;
     const scope = settings ? settingsRef.current : sidebar ? historyRef.current : panelRef.current;
-    const elements = Array.from(scope.querySelectorAll('button:not([disabled]), textarea, input:not([hidden]), select, [tabindex="0"]'))
+    const elements = Array.from(scope.querySelectorAll('button:not([disabled]), textarea:not([disabled]), input:not([hidden]):not([disabled]), select, [tabindex="0"]'))
       .filter(element => element.getClientRects().length && getComputedStyle(element).visibility !== "hidden");
     const first = elements[0], last = elements.at(-1);
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
@@ -67,8 +75,9 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
     <aside ref={historyRef} className={`${styles.sidebar} ${sidebar ? styles.sidebarOpen : ""}`} aria-label="Historial de Bymax" inert={settings}>
       <div className={styles.brand}><Image src="/icons/asistente_bymax.png" alt="" width={42} height={42}/><div><strong>Bymax</strong><small>Tu asistente de salud</small></div><button type="button" className={styles.historyClose} onClick={closeHistory} aria-label="Cerrar historial de Bymax"><X size={20}/></button></div>
       <button type="button" className={styles.newChat} onClick={newChat} disabled={loading}><Plus size={18}/> Nueva conversación</button>
-      <p className={styles.historyTitle}>TUS CONVERSACIONES</p>
+      <p className={styles.historyTitle}>Tus conversaciones</p>
       <nav className={styles.history} aria-label="Conversaciones">
+        {!chats.length && <p className={styles.historyEmpty}>{loading ? "Cargando historial…" : "Tus conversaciones aparecerán aquí. Crea una para comenzar."}</p>}
         {chats.map(chat => <div className={`${styles.chatItem} ${chat.id === chatId ? styles.chatActive : ""}`} key={chat.id}>
           <button type="button" onClick={() => loadChat(chat.id)} aria-current={chat.id === chatId ? "page" : undefined}><strong>{chat.titulo || "Nueva conversación"}</strong><small>{chat.ultima_interaccion || chat.fecha ? new Date(chat.ultima_interaccion || chat.fecha).toLocaleDateString("es-CO", { day: "numeric", month: "short" }) : "Ahora"}</small></button>
           <button type="button" className={styles.deleteChat} onClick={event => deleteChat(chat.id, event)} aria-label={`Eliminar ${chat.titulo || "conversación"}`}><Trash2 size={16}/></button>
@@ -79,20 +88,26 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
     <section className={styles.chatPanel} inert={settings || sidebar}>
       <header className={styles.header} {...draggable.handlers} title="Arrastra la cabecera para mover la ventana. Doble clic para restaurar.">
         <button ref={historyButtonRef} type="button" className={styles.mobileMenu} onClick={() => setSidebar(true)} aria-label="Abrir historial" aria-expanded={sidebar}><Menu size={21}/></button>
-        <div className={styles.assistant}><Image className={styles.avatar} src="/icons/asistente_bymax.png" alt="" width={48} height={48}/><div><strong>{modo === "medico" ? "Bymax Médico" : "Bymax"}</strong><small role="status"><span className={styles.stateMark}/>{label}</small>{daily?.identity && <small>{daily.identity.nombre}{daily.identity.especialidad ? ` · ${daily.identity.especialidad}` : ""}</small>}</div></div>
+        <div className={styles.assistant}><BymaxCharacter compact status={status} paused={!open}/><div><strong>{modo === "medico" ? "Bymax Médico" : "Bymax"}</strong><small><span className={styles.stateMark}/>{label}</small>{daily?.identity && <small>{daily.identity.nombre}{daily.identity.especialidad ? ` · ${daily.identity.especialidad}` : ""}</small>}</div></div>
         <div className={styles.headerActions}>
           {modo === "medico" && <button type="button" onClick={onOpenClinical} aria-label="Abrir copiloto clínico" title="Copiloto clínico"><Stethoscope size={19}/></button>}
           <button ref={settingsButtonRef} type="button" onClick={() => setSettings(true)} aria-label="Configurar voz" title="Configurar voz"><Settings2 size={19}/></button>
           <button ref={closeRef} type="button" onClick={close} aria-label="Minimizar chat" title="Minimizar chat"><Minus size={21}/></button>
         </div>
       </header>
+      {connection === "disconnected" && <div className={styles.connectionBanner}>
+        <WifiOff size={17} aria-hidden="true"/><span>Se interrumpió la conexión en tiempo real. Puedes intentar enviar por la conexión alternativa.</span>
+        <button type="button" onClick={reconnect} disabled={sending}>Reconectar</button>
+      </div>}
+      {connection === "connecting" && <p className={styles.connectionPending}>Conectando en tiempo real…</p>}
+      <span className={styles.srOnly} role="status" aria-live="polite" aria-atomic="true">{open ? `${label}. ${announcement}` : ""}</span>
       <div className={styles.conversation}>
         <div
           className={styles.messages}
           ref={scrollRef}
           role="log"
           aria-label="Mensajes de la conversación"
-          aria-live="polite"
+          aria-live="off"
           aria-relevant="additions"
           aria-busy={sending}
           onScroll={(event) => {
@@ -121,7 +136,7 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
             </div>
           ) : (
             <>
-              {messages.length <= 1 && (
+              {!messages.some(item => item.remitente !== "bot") && (
                 <div className={styles.welcome}>
                   <Image
                     src="/icons/asistente_bymax.png"
@@ -129,12 +144,6 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
                     width={96}
                     height={96}
                   />
-
-                  <span>
-                    {modo === "medico"
-                      ? "APOYO PARA TU PRÁCTICA CLÍNICA"
-                      : "UN POCO DE AYUDA, CUANDO LA NECESITAS"}
-                  </span>
 
                   <h2>
                     Hola, soy{" "}

@@ -9,6 +9,7 @@ import BymaxChatWindow from "./BymaxChatWindow";
 import BymaxDoctorContext from "./BymaxDoctorContext";
 import useBymaxIdentity from "./useBymaxIdentity";
 import { takeSpeechUnits } from "./bymaxSpeechUnits.mjs";
+import { assistantState } from "./bymaxPresentation.mjs";
 
 const SALUDO = "Hola, soy Bymax, tu asistente virtual de DocSmart. ¿En qué puedo ayudarte el dia de hoy?";
 function normalizarMensaje(item) {
@@ -37,6 +38,8 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
   const [streamingId, setStreamingId] = useState(null);
   const [sidebar, setSidebar] = useState(false);
   const [error, setError] = useState("");
+  const [connection, setConnection] = useState("connecting");
+  const [connectionAttempt, setConnectionAttempt] = useState(0);
   const inputRef = useRef(null);
   const fileRef = useRef(null);
   const launcherRef = useRef(null);
@@ -119,6 +122,8 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
     if (!chatId) return;
     const socket = bymaxService.crearSocket(chatId);
     socketRef.current = socket;
+    setConnection("connecting");
+    socket.onopen = () => setConnection("connected");
     function finish() {
       turnRef.current = null;
       sendingRef.current = false;
@@ -154,8 +159,9 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
         finish();
       }
     };
-    socket.onerror = () => setError("Se perdió la conexión en tiempo real con Bymax.");
+    socket.onerror = () => setConnection("disconnected");
     socket.onclose = () => {
+      setConnection("disconnected");
       const turn = turnRef.current;
       if (turn?.chatId !== chatId) return;
       voiceRef.current?.stopPlayback();
@@ -163,11 +169,11 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
       finish();
     };
     return () => {
-      socket.onmessage = socket.onerror = socket.onclose = null;
+      socket.onopen = socket.onmessage = socket.onerror = socket.onclose = null;
       socket.close();
       if (socketRef.current === socket) socketRef.current = null;
     };
-  }, [chatId]);
+  }, [chatId, connectionAttempt]);
 
   const enviarTexto = useCallback(async (forced, soloTexto = false) => {
     const text = String(forced ?? mensaje).trim();
@@ -236,17 +242,17 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
   };
   const ultimo = mensajes.at(-1);
   const confirmation = Boolean(ultimo?.remitente === "bot" && (ultimo.resultado?.requires_confirmation || ultimo.resultado?.data?.requires_confirmation));
-  const status = voice.mic === "ended" ? "ended" : error || voice.error ? "error" : voice.mic === "suspended" ? "suspended" : voice.playback === "speaking" || voice.playback === "starting" ? "speaking" : enviando || voice.playback === "preparing" ? "processing" : voice.mic === "waiting" ? "waiting" : voice.mic === "listening" ? "listening" : voice.mic === "starting" || voice.mic === "recovering" ? "recovering" : "off";
-  const label = {ended:"Conversación terminada",error:"Necesito tu atención",suspended:"Escucha suspendida",waiting:"Esperando «Bymax»",listening:"Escuchando solicitud…",speaking:"Hablando…",processing:"Procesando…",recovering:"Preparando escucha…",off:"Micrófono desactivado"}[status];
+  const { status, label } = assistantState({ voice, sending: enviando, loading: cargando, error, lastMessage: ultimo, connection });
   return <>
     <BymaxLauncher {...draggable} status={status} label={label} open={ventanaAbierta} buttonRef={launcherRef}/>
     <BymaxChatWindow open={ventanaAbierta} close={close} status={status} label={label} chats={chats} chatId={chatId} messages={mensajes} loading={cargando} sending={enviando} streamingId={streamingId}
+      connection={connection} reconnect={() => setConnectionAttempt(value => value + 1)}
       modo={modo} daily={daily} onOpenClinical={() => {
         setVentanaAbierta(false);
         setCopilotoAbierto(true);
       }}
       sidebar={sidebar} setSidebar={setSidebar} loadChat={cargarChat} newChat={nuevoChat} deleteChat={eliminarChat} voice={voice} viewportStyle={viewportStyle}
-      composer={{message:mensaje,setMessage:setMensaje,image:imagen,setImage:setImagen,error,clearError:() => {setError("");voice.clearError();},onSend:enviarTexto,onImage:seleccionarImagen,inputRef,fileRef,confirmation}}/>
+      composer={{message:mensaje,setMessage:setMensaje,image:imagen,setImage:setImagen,error,clearError:() => {setError("");voice.clearError();},onSend:enviarTexto,onImage:seleccionarImagen,inputRef,fileRef,confirmation,unavailable:cargando || !chatId}}/>
     {modo === "medico" && <BymaxDoctorContext
       open={copilotoAbierto}
       close={() => setCopilotoAbierto(false)}

@@ -1,24 +1,19 @@
 "use client";
 import Image from "next/image";
-import { CalendarDays, Stethoscope, Play, Square, LoaderCircle } from "lucide-react";
+import { AlertCircle, CalendarDays, Stethoscope, Play, Square, LoaderCircle } from "lucide-react";
+import { messageBlocks } from "./bymaxPresentation.mjs";
 import styles from "./BymaxAssistant.module.css";
 function fechaCorta(valor) {
   if (!valor) return "Ahora";
+  if (Number.isNaN(new Date(valor).getTime())) return String(valor);
   return new Intl.DateTimeFormat(undefined, {
     day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
   }).format(new Date(valor));
 }
 
-function normalizarMensaje(item) {
-  return {
-    id: item.id || crypto.randomUUID(),
-    remitente: item.es_bot ? "bot" : (item.remitente || "usuario"),
-    texto: String(item.contenido ?? item.texto ?? ""),
-    fecha: item.fecha || new Date().toISOString(),
-    resultado: item.resultado || null,
-    imagen: item.imagen || null,
-    error: Boolean(item.error),
-  };
+function emphasis(text) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) =>
+    part.startsWith("**") && part.endsWith("**") ? <strong key={index}>{part.slice(2, -2)}</strong> : part);
 }
 
 function TarjetasResultado({ resultado }) {
@@ -57,9 +52,12 @@ function ContenidoMensaje({ mensaje }) {
         <Image className={styles.messageImage} src={mensaje.imagen} alt="Imagen médica adjunta" width={280} height={180} unoptimized />
       )}
       <div className={styles.messageText}>
-        {mensaje.texto.split("\n").map((linea, index) => (
-          <span key={index}>{linea || "\u00a0"}</span>
-        ))}
+        {messageBlocks(mensaje.texto).map((block, index) => {
+          if (block.type === "space") return null;
+          if (block.type === "p") return <p key={index}>{emphasis(block.lines.join("\n"))}</p>;
+          const List = block.type;
+          return <List key={index} start={block.start}>{block.lines.map((line, lineIndex) => <li key={lineIndex}>{emphasis(line)}</li>)}</List>;
+        })}
       </div>
       <TarjetasResultado resultado={mensaje.resultado} />
     </>
@@ -76,7 +74,7 @@ export default function BymaxMessage({ item, voice, streaming }) {
   return <div className={`${styles.messageRow} ${bot ? "" : styles.userRow}`}>
     {bot && <Image className={styles.miniAvatar} src="/icons/asistente_bymax.png" alt="" width={32} height={32}/>}
     <article className={`${styles.bubble} ${bot ? styles.botBubble : styles.userBubble} ${item.error ? styles.errorBubble : ""}`}>
-      <span className={styles.sender}>{bot ? "Bymax" : "Tú"}</span>
+      <span className={styles.sender}>{item.error && <AlertCircle size={14} aria-hidden="true"/>}{bot ? "Bymax" : "Tú"}{item.error ? " · No se completó la solicitud" : ""}</span>
       <ContenidoMensaje mensaje={item}/>
       {streaming && !item.texto && <span className={styles.typing}><i/><i/><i/><span>Preparando tu respuesta…</span></span>}
       <div className={styles.messageFooter}>
