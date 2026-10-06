@@ -37,7 +37,6 @@ DocSmart permite a los pacientes **buscar médicos según sus necesidades, agend
 ![Diagrama](docs/img/Flujo-Proyecto.png)
 
 ## 🚀 Cómo ejecutarlo
-**Requisitos:** [Ej: XAMPP 8, Python 3.12, Node 20]
 
 ```bash
 
