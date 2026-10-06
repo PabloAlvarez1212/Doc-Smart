@@ -69,3 +69,19 @@ npm run dev
 ```
 
 **Demo:** https://docsmart.site/
+
+## 📸 Capturas
+| Pantalla | Descripción |
+|---|---|
+| ![](docs/img/Pagina-Inicio-Paciente.png) | Pagina principal del paciente |
+| ![](docs/img/Pagina-Inicio-Medico.png) | Pagina principal del médico |
+
+## 👥 Equipo
+| Nombre | Rol | GitHub |
+|---|---|---|
+| Juan Pablo Alvarez | Full Stack | @PabloAlvarez1212 |
+| Kleider Echeverry | Full Stack | @kleyder15 |
+| Miguel Racero | Full Stack | @Angel-12334 |
+
+## 📄 Contexto
+Proyecto formativo del programa **Análisis y Desarrollo de Software (ADSO)** · SENA · Centro tecnológico del mobiliario · 2026.
