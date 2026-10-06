@@ -6,7 +6,7 @@
     width: min(calc(100% - 64px), 1240px);
     margin: 0 auto;
     gap: 30px;
-    padding: 42px 0 82px;
+    padding: 32px;
     color: var(--appointments-ink);
     overflow-wrap: normal;
 }

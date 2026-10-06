@@ -1,61 +1,99 @@
-"use client"
+"use client";
+
+import { CalendarDays, Camera, Mail, Phone, Trash2 } from "lucide-react";
+import Image from "next/image";
 import { useRef } from "react";
-import Button from "../../../ui/Button/Button"
-import styles from "./ProfileSidebar.module.css"
-import Image from "next/image"
-import { User, MailIcon, PhoneCall, UploadCloudIcon, Trash2Icon } from "lucide-react"
+import styles from "./ProfileSidebar.module.css";
+
 export default function ProfileSidebar({ perfil, actualizarFotoPerfil, guardando, eliminarFotoPerfil }) {
     const inputFotoRef = useRef(null);
-    const handleSeleccionarFoto = (e) => {
-        const archivo = e.target.files[0];
+    const fullName = [perfil?.nombre, perfil?.apellido].filter(Boolean).join(" ") || "Usuario de DocSmart";
+    const role = String(perfil?.rol || "paciente");
+    const roleLabel = `${role.charAt(0).toUpperCase()}${role.slice(1)}`;
 
-        if (!archivo) {
-            return;
-        }
-
+    const handleSeleccionarFoto = (event) => {
+        const archivo = event.target.files?.[0];
+        if (!archivo) return;
         actualizarFotoPerfil(archivo);
+        event.target.value = "";
     };
 
     return (
-        <div className={styles.containerSidebar}>
-            <div className={styles.fotoPerfil}>
-                <div className={styles.containerImage}>
-                    <Image width={100} height={100} alt="foto de perfil" src={perfil?.foto_perfil ? perfil.foto_perfil : "/images/foto_default.png"} />
-                    <Trash2Icon onClick={() => eliminarFotoPerfil()} className={styles.icon} size={42} />
+        <aside className={styles.summary} aria-label="Identidad del paciente" aria-busy={guardando}>
+            <div className={styles.identity}>
+                <div className={styles.avatarWrap}>
+                    <div className={styles.avatarSurface}>
+                        <Image
+                            width={136}
+                            height={136}
+                            alt={`Foto de perfil de ${fullName}`}
+                            src={perfil?.foto_perfil || "/images/foto_default.png"}
+                            className={styles.avatar}
+                        />
+                        {perfil?.foto_perfil && (
+                            <>
+                                <span className={styles.avatarOverlay} aria-hidden="true" />
+                                <button
+                                    type="button"
+                                    className={styles.removePhotoButton}
+                                    onClick={eliminarFotoPerfil}
+                                    disabled={guardando}
+                                    aria-label="Eliminar foto de perfil"
+                                >
+                                    <Trash2 size={20} aria-hidden="true" />
+                                </button>
+                            </>
+                        )}
+                    </div>
+                    <button
+                        type="button"
+                        className={styles.cameraButton}
+                        onClick={() => inputFotoRef.current?.click()}
+                        disabled={guardando}
+                        aria-label="Cambiar foto de perfil"
+                    >
+                        <Camera size={18} aria-hidden="true" />
+                    </button>
+                    <input
+                        ref={inputFotoRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        hidden
+                        onChange={handleSeleccionarFoto}
+                    />
                 </div>
-                <input ref={inputFotoRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleSeleccionarFoto} />
-                <p className={styles.nombre}>{`${perfil.nombre ?? "Usuario"} ${perfil.apellido}`}</p>
-                <p className={styles.rol}>{perfil.rol}</p>
-                <Button
-                    onClick={() => inputFotoRef.current?.click()}
-                    disabled={guardando}
-                    type="button"
-                    variant="white"
-                >
-                    {guardando ? (
-                        "Actualizando..."
-                    ) : (
-                        <>
-                            <UploadCloudIcon />
-                            &nbsp;&nbsp;&nbsp;Cambiar foto
-                        </>
-                    )}
-                </Button>
+
+                <div className={styles.identityCopy}>
+                    <h2>{fullName}</h2>
+                    <span className={styles.role}>{roleLabel}</span>
+                    <p>{guardando ? "Actualizando información" : "Perfil personal"}</p>
+                </div>
             </div>
-            <div className={styles.infoProfile}>
-                <div className={styles.itemList}>
-                    <MailIcon />
-                    <p>{perfil.correo}</p>
+
+            <dl className={styles.details}>
+                <div>
+                    <span aria-hidden="true"><Mail size={18} /></span>
+                    <div>
+                        <dt>Correo</dt>
+                        <dd className={styles.email}>{perfil?.correo || "No disponible"}</dd>
+                    </div>
                 </div>
-                <div className={styles.itemList}>
-                    <PhoneCall />
-                    <p>{perfil.telefono}</p>
+                <div>
+                    <span aria-hidden="true"><Phone size={18} /></span>
+                    <div>
+                        <dt>Teléfono</dt>
+                        <dd>{perfil?.telefono || "No disponible"}</dd>
+                    </div>
                 </div>
-                <div className={styles.itemList}>
-                    <User />
-                    <p>{`${perfil.edad} años`}</p>
+                <div>
+                    <span aria-hidden="true"><CalendarDays size={18} /></span>
+                    <div>
+                        <dt>Edad</dt>
+                        <dd>{perfil?.edad != null ? `${perfil.edad} años` : "No disponible"}</dd>
+                    </div>
                 </div>
-            </div>
-        </div>
-    )
+            </dl>
+
+        </aside>
+    );
 }
