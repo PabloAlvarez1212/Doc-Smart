@@ -11,7 +11,6 @@
 
   background: rgba(0, 0, 0, 0.45);
 
-  animation: fadeIn 0.18s ease;
 }
 
 .modal {
@@ -26,7 +25,6 @@
 
   overflow: hidden;
 
-  animation: slideUp 0.2s ease;
 }
 
 /* ── Header ───────────────────── */
@@ -136,27 +134,7 @@
 
 /* ── Animaciones ─────────────── */
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}.modal { display: flex; flex-direction: column; max-height: calc(100dvh - 40px); }
+.modal { display: flex; flex-direction: column; max-height: calc(100dvh - 40px); }
 .header { flex-shrink: 0; gap: 12px; }
 .body { min-height: 0; max-height: none; overscroll-behavior: contain; }
 .cerrar { width: 44px; height: 44px; flex-shrink: 0; }

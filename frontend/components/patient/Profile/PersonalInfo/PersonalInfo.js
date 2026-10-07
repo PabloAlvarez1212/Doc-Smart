@@ -1,16 +1,13 @@
 "use client";
-import Swal from "sweetalert2";
+
+import { HeartPulse, LockKeyhole, Save, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import Button from "../../../ui/Button/Button";
 import Input from "../../../ui/Input/Input";
 import styles from "./PersonalInfo.module.css";
 
-export default function PersonalInfo({
-    perfil,
-    actualizarPerfilPaciente,
-    guardando
-}) {
-
+export default function PersonalInfo({ perfil, actualizarPerfilPaciente, guardando }) {
     const [nombre, setNombre] = useState("");
     const [apellido, setApellido] = useState("");
     const [fechaNacimiento, setFechaNacimiento] = useState("");
@@ -19,32 +16,25 @@ export default function PersonalInfo({
     const [estatura, setEstatura] = useState("");
 
     useEffect(() => {
-
         if (!perfil) return;
-
         setNombre(perfil.nombre ?? "");
         setApellido(perfil.apellido ?? "");
-        setFechaNacimiento(
-            perfil.fecha_nacimiento ?? ""
-        );
+        setFechaNacimiento(perfil.fecha_nacimiento ?? "");
         setTelefono(perfil.telefono ?? "");
         setPeso(perfil.peso ?? "");
         setEstatura(perfil.estatura ?? "");
-
     }, [perfil]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
+    const handleSubmit = async (event) => {
+        event.preventDefault();
         const formData = {
             nombre,
             apellido,
             fecha_nacimiento: fechaNacimiento,
             telefono,
             peso,
-            estatura
+            estatura,
         };
-
         const result = await Swal.fire({
             title: "¿Actualizar información?",
             text: "Se guardarán los cambios realizados en tu perfil.",
@@ -52,195 +42,97 @@ export default function PersonalInfo({
             showCancelButton: true,
             confirmButtonText: "Sí, actualizar",
             cancelButtonText: "Cancelar",
-            reverseButtons: true
+            reverseButtons: true,
         });
 
-        if (result.isConfirmed) {
-            await actualizarPerfilPaciente(formData);
-        }
+        if (result.isConfirmed) await actualizarPerfilPaciente(formData);
     };
 
     return (
+        <form className={styles.form} onSubmit={handleSubmit} aria-busy={guardando}>
+            <ProfileSection
+                icon={UserRound}
+                title="Información personal"
+                description="Datos que utilizamos para identificarte y mantenernos en contacto."
+            >
+                <div className={styles.fieldsGrid}>
+                    <ProfileField label="Nombre" htmlFor="nombre" locked>
+                        <Input id="nombre" readOnly name="nombre" value={nombre} onChange={(event) => setNombre(event.target.value)} />
+                    </ProfileField>
 
-        <form
-            className={styles.containerPersonalInfo}
-            onSubmit={handleSubmit}
-        >
+                    <ProfileField label="Apellido" htmlFor="apellido" locked>
+                        <Input id="apellido" readOnly name="apellido" value={apellido} onChange={(event) => setApellido(event.target.value)} />
+                    </ProfileField>
 
-            <div className={styles.inputsInfoPersonal}>
+                    <ProfileField label="Fecha de nacimiento" htmlFor="fechaNacimiento" locked>
+                        <Input id="fechaNacimiento" readOnly name="fechaNacimiento" type="date" value={fechaNacimiento} onChange={(event) => setFechaNacimiento(event.target.value)} />
+                    </ProfileField>
 
-                <div className={styles.title}>
-                    <h2>Información Personal</h2>
-                    <p>
-                        Actualiza tu información personal
-                    </p>
+                    <ProfileField label="Cédula" htmlFor="cedula" locked>
+                        <Input id="cedula" name="cedula" value={perfil?.cedula ?? ""} readOnly />
+                    </ProfileField>
+
+                    <ProfileField label="Teléfono" htmlFor="telefono" className={styles.wideField}>
+                        <Input id="telefono" name="telefono" value={telefono} onChange={(event) => setTelefono(event.target.value)} />
+                    </ProfileField>
                 </div>
+            </ProfileSection>
 
-                <div className={styles.inputs}>
+            <ProfileSection
+                icon={HeartPulse}
+                title="Información de salud"
+                description="Medidas básicas asociadas a tu perfil de paciente."
+                medical
+            >
+                <div className={styles.medicalGrid}>
+                    <ProfileField label="Peso" htmlFor="peso" unit="kg">
+                        <Input id="peso" name="peso" type="number" min="20" max="300" step="0.1" value={peso} onChange={(event) => setPeso(event.target.value)} />
+                    </ProfileField>
 
-                    <div className={styles.itemInput}>
-
-                        <label htmlFor="nombre">
-                            Nombre
-                        </label>
-
-                        <Input
-                            id="nombre"
-                            name="nombre"
-                            value={nombre}
-                            onChange={(e) =>
-                                setNombre(e.target.value)
-                            }
-                        />
-
-                    </div>
-
-                    <div className={styles.itemInput}>
-
-                        <label htmlFor="apellido">
-                            Apellido
-                        </label>
-
-                        <Input
-                            id="apellido"
-                            name="apellido"
-                            value={apellido}
-                            onChange={(e) =>
-                                setApellido(e.target.value)
-                            }
-                        />
-
-                    </div>
-
-                    <div className={styles.itemInput}>
-
-                        <label htmlFor="fechaNacimiento">
-                            Fecha de Nacimiento
-                        </label>
-
-                        <Input
-                            id="fechaNacimiento"
-                            readOnly
-                            name="fechaNacimiento"
-                            type="date"
-                            value={fechaNacimiento}
-                            onChange={(e) =>
-                                setFechaNacimiento(
-                                    e.target.value
-                                )
-                            }
-                        />
-
-                    </div>
-
-                    <div className={styles.itemInput}>
-
-                        <label htmlFor="cedula">
-                            Cédula
-                        </label>
-
-                        <Input
-                            id="cedula"
-                            name="cedula"
-                            value={perfil?.cedula ?? ""}
-                            readOnly
-                        />
-
-                    </div>
-
-                    <div className={styles.itemInput}>
-
-                        <label htmlFor="telefono">
-                            Teléfono
-                        </label>
-
-                        <Input
-                            id="telefono"
-                            name="telefono"
-                            value={telefono}
-                            onChange={(e) =>
-                                setTelefono(e.target.value)
-                            }
-                        />
-
-                    </div>
-
+                    <ProfileField label="Estatura" htmlFor="estatura" unit="metros">
+                        <Input id="estatura" name="estatura" type="number" step="0.01" value={estatura} onChange={(event) => setEstatura(event.target.value)} />
+                    </ProfileField>
                 </div>
+            </ProfileSection>
 
-            </div>
-
-            <div className={styles.inputsInfoMedica}>
-
-                <div className={styles.title}>
-
-                    <h2>Información Médica</h2>
-
-                    <p>
-                        Actualiza tus datos médicos
-                    </p>
-
+            <footer className={styles.actions}>
+                <div>
+                    <strong>Guarda tus cambios</strong>
+                    <span>Confirma la actualización antes de enviar tus datos.</span>
                 </div>
-
-                <div className={styles.inputs}>
-
-                    <div className={styles.itemInput}>
-
-                        <label htmlFor="peso">
-                            Peso (kg)
-                        </label>
-
-                        <Input
-                            id="peso"
-                            name="peso"
-                            type="number"
-                            min="20"
-                            max="300"
-                            step="0.1"
-                            value={peso}
-                            onChange={(e) =>
-                                setPeso(e.target.value)
-                            }
-                        />
-
-                    </div>
-
-                    <div className={styles.itemInput}>
-
-                        <label htmlFor="estatura">
-                            Estatura (metros)
-                        </label>
-
-                        <Input
-                            id="estatura"
-                            name="estatura"
-                            type="number"
-                            step="0.01"
-                            value={estatura}
-                            onChange={(e) =>
-                                setEstatura(e.target.value)
-                            }
-                        />
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div className={styles.btn}>
-
-                <Button
-                    type="submit"
-                    disabled={guardando}
-                >
-                    {guardando
-                        ? "Guardando..."
-                        : "Guardar cambios"
-                    }
+                <Button type="submit" disabled={guardando} className={styles.saveButton}>
+                    <Save size={17} aria-hidden="true" />
+                    {guardando ? "Guardando..." : "Guardar cambios"}
                 </Button>
-
-            </div>
-
+            </footer>
         </form>
+    );
+}
+
+function ProfileSection({ icon: Icon, title, description, medical = false, children }) {
+    return (
+        <section className={`${styles.section} ${medical ? styles.medicalSection : ""}`}>
+            <header className={styles.sectionHeader}>
+                <span aria-hidden="true"><Icon size={20} /></span>
+                <div>
+                    <h2>{title}</h2>
+                    <p>{description}</p>
+                </div>
+            </header>
+            {children}
+        </section>
+    );
+}
+
+function ProfileField({ label, htmlFor, locked = false, unit, className = "", children }) {
+    return (
+        <div className={`${styles.field} ${locked ? styles.lockedField : ""} ${className}`}>
+            <div className={styles.labelRow}>
+                <label htmlFor={htmlFor}>{label}</label>
+                {locked && <span><LockKeyhole size={12} aria-hidden="true" /> Verificado</span>}
+                {unit && <span>{unit}</span>}
+            </div>
+            {children}
+        </div>
     );
 }

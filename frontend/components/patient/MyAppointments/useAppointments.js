@@ -1,7 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { getEspecialidadesService } from "@/app/services/doctorServices";
-import { listarCitasPacienteService, cancelarCitaService } from "@/app/services/appointmentsServices";
+import {
+    listarCitasPacienteService,
+    cancelarCitaService,
+    reprogramarCitaService,
+} from "@/app/services/appointmentsServices";
 import { getDepartamentosService, getCiudadesPorDepartamentoService } from "@/app/services/catalogs";
 import Swal from "sweetalert2";
 export default function useAppointments() {
@@ -84,6 +88,16 @@ export default function useAppointments() {
                 icon: "error",
             });
         }
+    };
+
+    const reprogramarCita = async (id_cita, fecha_programada) => {
+        const response = await reprogramarCitaService(
+            id_cita,
+            fecha_programada
+        );
+
+        await cargarCitas();
+        return response;
     };
     const cargarCiudades = async (idDepartamento) => {
         try {
@@ -199,6 +213,7 @@ export default function useAppointments() {
         citas,
         especialidades,
         cancelarCita,
+        reprogramarCita,
         departamentos,
         ciudades,
         cambiarFiltro,

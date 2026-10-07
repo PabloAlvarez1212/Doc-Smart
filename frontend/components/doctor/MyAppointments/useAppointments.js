@@ -633,29 +633,7 @@ export default function useAppointments() {
             });
 
         } catch (error) {
-
-            console.error(
-                "Error al reprogramar cita:",
-                error
-            );
-
-
-            Swal.fire({
-
-                title:
-                    "Error",
-
-                text:
-                    error.response
-                        ?.data
-                        ?.mensaje ||
-                    "No se pudo reprogramar la cita.",
-
-                icon:
-                    "error",
-
-            });
-
+            throw error;
         }
 
     };

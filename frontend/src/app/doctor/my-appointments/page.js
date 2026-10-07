@@ -7,7 +7,7 @@ import DoctorAppointmentList from "../../../../components/doctor/MyAppointments/
 import FilterAppointments from "../../../../components/doctor/MyAppointments/FilterAppointments/FilterAppointments";
 import HeaderAppointments from "../../../../components/doctor/MyAppointments/HeaderAppointments/HeaderAppointments";
 import Hero from "../../../../components/doctor/MyAppointments/Hero/Hero";
-import ReprogramAppointment from "../../../../components/doctor/MyAppointments/ReprogramAppointmets/ReprogramAppointments";
+import ReprogramAppointmentModal from "../../../../components/ui/ReprogramAppointmentModal/ReprogramAppointmentModal";
 import useAppointments from "../../../../components/doctor/MyAppointments/useAppointments";
 import Pagination from "../../../../components/ui/Pagination/Pagination";
 import {
@@ -56,7 +56,6 @@ export default function MyAppointments() {
 
     const cerrarReprogramacion = () => {
         setModalReprogramar(false);
-        setCitaSeleccionada(null);
     };
 
     return (
@@ -125,14 +124,14 @@ export default function MyAppointments() {
                 )}
             </section>
 
-            {citaSeleccionada && (
-                <ReprogramAppointment
-                    abierto={modalReprogramar}
-                    onCerrar={cerrarReprogramacion}
-                    cita={citaSeleccionada}
-                    reprogramarCita={reprogramarCita}
-                />
-            )}
+            <ReprogramAppointmentModal
+                abierto={modalReprogramar}
+                onCerrar={cerrarReprogramacion}
+                onExitComplete={() => setCitaSeleccionada(null)}
+                cita={citaSeleccionada}
+                reprogramarCita={reprogramarCita}
+                counterpart="paciente"
+            />
         </main>
     );
 }

@@ -6,7 +6,7 @@
     width: min(calc(100% - 64px), 1120px);
     margin: 0 auto;
     gap: 24px;
-    padding: 42px 0 82px;
+    padding: 60px 40px !important;
     color: var(--notification-ink);
 }
 .compactTop .header{
@@ -127,12 +127,13 @@
 }
 
 @media (max-width: 390px) {
+    .page{padding-left: 25px !important; padding-right: 25px !important; padding-top: 30px !important;}
     .item { grid-template-columns: minmax(0, 1fr); }
     .itemIcon { margin-bottom: 1px; }
     .itemActions { grid-column: 1; padding-left: 0; }
     .itemActions button { flex: 1 1 130px; }
     .header {margin-top: 40px;}
-    .compactTop .header{margin-top: 40px !important;}
+    .compactTop .header{margin-top: 4px !important;}
 }
 
 @media (prefers-reduced-motion: reduce) {

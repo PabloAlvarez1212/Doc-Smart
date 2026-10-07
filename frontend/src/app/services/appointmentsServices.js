@@ -81,21 +81,11 @@ export const reprogramarCitaService = async (
     id_cita,
     fecha_programada
 ) => {
-    try {
-        const response = await api.put(`/citas/${id_cita}/`, {
-            fecha_programada,
-        });
+    const response = await api.put(`/citas/${id_cita}/`, {
+        fecha_programada,
+    });
 
-        return response.data;
-    } catch (error) {
-        console.error("Detalle de reprogramación:", {
-            estado: error.response?.status,
-            respuesta: error.response?.data,
-            datosEnviados: error.config?.data,
-        });
-
-        throw error;
-    }
+    return response.data;
 };
 
 

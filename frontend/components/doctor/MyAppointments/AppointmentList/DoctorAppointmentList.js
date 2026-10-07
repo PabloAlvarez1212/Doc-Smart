@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, Check, CheckCircle2, SearchX, X } from "lucide-react";
+import { CalendarClock, CircleCheck, CircleX, ClipboardCheck, SearchX } from "lucide-react";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
 import AppointmentCard, { AppointmentListHeader } from "../../../ui/AppointmentCard/AppointmentCard";
 import { getDoctorAppointmentActionKeys } from "../appointmentActions";
@@ -42,19 +42,19 @@ export default function DoctorAppointmentList({
                         },
                         cancelar: {
                             label: "Cancelar",
-                            icon: X,
+                            icon: CircleX,
                             tone: "danger",
                             onClick: () => cancelarCita?.(cita.id),
                         },
                         confirmar: {
                             label: "Confirmar",
-                            icon: Check,
+                            icon: CircleCheck,
                             tone: "primary",
                             onClick: () => confirmarCita?.(cita.id),
                         },
                         completar: {
                             label: "Completar",
-                            icon: CheckCircle2,
+                            icon: ClipboardCheck,
                             tone: "success",
                             onClick: () => completarCita?.(cita.id),
                         },

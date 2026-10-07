@@ -1,12 +1,14 @@
 from datetime import datetime, time, timedelta
 from django.test import TestCase
 from django.utils import timezone
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from catalogos.models import Estado, Rol
 from citas.models import Cita
 from citas.services import crearCitaService, editarCitaService
 from medicos.models import DisponibilidadMedico, Especialidad, Medico, ExcepcionDisponibilidadMedico
 from medicos.services_disponibilidad import esHorarioDisponible, generarSlotsDisponibles
+from medicos.views import HorariosDisponiblesMedicoView
 from users.models import Usuario
 
 
@@ -108,3 +110,43 @@ class DisponibilidadConfirmacionTests(TestCase):
         self.assertEqual(editarCitaService(cita.pk, {"fecha_programada": nueva}, self.medico)[1], 200)
         cita.refresh_from_db()
         self.assertEqual(cita.fecha_programada, nueva)
+
+    def test_endpoint_horarios_excluye_la_cita_propia_para_reprogramar(self):
+        cita = self.cita(fin=self.inicio + timedelta(minutes=30))
+        request = APIRequestFactory().get(
+            f"/medicos/{self.medico.pk}/horarios-disponibles/",
+            {
+                "fecha": self.fecha.isoformat(),
+                "excluir_cita_id": cita.pk,
+            },
+        )
+        force_authenticate(request, user=self.paciente)
+
+        response = HorariosDisponiblesMedicoView.as_view()(
+            request,
+            medico_id=self.medico.pk,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            "09:00",
+            [slot["hora_inicio"] for slot in response.data["data"]["horarios"]],
+        )
+
+    def test_endpoint_horarios_no_permite_excluir_una_cita_ajena(self):
+        cita = self.cita(fin=self.inicio + timedelta(minutes=30))
+        request = APIRequestFactory().get(
+            f"/medicos/{self.medico.pk}/horarios-disponibles/",
+            {
+                "fecha": self.fecha.isoformat(),
+                "excluir_cita_id": cita.pk,
+            },
+        )
+        force_authenticate(request, user=self.otro)
+
+        response = HorariosDisponiblesMedicoView.as_view()(
+            request,
+            medico_id=self.medico.pk,
+        )
+
+        self.assertEqual(response.status_code, 404)

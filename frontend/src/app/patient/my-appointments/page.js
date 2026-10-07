@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { m, useReducedMotion } from "motion/react";
+import Swal from "sweetalert2";
 import AppointmentList from "../../../../components/patient/MyAppointments/AppointmentList/Appointment";
 import FilterAppointment from "../../../../components/patient/MyAppointments/FilterAppointment/FilterAppointment";
 import HeaderAppointment from "../../../../components/patient/MyAppointments/HeaderAppointment/HeaderAppointment";
@@ -13,16 +15,20 @@ import {
 } from "../../../../components/ui/AppointmentCard/appointmentViewState";
 import useAppointments from "../../../../components/patient/MyAppointments/useAppointments";
 import Pagination from "../../../../components/ui/Pagination/Pagination";
+import ReprogramAppointmentModal from "../../../../components/ui/ReprogramAppointmentModal/ReprogramAppointmentModal";
 import styles from "./myAppointments.module.css";
 
 export default function MyAppointments() {
     const reduceMotion = useReducedMotion();
+    const [citaSeleccionada, setCitaSeleccionada] = useState(null);
+    const [modalReprogramar, setModalReprogramar] = useState(false);
     const {
         citas,
         especialidades,
         departamentos,
         ciudades,
         cancelarCita,
+        reprogramarCita,
         cambiarFiltro,
         filtros,
         estado,
@@ -38,6 +44,25 @@ export default function MyAppointments() {
     const hasActiveFilters = hasActiveAppointmentFilters(estado, filtros);
     const resultKey = getAppointmentsResultKey(citas, totalRegistros);
     const resultMotion = getAppointmentsResultMotion(reduceMotion);
+
+    const abrirReprogramacion = (cita) => {
+        setCitaSeleccionada(cita);
+        setModalReprogramar(true);
+    };
+
+    const cerrarReprogramacion = () => {
+        setModalReprogramar(false);
+    };
+
+    const confirmarReprogramacion = async (idCita, fechaProgramada) => {
+        const response = await reprogramarCita(idCita, fechaProgramada);
+        void Swal.fire({
+            title: "Cita reprogramada",
+            text: "Cita reprogramada correctamente. La nueva fecha ha sido registrada y está pendiente de confirmación por parte del médico. Te notificaremos cuando sea confirmada.",
+            icon: "success",
+        });
+        return response;
+    };
 
     return (
         <div className={styles.page}>
@@ -87,6 +112,7 @@ export default function MyAppointments() {
                         <AppointmentList
                             citas={citas}
                             cancelarCita={cancelarCita}
+                            reprogramarCita={abrirReprogramacion}
                             hasActiveFilters={hasActiveFilters}
                         />
                     </m.div>
@@ -103,6 +129,15 @@ export default function MyAppointments() {
                     />
                 )}
             </section>
+
+            <ReprogramAppointmentModal
+                abierto={modalReprogramar}
+                onCerrar={cerrarReprogramacion}
+                onExitComplete={() => setCitaSeleccionada(null)}
+                cita={citaSeleccionada}
+                reprogramarCita={confirmarReprogramacion}
+                counterpart="medico"
+            />
         </div>
     );
 }

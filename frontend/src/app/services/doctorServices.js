@@ -232,7 +232,8 @@ export const obtenerDiasDisponiblesMedicoService = async function (
 export const obtenerHorariosDisponiblesMedicoService = async (
     medicoId,
     fecha,
-    excluirCitaId
+    excluirCitaId,
+    signal
 ) => {
     const response = await api.get(
         `/medicos/${medicoId}/horarios-disponibles/`,
@@ -243,6 +244,7 @@ export const obtenerHorariosDisponiblesMedicoService = async (
                     ? { excluir_cita_id: excluirCitaId }
                     : {}),
             },
+            signal,
         }
     );
 

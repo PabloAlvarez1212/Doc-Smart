@@ -1,19 +1,23 @@
 "use client";
 
-import { SearchX, X } from "lucide-react";
+import { CalendarClock, CircleX, SearchX } from "lucide-react";
 import Link from "next/link";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
 import AppointmentCard, { AppointmentListHeader } from "../../../ui/AppointmentCard/AppointmentCard";
+import { getPatientAppointmentActionKeys } from "../../../ui/AppointmentCard/appointmentViewState";
 import styles from "./Appointment.module.css";
-
-const cancellableStatuses = new Set(["pendiente", "confirmada", "reprogramada"]);
 
 function capitalize(value) {
     const text = String(value || "").trim();
     return text ? `${text[0].toUpperCase()}${text.slice(1)}` : "Sin estado";
 }
 
-export default function AppointmentList({ citas = [], cancelarCita, hasActiveFilters = false }) {
+export default function AppointmentList({
+    citas = [],
+    cancelarCita,
+    reprogramarCita,
+    hasActiveFilters = false,
+}) {
     if (!citas.length) return <EmptyAppointments filtered={hasActiveFilters} />;
 
     return (
@@ -28,15 +32,22 @@ export default function AppointmentList({ citas = [], cancelarCita, hasActiveFil
                         ? cita.fecha_cancelacion
                         : status === "completada" ? cita.fecha_final : null;
                     const resolution = resolutionDate ? formatearFecha(resolutionDate) : null;
-                    const actions = cancellableStatuses.has(status)
-                        ? [{
+                    const actionKeys = getPatientAppointmentActionKeys(status);
+                    const actions = actionKeys.map((action) => action === "reprogramar"
+                        ? {
+                            id: "reprogramar",
+                            label: "Reprogramar",
+                            icon: CalendarClock,
+                            tone: "secondary",
+                            onClick: () => reprogramarCita?.(cita),
+                        }
+                        : {
                             id: "cancelar",
                             label: "Cancelar cita",
-                            icon: X,
+                            icon: CircleX,
                             tone: "danger",
                             onClick: () => cancelarCita?.(cita.id),
-                        }]
-                        : [];
+                        });
 
                     return (
                         <AppointmentCard
