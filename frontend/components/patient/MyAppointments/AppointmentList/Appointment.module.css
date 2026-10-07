@@ -8,6 +8,7 @@
 .empty a:active { transform: scale(.98); }
 
 @media (max-width: 430px) {
+    .list > [role="list"] { display: grid; gap: 14px; }
     .empty { grid-template-columns: minmax(0, 1fr); padding: 25px 4px; }
     .empty a { width: 100%; }
 }
