@@ -1,5 +1,5 @@
+import re
 from difflib import SequenceMatcher
-
 from chatbot.ai.flow_definition import FLOWS
 from chatbot.ai.conversation_flow import ConversationFlow
 from chatbot.ai.router_decision import RouterDecision
@@ -57,8 +57,85 @@ class FlowManager:
         )
 
     @staticmethod
+    def _extraer_id_cita(mensaje, permitir_numero=False):
+        original = str(mensaje or "")
+
+        # Evita interpretar fechas, horas y números negativos como IDs.
+        if re.search(r"[-/:]|\d\s*[.,]\s*\d", original):
+            return None
+
+        texto = " ".join(normalizar_intencion(original).split())
+
+        patrones = [
+            (
+                r"(?:la\s+)?cita(?:\s+es)?(?:\s+la)?"
+                r"(?:\s+(?:numero|nro|num))?\s+(\d+)"
+            ),
+            r"(?:la\s+)?(?:numero|nro|num)\s+(\d+)",
+        ]
+
+        if permitir_numero:
+            patrones.append(r"(\d+)")
+
+        for patron in patrones:
+            coincidencia = re.fullmatch(patron, texto)
+
+            if coincidencia:
+                numero = int(coincidencia.group(1))
+                return numero if numero > 0 else None
+
+        return None    
+
+    @staticmethod
     def continuar(chat, mensaje):
 
+        accion_actual = chat.estado_conversacion.split(":")[-1]
+        texto = " ".join(normalizar_intencion(mensaje).split())
+        nueva_accion = None
+
+        if accion_actual in {"cancelar_cita", "reprogramar_cita"}:
+            if (
+                re.search(r"\breprogram(?:ar|ala|arla|a|ame)\b", texto)
+                and not re.search(
+                    r"\bno\s+(?:(?:la|lo)\s+)?"
+                    r"(?:quiero\s+)?reprogram\w*\b",
+                    texto,
+                )
+            ):
+                nueva_accion = "reprogramar_cita"
+
+            elif (
+                re.search(r"\bcancel(?:ar|ala|arla|a|ame)\b", texto)
+                and not solicita_cancelar_flujo(mensaje)
+                and not re.search(
+                    r"\bno\s+(?:(?:la|lo)\s+)?"
+                    r"(?:quiero\s+)?cancel\w*\b",
+                    texto,
+                )
+            ):
+                nueva_accion = "cancelar_cita"
+
+        if nueva_accion and nueva_accion != accion_actual:
+            contexto = ConversationFlow.obtener(chat)
+            parametros = {}
+
+            if contexto.get("id_cita"):
+                parametros["id_cita"] = contexto["id_cita"]
+
+            parametros.update(
+                FlowManager._extraer_seguimiento(
+                    chat,
+                    mensaje,
+                    nueva_accion,
+                    parametros,
+                )
+            )
+
+            return FlowManager.iniciar(
+                chat,
+                nueva_accion,
+                parametros,
+            )
         if chat.estado_conversacion.startswith("seleccionar_medico:"):
             return FlowManager._continuar_seleccion_medico(chat, mensaje)
 
@@ -120,6 +197,16 @@ class FlowManager:
 
     @staticmethod
     def _extraer_seguimiento(chat, mensaje, accion, contexto):
+
+        if accion in {"cancelar_cita", "reprogramar_cita"}:
+            id_cita = FlowManager._extraer_id_cita(
+                mensaje,
+                permitir_numero=not contexto.get("id_cita"),
+            )
+
+            if id_cita is not None:
+                return {"id_cita": id_cita}
+            
         from chatbot.ai.router import procesar_mensaje
         from chatbot.ai.memory import construir_historial
         historial = construir_historial(chat) if getattr(chat, 'pk', None) else []
