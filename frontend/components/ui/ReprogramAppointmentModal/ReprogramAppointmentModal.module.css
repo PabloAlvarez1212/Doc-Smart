@@ -1,0 +1,292 @@
+.headerIcon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 12px;
+    color: #1f5aab;
+    background: #eaf2fd;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.currentAppointment {
+    padding: 16px 18px;
+    border: 1px solid #dce6f2;
+    border-radius: 14px;
+    background: #f7faff;
+}
+
+.currentHeading,
+.currentMeta,
+.currentMeta > span,
+.field label,
+.actions,
+.submitButton,
+.cancelButton {
+    display: flex;
+    align-items: center;
+}
+
+.currentHeading {
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e1e9f3;
+}
+
+.currentHeading span,
+.currentMeta small {
+    color: #66758a;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.currentHeading strong {
+    color: #16243a;
+    font-size: 0.96rem;
+}
+
+.currentMeta {
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 12px;
+}
+
+.currentMeta > span:first-child {
+    gap: 10px;
+    min-width: 0;
+    color: #245da8;
+}
+
+.currentMeta > span:first-child > span {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    color: #243249;
+    font-size: 0.92rem;
+    font-weight: 650;
+}
+
+.currentMeta small {
+    font-size: 0.68rem;
+}
+
+.specialty {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 6px 10px;
+    overflow: hidden;
+    border-radius: 999px;
+    color: #245da8;
+    background: #e8f1fc;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.field {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+
+.field label {
+    gap: 7px;
+    color: #26354b;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.field label svg {
+    color: #2b67b3;
+}
+
+.field input,
+.field select {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 13px;
+    border: 1px solid #cbd7e6;
+    border-radius: 11px;
+    color: #1d2a3e;
+    background: #fff;
+    font: inherit;
+    font-size: 0.92rem;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.field input:focus-visible,
+.field select:focus-visible {
+    border-color: #2766b1;
+    box-shadow: 0 0 0 3px rgba(39, 102, 177, 0.14);
+}
+
+.field input:disabled,
+.field select:disabled {
+    cursor: not-allowed;
+    color: #758298;
+    background: #f1f4f8;
+}
+
+.feedback {
+    min-height: 22px;
+    color: #5e6c80;
+    font-size: 0.86rem;
+}
+
+.feedback p {
+    margin: 0;
+    animation: feedbackIn 160ms ease-out;
+}
+
+.feedback .error {
+    color: #a23535;
+}
+
+.loadingFeedback,
+.availableFeedback {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.loadingFeedback svg {
+    animation: spin 700ms linear infinite;
+}
+
+.availableFeedback {
+    color: #28624f;
+}
+
+.actions {
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 2px;
+}
+
+.submitButton,
+.cancelButton {
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 17px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 750;
+    cursor: pointer;
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.cancelButton {
+    border-color: #cbd6e4;
+    color: #34445b;
+    background: #fff;
+}
+
+.submitButton {
+    gap: 8px;
+    color: #fff;
+    background: #245da8;
+}
+
+.submitButton:not(:disabled):hover,
+.cancelButton:not(:disabled):hover {
+    transform: translateY(-1px);
+}
+
+.submitButton:not(:disabled):hover {
+    background: #1d4f91;
+}
+
+.cancelButton:not(:disabled):hover {
+    border-color: #9fb0c5;
+    background: #f6f8fb;
+}
+
+.submitButton:focus-visible,
+.cancelButton:focus-visible {
+    outline: 3px solid rgba(39, 102, 177, 0.22);
+    outline-offset: 2px;
+}
+
+.submitButton:disabled,
+.cancelButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+}
+
+@media (max-width: 560px) {
+    .form {
+        gap: 18px;
+    }
+
+    .currentHeading,
+    .currentMeta {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .fields {
+        grid-template-columns: 1fr;
+    }
+
+    .actions {
+        flex-direction: column-reverse;
+    }
+
+    .submitButton,
+    .cancelButton {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .field input,
+    .field select,
+    .submitButton,
+    .cancelButton {
+        transition: none;
+    }
+
+    .feedback p,
+    .loadingFeedback svg {
+        animation: none;
+    }
+}
+
+@keyframes feedbackIn {
+    from {
+        opacity: 0;
+        transform: translateY(3px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -7,7 +7,7 @@
     width: min(calc(100% - 64px), 1240px);
     margin: 0 auto;
     gap: clamp(34px, 4vw, 52px);
-    padding: 42px 0 84px;
+    padding: 42px 40px;
     color: var(--home-ink);
     overflow-wrap: normal;
 }

@@ -6,7 +6,7 @@
     width: min(calc(100% - 64px), 1120px);
     margin: 0 auto;
     gap: 24px;
-    padding: 90px 0 82px !important;
+    padding: 60px 40px !important;
     color: var(--notification-ink);
 }
 .compactTop .header{

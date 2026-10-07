@@ -63,11 +63,27 @@ export default function AppointmentCard({
                     {status?.label || "Sin estado"}
                 </span>
                 {actions.length > 0 && (
-                    <div className={styles.actionButtons}>
-                        {actions.map(({ id, label, icon: Icon, tone = "secondary", onClick }) => (
-                            <button key={id} type="button" className={styles[tone] || styles.secondary} onClick={onClick}>
+                    <div className={styles.actionButtons} data-action-count={actions.length}>
+                        {actions.map(({
+                            id,
+                            label,
+                            icon: Icon,
+                            tone = "secondary",
+                            onClick,
+                            disabled = false,
+                            loading = false,
+                        }) => (
+                            <button
+                                key={id}
+                                type="button"
+                                className={`${styles.actionButton} ${styles[tone] || styles.secondary}`}
+                                data-tone={tone}
+                                onClick={onClick}
+                                disabled={disabled || loading}
+                                aria-busy={loading || undefined}
+                            >
                                 {Icon && <Icon size={15} aria-hidden="true" />}
-                                {label}
+                                <span>{label}</span>
                             </button>
                         ))}
                     </div>

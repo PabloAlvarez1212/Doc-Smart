@@ -1038,10 +1038,16 @@ class HorariosDisponiblesMedicoView(APIView):
                 "fecha"
             ]
 
+            excluir_cita_id = serializer.validated_data.get(
+                "excluir_cita_id"
+            )
+
             resultado, status_code = (
                 obtenerHorariosDisponiblesService(
                     medico_id,
-                    fecha
+                    fecha,
+                    excluir_cita_id=excluir_cita_id,
+                    solicitante=request.user,
                 )
             )
 
