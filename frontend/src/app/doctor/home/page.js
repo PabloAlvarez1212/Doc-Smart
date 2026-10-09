@@ -7,9 +7,9 @@ import StaticCards from "../../../../components/doctor/Home/StaticCards/StaticCa
 import { useDashboardMedico } from "../../../../components/doctor/Home/useDashboardMedico"
 
 export default function Home() {
-    const { dashboard, loading } = useDashboardMedico();
-    console.log("FOTO PERFIL DASHBOARD:", dashboard?.foto_perfil);
-    if (loading) return <p>Cargando...</p>;
+    const { dashboard, loading, error, retry } = useDashboardMedico();
+    if (loading) return <p role="status" className="data-state">Cargando tu inicio…</p>;
+    if (error) return <div className="data-state" role="status"><p>{error}</p><button type="button" onClick={retry}>Volver a intentar</button></div>;
 
     return (
         <>
@@ -23,7 +23,7 @@ export default function Home() {
 
             <AppointmentsList data={dashboard} />
 
-            <Notifications data={dashboard} /> 
+            <Notifications data={dashboard} />
         </>
     );
 }

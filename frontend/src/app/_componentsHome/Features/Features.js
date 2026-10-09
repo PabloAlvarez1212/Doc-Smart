@@ -1,68 +1,32 @@
+"use client";
+
+import { motion, useReducedMotion } from 'motion/react';
+import { CalendarDays, MessageCircle, FileText, Stethoscope, ArrowUpRight } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 import styles from './Features.module.css';
-import Cards from '../../../../components/ui/Card/Cards';
-
-const features = [
-    {
-        title: "Agendar citas",
-        description: "Programa y gestiona tus citas médicas en segundos, con confirmación inmediata.",
-        image: "/icons/cita_medica.png",
-        badge: "Pacientes",
-        badgeColor: "#eff6ff",
-        badgeText: "var(--color-dark)",
-    },
-    {
-        title: "Asistente IA",
-        description: "Chatbot inteligente disponible 24/7 para responder tus dudas médicas.",
-        image: "/icons/cara_bymax.png",
-        badge: "24/7",
-        badgeColor: "#f0fdf4",
-        badgeText: "#15803d",
-    },
-    {
-        title: "Gestión de pacientes",
-        description: "Para médicos: organiza, consulta y da seguimiento a tus pacientes de forma rápida y eficiente.",
-        image: "/icons/paciente.png",
-        badge: "Médicos",
-        badgeColor: "#fdf4ff",
-        badgeText: "#7e22ce",
-    },
-    {
-        title: "Chat seguro",
-        description: "Comunícate con tu doctor o paciente de forma privada y encriptada.",
-        image: "/icons/chat.png",
-        badge: "Seguro",
-        badgeColor: "#fff7ed",
-        badgeText: "#c2410c",
-    },
-];
-
+const features = [[CalendarDays, 'Una agenda que se entiende.', 'Consulta horarios y gestiona tus citas, desde la solicitud hasta su seguimiento.'], [MessageCircle, 'La conversación continúa.', 'Accede al chat asociado a tus citas para conversar con tu médico o paciente.'], [FileText, 'Tu información, organizada.', 'Consulta el historial clínico y los documentos médicos asociados a tu cuenta.'], [Stethoscope, 'Más espacio para atender.', 'Los profesionales pueden gestionar su disponibilidad, consultas y pacientes.']];
 export default function Features() {
-    return (
-        <section className={styles.section}>
-            <div className={styles.header}>
-                <span className={styles.sectionLabel}>Funcionalidades</span>
-                <h2 className={styles.title}>Todo lo que necesitas<br />en un solo lugar</h2>
-                <p className={styles.subtitle}>Diseñado para pacientes y profesionales de la salud</p>
-            </div>
-
-            <div className={styles.cardContainer}>
-                {features.map((f, i) => (
-                    <div key={i} className={styles.cardWrapper}>
-                        <span
-                            className={styles.badge}
-                            style={{ background: f.badgeColor, color: f.badgeText }}
-                        >
-                            {f.badge}
-                        </span>
-                        <Cards
-                            title={f.title}
-                            description={f.description}
-                            image={f.image}
-                            className={styles.card}
-                        />
-                    </div>
-                ))}
-            </div>
-        </section>
-    );
+  const reduce = useReducedMotion();
+  return <section id="funcionalidades" className={styles.section} aria-labelledby="features-title"><div className={styles.heading}><h2 id="features-title">Todo conectado.<br /><span>Todo más sencillo.</span></h2><p>Herramientas que acompañan cada paso de tu atención, para pacientes y profesionales de la salud.</p></div><div className={styles.composition}><motion.article className={styles.bymax} initial={false} whileInView={{
+        y: 0
+      }} style={{
+        y: 16
+      }} viewport={{
+        once: true,
+        amount: .2
+      }} transition={{
+        duration: .45,
+        ease: [.22, 1, .36, 1]
+      }}><Image src="/icons/cara_bymax.png" width={100} height={100} alt="Bymax, asistente de DocSmart" /><div><h3>Una nueva forma<br />de hacer preguntas.</h3><p>Conversa con Bymax, el asistente de inteligencia artificial de DocSmart. Puedes consultar dudas y explorar las herramientas de la plataforma.</p><p className={styles.caution}>Sus respuestas no sustituyen una consulta médica.</p><Link href="/login">Conocer a Bymax <ArrowUpRight size={18} /></Link></div></motion.article><div className={styles.list}>{features.map(([Icon, title, description], i) => <motion.article key={title} className={styles.feature} initial={false} whileInView={{
+          y: 0
+        }} style={{
+          y: 10
+        }} viewport={{
+          once: true,
+          amount: .3
+        }} transition={{
+          duration: .3,
+          delay: reduce ? 0 : i * .035
+        }}><Icon size={25} strokeWidth={1.7} aria-hidden="true" /><div><h3>{title}</h3><p>{description}</p></div></motion.article>)}</div></div></section>;
 }

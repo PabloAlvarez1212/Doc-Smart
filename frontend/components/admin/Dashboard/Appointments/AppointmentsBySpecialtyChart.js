@@ -43,13 +43,13 @@ export default function AppointmentsBySpecialtyChart({ data, variant = "schedule
                         barCategoryGap="30%"
                         margin={{ top: 8, right: 12, left: 8, bottom: 2 }}
                     >
-                        <CartesianGrid horizontal={false} stroke="#e9eef4" strokeDasharray="3 4" />
+                        <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 4" />
                         <XAxis
                             type="number"
                             allowDecimals={false}
                             domain={[0, axisMax]}
                             ticks={ticks}
-                            tick={{ fill: "#64748b", fontSize: 11 }}
+                            tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
                             tickLine={false}
                             axisLine={false}
                         />

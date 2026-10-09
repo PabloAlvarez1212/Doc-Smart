@@ -21,7 +21,7 @@ from django.template.loader import render_to_string
 from django.core.paginator import Paginator
 from citas.models import Cita
 import calendar
-from notificaciones.models import Notificacion 
+from notificaciones.models import Notificacion
 import logging
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
@@ -131,7 +131,7 @@ def loginService(correo, contraseña):
         },
         401
     )
-    
+
 def refreshTokenService(refresh_token):
     try:
         refresh = RefreshToken(refresh_token)
@@ -150,7 +150,7 @@ def refreshTokenService(refresh_token):
             },
             401
         )
-        
+
 def solicitarCambioCorreoService(usuario,nuevo_correo):
 
     nuevo_correo = (nuevo_correo .strip().lower())
@@ -264,7 +264,7 @@ def confirmarCambioCorreoService(usuario,cambio_id,codigo):
     if cambio.otp_expira_en <= ahora:
         cambio.estado = (CambioCorreoUsuario.Estado.EXPIRADO)
         cambio.save(update_fields=["estado"])
-        
+
         return {
             "codigo": ["El código ha expirado"]}, 400
 
@@ -324,9 +324,9 @@ def confirmarCambioCorreoService(usuario,cambio_id,codigo):
     )
 
     return {"correo": usuario.correo}, 200
-    
+
 def cambiarContraseñaService(token, nueva_contraseña):
-    
+
     # Busca el token en ambas tablas
     usuario = Usuario.objects.filter(token_reset=token).first()
     medico = Medico.objects.filter(token_reset=token).first()
@@ -336,16 +336,16 @@ def cambiarContraseñaService(token, nueva_contraseña):
 
     # Verifica que el token no haya expirado
     persona = usuario or medico
-    
+
     if not persona.token_reset_expira or persona.token_reset_expira < timezone.now():
         persona.token_reset = None
         persona.token_reset_expira = None
         persona.save()
         return {"general":["El token ha expirado"]}, 400
-    
+
     # Encripta la nueva contraseña
     nueva_contraseña_hash = bcrypt.hashpw(
-        nueva_contraseña.encode(), 
+        nueva_contraseña.encode(),
         bcrypt.gensalt()
     ).decode()
 
@@ -360,7 +360,7 @@ def cambiarContraseñaService(token, nueva_contraseña):
 def cambiarContraseñaAutenticadoService(persona,contraseña_actual,nueva_contraseña):
     if not isinstance(persona, (Usuario, Medico)):
         return 'Usuario no válido', 400
-    
+
     if not bcrypt.checkpw(contraseña_actual.encode(),persona.contraseña.encode()):
         return 'La contraseña ingresada no es correcta', 400
 
@@ -370,7 +370,7 @@ def cambiarContraseñaAutenticadoService(persona,contraseña_actual,nueva_contra
     persona.save()
 
     return 'Contraseña actualizada correctamente', 200
-        
+
 def registrarUsuarioService(datos):
     tipo=datos["tipo_documento"]
     numero=datos["numero_documento"].strip().upper()
@@ -977,7 +977,7 @@ def completarRegistroUsuarioService(proceso_id):
 
 def listarPacientesService(page=None, page_size=10, search=None):
     usuarios = Usuario.objects.filter(id_rol__nombre__iexact = "paciente")
-    
+
     if search:
         usuarios = usuarios.filter(nombre__icontains=search)
     usuarios = usuarios.order_by('nombre')
@@ -1083,20 +1083,20 @@ def eliminarUsuarioService(id):
     return 'Usuario eliminado correctamente', 200
 
 def obtenerDashboardPacienteInicioService(id):
-    fecha_actual = timezone.now()
+    fecha_actual = timezone.localtime()
     usuario = Usuario.objects.filter(id=id).first()
-    
+
     if not usuario:
         return 'Usuario no encontrado', 404
-    
+
     nombreCompletoUsuario = f"{usuario.nombre} {usuario.apellido}"
-    
+
     proximasTresCita = Cita.objects.filter(
         id_usuario = usuario,
         fecha_programada__gte = fecha_actual,
         id_estado__nombre = 'confirmada'
     ).order_by('fecha_programada')[:3]
-    
+
     proximas_citas = []
 
     for cita in proximasTresCita:
@@ -1107,26 +1107,26 @@ def obtenerDashboardPacienteInicioService(id):
             "especialidad": cita.id_medico.id_especialidad.nombre,
             "estado": cita.id_estado.nombre,
             "direccion": cita.id_medico.direccion,
-            "ciudad": cita.id_medico.ciudad.nombre,
-            "departamento": cita.id_medico.ciudad.departamento.nombre,
+            "ciudad": cita.id_medico.ciudad.nombre if cita.id_medico.ciudad else None,
+            "departamento": cita.id_medico.ciudad.departamento.nombre if cita.id_medico.ciudad else None,
             "foto_medico": (
                 cita.id_medico.foto_perfil.url
                 if cita.id_medico.foto_perfil
                 else None),
     })
-    
+
     numeroCitasProximas = Cita.objects.filter(
         id_usuario = usuario,
         fecha_programada__gte = fecha_actual,
         id_estado__nombre = 'confirmada',
     ).count()
-    
+
     numeroCitasPendientes = Cita.objects.filter(
             id_usuario = usuario,
             fecha_programada__gte = fecha_actual,
             id_estado__nombre__in = ['pendiente','reprogramada'],
         ).count()
-    
+
     primer_dia = fecha_actual.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     ultimo_dia = fecha_actual.replace(
         day=calendar.monthrange(fecha_actual.year, fecha_actual.month)[1],
@@ -1137,13 +1137,13 @@ def obtenerDashboardPacienteInicioService(id):
         id_estado__nombre='completada',
         fecha_final__range=(primer_dia, ultimo_dia)
     ).count()
-    
+
     consultasCanceladasEsteMes = Cita.objects.filter(
         id_usuario = usuario,
         id_estado__nombre ='cancelada',
         fecha_cancelacion__range=(primer_dia,ultimo_dia)
     ).count()
-    
+
     data = {
         "usuario" : nombreCompletoUsuario,
         "id": usuario.id,
@@ -1156,7 +1156,7 @@ def obtenerDashboardPacienteInicioService(id):
             "consultas_canceladas_mes": consultasCanceladasEsteMes,
         },
     }
-    
+
     return data,200
 
 #!Metodos de estadistica para el panel del admin
@@ -1168,7 +1168,7 @@ def obtenerMetricasSistema():
     totalCitas = Cita.objects.all().count()
     totalSolicitudesPendientes = SolicitudValidacionMedico.objects.filter(estado=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE).count()
     solicitudPendienteMasAntigua = (SolicitudValidacionMedico.objects.filter(estado=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE).order_by("fecha_solicitud").first())
-    
+
     antiguedadSolicitudPendiente = None
 
     if solicitudPendienteMasAntigua:
@@ -1183,7 +1183,7 @@ def obtenerMetricasSistema():
     ahora = timezone.localtime()
 
     totalCitasHoy = Cita.objects.filter(fecha_programada__date=hoy).count()
-    
+
     inicioMes = ahora.replace(
         day=1,
         hour=0,
@@ -1191,9 +1191,9 @@ def obtenerMetricasSistema():
         second=0,
         microsecond=0
     )
-    
+
     finMes = inicioMes + relativedelta(months=1)
-    
+
     inicioPeriodo = inicioMes - relativedelta(months=2)
     citasCreadasUltimosMeses = (Cita.objects.filter(fecha_creacion__gte=inicioPeriodo).annotate(mes=TruncMonth("fecha_creacion")).values("mes").annotate(total=Count("id")).order_by("mes"))
     totalPacientesActivosMes = (Cita.objects.filter(fecha_programada__gte=inicioMes,fecha_programada__lt=finMes,id_usuario__id_rol__nombre__iexact="paciente").values("id_usuario").distinct().count())
@@ -1235,15 +1235,15 @@ def obtenerMetricasSistema():
                     else 0
                 )
             },
-        
+
     }
-    
+
     for item in citasCreadasUltimosMeses:
         data["citas_creadas_ultimos_3_meses"].append({
             "mes": item["mes"].strftime("%Y-%m"),
             "total": item["total"],
         })
-        
+
     return data,200
 
 def obtenerEstadisticasPacientesService(anio=None, mes=None):
@@ -1308,7 +1308,7 @@ def obtenerEstadisticasPacientesService(anio=None, mes=None):
         },
         reverse=True
     )
-    
+
     citasPeriodo = Cita.objects.filter(id_usuario__id_rol__nombre__iexact="paciente",fecha_programada__gte=inicioPeriodo,fecha_programada__lt=finPeriodo)
 
     pacientesRegistradosPeriodo = Usuario.objects.filter(id_rol__nombre__iexact="paciente",fecha_creacion__gte=inicioPeriodo,fecha_creacion__lt=finPeriodo)
@@ -1364,7 +1364,7 @@ def obtenerEstadisticasPacientesService(anio=None, mes=None):
             )
         )
     )
-    
+
     rangosCitas = {
         "Sin citas": 0,
         "1 cita": 0,

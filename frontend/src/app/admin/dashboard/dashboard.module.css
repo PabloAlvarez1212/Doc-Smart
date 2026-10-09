@@ -22,9 +22,9 @@
     min-width: 0;
     container-type: inline-size;
     padding: 20px;
-    border: 1px solid #e1e7f0;
+    border: 1px solid var(--border);
     border-radius: 16px;
-    background: #fff;
+    background: var(--surface);
     box-shadow: 0 8px 24px rgba(28, 54, 92, .04);
 }
 

@@ -30,7 +30,7 @@ export function SpecialtyTick({ x, y, payload }) {
     const lines = wrapSpecialtyLabel(payload.value);
 
     return (
-        <text x={x} y={y} textAnchor="end" fill="#526078" fontSize="12">
+        <text x={x} y={y} textAnchor="end" fill="var(--text-secondary)" fontSize="12">
             <title>{payload.value}</title>
             {lines.map((line, index) => (
                 <tspan key={index} x={x} dy={index === 0 ? 4 - (lines.length - 1) * 7 : 14}>

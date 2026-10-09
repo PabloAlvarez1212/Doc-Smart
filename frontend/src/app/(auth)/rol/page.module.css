@@ -15,7 +15,7 @@
     border: none;
     font-size: 1rem;
     cursor: pointer;
-    color: #333;
+    color: var(--color-text);
     display: flex;
     align-items: center;
     gap: 0.4rem;
@@ -35,13 +35,13 @@
 .title {
     font-size: 2rem;
     font-weight: 800;
-    color: #111;
+    color: var(--color-text);
     margin-bottom: 0.5rem;
 }
 
 .subtitle {
     font-size: 1rem;
-    color: #555;
+    color: var(--text-secondary);
 }
 
 .cards {
@@ -54,7 +54,7 @@
 }
 
 .card {
-    background: white;
+    background: var(--surface);
     border-radius: 1.2rem;
     padding: 2.5rem;
     width: 350px;
@@ -91,11 +91,11 @@
 }
 
 .iconPaciente {
-    background-color: #dbe4ff;
+    background-color: var(--surface-muted);
 }
 
 .iconMedico {
-    background-color: #d3f9d8;
+    background-color: var(--tone-green);
 }
 
 .icon {
@@ -105,12 +105,12 @@
 .cardTitle {
     font-size: 1.2rem;
     font-weight: 800;
-    color: #111;
+    color: var(--color-text);
 }
 
 .cardDesc {
     font-size: 0.95rem;
-    color: #555;
+    color: var(--text-secondary);
     line-height: 1.5;
 }
 
@@ -124,16 +124,16 @@
     flex-direction: column;
     gap: 0.6rem;
     font-size: 0.70rem;
-    color: #333;
+    color: var(--color-text);
 }
 
 .dotPaciente {
-    color: #3b5bdb;
+    color: var(--color-dark);
     margin-right: 0.5rem;
 }
 
 .dotMedico {
-    color: #2f9e44;
+    color: var(--ink-green);
     margin-right: 0.5rem;
 }
 

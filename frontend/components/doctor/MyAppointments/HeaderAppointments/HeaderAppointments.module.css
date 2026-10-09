@@ -3,9 +3,9 @@
     margin: 0;
     padding: 13px 18px;
     border: 0;
-    border-bottom: 1px solid #e4e9f1;
+    border-bottom: 1px solid var(--border);
     border-radius: 0;
-    background: #fff;
+    background: var(--surface);
     box-shadow: none;
 }
 
@@ -50,7 +50,7 @@
     border: 0;
     border-radius: 10px;
 
-    color: #475467;
+    color: var(--text-secondary);
     background: transparent;
 
     font: inherit;
@@ -66,8 +66,8 @@
 }
 
 .tab:hover {
-    color: #15803d;
-    background: #f0fdf4;
+    color: var(--ink-green);
+    background: var(--surface-muted);
 }
 
 
@@ -76,13 +76,13 @@
 ======================================== */
 
 .active {
-    color: #15803d;
-    background: #dcfce7;
+    color: var(--ink-green);
+    background: var(--surface-muted);
 }
 
 .active:hover {
-    color: #15803d;
-    background: #dcfce7;
+    color: var(--ink-green);
+    background: var(--surface-muted);
 }
 
 
@@ -101,17 +101,17 @@
 
     border-radius: 999px;
 
-    color: #667085;
-    background: #f2f4f7;
+    color: var(--text-secondary);
+    background: var(--surface-muted);
 
     font-size: .7rem;
     font-weight: 700;
 }
 
 .active .count {
-    color: #15803d;
+    color: var(--ink-green);
 
-    background: #fff;
+    background: var(--surface);
 }
 
 

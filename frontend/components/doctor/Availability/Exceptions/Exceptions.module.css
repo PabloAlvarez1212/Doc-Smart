@@ -1,6 +1,6 @@
 .container {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 16px;
     padding: 24px;
 }
@@ -16,12 +16,12 @@
 .header h2 {
     margin: 0 0 6px;
     font-size: 20px;
-    color: #111827;
+    color: var(--color-text);
 }
 
 .header p {
     margin: 0;
-    color: #6b7280;
+    color: var(--text-secondary);
     font-size: 14px;
 }
 
@@ -58,7 +58,7 @@
     justify-content: space-between;
     gap: 20px;
 
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 18px;
 }
@@ -80,8 +80,8 @@
     flex-shrink: 0;
 
     border-radius: 10px;
-    background: #f0fdf4;
-    color: #16a34a;
+    background: var(--surface-muted);
+    color: var(--ink-green);
 }
 
 .information {
@@ -98,7 +98,7 @@
 .titleRow h3 {
     margin: 0;
     font-size: 16px;
-    color: #111827;
+    color: var(--color-text);
 }
 
 .special,
@@ -110,13 +110,13 @@
 }
 
 .special {
-    background: #eff6ff;
-    color: #2563eb;
+    background: var(--surface-muted);
+    color: var(--color-dark);
 }
 
 .unavailable {
-    background: #fef2f2;
-    color: #dc2626;
+    background: var(--surface-muted);
+    color: var(--ink-red);
 }
 
 .schedules {
@@ -134,20 +134,20 @@
     padding: 5px 9px;
     border-radius: 8px;
 
-    background: #f9fafb;
-    color: #4b5563;
+    background: var(--surface);
+    color: var(--text-secondary);
     font-size: 13px;
 }
 
 .description {
     margin: 8px 0 0;
-    color: #6b7280;
+    color: var(--text-secondary);
     font-size: 14px;
 }
 
 .reason {
     margin: 8px 0 0;
-    color: #6b7280;
+    color: var(--text-secondary);
     font-size: 13px;
 }
 
@@ -164,18 +164,18 @@
     width: 36px;
     height: 36px;
 
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border);
     border-radius: 8px;
 
-    background: white;
-    color: #6b7280;
+    background: var(--surface);
+    color: var(--text-secondary);
 
     cursor: pointer;
 }
 
 .actions button:hover {
-    background: #f9fafb;
-    color: #111827;
+    background: var(--surface);
+    color: var(--color-text);
 }
 
 .empty {
@@ -186,12 +186,12 @@
     padding: 40px 20px;
     text-align: center;
 
-    color: #6b7280;
+    color: var(--text-secondary);
 }
 
 .empty h3 {
     margin: 12px 0 5px;
-    color: #111827;
+    color: var(--color-text);
 }
 
 .empty p {
@@ -203,7 +203,7 @@
     margin: 0;
     padding: 30px;
     text-align: center;
-    color: #6b7280;
+    color: var(--text-secondary);
 }
 
 @media (max-width: 700px) {

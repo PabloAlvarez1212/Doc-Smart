@@ -1,0 +1,3 @@
+from pathlib import Path
+p=Path('frontend/components/ui/VerificationStatus/VerificationStatus.js');s=p.read_text(encoding='utf-8').replace('motion, AnimatePresence, useReducedMotion','motion, useReducedMotion').replace('<AnimatePresence initial={false} mode="wait">','').replace('</AnimatePresence>','').replace('initial={{opacity:0}}','initial={{opacity:state.kind === "pending" ? 1 : 0}}');p.write_text(s,encoding='utf-8',newline='\n')
+p=Path('frontend/scripts/verify-design-corrections.cjs');s=p.read_text(encoding='utf-8').replace("setTimeout(r,200)","setTimeout(r,800)");p.write_text(s,encoding='utf-8',newline='\n')

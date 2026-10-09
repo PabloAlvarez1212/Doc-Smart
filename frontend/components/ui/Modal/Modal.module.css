@@ -18,7 +18,7 @@
   max-width: 480px;
   max-height: 90vh;
 
-  background: white;
+  background: var(--surface);
   border-radius: 16px;
 
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
@@ -36,7 +36,7 @@
 
   padding: 1.5rem 2rem;
 
-  border-bottom: 1.5px solid #e2e8f0;
+  border-bottom: 1.5px solid var(--border);
 }
 
 .container{
@@ -46,19 +46,19 @@
 }
 
 .default {
-    background-color: var(--color-dark);
+    background-color: var(--brand-solid);
 }
 
 .white{
-  background-color: var(--color-white);
+  background-color: var(--surface);
 }
 
 .white .titulo{
-  color: black;
+  color: var(--color-text);
 }
 
 .white .cerrar{
-  color: black;
+  color: var(--color-text);
 }
 
 .white .cerrar:hover{
@@ -75,11 +75,11 @@
 }
 
 .yellow .cerrar{
-  color: black;
+  color: var(--color-text);
 }
 
 .yellow .cerrar:hover{
-  background: white;
+  background: var(--surface);
 }
 
 .containerTitle{
@@ -108,7 +108,7 @@
   align-items: center;
   justify-content: center;
 
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--glass);
   border: none;
   border-radius: 8px;
 
@@ -120,7 +120,7 @@
 }
 
 .cerrar:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--glass);
 }
 
 /* ── Body ─────────────────────── */
@@ -139,3 +139,6 @@
 .body { min-height: 0; max-height: none; overscroll-behavior: contain; }
 .cerrar { width: 44px; height: 44px; flex-shrink: 0; }
 @media (max-width: 640px) { .overlay { padding: 12px; } .modal { max-height: calc(100dvh - 24px); } .header, .body { padding: 20px 16px; } .titulo { font-size: 1.3rem; } }
+.modal{background:var(--surface)}.header{border-color:var(--border)}.white .titulo,.white .cerrar{color:var(--color-text)}.default{background:#1733a4}.yellow{background:var(--tone-orange);color:var(--ink-orange)}.yellow .titulo,.yellow .cerrar{color:var(--ink-orange)}
+
+.default{color:var(--on-accent)}.default .containerTitle p,.default .container svg{color:var(--on-accent)}.white .containerTitle p,.white .container svg{color:var(--text-secondary)}.yellow .titulo,.yellow .containerTitle p,.yellow .cerrar,.yellow .container svg{color:#452600}.white .cerrar:hover{background:var(--surface-muted);color:var(--text-primary)}

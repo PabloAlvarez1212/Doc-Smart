@@ -20,23 +20,23 @@
 
 /*!Variantes*/
 .primary {
-    background-color: var(--color-dark);
+    background-color: var(--brand-solid);
     color: white;
 }
 
 .warning {
     background: #EF9F27;
-    color: #412402;
+    color: #452600;
 }
 
 .danger {
     background: #A32D2D;
-    color: #FCEBEB;
+    color: #fff;
 }
 
 .secundary {
-    background: #FFFFFF;
-    color: #000000;
+    background: var(--surface);
+    color: var(--color-text);
 }
 
 /*!Tamaño*/
@@ -75,3 +75,7 @@
     }
 }.btn { min-height: 44px; white-space: normal; gap: 6px; }
 .btn svg { flex-shrink: 0; }
+@media(prefers-reduced-motion:reduce){.btn:hover{transform:none}}
+
+.btn{transition:transform var(--motion-fast) var(--motion-ease),background-color var(--motion-fast),box-shadow var(--motion-fast);font-weight:600}.btn:hover{opacity:1}.btn:active{transform:scale(.98)}.secondary,.secundary{background:var(--surface-muted);border:1px solid var(--border);color:var(--text-primary)}.btn:disabled{opacity:1;color:var(--text-secondary);background:var(--surface-muted);border:1px solid var(--border);cursor:not-allowed;transform:none;box-shadow:none}.btn.loading{color:var(--text-secondary)}.btn.loading::after{display:none}.btn.loading .spinner{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}.btn:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+@media(hover:hover) and (pointer:fine){.primary:not(:disabled):hover{background:#2445b4;box-shadow:0 5px 14px #1733a425}}
