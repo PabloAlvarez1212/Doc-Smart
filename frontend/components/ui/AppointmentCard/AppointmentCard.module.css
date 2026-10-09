@@ -220,3 +220,21 @@
     .actionButton:not(:disabled):hover,
     .actionButton:not(:disabled):hover svg { transform: none; }
 }
+
+.person .medicalLink {
+    display: block;
+    margin-top: 7px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #2857ad;
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.medicalLink:focus-visible {
+    outline: 2px solid #2857ad;
+    outline-offset: 3px;
+}

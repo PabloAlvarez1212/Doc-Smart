@@ -8,3 +8,44 @@
     .list > [role="list"] { display: grid; gap: 14px; }
     .empty { grid-template-columns: minmax(0, 1fr); padding: 25px 4px; }
 }
+
+
+.medicalCard {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #26364f;
+}
+.medicalCard h3 { margin: 0 0 6px; }
+.medicalNote { color: #70809a; font-size: 13px; }
+.medicalMeasures {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin: 18px 0;
+}
+.medicalRecord {
+    padding: 16px 0;
+    border-top: 1px solid #dbe5f2;
+    overflow-wrap: anywhere;
+}
+.medicalRecord small {
+    display: block;
+    margin-bottom: 6px;
+    color: #70809a;
+}
+.medicalRecord strong { display: inline-block; margin-right: 12px; }
+.medicalRecord p {
+    margin: 8px 0;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+.medicalState {
+    display: inline-block;
+    padding: 4px 9px;
+    border-radius: 8px;
+    background: #e8f0ff;
+    color: #2857ad;
+    font-size: 12px;
+}

@@ -1,5 +1,5 @@
 import logging
-
+from users.serializers import InfoUserSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from utils import IsMedicoAprobado,IsPaciente,IsPacienteOrMedicoAprobado,IsAdmin,FiltroPeriodoSerializer
@@ -19,6 +19,7 @@ from citas.services import (
     confirmarCitaService,
     eliminarRecordatorioService,
     obtenerEstadisticasCitas,
+    obtenerInfoPacienteCitaService,
 )
 from citas.serializers import CrearCitaSerializer, EditarCitaSerializer
 
@@ -370,3 +371,23 @@ class EstadisticasCitasView(APIView):
                 mensaje="Error interno del servidor",
                 status=500
             )
+
+
+class InfoPacienteCitaView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, cita_id):
+        paciente, registros = obtenerInfoPacienteCitaService(
+            request.user, cita_id
+        )
+        return Response({
+            "paciente": {
+                "nombre": paciente.nombre,
+                "apellido": paciente.apellido,
+                "peso": paciente.peso,
+                "estatura": paciente.estatura,
+            },
+            "informacion_salud": InfoUserSerializer(
+                registros, many=True
+            ).data,
+        })

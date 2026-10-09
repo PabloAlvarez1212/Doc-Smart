@@ -1,8 +1,9 @@
 from citas.models import Cita, RecordatorioCita
 from citas.serializers import CitaSerializer, RecordatorioSerializer
+from rest_framework.exceptions import NotFound, PermissionDenied
 from catalogos.models import Estado, Medio
 from medicos.models import Medico
-from users.models import Usuario
+from users.models import Usuario,InfoUser
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Count, Value, Q
@@ -1146,3 +1147,25 @@ def obtenerEstadisticasCitas(anio=None, mes=None):
         })
         
     return data,200
+
+
+def obtenerInfoPacienteCitaService(medico, cita_id):
+    if not isinstance(medico, Medico):
+        raise PermissionDenied("Esta función es exclusiva para médicos.")
+
+    cita = Cita.objects.select_related(
+        "id_usuario", "id_estado"
+    ).filter(pk=cita_id, id_medico=medico).first()
+
+    if not cita:
+        raise NotFound("Cita no encontrada.")
+
+    if cita.id_estado.nombre.strip().casefold() != "confirmada":
+        raise PermissionDenied("Debes confirmar la cita para consultar estos datos.")
+
+    paciente = cita.id_usuario
+    registros = InfoUser.objects.filter(
+        id_usuario=paciente
+    ).select_related("id_tipo")
+
+    return paciente, registros
