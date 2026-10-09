@@ -2,8 +2,8 @@
 
 import { CalendarClock, CircleCheck, CircleX, ClipboardCheck, SearchX } from "lucide-react";
 import { useState } from "react";
-import formatearFecha from "@/app/utils/fechaFormaterUtils";
-import AppointmentCard, { AppointmentListHeader } from "../../../ui/AppointmentCard/AppointmentCard";
+import formatearFecha, { formatearFechaResolucion } from "@/app/utils/fechaFormaterUtils";
+import AppointmentCard from "../../../ui/AppointmentCard/AppointmentCard";
 import AppointmentDetailsModal from "../../../ui/AppointmentDetailsModal/AppointmentDetailsModal";
 import { getDoctorAppointmentActionKeys } from "../appointmentActions";
 import styles from "./DoctorAppointmentList.module.css";
@@ -34,7 +34,6 @@ export default function DoctorAppointmentList({
     return (
         <>
             <div className={styles.list}>
-                <AppointmentListHeader personLabel="Paciente" />
                 <div role="list">
                     {citas.map((cita) => {
                     const status = String(cita.estado || "").toLowerCase();
@@ -43,7 +42,7 @@ export default function DoctorAppointmentList({
                     const resolutionDate = status === "cancelada"
                         ? cita.fecha_cancelacion
                         : status === "completada" ? cita.fecha_final : null;
-                    const resolution = resolutionDate ? formatearFecha(resolutionDate) : null;
+                    const resolution = formatearFechaResolucion(resolutionDate);
                     const actionMap = {
                         reprogramar: {
                             label: "Reprogramar",
@@ -87,7 +86,7 @@ export default function DoctorAppointmentList({
                             actions={actions}
                             onViewDetails={() => openDetails(cita)}
                             metadata={resolution
-                                ? `${status === "cancelada" ? "Cancelada" : "Completada"} el ${resolution.fecha}, ${resolution.hora}`
+                                ? `${status === "cancelada" ? "Cancelada" : "Completada"} el ${resolution}`
                                 : null}
                         />
                     );
