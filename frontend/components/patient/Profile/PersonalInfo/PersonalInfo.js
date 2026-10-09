@@ -1,6 +1,6 @@
 "use client";
 
-import { HeartPulse, LockKeyhole, Save, UserRound } from "lucide-react";
+import { HeartPulse, LockKeyhole, Mail, Save, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import Button from "../../../ui/Button/Button";
@@ -8,7 +8,7 @@ import Input from "../../../ui/Input/Input";
 import InfoSalud from "./InfoSalud";
 import styles from "./PersonalInfo.module.css";
 
-export default function PersonalInfo({perfil, actualizarPerfilPaciente, guardando, datosSalud = [], onAgregarSalud, onEditarSalud, onEliminarSalud}) {
+export default function PersonalInfo({perfil, actualizarPerfilPaciente, guardando, onCambiarCorreo, ocupadoCorreo = false, datosSalud = [], onAgregarSalud, onEditarSalud, onEliminarSalud}) {
     const [nombre, setNombre] = useState("");
     const [apellido, setApellido] = useState("");
     const [fechaNacimiento, setFechaNacimiento] = useState("");
@@ -24,7 +24,8 @@ export default function PersonalInfo({perfil, actualizarPerfilPaciente, guardand
         setTelefono(perfil.telefono ?? "");
         setPeso(perfil.peso ?? "");
         setEstatura(perfil.estatura ?? "");
-    }, [perfil]);
+    }, [perfil?.id, perfil?.nombre, perfil?.apellido, perfil?.fecha_nacimiento,
+        perfil?.telefono, perfil?.peso, perfil?.estatura]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -108,10 +109,15 @@ export default function PersonalInfo({perfil, actualizarPerfilPaciente, guardand
                     <strong>Guarda tus cambios</strong>
                     <span>Confirma la actualización antes de enviar tus datos.</span>
                 </div>
-                <Button type="submit" disabled={guardando} className={styles.saveButton}>
-                    <Save size={17} aria-hidden="true" />
-                    {guardando ? "Guardando..." : "Guardar cambios"}
-                </Button>
+                <div className={styles.actionButtons}>
+                    <Button type="button" variant="secundary" disabled={guardando || ocupadoCorreo} className={styles.emailButton} onClick={onCambiarCorreo}>
+                        <Mail size={17} aria-hidden="true"/> Cambiar correo
+                    </Button>
+                    <Button type="submit" disabled={guardando || ocupadoCorreo} className={styles.saveButton}>
+                        <Save size={17} aria-hidden="true" />
+                        {guardando ? "Guardando..." : "Guardar cambios"}
+                    </Button>
+                </div>
             </footer>
         </form>
     );

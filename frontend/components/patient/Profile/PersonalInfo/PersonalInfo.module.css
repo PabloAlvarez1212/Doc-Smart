@@ -21,8 +21,8 @@
 .field input[readonly] { cursor: default; color: #5e6b7d; border-color: #e0e6ec; background: #f3f5f7; }
 .lockedField .labelRow label { color: #59677a; }
 
-.actions { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 22px; border: 1px solid #dce5ee; border-radius: 15px; background: #fff; box-shadow: 0 10px 30px rgba(30, 60, 98, .045); }
-.actions > div { display: grid; gap: 3px; min-width: 0; }
+.form > .actions { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 22px; border: 1px solid #dce5ee; border-radius: 15px; background: #fff; box-shadow: 0 10px 30px rgba(30, 60, 98, .045); }
+.form > .actions > div:first-child { display: grid; gap: 3px; min-width: 0; }
 .actions strong { color: #344359; font-size: .84rem; }
 .actions span { color: #748297; font-size: .74rem; line-height: 1.4; }
 .saveButton { min-height: 42px; padding: 9px 14px; border-radius: 9px; background: #2456a6; font-size: .8rem; font-weight: 720; white-space: nowrap; transition: background-color 160ms ease, transform 120ms cubic-bezier(.23, 1, .32, 1); }
@@ -39,7 +39,7 @@
 @media (max-width: 520px) {
     .sectionHeader { align-items: flex-start; padding: 18px 16px; }
     .fieldsGrid, .medicalGrid { gap: 17px; padding: 20px 16px; }
-    .actions { align-items: stretch; flex-direction: column; padding: 17px 16px; }
+    .form > .actions { align-items: stretch; flex-direction: column; padding: 17px 16px; }
     .saveButton { width: 100%; }
 }
 
@@ -270,3 +270,8 @@
 @media (max-width: 640px) {
     .formGrid { grid-template-columns: 1fr; }
 }
+.actionButtons { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
+.emailButton { min-height: 44px; padding: 10px 14px; border: 1px solid #b8c7d9; background: #fff; color: #2456a6; font-size: .8rem; font-weight: 650; }
+.emailButton:focus-visible { outline: 3px solid #2456a6; outline-offset: 3px; }
+@media (max-width: 1000px) { .form > .actions { flex-wrap: wrap; } }
+@media (max-width: 520px) { .actionButtons { flex-direction: column; } .actionButtons > button { width: 100%; } }

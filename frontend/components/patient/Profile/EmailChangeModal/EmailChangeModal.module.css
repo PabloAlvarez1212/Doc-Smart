@@ -1,0 +1,14 @@
+.steps { display: flex; flex-wrap: wrap; gap: 10px 16px; list-style: none; padding: 0; margin: 0 0 24px; color: #56677d; font-size: .75rem; }
+.steps li { display: inline-flex; align-items: center; gap: 6px; }
+.steps li > span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid #b8c7d9; font-variant-numeric: tabular-nums; }
+.steps li[aria-current] { color: #2456a6; font-weight: 700; }
+.steps li[aria-current] > span { color: #fff; background: #2456a6; border-color: #2456a6; }
+.reference { display: grid; gap: 4px; padding-bottom: 16px; border-bottom: 1px solid #dce5ee; font-size: .875rem; overflow-wrap: anywhere; }
+.reference span, .help { color: #56677d; }
+.copy { margin: 0; font-size: .9375rem; line-height: 1.6; overflow-wrap: anywhere; }
+.help { margin: 0; font-size: .8125rem; line-height: 1.55; }
+.code { letter-spacing: .25em; font-variant-numeric: tabular-nums; }
+.restart { justify-self: start; min-height: 44px; padding: 8px 0; border: 0; background: transparent; color: #2456a6; text-decoration: underline; text-underline-offset: 4px; font: inherit; font-size: .875rem; cursor: pointer; }
+.spinner { animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }

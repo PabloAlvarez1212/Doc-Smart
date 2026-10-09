@@ -16,6 +16,7 @@ import FormInfoSalud from "../../../../components/forms/InfoUser/FormInfoSalud";
 import ProfileSidebar from "../../../../components/patient/Profile/ProfileSidebar/ProfileSidebar";
 import useProfile from "../../../../components/patient/Profile/useProfile";
 import Modal from "../../../../components/ui/Modal/Modal";
+import EmailChangeModal from "../../../../components/patient/Profile/EmailChangeModal/EmailChangeModal";
 import styles from "./MyProfile.module.css";
 
 const lista = (datos) =>
@@ -26,6 +27,8 @@ export default function MyProfile() {
     const {
         perfil, actualizarPerfilPaciente, error, guardando, loading,
         actualizarFotoPerfil, eliminarFotoPerfil,
+        cambioCorreo, ocupadoCorreo, abrirCambioCorreo, cerrarCambioCorreo,
+        editarCambioCorreo, enviarCambioCorreo, reiniciarCambioCorreo,
     } = useProfile();
 
     const [datosSalud, setDatosSalud] = useState([]);
@@ -177,6 +180,10 @@ export default function MyProfile() {
                 <span>Perfil del paciente</span>
             </header>
 
+            <EmailChangeModal actual={perfil.correo} flujo={cambioCorreo} ocupado={ocupadoCorreo}
+                onCerrar={cerrarCambioCorreo} onEditar={editarCambioCorreo}
+                onEnviar={enviarCambioCorreo} onReiniciar={reiniciarCambioCorreo}/>
+
             <div className={styles.profileLayout}>
                 <m.div className={styles.sidebarColumn} {...entrance}>
                     <ProfileSidebar
@@ -212,6 +219,8 @@ export default function MyProfile() {
                     <PersonalInfo
                         perfil={perfil}
                         actualizarPerfilPaciente={actualizarPerfilPaciente}
+                        onCambiarCorreo={abrirCambioCorreo}
+                        ocupadoCorreo={ocupadoCorreo}
                         guardando={guardando}
                         datosSalud={datosSalud}
                         onAgregarSalud={accionesDisponibles
