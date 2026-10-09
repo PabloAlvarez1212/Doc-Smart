@@ -69,15 +69,17 @@ export default function InfoSalud({
                                     </span>
                                 </td>
                                 <td>
-                                    <div className={styles.Actions}>
+                                    <div className={styles.actions}>
                                         <button
                                             type="button"
+                                            className={styles.editButton}
                                             aria-label={`Editar ${dato.nombre}`}
                                             onClick={() => onEditar?.(dato)}
                                             disabled={!onEditar}
                                         >
                                             <Pencil size={16} />
                                         </button>
+
                                         <button
                                             type="button"
                                             className={styles.deleteButton}

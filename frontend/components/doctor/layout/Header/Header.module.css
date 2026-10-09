@@ -5,7 +5,7 @@
     left: 50%;
     transform: translateX(-50%);
     z-index: 100;
-    background-color: white;
+    background-color: var(--surface);
     height: 160px;
     border-radius: 60px;
     border: 1px solid rgba(0, 0, 0, 0.05);
@@ -50,7 +50,7 @@
     color: var(--color-dark);
 }
 .logo h2 span{
-    color: black;
+    color: var(--color-text);
 }
 .logo img{
     width: 4.5rem;
@@ -70,21 +70,21 @@
     text-decoration: none;
 }
 .containerNav nav ul li .link{
-    color: black;
+    color: var(--color-text);
     text-decoration: none;
     padding: 5px 10px;
 }
 .containerNav nav ul li .link:hover{
     color: var(--color-dark);
-    background-color: #caffe8;
-    color: #16A34A;
+    background-color: var(--tone-green);
+    color: var(--ink-green);
     border-radius: 8px;
     padding: 5px 10px;
 }
 .activar {
     color: var(--color-dark);
-    background-color: #caffe8;
-    color: #16A34A;
+    background-color: var(--tone-green);
+    color: var(--ink-green);
     border-radius: 8px;
     padding: 5px 10px;
 }.containerHeader { height: auto; padding-bottom: 12px; }

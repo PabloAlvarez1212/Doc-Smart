@@ -6,8 +6,8 @@
     height: 42px;
     flex: 0 0 42px;
     border-radius: 12px;
-    color: #1f5aab;
-    background: #eaf2fd;
+    color: var(--color-dark);
+    background: var(--surface-muted);
 }
 
 .form {
@@ -18,9 +18,9 @@
 
 .currentAppointment {
     padding: 16px 18px;
-    border: 1px solid #dce6f2;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #f7faff;
+    background: var(--surface);
 }
 
 .currentHeading,
@@ -38,12 +38,12 @@
     justify-content: space-between;
     gap: 16px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #e1e9f3;
+    border-bottom: 1px solid var(--border);
 }
 
 .currentHeading span,
 .currentMeta small {
-    color: #66758a;
+    color: var(--text-secondary);
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -51,7 +51,7 @@
 }
 
 .currentHeading strong {
-    color: #16243a;
+    color: var(--color-text);
     font-size: 0.96rem;
 }
 
@@ -64,14 +64,14 @@
 .currentMeta > span:first-child {
     gap: 10px;
     min-width: 0;
-    color: #245da8;
+    color: var(--color-dark);
 }
 
 .currentMeta > span:first-child > span {
     display: grid;
     gap: 2px;
     min-width: 0;
-    color: #243249;
+    color: var(--color-text);
     font-size: 0.92rem;
     font-weight: 650;
 }
@@ -86,8 +86,8 @@
     padding: 6px 10px;
     overflow: hidden;
     border-radius: 999px;
-    color: #245da8;
-    background: #e8f1fc;
+    color: var(--color-dark);
+    background: var(--surface-muted);
     font-size: 0.8rem;
     font-weight: 700;
     text-overflow: ellipsis;
@@ -108,13 +108,13 @@
 
 .field label {
     gap: 7px;
-    color: #26354b;
+    color: var(--color-text);
     font-size: 0.9rem;
     font-weight: 700;
 }
 
 .field label svg {
-    color: #2b67b3;
+    color: var(--color-dark);
 }
 
 .field input,
@@ -122,10 +122,10 @@
     width: 100%;
     min-height: 46px;
     padding: 0 13px;
-    border: 1px solid #cbd7e6;
+    border: 1px solid var(--border);
     border-radius: 11px;
-    color: #1d2a3e;
-    background: #fff;
+    color: var(--color-text);
+    background: var(--surface);
     font: inherit;
     font-size: 0.92rem;
     outline: none;
@@ -141,13 +141,13 @@
 .field input:disabled,
 .field select:disabled {
     cursor: not-allowed;
-    color: #758298;
-    background: #f1f4f8;
+    color: var(--text-secondary);
+    background: var(--surface-muted);
 }
 
 .feedback {
     min-height: 22px;
-    color: #5e6c80;
+    color: var(--text-secondary);
     font-size: 0.86rem;
 }
 
@@ -157,7 +157,7 @@
 }
 
 .feedback .error {
-    color: #a23535;
+    color: var(--ink-red);
 }
 
 .loadingFeedback,
@@ -172,7 +172,7 @@
 }
 
 .availableFeedback {
-    color: #28624f;
+    color: var(--ink-green);
 }
 
 .actions {
@@ -196,9 +196,9 @@
 }
 
 .cancelButton {
-    border-color: #cbd6e4;
-    color: #34445b;
-    background: #fff;
+    border-color: var(--border);
+    color: var(--text-secondary);
+    background: var(--surface);
 }
 
 .submitButton {
@@ -217,8 +217,8 @@
 }
 
 .cancelButton:not(:disabled):hover {
-    border-color: #9fb0c5;
-    background: #f6f8fb;
+    border-color: var(--border);
+    background: var(--surface);
 }
 
 .submitButton:focus-visible,

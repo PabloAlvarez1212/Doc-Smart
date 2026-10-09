@@ -51,11 +51,11 @@ export default function RecentAppointmentsChart({ data }) {
                     data={activity}
                     margin={{ top: hasSingleMonth ? 30 : 16, right: 18, left: -12, bottom: 4 }}
                 >
-                    <CartesianGrid vertical={false} stroke="#e9eef4" strokeDasharray="3 4" />
+                    <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 4" />
                     <XAxis
                         dataKey="mes"
                         tickFormatter={formatDashboardMonthShort}
-                        tick={{ fill: "#64748b", fontSize: 11 }}
+                        tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
                         tickLine={false}
                         axisLine={false}
                         minTickGap={24}
@@ -65,7 +65,7 @@ export default function RecentAppointmentsChart({ data }) {
                     <YAxis
                         allowDecimals={false}
                         domain={[0, axisMax]}
-                        tick={{ fill: "#64748b", fontSize: 11 }}
+                        tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
                         tickLine={false}
                         axisLine={false}
                         width={42}
@@ -95,7 +95,7 @@ export default function RecentAppointmentsChart({ data }) {
                             <LabelList
                                 dataKey="total"
                                 position="top"
-                                fill="#334155"
+                                fill="var(--text-secondary)"
                                 fontSize={11}
                                 fontWeight={700}
                             />

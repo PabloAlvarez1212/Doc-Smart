@@ -1,5 +1,5 @@
 .containerSidebar {
-    background-color: white;
+    background-color: var(--surface);
     height: 100%;
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
@@ -43,8 +43,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: rgba(255, 255, 255, 0.95);
-    color: #EF4444;
+    background-color: var(--glass);
+    color: var(--ink-red);
     border-radius: 50%;
     padding: 6px;
     display: none;
@@ -63,7 +63,7 @@
 
 .containerSidebar .fotoPerfil .rol {
     margin-bottom: 20px;
-    color: #4A5565;
+    color: var(--text-secondary);
     font-size: 20px;
 }
 
@@ -80,7 +80,7 @@
     width: 90%;
     gap: 20px;
     align-items: center;
-    color: #4A5565;
+    color: var(--text-secondary);
     font-size: 20px;
 }
 

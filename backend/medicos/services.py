@@ -84,7 +84,7 @@ def listarMedicosPublicosService(
 
     if ciudad:
         medicos = medicos.filter(ciudad_id=ciudad)
-        
+
     medicos = list(medicos)
 
     for medico in medicos:
@@ -231,7 +231,7 @@ def obtenerHojaVidaSolicitudService(solicitud_id):
 
     except SolicitudValidacionMedico.DoesNotExist:
         return None, 404
-    
+
 def aprobarSolicitudValidacionService(solicitud_id):
     try:
         solicitud = (
@@ -354,7 +354,7 @@ def obtenerMiValidacionService(medico_id):
         "puede_reintentar_desde": ultima_solicitud.puede_reintentar_desde,
         "puede_reintentar": puede_reintentar,
     }, 200
-    
+
 def reintentarSolicitudValidacionService(
     medico_id,
     hoja_vida
@@ -527,7 +527,7 @@ def crearMedicoService(data_validada):
         }, 404
 
     hoja_vida = data_validada["hoja_vida"]
-    
+
     # Encripta la contraseña
     password_encriptada = bcrypt.hashpw(
         data_validada['contraseña'].encode('utf-8'),
@@ -556,7 +556,7 @@ def crearMedicoService(data_validada):
             medico_id=medico.id,
             categoria="hoja_vida"
         )
-        
+
         # Crear primera solicitud
         SolicitudValidacionMedico.objects.create(
             medico=medico,
@@ -574,7 +574,7 @@ def crearMedicoService(data_validada):
         # transaction.atomic revierte
         # la creación del médico.
         raise
-    
+
     return MedicoPerfilSerializer(medico).data, 201
 
 
@@ -840,7 +840,7 @@ def eliminarEspecialidadService(id_especialidad):
 
 def obtenerDashboardMedicoInicioService(id):
 
-    fecha_actual = timezone.now()
+    fecha_actual = timezone.localtime()
 
     medico = Medico.objects.filter(
         id=id
@@ -1712,7 +1712,7 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
         )
 
         finPeriodo = inicioPeriodo + relativedelta(years=1)
-        
+
     ahora = timezone.localtime()
 
     periodoFuturo = inicioPeriodo >= ahora
@@ -1776,7 +1776,7 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
         medicosNoAprobadosPorEspecialidad = (medicosConEstadoPeriodo.exclude(estado_periodo="aprobado").values("id_especialidad__nombre","estado_periodo").annotate(total=Count("id")).order_by("id_especialidad__nombre","estado_periodo"))
 
         medicosPorEstadoValidacion = (medicosConEstadoPeriodo.values("estado_periodo").annotate(total=Count("id")).order_by("-total"))
-    
+
     solicitudesPeriodo = SolicitudValidacionMedico.objects.filter(
         fecha_solicitud__gte=inicioPeriodo,
         fecha_solicitud__lt=finPeriodo
@@ -1803,7 +1803,7 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
         )
 
         agrupacionSolicitudes = "mes"
-        
+
     solicitudesValidacionData = []
 
     for item in solicitudesValidacionPorPeriodo:
@@ -1889,7 +1889,7 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
         },
         reverse=True
     )
-    
+
     data = {
         "medicos_por_especialidad": [],
         "medicos_por_estado_validacion": [],
@@ -1921,7 +1921,7 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
             "especialidad": item["id_especialidad__nombre"],
             "total_medicos": item["total"]
         })
-        
+
     for item in medicosNoAprobadosPorEspecialidad:
         data["medicos_no_aprobados_por_especialidad"].append({
             "especialidad": item["id_especialidad__nombre"],

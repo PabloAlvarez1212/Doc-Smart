@@ -1,15 +1,24 @@
 'use client';
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { motion, useAnimation, useReducedMotion } from "motion/react";
 import { Eye, EyeOff } from "lucide-react";
 import styles from './Input.module.css';
 
-export default function Input({ type = 'text', placeholder, className = '', id, name, value, onChange, readOnly, min,max,step,sizeEye,autoComplete }) {
+export default function Input({ type = 'text', placeholder, className = '', id, name, value, onChange, readOnly, min,max,step,sizeEye,autoComplete, validationAttempt, ...rest }) {
     const [showPassword, setShowPassword] = useState(false);
+    const animation = useAnimation();
+    const reduced = useReducedMotion();
+    const invalid = Boolean(rest['aria-invalid']);
+    useEffect(() => {
+        if (invalid && validationAttempt && !reduced) animation.start({x:[0,-3,3,0],transition:{duration:.18}});
+    }, [validationAttempt, invalid, reduced, animation]);
     const isPassword = type === 'password';
     const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
     return (
-        <div className={styles.container}>
+        <motion.div className={styles.container} initial={false} animate={animation}>
             <input
+                {...rest}
+                aria-label={rest["aria-label"] || placeholder || name}
                 type={inputType}
                 placeholder={placeholder}
                 className={`${styles.input} ${className}`}
@@ -28,6 +37,6 @@ export default function Input({ type = 'text', placeholder, className = '', id, 
                     {showPassword ? <Eye size={sizeEye}/> : <EyeOff size={sizeEye}/>}
                 </button>
             )}
-        </div>
+        </motion.div>
     );
 }

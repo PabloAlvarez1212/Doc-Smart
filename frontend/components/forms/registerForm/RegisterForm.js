@@ -1,4 +1,6 @@
 'use client'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import VerificationStatus from '../../ui/VerificationStatus/VerificationStatus'
 import { CheckCircle2, FileText, FileUp, RefreshCw, MailCheck, CreditCard } from 'lucide-react'
 import Input from '../../ui/Input/Input.js'
 import Button from '../../ui/Button/Button.js'
@@ -17,6 +19,7 @@ export default function RegisterForm({ role, setRole }) {
     // Obtiene estado, datos y manejadores desde el hook personalizado
     const {
         form,
+        feedback,
         step,
         setStep,
         loading,
@@ -43,9 +46,14 @@ export default function RegisterForm({ role, setRole }) {
         correoVerificado,
     } = useRegister(role, setRole)
 
+    const reduced = useReducedMotion()
+    const totalSteps = role === "paciente" ? 5 : 3
     return (
-        <form className={styles.form} onSubmit={handleSubmit}>
-            <div className={styles.inputs}>
+        <form className={styles.form} onSubmit={handleSubmit} aria-busy={loading} noValidate>
+            <VerificationStatus state={feedback} />
+            <div className={styles.progress} role="progressbar" aria-valuemin={1} aria-valuemax={totalSteps} aria-valuenow={step} aria-label="Progreso del registro">{Array.from({length:totalSteps},(_,i)=><span key={i} data-complete={i<step}/>)}</div>
+            <AnimatePresence initial={false} mode="wait"><motion.div key={step} className={styles.inputs} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-4}} transition={{duration:reduced?0:.2}}>
+                {role === 'medico' && <p className={styles.stepTitle}>Paso {step} de 3 · {['Datos personales', 'Ubicación y especialidad', 'Credenciales y hoja de vida'][step - 1]}</p>}
                 {role === 'paciente' && <p className={styles.stepTitle}>Paso {step} de 5 · {['Datos personales', 'Documento de identidad', 'Datos adicionales', 'Correo y contraseña', 'Verificación de correo'][step - 1]}</p>}
                 {role === 'paciente' && ((step === 1 && procesoId) || ([3, 4].includes(step) && correoConfigurado)) && <p className={styles.savedNotice}>Estos datos ya están guardados y se muestran solo para consulta.</p>}
 
@@ -55,25 +63,29 @@ export default function RegisterForm({ role, setRole }) {
                         {/* Paso 1 — Datos personales básicos */}
                         {step === 1 && (
                             <>
-                                <Input name="nombre" placeholder="Nombre" onChange={handleChange} value={form.nombre} readOnly={Boolean(procesoId) || loading} />
-                                {errors.nombre && <p className={styles.error}>{errors.nombre}</p>}
+                                <label htmlFor="register-nombre" className={styles.fieldLabel}>Nombre</label>
+                                <Input validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-nombre" name="nombre" placeholder="Nombre" onChange={handleChange} value={form.nombre} readOnly={Boolean(procesoId) || loading}  aria-invalid={Boolean(errors["nombre"])} aria-describedby={errors["nombre"] ? "register-nombre-error" : undefined} />
+                                {errors.nombre && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-nombre-error" className={styles.error}>{errors.nombre}</motion.p>}
 
-                                <Input name="apellido" placeholder="Apellido" onChange={handleChange} value={form.apellido} readOnly={Boolean(procesoId) || loading} />
-                                {errors.apellido && <p className={styles.error}>{errors.apellido}</p>}
+                                <label htmlFor="register-apellido" className={styles.fieldLabel}>Apellido</label>
+                                <Input validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-apellido" name="apellido" placeholder="Apellido" onChange={handleChange} value={form.apellido} readOnly={Boolean(procesoId) || loading}  aria-invalid={Boolean(errors["apellido"])} aria-describedby={errors["apellido"] ? "register-apellido-error" : undefined} />
+                                {errors.apellido && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-apellido-error" className={styles.error}>{errors.apellido}</motion.p>}
 
-                                <select disabled={Boolean(procesoId) || loading} name="tipo_documento" value={form.tipo_documento} onChange={handleChange} className={styles.select}>
+                                <select aria-label="Tipo de documento" disabled={Boolean(procesoId) || loading} name="tipo_documento" value={form.tipo_documento} onChange={handleChange} className={styles.select}>
                                     <option value="CC">Cédula de ciudadanía</option>
                                     <option value="TI">Tarjeta de identidad</option>
                                     <option value="PASAPORTE">Pasaporte</option>
                                     <option value="RC">Registro civil</option>
                                 </select>
-                                {errors.tipo_documento && <p className={styles.error}>{errors.tipo_documento}</p>}
+                                {errors.tipo_documento && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-tipo_documento-error" className={styles.error}>{errors.tipo_documento}</motion.p>}
 
-                                <Input name="numero_documento" placeholder="Número de documento" onChange={handleChange} value={form.numero_documento} readOnly={Boolean(procesoId) || loading} />
-                                {errors.numero_documento && <p className={styles.error}>{errors.numero_documento}</p>}
+                                <label htmlFor="register-numero_documento" className={styles.fieldLabel}>Número de documento</label>
+                                <Input validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-numero_documento" name="numero_documento" placeholder="Número de documento" onChange={handleChange} value={form.numero_documento} readOnly={Boolean(procesoId) || loading}  aria-invalid={Boolean(errors["numero_documento"])} aria-describedby={errors["numero_documento"] ? "register-numero_documento-error" : undefined} />
+                                {errors.numero_documento && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-numero_documento-error" className={styles.error}>{errors.numero_documento}</motion.p>}
 
-                                <Input type="date" name="fecha_nacimiento" placeholder="Fecha de nacimiento" onChange={handleChange} value={form.fecha_nacimiento} readOnly={Boolean(procesoId) || loading} />
-                                {errors.fecha_nacimiento && <p className={styles.error}>{errors.fecha_nacimiento}</p>}
+                                <label htmlFor="register-fecha_nacimiento" className={styles.fieldLabel}>Fecha de nacimiento</label>
+                                <Input validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-fecha_nacimiento" type="date" name="fecha_nacimiento" placeholder="Fecha de nacimiento" onChange={handleChange} value={form.fecha_nacimiento} readOnly={Boolean(procesoId) || loading}  aria-invalid={Boolean(errors["fecha_nacimiento"])} aria-describedby={errors["fecha_nacimiento"] ? "register-fecha_nacimiento-error" : undefined} />
+                                {errors.fecha_nacimiento && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-fecha_nacimiento-error" className={styles.error}>{errors.fecha_nacimiento}</motion.p>}
 
                                 <div className={styles.buttons}>
                                     <Button type="button" disabled={loading} variant="secondary" onClick={handleBack}>Atrás</Button>
@@ -85,14 +97,17 @@ export default function RegisterForm({ role, setRole }) {
                         {/* Paso 3 — Datos adicionales */}
                         {step === 3 && (
                             <>
-                                <Input name="telefono" placeholder="Teléfono" onChange={handleChange} value={form.telefono} readOnly={correoConfigurado || loading} />
-                                {errors.telefono && <p className={styles.error}>{errors.telefono}</p>}
+                                <label htmlFor="register-telefono" className={styles.fieldLabel}>Teléfono</label>
+                                <Input validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-telefono" name="telefono" placeholder="Teléfono" onChange={handleChange} value={form.telefono} readOnly={correoConfigurado || loading}  aria-invalid={Boolean(errors["telefono"])} aria-describedby={errors["telefono"] ? "register-telefono-error" : undefined} />
+                                {errors.telefono && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-telefono-error" className={styles.error}>{errors.telefono}</motion.p>}
 
-                                <Input type="text" name="estatura" placeholder="Estatura (ej: 1.75)" onChange={handleChange} value={form.estatura} readOnly={correoConfigurado || loading} />
-                                {errors.estatura && <p className={styles.error}>{errors.estatura}</p>}
+                                <label htmlFor="register-estatura" className={styles.fieldLabel}>Estatura (metros)</label>
+                                <Input validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-estatura" type="text" name="estatura" placeholder="Estatura (ej: 1.75)" onChange={handleChange} value={form.estatura} readOnly={correoConfigurado || loading}  aria-invalid={Boolean(errors["estatura"])} aria-describedby={errors["estatura"] ? "register-estatura-error" : undefined} />
+                                {errors.estatura && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-estatura-error" className={styles.error}>{errors.estatura}</motion.p>}
 
-                                <Input type="text" name="peso" placeholder="Peso en kg (ej: 70)" onChange={handleChange} value={form.peso} readOnly={correoConfigurado || loading} />
-                                {errors.peso && <p className={styles.error}>{errors.peso}</p>}
+                                <label htmlFor="register-peso" className={styles.fieldLabel}>Peso (kg)</label>
+                                <Input validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-peso" type="text" name="peso" placeholder="Peso en kg (ej: 70)" onChange={handleChange} value={form.peso} readOnly={correoConfigurado || loading}  aria-invalid={Boolean(errors["peso"])} aria-describedby={errors["peso"] ? "register-peso-error" : undefined} />
+                                {errors.peso && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-peso-error" className={styles.error}>{errors.peso}</motion.p>}
 
                                 <div className={styles.buttons}>
                                     <Button type="button" disabled={loading} variant="secondary" onClick={handleBack}>Atrás</Button>
@@ -104,14 +119,17 @@ export default function RegisterForm({ role, setRole }) {
                         {/* Paso 4 — Credenciales */}
                         {step === 4 && (
                             <>
-                                <Input name="correo" placeholder="Correo" onChange={handleChange} value={form.correo} readOnly={correoConfigurado || loading} />
-                                {errors.correo && <p className={styles.error}>{errors.correo}</p>}
+                                <label htmlFor="register-correo" className={styles.fieldLabel}>Correo electrónico</label>
+                                <Input validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-correo" name="correo" placeholder="Correo" onChange={handleChange} value={form.correo} readOnly={correoConfigurado || loading}  aria-invalid={Boolean(errors["correo"])} aria-describedby={errors["correo"] ? "register-correo-error" : undefined} />
+                                {errors.correo && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-correo-error" className={styles.error}>{errors.correo}</motion.p>}
 
-                                <Input type="password" name="contraseña" placeholder="Contraseña" onChange={handleChange} value={form.contraseña} readOnly={correoConfigurado || loading} />
-                                {errors.contraseña && <p className={styles.error}>{errors.contraseña}</p>}
+                                <label htmlFor="register-contraseña" className={styles.fieldLabel}>Contraseña</label>
+                                <Input validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-contraseña" type="password" name="contraseña" placeholder="Contraseña" onChange={handleChange} value={form.contraseña} readOnly={correoConfigurado || loading}  aria-invalid={Boolean(errors["contraseña"])} aria-describedby={errors["contraseña"] ? "register-contraseña-error" : undefined} />
+                                {errors.contraseña && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-contraseña-error" className={styles.error}>{errors.contraseña}</motion.p>}
 
-                                <Input type="password" name="confirmar_contraseña" placeholder="Confirmar contraseña" onChange={handleChange} value={form.confirmar_contraseña} readOnly={correoConfigurado || loading} />
-                                {errors.confirmar_contraseña && <p className={styles.error}>{errors.confirmar_contraseña}</p>}
+                                <label htmlFor="register-confirmar_contraseña" className={styles.fieldLabel}>Confirmar contraseña</label>
+                                <Input validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-confirmar_contraseña" type="password" name="confirmar_contraseña" placeholder="Confirmar contraseña" onChange={handleChange} value={form.confirmar_contraseña} readOnly={correoConfigurado || loading}  aria-invalid={Boolean(errors["confirmar_contraseña"])} aria-describedby={errors["confirmar_contraseña"] ? "register-confirmar_contraseña-error" : undefined} />
+                                {errors.confirmar_contraseña && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-confirmar_contraseña-error" className={styles.error}>{errors.confirmar_contraseña}</motion.p>}
 
                                 <div className={styles.buttons}>
                                     <Button type="button" disabled={loading} variant="secondary" onClick={handleBack}>Atrás</Button>
@@ -132,7 +150,8 @@ export default function RegisterForm({ role, setRole }) {
                                 </div>
 
                                 <Button type="button" variant="secondary" onClick={handleReenviarOtp} disabled={loading || correoVerificado}>Reenviar código</Button>
-                                <Input name="otp" placeholder="Código de verificación" value={otp} readOnly={correoVerificado || loading} autoComplete="one-time-code" onChange={(e) => setOtp(e.target.value)} />
+                                <label htmlFor="register-otp" className={styles.fieldLabel}>Código de verificación</label>
+                                <Input validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-otp" name="otp" placeholder="Código de verificación" value={otp} readOnly={correoVerificado || loading} autoComplete="one-time-code" onChange={(e) => setOtp(e.target.value)} />
 
                                 <div className={styles.buttons}>
                                     <Button type="button" disabled={loading} variant="secondary" onClick={handleBack}>Atrás</Button>
@@ -162,7 +181,7 @@ export default function RegisterForm({ role, setRole }) {
                                             <div className={styles.fileDetails}>
                                                 <div className={styles.fileNameRow}>
                                                     <strong>{documentoFrente.name}</strong>
-                                                    <CheckCircle2 size={17} />
+                                                    <FileText size={17} aria-label="Imagen seleccionada, pendiente de verificación" />
                                                 </div>
                                                 <span>{formatFileSize(documentoFrente.size)}</span>
                                             </div>
@@ -195,7 +214,7 @@ export default function RegisterForm({ role, setRole }) {
                                                 <div className={styles.fileDetails}>
                                                     <div className={styles.fileNameRow}>
                                                         <strong>{documentoReverso.name}</strong>
-                                                        <CheckCircle2 size={17} />
+                                                        <FileText size={17} aria-label="Imagen seleccionada, pendiente de verificación" />
                                                     </div>
                                                     <span>{formatFileSize(documentoReverso.size)}</span>
                                                 </div>
@@ -235,22 +254,26 @@ export default function RegisterForm({ role, setRole }) {
                         {/* Paso 1 — Datos personales básicos */}
                         {step === 1 && (
                             <>
-                                <Input name="nombre" placeholder="Nombre" onChange={handleChange} value={form.nombre} />
-                                {errors.nombre && <p className={styles.error}>{errors.nombre}</p>}
+                                <label htmlFor="register-nombre" className={styles.fieldLabel}>Nombre</label>
+                                <Input readOnly={loading} validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-nombre" name="nombre" placeholder="Nombre" onChange={handleChange} value={form.nombre}  aria-invalid={Boolean(errors["nombre"])} aria-describedby={errors["nombre"] ? "register-nombre-error" : undefined} />
+                                {errors.nombre && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-nombre-error" className={styles.error}>{errors.nombre}</motion.p>}
 
-                                <Input name="apellido" placeholder="Apellido" onChange={handleChange} value={form.apellido} />
-                                {errors.apellido && <p className={styles.error}>{errors.apellido}</p>}
+                                <label htmlFor="register-apellido" className={styles.fieldLabel}>Apellido</label>
+                                <Input readOnly={loading} validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-apellido" name="apellido" placeholder="Apellido" onChange={handleChange} value={form.apellido}  aria-invalid={Boolean(errors["apellido"])} aria-describedby={errors["apellido"] ? "register-apellido-error" : undefined} />
+                                {errors.apellido && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-apellido-error" className={styles.error}>{errors.apellido}</motion.p>}
 
-                                <Input name="cedula" placeholder="Cédula" onChange={handleChange} value={form.cedula} />
-                                {errors.cedula && <p className={styles.error}>{errors.cedula}</p>}
+                                <label htmlFor="register-cedula" className={styles.fieldLabel}>Cédula</label>
+                                <Input readOnly={loading} validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-cedula" name="cedula" placeholder="Cédula" onChange={handleChange} value={form.cedula}  aria-invalid={Boolean(errors["cedula"])} aria-describedby={errors["cedula"] ? "register-cedula-error" : undefined} />
+                                {errors.cedula && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-cedula-error" className={styles.error}>{errors.cedula}</motion.p>}
 
-                                <Input type="date" name="fecha_nacimiento" placeholder="Fecha de nacimiento" onChange={handleChange} value={form.fecha_nacimiento} />
-                                {errors.fecha_nacimiento && <p className={styles.error}>{errors.fecha_nacimiento}</p>}
+                                <label htmlFor="register-fecha_nacimiento" className={styles.fieldLabel}>Fecha de nacimiento</label>
+                                <Input readOnly={loading} validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-fecha_nacimiento" type="date" name="fecha_nacimiento" placeholder="Fecha de nacimiento" onChange={handleChange} value={form.fecha_nacimiento}  aria-invalid={Boolean(errors["fecha_nacimiento"])} aria-describedby={errors["fecha_nacimiento"] ? "register-fecha_nacimiento-error" : undefined} />
+                                {errors.fecha_nacimiento && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-fecha_nacimiento-error" className={styles.error}>{errors.fecha_nacimiento}</motion.p>}
 
                                 <div className={styles.buttons}>
                                     {/* Vuelve a la selección de rol */}
-                                    <Button type="button" variant="secondary" onClick={() => setRole(null)}>Atrás</Button>
-                                    <Button type="button" variant="primary" onClick={handleNextStep}>Siguiente</Button>
+                                    <Button disabled={loading} type="button" variant="secondary" onClick={() => setRole(null)}>Atrás</Button>
+                                    <Button disabled={loading} type="button" variant="primary" onClick={handleNextStep}>Siguiente</Button>
                                 </div>
                             </>
                         )}
@@ -258,15 +281,17 @@ export default function RegisterForm({ role, setRole }) {
                         {/* Paso 2 — Ubicación y especialidad */}
                         {step === 2 && (
                             <>
-                                <Input name="telefono" placeholder="Teléfono" onChange={handleChange} value={form.telefono} />
-                                {errors.telefono && <p className={styles.error}>{errors.telefono}</p>}
+                                <label htmlFor="register-telefono" className={styles.fieldLabel}>Teléfono</label>
+                                <Input readOnly={loading} validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-telefono" name="telefono" placeholder="Teléfono" onChange={handleChange} value={form.telefono}  aria-invalid={Boolean(errors["telefono"])} aria-describedby={errors["telefono"] ? "register-telefono-error" : undefined} />
+                                {errors.telefono && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-telefono-error" className={styles.error}>{errors.telefono}</motion.p>}
 
-                                <Input name="direccion" placeholder="Dirección" onChange={handleChange} value={form.direccion} />
-                                {errors.direccion && <p className={styles.error}>{errors.direccion}</p>}
+                                <label htmlFor="register-direccion" className={styles.fieldLabel}>Dirección</label>
+                                <Input readOnly={loading} validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-direccion" name="direccion" placeholder="Dirección" onChange={handleChange} value={form.direccion}  aria-invalid={Boolean(errors["direccion"])} aria-describedby={errors["direccion"] ? "register-direccion-error" : undefined} />
+                                {errors.direccion && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-direccion-error" className={styles.error}>{errors.direccion}</motion.p>}
 
                                 {/* Selector de departamento: solo filtra ciudades, no se envía a la BD */}
                                 <select
-                                    name="departamento_filtro"
+                                    disabled={loading} aria-label="Departamento" name="departamento_filtro"
                                     onChange={handleChange}
                                     className={styles.select}
                                     value={form.departamento_filtro}
@@ -280,11 +305,11 @@ export default function RegisterForm({ role, setRole }) {
 
                                 {/* Selector de ciudad: se deshabilita hasta elegir departamento y sí va a la BD */}
                                 <select
-                                    name="id_ciudad"
+                                    aria-label="Ciudad" name="id_ciudad"
                                     onChange={handleChange}
                                     className={styles.select}
                                     value={form.id_ciudad}
-                                    disabled={!form.departamento_filtro}
+                                    disabled={loading || !form.departamento_filtro}
                                 >
                                     <option value="" disabled>Selecciona tu ciudad</option>
                                     {ciudades.map((ciu) => (
@@ -295,7 +320,7 @@ export default function RegisterForm({ role, setRole }) {
 
                                 {/* Selector de especialidad médica */}
                                 <select
-                                    name="id_especialidad"
+                                    disabled={loading} aria-label="Especialidad" name="id_especialidad"
                                     onChange={handleChange}
                                     className={styles.select}
                                     value={form.id_especialidad}
@@ -308,8 +333,8 @@ export default function RegisterForm({ role, setRole }) {
                                 {errors.id_especialidad && <span className={styles.error}>{errors.id_especialidad}</span>}
 
                                 <div className={styles.buttons}>
-                                    <Button type="button" variant="secondary" onClick={() => setStep(step - 1)}>Atrás</Button>
-                                    <Button type="button" variant="primary" onClick={handleNextStep}>Siguiente</Button>
+                                    <Button disabled={loading} type="button" variant="secondary" onClick={() => setStep(step - 1)}>Atrás</Button>
+                                    <Button disabled={loading} type="button" variant="primary" onClick={handleNextStep}>Siguiente</Button>
                                 </div>
                             </>
                         )}
@@ -317,14 +342,17 @@ export default function RegisterForm({ role, setRole }) {
                         {/* Paso 3 — Credenciales de acceso */}
                         {step === 3 && (
                             <>
-                                <Input name="correo" placeholder="Correo" onChange={handleChange} value={form.correo} />
-                                {errors.correo && <p className={styles.error}>{errors.correo}</p>}
+                                <label htmlFor="register-correo" className={styles.fieldLabel}>Correo electrónico</label>
+                                <Input readOnly={loading} validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-correo" name="correo" placeholder="Correo" onChange={handleChange} value={form.correo}  aria-invalid={Boolean(errors["correo"])} aria-describedby={errors["correo"] ? "register-correo-error" : undefined} />
+                                {errors.correo && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-correo-error" className={styles.error}>{errors.correo}</motion.p>}
 
-                                <Input type="password" name="contraseña" placeholder="Contraseña" onChange={handleChange} value={form.contraseña} />
-                                {errors.contraseña && <p className={styles.error}>{errors.contraseña}</p>}
+                                <label htmlFor="register-contraseña" className={styles.fieldLabel}>Contraseña</label>
+                                <Input readOnly={loading} validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-contraseña" type="password" name="contraseña" placeholder="Contraseña" onChange={handleChange} value={form.contraseña}  aria-invalid={Boolean(errors["contraseña"])} aria-describedby={errors["contraseña"] ? "register-contraseña-error" : undefined} />
+                                {errors.contraseña && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-contraseña-error" className={styles.error}>{errors.contraseña}</motion.p>}
 
-                                <Input type="password" name="confirmar_contraseña" placeholder="Confirmar contraseña" onChange={handleChange} value={form.confirmar_contraseña} />
-                                {errors.confirmar_contraseña && <p className={styles.error}>{errors.confirmar_contraseña}</p>}
+                                <label htmlFor="register-confirmar_contraseña" className={styles.fieldLabel}>Confirmar contraseña</label>
+                                <Input readOnly={loading} validationAttempt={feedback.kind === "error" ? feedback.revision : 0} id="register-confirmar_contraseña" type="password" name="confirmar_contraseña" placeholder="Confirmar contraseña" onChange={handleChange} value={form.confirmar_contraseña}  aria-invalid={Boolean(errors["confirmar_contraseña"])} aria-describedby={errors["confirmar_contraseña"] ? "register-confirmar_contraseña-error" : undefined} />
+                                {errors.confirmar_contraseña && <motion.p key={feedback.revision} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id="register-confirmar_contraseña-error" className={styles.error}>{errors.confirmar_contraseña}</motion.p>}
 
                                 <div className={styles.resumeUpload}>
                                     <input
@@ -375,7 +403,7 @@ export default function RegisterForm({ role, setRole }) {
 
                                 <div className={styles.buttons}>
                                     {/* Retrocede 2 pasos para volver al paso 1 */}
-                                    <Button type="button" variant="secondary" onClick={() => setStep(step - 2)}>Atrás</Button>
+                                    <Button disabled={loading} type="button" variant="secondary" onClick={() => setStep(step - 2)}>Atrás</Button>
                                     <Button type="submit" variant="primary" disabled={loading}>
                                         {loading ? 'Registrando...' : 'Registrarse'}
                                     </Button>
@@ -385,7 +413,7 @@ export default function RegisterForm({ role, setRole }) {
                     </>
                 )}
 
-            </div>
+            </motion.div></AnimatePresence>
         </form>
     )
 }

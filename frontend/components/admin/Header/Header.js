@@ -8,29 +8,28 @@ import useLogout from "../../hooks/useLogout";
 import Modal from "../../ui/Modal/Modal";
 import ResetPasswordFormComponent from "../../ui/ResetPasswordComponent/ResetPasswordComponent";
 import SettingsComponent from "../../ui/SettingsComponent/SettingsComponent";
+
 import styles from "./Header.module.css";
-
 const sectionNames = {
-    "/admin/dashboard": "Resumen",
-    "/admin/patients": "Pacientes",
-    "/admin/doctors": "Médicos",
-    "/admin/doctor-requests": "Solicitudes médicas",
-    "/admin/specialties": "Especialidades",
-    "/admin/cities": "Ciudades",
-    "/admin/departments": "Departamentos",
-    "/admin/roles": "Roles",
-    "/admin/states": "Estados",
-    "/admin/channel": "Medios",
+  "/admin/dashboard": "Resumen",
+  "/admin/patients": "Pacientes",
+  "/admin/doctors": "Médicos",
+  "/admin/doctor-requests": "Solicitudes médicas",
+  "/admin/specialties": "Especialidades",
+  "/admin/cities": "Ciudades",
+  "/admin/departments": "Departamentos",
+  "/admin/roles": "Roles",
+  "/admin/states": "Estados",
+  "/admin/channel": "Medios"
 };
-
 export default function Header() {
-    const pathname = usePathname();
-    const [modal, setModal] = useState(false);
-    const [passwordModal, setPasswordModal] = useState(false);
-    const { logoutUser } = useLogout();
-
-    return (
-        <div className={styles.header}>
+  const pathname = usePathname();
+  const [modal, setModal] = useState(false);
+  const [passwordModal, setPasswordModal] = useState(false);
+  const {
+    logoutUser
+  } = useLogout();
+  return <div className={styles.header}>
             <div className={styles.logo}>
                 <Image src="/images/logo.png" width={64} height={48} alt="DocSmart" priority />
                 <span className={styles.wordmark}><strong>Doc</strong>Smart</span>
@@ -50,28 +49,16 @@ export default function Header() {
             </button>
 
             <Modal titulo="Cuenta y seguridad" abierto={modal} headerVariant="white" onCerrar={() => setModal(false)}>
-                <SettingsComponent
-                    cerrarSesion={logoutUser}
-                    abrirCambiarContrasena={() => {
-                        setModal(false);
-                        setPasswordModal(true);
-                    }}
-                />
+                <SettingsComponent cerrarSesion={logoutUser} abrirCambiarContrasena={() => {
+        setModal(false);
+        setPasswordModal(true);
+      }} />
             </Modal>
-            <Modal
-                titulo="Cambiar contraseña"
-                abierto={passwordModal}
-                onCerrar={() => {
-                    setPasswordModal(false);
-                    setModal(true);
-                }}
-                headerVariant="yellow"
-                text="Mantén tu cuenta segura con una contraseña fuerte"
-                width="500px"
-                icon={<KeyRound size={38} />}
-            >
+            <Modal titulo="Cambiar contraseña" abierto={passwordModal} onCerrar={() => {
+      setPasswordModal(false);
+      setModal(true);
+    }} headerVariant="yellow" text="Mantén tu cuenta segura con una contraseña fuerte" width="500px" icon={<KeyRound size={38} />}>
                 <ResetPasswordFormComponent />
             </Modal>
-        </div>
-    );
+        </div>;
 }

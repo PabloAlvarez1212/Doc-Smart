@@ -46,10 +46,10 @@ export default function PatientsByAgeChart({ data }) {
                     barCategoryGap="30%"
                     margin={{ top: 28, right: 10, left: -12, bottom: 4 }}
                 >
-                    <CartesianGrid vertical={false} stroke="#e9eef4" strokeDasharray="3 4" />
+                    <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 4" />
                     <XAxis
                         dataKey="rango"
-                        tick={{ fill: "#64748b", fontSize: 11 }}
+                        tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
                         tickLine={false}
                         axisLine={false}
                         tickMargin={10}
@@ -58,7 +58,7 @@ export default function PatientsByAgeChart({ data }) {
                     <YAxis
                         allowDecimals={false}
                         domain={[0, axisMax]}
-                        tick={{ fill: "#64748b", fontSize: 11 }}
+                        tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
                         tickLine={false}
                         axisLine={false}
                         width={42}
@@ -74,7 +74,7 @@ export default function PatientsByAgeChart({ data }) {
                         <LabelList
                             dataKey="total_pacientes"
                             position="top"
-                            fill="#334155"
+                            fill="var(--text-secondary)"
                             fontSize={11}
                             fontWeight={700}
                         />

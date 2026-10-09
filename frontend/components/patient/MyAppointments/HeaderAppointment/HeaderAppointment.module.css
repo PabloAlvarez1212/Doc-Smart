@@ -4,18 +4,18 @@
     align-items: center;
     gap: 24px;
     padding: 22px 24px 18px;
-    border-bottom: 1px solid #e1e8f0;
+    border-bottom: 1px solid var(--border);
 }
-.statusBar h2 { margin: 0; color: #26354a; font-size: .94rem; line-height: 1.35; }
-.statusBar p { margin: 4px 0 0; color: #718095; font-size: .78rem; line-height: 1.4; }
-.tabs { display: flex; min-width: 0; gap: 4px; overflow-x: auto; padding: 3px; scrollbar-width: thin; scrollbar-color: #aab9ca transparent; }
+.statusBar h2 { margin: 0; color: var(--color-text); font-size: .94rem; line-height: 1.35; }
+.statusBar p { margin: 4px 0 0; color: var(--text-secondary); font-size: .78rem; line-height: 1.4; }
+.tabs { display: flex; min-width: 0; gap: 4px; overflow-x: auto; padding: 3px; scrollbar-width: thin; scrollbar-color: var(--text-secondary) transparent; }
 .tabs button {
     min-height: 38px;
     flex: 0 0 auto;
     padding: 8px 12px;
     border: 0;
     border-radius: 9px;
-    color: #5e6e83;
+    color: var(--text-secondary);
     background: transparent;
     cursor: pointer;
     font: inherit;
@@ -24,7 +24,7 @@
     white-space: nowrap;
     transition: color 180ms ease, background-color 180ms ease, transform 120ms cubic-bezier(.23, 1, .32, 1);
 }
-.tabs button:hover { color: #17366f; background: #edf3fa; }
+.tabs button:hover { color: var(--text-secondary); background: var(--surface-muted); }
 .tabs button:active { transform: scale(.97); }
 .tabs .active { color: #fff; background: #17366f; }
 

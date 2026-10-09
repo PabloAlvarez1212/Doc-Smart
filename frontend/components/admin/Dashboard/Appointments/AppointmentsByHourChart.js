@@ -19,11 +19,11 @@ export default function AppointmentsByHourChart({ data }) {
             <div className={styles.hourChartArea} style={{ minWidth: chartMinWidth }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data} barCategoryGap="28%" margin={{ top: 14, right: 12, left: -12, bottom: 4 }}>
-                        <CartesianGrid vertical={false} stroke="#e9eef4" strokeDasharray="3 4" />
+                        <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 4" />
                         <XAxis
                             dataKey="hora"
                             tickFormatter={formatHour}
-                            tick={{ fill: "#64748b", fontSize: 11 }}
+                            tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
                             tickLine={false}
                             axisLine={false}
                             tickMargin={10}
@@ -33,7 +33,7 @@ export default function AppointmentsByHourChart({ data }) {
                             allowDecimals={false}
                             domain={[0, axisMax]}
                             ticks={ticks}
-                            tick={{ fill: "#64748b", fontSize: 11 }}
+                            tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
                             tickLine={false}
                             axisLine={false}
                             width={42}

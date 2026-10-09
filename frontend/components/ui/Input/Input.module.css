@@ -1,7 +1,7 @@
 .input {
   border: none;
   width: 100%;
-  border-bottom: 2px solid #ccc;
+  border-bottom: 2px solid var(--border);
   outline: none;
   background: transparent;
   padding: 8px 0;
@@ -10,7 +10,7 @@
 }
 
 .input:focus {
-    border-bottom-color: #2563eb;
+    border-bottom-color: var(--color-dark);
 }
 
 .container {
@@ -28,5 +28,12 @@
   border: none;
   cursor: pointer;
   padding: 0;
-  color: #888;
+  color: var(--text-secondary);
 }
+
+.input{min-height:48px;border:1px solid var(--border);border-radius:12px;padding:12px 44px 12px 14px;text-align:left;color:var(--text-primary);background:var(--surface-muted);transition:border-color var(--motion-fast),box-shadow var(--motion-fast),background var(--motion-fast)}
+.input:focus{border-color:var(--focus);background:var(--surface);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 20%,transparent)}
+.input[aria-invalid="true"]{border-color:var(--ink-red)}.input:disabled,.input[readonly]{color:var(--text-secondary);opacity:1}.eyeButton{width:40px;height:40px;right:4px;border-radius:8px}.eyeButton:hover{background:var(--surface)}
+@media(prefers-reduced-motion:reduce){.input{transition:none}}
+
+.input,.select{border-color:var(--control-border)}

@@ -47,11 +47,11 @@ export default function ValidationRequestsByPeriodChart({ data, grouping }) {
                     data={requests}
                     margin={{ top: hasSinglePeriod ? 28 : 12, right: 14, left: -16, bottom: 4 }}
                 >
-                    <CartesianGrid vertical={false} stroke="#e9eef4" strokeDasharray="3 4" />
+                    <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 4" />
                     <XAxis
                         dataKey="periodo"
                         tickFormatter={formatPeriodShort}
-                        tick={{ fill: "#64748b", fontSize: 11 }}
+                        tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
                         tickLine={false}
                         axisLine={false}
                         minTickGap={22}
@@ -61,7 +61,7 @@ export default function ValidationRequestsByPeriodChart({ data, grouping }) {
                     <YAxis
                         allowDecimals={false}
                         domain={[0, axisMax]}
-                        tick={{ fill: "#64748b", fontSize: 11 }}
+                        tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
                         tickLine={false}
                         axisLine={false}
                         width={42}
@@ -85,7 +85,7 @@ export default function ValidationRequestsByPeriodChart({ data, grouping }) {
                             <LabelList
                                 dataKey="total_solicitudes"
                                 position="top"
-                                fill="#334155"
+                                fill="var(--text-secondary)"
                                 fontSize={11}
                                 fontWeight={700}
                             />

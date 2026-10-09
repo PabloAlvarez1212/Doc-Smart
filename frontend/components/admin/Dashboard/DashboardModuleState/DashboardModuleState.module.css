@@ -14,9 +14,9 @@
     grid-template-rows: auto auto 1fr;
     gap: 10px;
     padding: 22px 24px 20px;
-    border: 1px solid #e1e7f0;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #fff;
+    background: var(--surface);
     box-shadow: 0 8px 24px rgba(28, 54, 92, .045);
 }
 
@@ -25,7 +25,7 @@
 .skeletonChart {
     display: block;
     border-radius: 8px;
-    background: linear-gradient(90deg, #f1f4f8 25%, #e5ebf2 50%, #f1f4f8 75%);
+    background: linear-gradient(90deg, var(--surface-muted) 25%, var(--surface-muted) 50%, var(--surface-muted) 75%);
     background-size: 200% 100%;
     animation: dashboard-shimmer 1.35s ease-in-out infinite;
 }
@@ -42,10 +42,10 @@
     gap: 13px;
     margin-top: 20px;
     padding: 28px;
-    border: 1px solid #f0d5d8;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #fffafb;
-    color: #526078;
+    background: var(--surface);
+    color: var(--text-secondary);
     text-align: left;
 }
 
@@ -56,13 +56,13 @@
     flex: 0 0 auto;
     place-items: center;
     border-radius: 12px;
-    background: #fff0f1;
-    color: #b42335;
+    background: var(--surface-muted);
+    color: var(--ink-red);
 }
 
 .errorState h3 {
     margin: 0;
-    color: #172033;
+    color: var(--color-text);
     font-size: .9rem;
     font-weight: 750;
 }

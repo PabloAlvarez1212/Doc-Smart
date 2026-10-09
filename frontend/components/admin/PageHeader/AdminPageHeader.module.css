@@ -10,14 +10,14 @@
 .eyebrow {
     display: block;
     margin-bottom: 8px;
-    color: #2563eb;
+    color: var(--color-dark);
     font-size: .72rem;
     font-weight: 750;
     letter-spacing: .12em;
     text-transform: uppercase;
 }
 .title {
-    color: #172033;
+    color: var(--color-text);
     font-size: clamp(1.65rem, 3vw, 2.25rem);
     font-weight: 720;
     letter-spacing: -.035em;
@@ -25,7 +25,7 @@
 }
 .description {
     margin-top: 9px;
-    color: #667085;
+    color: var(--text-secondary);
     font-size: .96rem;
     line-height: 1.55;
 }
