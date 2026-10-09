@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from users.models import Usuario
+from users.models import Usuario,InfoUser, TipoInfoUser
 from medicos.models import Medico
 from utils import validarNumber,validarContraseña,calcular_edad
 import re
@@ -346,3 +346,57 @@ class CambiarContraseñaAutenticadoSerializer(serializers.Serializer):
         if error:
             raise serializers.ValidationError(error)
         return value
+
+class TipoInfoUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TipoInfoUser
+        fields = ["id", "codigo", "nombre"]
+
+
+class InfoUserSerializer(serializers.ModelSerializer):
+    tipo_nombre = serializers.CharField(
+        source="id_tipo.nombre", read_only=True
+    )
+    tipo_codigo = serializers.CharField(
+        source="id_tipo.codigo", read_only=True
+    )
+    id_tipo = serializers.PrimaryKeyRelatedField(
+        queryset=TipoInfoUser.objects.filter(activo=True)
+    )
+
+    class Meta:
+        model = InfoUser
+        fields = [
+            "id", "id_tipo", "tipo_nombre", "tipo_codigo",
+            "nombre", "descripcion", "fecha_inicio", "fecha_fin",
+            "estado", "es_permanente", "dosis", "frecuencia",
+            "via_administracion", "reaccion",
+            "fecha_creacion", "fecha_actualizacion",
+        ]
+        read_only_fields = ["id", "fecha_creacion", "fecha_actualizacion"]
+
+    def validate(self, datos):
+        def valor(campo):
+            return datos.get(campo, getattr(self.instance, campo, None))
+
+        inicio, fin = valor("fecha_inicio"), valor("fecha_fin")
+        if inicio and fin and fin < inicio:
+            raise serializers.ValidationError({
+                "fecha_fin": "No puede ser anterior a la fecha de inicio."
+            })
+
+        tipo = valor("id_tipo")
+        campos = {
+            "medicamento": ("dosis", "frecuencia", "via_administracion"),
+            "alergia": ("reaccion",),
+        }
+        for codigo, nombres in campos.items():
+            for campo in nombres:
+                if tipo.codigo != codigo:
+                    if datos.get(campo):
+                        raise serializers.ValidationError({
+                            campo: f"Este campo solo corresponde a {codigo}."
+                        })
+
+                    datos[campo] = ""
+        return datos

@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import Button from "../../../ui/Button/Button";
 import Input from "../../../ui/Input/Input";
+import InfoSalud from "./InfoSalud";
 import styles from "./PersonalInfo.module.css";
 
-export default function PersonalInfo({ perfil, actualizarPerfilPaciente, guardando }) {
+export default function PersonalInfo({perfil, actualizarPerfilPaciente, guardando, datosSalud = [], onAgregarSalud, onEditarSalud, onEliminarSalud}) {
     const [nombre, setNombre] = useState("");
     const [apellido, setApellido] = useState("");
     const [fechaNacimiento, setFechaNacimiento] = useState("");
@@ -81,7 +82,7 @@ export default function PersonalInfo({ perfil, actualizarPerfilPaciente, guardan
             <ProfileSection
                 icon={HeartPulse}
                 title="Información de salud"
-                description="Medidas básicas asociadas a tu perfil de paciente."
+                description="Medidas básicas y antecedentes asociados a tu perfil."
                 medical
             >
                 <div className={styles.medicalGrid}>
@@ -93,6 +94,13 @@ export default function PersonalInfo({ perfil, actualizarPerfilPaciente, guardan
                         <Input id="estatura" name="estatura" type="number" step="0.01" value={estatura} onChange={(event) => setEstatura(event.target.value)} />
                     </ProfileField>
                 </div>
+
+                <InfoSalud
+                    registros={datosSalud}
+                    onAgregar={onAgregarSalud}
+                    onEditar={onEditarSalud}
+                    onEliminar={onEliminarSalud}
+                />
             </ProfileSection>
 
             <footer className={styles.actions}>

@@ -27,6 +27,9 @@ from .views import (
     EstadisticasPacienteView,
     ExtraerDocumentoRegistroView,
     VerificarDocumentoRegistroView,
+    TipoInfoUserListView,
+    InfoUserListCreateView,
+    InfoUserDetailView,
 
 )
 
@@ -57,4 +60,7 @@ urlpatterns = [
     path("csrf/",CSRFTokenView.as_view(),name="csrf-token"),
     path('admin/dashboard/metricas/',MetricasSistemaView.as_view(),name='metricas-sistema'),
     path("pacientes/admin/dashboard/",EstadisticasPacienteView.as_view()),
+    path("info-salud/tipos/", TipoInfoUserListView.as_view(), name="info-salud-tipos"),
+    path("info-salud/", InfoUserListCreateView.as_view(), name="info-salud"),
+    path("info-salud/<int:pk>/", InfoUserDetailView.as_view(), name="info-salud-detalle"),
 ]

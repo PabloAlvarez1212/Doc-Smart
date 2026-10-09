@@ -46,3 +46,227 @@
 @media (prefers-reduced-motion: reduce) {
     .field input, .saveButton { transition: none; }
 }
+
+
+
+/* InfoSalud.module.css */
+.container {
+    margin: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #dbe5f2;
+    color: #26364f;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.header h3 {
+    margin: 0 0 6px;
+    font-size: 17px;
+}
+
+.header p {
+    margin: 0;
+    color: #70809a;
+    font-size: 13px;
+}
+
+.addButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 16px;
+    border: 0;
+    border-radius: 10px;
+    background: #2857ad;
+    color: #fff;
+    font: inherit;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.tableContainer {
+    overflow-x: auto;
+    border: 1px solid #dbe5f2;
+    border-radius: 12px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.table th {
+    padding: 13px 16px;
+    background: #f3f7fc;
+    color: #607493;
+    text-align: left;
+}
+
+.table td {
+    padding: 16px;
+    border-top: 1px solid #e4ebf5;
+    vertical-align: top;
+}
+
+.detail {
+    display: block;
+    margin-top: 5px;
+    color: #70809a;
+    font-size: 12px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 8px;
+    background: #e8f0ff;
+    color: #2857ad;
+    text-transform: capitalize;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+}
+
+.Actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 9px;
+    background: #edf3ff;
+    color: #2857ad;
+    cursor: pointer;
+}
+
+.Actions .deleteButton {
+    background: #fff0ef;
+    color: #c73535;
+}
+
+.addButton:disabled,
+.Actions button:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.addButton:focus-visible,
+.Actions button:focus-visible {
+    outline: 2px solid #2857ad;
+    outline-offset: 3px;
+}
+
+.table .empty {
+    padding: 28px 16px;
+    text-align: center;
+    color: #70809a;
+}
+
+@media (max-width: 640px) {
+    .container { margin: 16px; }
+    .header { flex-direction: column; align-items: flex-start; }
+    .table { min-width: 500px; }
+}
+
+
+.editor {
+    margin-top: 20px;
+    padding: 24px;
+    background: #fff;
+    border: 1px solid #dbe5f2;
+    border-radius: 16px;
+    color: #26364f;
+}
+
+.editor h3 { margin: 0 0 20px; }
+
+.editor fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.formGrid label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.formGrid input,
+.formGrid select,
+.formGrid textarea {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd9ed;
+    border-radius: 9px;
+    background: #fff;
+    color: #26364f;
+    font: inherit;
+    font-weight: 400;
+}
+
+.formGrid textarea { resize: vertical; }
+
+.check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 18px;
+    font-size: 13px;
+}
+
+.formActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.formActions button {
+    padding: 11px 16px;
+    border: 1px solid #dbe5f2;
+    border-radius: 9px;
+    background: #fff;
+    color: #2857ad;
+    font: inherit;
+    cursor: pointer;
+}
+
+.formActions .addButton {
+    background: #2857ad;
+    color: #fff;
+    border-color: #2857ad;
+}
+
+.formActions button:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.error { color: #b42318; }
+
+@media (max-width: 640px) {
+    .formGrid { grid-template-columns: 1fr; }
+}

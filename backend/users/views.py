@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from django.middleware.csrf import get_token
 from rest_framework.response import Response
 from citas import serializers
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
 from utils import IsAdmin,IsPaciente,FiltroPeriodoSerializer
@@ -33,6 +34,12 @@ from users.services import (
     subirDocumentoRegistroService,
     extraerDocumentoRegistroService,
     verificarDocumentoRegistroService,
+    listarTiposInfoUserService,
+    listarInfoUserService,
+    obtenerInfoUserService,
+    crearInfoUserService,
+    editarInfoUserService,
+    eliminarInfoUserService,
     
 )
 from users.serializers import (
@@ -53,6 +60,8 @@ from users.serializers import (
     ExtraerDocumentoRegistroSerializer,
     VerificarDocumentoRegistroSerializer,
     CompletarRegistroUsuarioSerializer,
+    InfoUserSerializer, 
+    TipoInfoUserSerializer,
 )
 
 
@@ -798,3 +807,58 @@ class EstadisticasPacienteView(APIView):
                 "Error interno del servidor",
                 status=500
             )
+
+
+from users.services import (
+    listarTiposInfoUserService,
+    listarInfoUserService,
+    obtenerInfoUserService,
+    crearInfoUserService,
+    editarInfoUserService,
+    eliminarInfoUserService,
+)
+
+
+class TipoInfoUserListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = TipoInfoUserSerializer
+
+    def get_queryset(self):
+        return listarTiposInfoUserService(self.request.user)
+
+
+class InfoUserListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = InfoUserSerializer
+
+    def get_queryset(self):
+        return listarInfoUserService(self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.instance = crearInfoUserService(
+            self.request.user, serializer.validated_data
+        )
+
+
+class InfoUserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = InfoUserSerializer
+
+    def get_object(self):
+        registro = obtenerInfoUserService(
+            self.request.user, self.kwargs["pk"]
+        )
+        self.check_object_permissions(self.request, registro)
+        return registro
+
+    def perform_update(self, serializer):
+        serializer.instance = editarInfoUserService(
+            self.request.user,
+            serializer.instance.pk,
+            serializer.validated_data,
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        registro = self.get_object()
+        eliminarInfoUserService(request.user, registro.pk)
+        return Response(status=status.HTTP_204_NO_CONTENT)

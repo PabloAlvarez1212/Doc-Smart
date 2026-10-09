@@ -240,4 +240,19 @@ api.interceptors.response.use(
     }
 );
 
+export const listarInfoSalud = async () =>
+    (await api.get("/info-salud/")).data;
+
+export const listarTiposInfoSalud = async () =>
+    (await api.get("/info-salud/tipos/")).data;
+
+export const crearInfoSalud = async (datos) =>
+    (await api.post("/info-salud/", datos)).data;
+
+export const editarInfoSalud = async (id, datos) =>
+    (await api.patch(`/info-salud/${id}/`, datos)).data;
+
+export const eliminarInfoSalud = async (id) =>
+    api.delete(`/info-salud/${id}/`);
+
 export default api;

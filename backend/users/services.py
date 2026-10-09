@@ -7,7 +7,7 @@ from django.db import transaction
 from catalogos.models import Rol
 import bcrypt
 from rest_framework_simplejwt.tokens import RefreshToken
-from users.models import Usuario,ProcesoRegistroUsuario
+from users.models import Usuario,ProcesoRegistroUsuario,InfoUser, TipoInfoUser
 from medicos.models import Medico,SolicitudValidacionMedico
 from users.serializers import UsuarioSerializer, MedicoSerializer,UsuarioPerfilSerializer
 from users.documento_identidad import DocumentoError,extraer_datos_documento
@@ -25,6 +25,7 @@ from notificaciones.models import Notificacion
 import logging
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework.exceptions import NotFound, PermissionDenied
 from utils import filtrarMedicosAprobados
 from django.db.models import Count,Case, When, Value, CharField,Q
 from django.db.models.functions import TruncMonth, Coalesce,TruncDay
@@ -1476,3 +1477,63 @@ def obtenerEstadisticasPacientesService(anio=None, mes=None):
         })
 
     return data, 200
+
+
+def validarPacienteInfoService(usuario):
+    if not isinstance(usuario, Usuario):
+        raise PermissionDenied("Esta función es para pacientes.")
+    if str(usuario.id_rol.nombre).strip().casefold() != "paciente":
+        raise PermissionDenied("Esta función es para pacientes.")
+
+
+def listarTiposInfoUserService(usuario):
+    validarPacienteInfoService(usuario)
+    return TipoInfoUser.objects.filter(activo=True).order_by("nombre")
+
+
+def listarInfoUserService(usuario):
+    validarPacienteInfoService(usuario)
+    return InfoUser.objects.filter(
+        id_usuario=usuario
+    ).select_related("id_tipo")
+
+
+def obtenerInfoUserService(usuario, info_id, bloquear=False):
+    registros = listarInfoUserService(usuario)
+    if bloquear:
+        registros = registros.select_for_update()
+    try:
+        return registros.get(pk=info_id)
+    except InfoUser.DoesNotExist:
+        raise NotFound("Información no encontrada.")
+
+
+def _datosInfoUser(datos):
+    permitidos = {
+        "id_tipo", "nombre", "descripcion", "fecha_inicio", "fecha_fin",
+        "estado", "es_permanente", "dosis", "frecuencia",
+        "via_administracion", "reaccion",
+    }
+    return {campo: valor for campo, valor in datos.items() if campo in permitidos}
+
+
+@transaction.atomic
+def crearInfoUserService(usuario, datos):
+    validarPacienteInfoService(usuario)
+    return InfoUser.objects.create(
+        id_usuario=usuario, **_datosInfoUser(datos)
+    )
+
+
+@transaction.atomic
+def editarInfoUserService(usuario, info_id, datos):
+    registro = obtenerInfoUserService(usuario, info_id, bloquear=True)
+    for campo, valor in _datosInfoUser(datos).items():
+        setattr(registro, campo, valor)
+    registro.save()
+    return registro
+
+
+@transaction.atomic
+def eliminarInfoUserService(usuario, info_id):
+    obtenerInfoUserService(usuario, info_id, bloquear=True).delete()
