@@ -1,6 +1,11 @@
 "use client";
 
-import { CalendarDays, Clock3, MapPin } from "lucide-react";
+import {
+    CalendarDays,
+    Clock3,
+    Eye,
+    MapPin,
+} from "lucide-react";
 import Image from "next/image";
 import styles from "./AppointmentCard.module.css";
 
@@ -23,6 +28,7 @@ export default function AppointmentCard({
     status,
     actions = [],
     metadata,
+    onViewDetails,
 }) {
     const personName = person?.name || "Usuario de DocSmart";
     const statusKey = String(status?.key || "").toLowerCase();
@@ -59,9 +65,22 @@ export default function AppointmentCard({
             </div>
 
             <div className={styles.actions}>
-                <span className={`${styles.status} ${styles[statusKey] || ""}`}>
-                    {status?.label || "Sin estado"}
-                </span>
+                <div className={styles.containerDetails}>
+                    <span className={`${styles.status} ${styles[statusKey] || ""}`}>
+                        {status?.label || "Sin estado"}
+                    </span>
+                    {onViewDetails && (
+                        <button
+                            type="button"
+                            className={styles.detailsButton}
+                            onClick={onViewDetails}
+                            aria-label={`Ver detalles de la cita con ${personName}`}
+                        >
+                            <Eye size={14} aria-hidden="true" />
+                            <span>Ver detalles</span>
+                        </button>
+                    )}
+                </div>
                 {actions.length > 0 && (
                     <div className={styles.actionButtons} data-action-count={actions.length}>
                         {actions.map(({

@@ -39,14 +39,14 @@ def listarCitasService():
     serializer = CitaSerializer(citas, many=True)
     return serializer.data, 200
 
-def listarCitasPacienteService(usuario_id,estado=None,doctor=None,ciudad=None,departamento=None,especialidad=None,fecha=None,page=None, page_size=10):
+def listarCitasPacienteService(usuario_id,busqueda=None,estado=None,ciudad=None,departamento=None,especialidad=None,fecha=None,page=None, page_size=10):
     citas = Cita.objects.filter(id_usuario=usuario_id)
     
     #estado
     if estado:
         citas = citas.filter(id_estado__nombre = estado)
     #doctor
-    if doctor:
+    if busqueda:
         citas = citas.annotate(
         nombre_completo=Concat(
             "id_medico__nombre",
@@ -54,7 +54,7 @@ def listarCitasPacienteService(usuario_id,estado=None,doctor=None,ciudad=None,de
             "id_medico__apellido"
         )
     ).filter(
-        nombre_completo__icontains=doctor
+        Q(nombre_completo__icontains=busqueda) | Q(codigo_cita__iexact=busqueda)
     )
     #ciudad
     if ciudad:
@@ -556,7 +556,8 @@ def crearCitaService(
             500
         )
 
-
+    motivo_consulta = datos['motivo_consulta']
+    
     # 5. Crear cita
     cita = Cita.objects.create(
         fecha_programada=fecha_programada,
@@ -564,6 +565,7 @@ def crearCitaService(
         id_usuario_id=usuario_id,
         id_medico=medico,
         id_estado=estado,
+        motivo_consulta=motivo_consulta
     )
 
 

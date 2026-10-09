@@ -2,8 +2,10 @@
 
 import { CalendarClock, CircleX, SearchX } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
 import AppointmentCard, { AppointmentListHeader } from "../../../ui/AppointmentCard/AppointmentCard";
+import AppointmentDetailsModal from "../../../ui/AppointmentDetailsModal/AppointmentDetailsModal";
 import { getPatientAppointmentActionKeys } from "../../../ui/AppointmentCard/appointmentViewState";
 import styles from "./Appointment.module.css";
 
@@ -18,13 +20,22 @@ export default function AppointmentList({
     reprogramarCita,
     hasActiveFilters = false,
 }) {
+    const [detailsAppointment, setDetailsAppointment] = useState(null);
+    const [detailsOpen, setDetailsOpen] = useState(false);
+
     if (!citas.length) return <EmptyAppointments filtered={hasActiveFilters} />;
 
+    const openDetails = (appointment) => {
+        setDetailsAppointment(appointment);
+        setDetailsOpen(true);
+    };
+
     return (
-        <div className={styles.list}>
-            <AppointmentListHeader personLabel="Profesional" />
-            <div role="list">
-                {citas.map((cita) => {
+        <>
+            <div className={styles.list}>
+                <AppointmentListHeader personLabel="Profesional" />
+                <div role="list">
+                    {citas.map((cita) => {
                     const status = String(cita.estado || "").toLowerCase();
                     const { fecha, hora } = formatearFecha(cita.fecha_programada);
                     const location = [cita.ciudad, cita.departamento].filter(Boolean).join(", ");
@@ -62,14 +73,23 @@ export default function AppointmentList({
                             location={{ name: location, address: cita.direccion }}
                             status={{ key: status, label: capitalize(cita.estado) }}
                             actions={actions}
+                            onViewDetails={() => openDetails(cita)}
                             metadata={resolution
                                 ? `${status === "cancelada" ? "Cancelada" : "Completada"} el ${resolution.fecha}, ${resolution.hora}`
                                 : null}
                         />
                     );
-                })}
+                    })}
+                </div>
             </div>
-        </div>
+            <AppointmentDetailsModal
+                abierto={detailsOpen}
+                onCerrar={() => setDetailsOpen(false)}
+                onExitComplete={() => setDetailsAppointment(null)}
+                cita={detailsAppointment}
+                counterpart="medico"
+            />
+        </>
     );
 }
 

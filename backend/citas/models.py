@@ -2,6 +2,7 @@ from django.db import models
 from users.models import Usuario
 from medicos.models import Medico
 from catalogos.models import Estado, Medio
+from .utils import generarCodigoCita
 
 class Cita(models.Model):
     fecha_programada = models.DateTimeField()
@@ -12,6 +13,8 @@ class Cita(models.Model):
     fecha_cancelacion = models.DateTimeField(null=True,blank=True)
     fecha_inasistencia = models.DateTimeField(null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    codigo_cita = models.CharField(max_length=12,unique=True,editable=False,default=generarCodigoCita)
+    motivo_consulta = models.TextField(null=True,blank=True)
 
     def __str__(self):
         return f"Cita {self.id} - {self.fecha_programada}"

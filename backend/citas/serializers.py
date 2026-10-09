@@ -48,14 +48,16 @@ class CitaSerializer(serializers.ModelSerializer):
             'foto_paciente',
             'foto_medico',
             'id_medico',
+            'codigo_cita',
+            'motivo_consulta',
         ]
 
     def get_medico(self, obj):
         return f"{obj.id_medico.nombre} {obj.id_medico.apellido}"
-    
+
     def get_paciente(self, obj):
         return f"{obj.id_usuario.nombre} {obj.id_usuario.apellido}"
-    
+
     def get_foto_paciente(self, obj):
         if obj.id_usuario.foto_perfil:
             return obj.id_usuario.foto_perfil.url
@@ -87,12 +89,23 @@ class RecordatorioSerializer(serializers.ModelSerializer):
 
 class CrearCitaSerializer(serializers.Serializer):
     fecha_programada = serializers.DateTimeField(
-                           error_messages={
-                               'required': 'La fecha programada es obligatoria',
-                               'invalid':  'La fecha programada no tiene un formato válido'
-                           })
-    id_medico        = serializers.IntegerField(
-                           error_messages=msg_numero('médico', 'El'))
+        error_messages={
+            'required': 'La fecha programada es obligatoria',
+            'invalid':  'La fecha programada no tiene un formato válido'
+        })
+
+    id_medico = serializers.IntegerField(error_messages=msg_numero('médico', 'El'))
+
+    motivo_consulta = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        max_length=1000,
+        error_messages={
+            'required': 'El motivo de consulta es obligatorio',
+            'blank': 'El motivo de consulta no puede estar vacío',
+            'max_length': 'El motivo de consulta no puede superar los 1000 caracteres',
+            'null': 'El motivo de consulta no puede ser nulo'
+        })
 
 
 

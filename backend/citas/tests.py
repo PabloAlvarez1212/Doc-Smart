@@ -8,6 +8,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 from catalogos.models import Estado, Rol
 from citas.models import Cita
+from citas.serializers import CitaSerializer
 from citas.services import obtenerEstadisticasCitas
 from medicos.models import Especialidad, Medico
 from users.models import Usuario
@@ -84,6 +85,20 @@ class EstadisticasCitasPorEstadoTests(TestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data["citas_por_estado"], [])
         self.assertNotIn("tasa_cancelacion", data)
+
+    def test_serializer_expone_codigo_y_motivo_sin_transformarlos(self):
+        cita = self.crear_cita("pendiente")
+        cita.codigo_cita = "DOC-A7K92P4X"
+        cita.motivo_consulta = "Dolor persistente\ndesde hace tres días."
+        cita.save(update_fields=["codigo_cita", "motivo_consulta"])
+
+        data = CitaSerializer(cita).data
+
+        self.assertEqual(data["codigo_cita"], "DOC-A7K92P4X")
+        self.assertEqual(
+            data["motivo_consulta"],
+            "Dolor persistente\ndesde hace tres días.",
+        )
 
 
 class EstadisticasCitasErrorPrivacyTests(TestCase):
