@@ -105,6 +105,12 @@ Campos nativos heredan Geist, superficie, tinta, borde y caret semánticos. Plac
 ### Navigation
 Barra fija con espacio reservado para evitar saltos. Al desplazarse se compacta; el enlace activo usa fondo azul suave. El selector de tema se presenta exclusivamente en Configuración; el navbar y el menú móvil no lo incluyen. El selector ofrece Claro, Oscuro y Sistema mediante radios accesibles y guarda la preferencia en `docsmart-theme`.
 
+### Selección de rol y registro
+`/rol` presenta dos tarjetas enlace equilibradas, Paciente y Médico, hacia sus registros respectivos. La identidad DocSmart y los iconos Lucide se conservan. Cada tarjeta usa icono tonal de 64px, título de 32px y acción azul sólida de altura mínima de 50px. La tarjeta médica muestra «Requiere verificación». Las dos columnas pasan a una a 640px; foco visible, hover y movimiento reducido mantienen el comportamiento existente, sin nuevos tokens.
+
+Ambos roles recuperan el lenguaje visual anterior del registro de paciente, con ajustes puntuales de accesibilidad. Comparten cinco pasos: datos personales, documento de identidad, datos adicionales o profesionales, credenciales y verificación de correo. El paciente mantiene género y tipo de sangre; el médico incluye datos profesionales y hoja de vida PDF. Las cabeceras «Verifica tu identidad» y «Verifica tu correo», y la presentación OTP, conservan el patrón anterior.
+
+La carga compartida presenta tarjeta vacía o con archivo seleccionado, icono de archivo neutral y acciones «Seleccionar» o «Cambiar». El nombre del archivo permanece visible: selección no equivale a validación ni usa un falso estado de éxito. Se mantienen errores, transiciones con movimiento reducido y feedback de `VerificationStatus`. OCR y OTP verifican identidad y correo; el registro médico sigue pendiente de aprobación profesional. Esta actualización visual no modifica la lógica de registro ni el backend.
 ### Motion
 `motion/react` recibe `reducedMotion="user"`. Transiciones CSS observadas duran aproximadamente 180–250ms; la transición de tema usa 180ms cuando está disponible. Menor movimiento desactiva animación, desplazamiento suave y desplazamientos decorativos. No ocultar información hasta que termine una animación.
 
@@ -120,6 +126,7 @@ Barra fija con espacio reservado para evitar saltos. Al desplazarse se compacta;
 - **Don't** introducir cifras de satisfacción, valoraciones o certificaciones sin respaldo.
 - **Don't** presentar médicos aprobados como médicos disponibles ni ejemplos como datos reales.
 
-Fuentes: brief del usuario; `frontend/src/app/variables.css`, `globals.css`; `frontend/components/ui/DocSmartNav` y `Theme`; componentes públicos `Hero`, `Features`, `Metrics` y `Footer`.
+Fuentes: brief del usuario; `frontend/src/app/variables.css`, `globals.css`; `frontend/components/ui/DocSmartNav` y `Theme`; componentes públicos `Hero`, `Features`, `Metrics` y `Footer`; `/rol` (`page.js`, `page.module.css`), `registerForm/RegisterForm.js` y `UseRegister.js`.
 
 Las superficies azules usan `--blue-card-*` y `--blue-action-*` para mantener texto claro independientemente del tema global. Los controles usan `--control-border` para límites legibles. Los formularios comparten `VerificationStatus`: estados pendientes, error y éxito confirmados por API, anunciados con aria-live. El registro conserva los valores y bloquea envíos simultáneos.
+

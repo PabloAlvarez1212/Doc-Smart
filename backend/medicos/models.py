@@ -14,7 +14,10 @@ class Medico(models.Model):
     
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
-    cedula = models.CharField(max_length=20, unique=True)        # Documento de identidad único
+    cedula = models.CharField(max_length=30, unique=True)        # Documento de identidad único
+    tipo_documento = models.CharField(max_length=20,choices=(("CC","Cédula de ciudadanía"),("TI","Tarjeta de identidad"),("PASAPORTE","Pasaporte"),("RC","Registro civil")),default="CC")
+    documento_verificado_en = models.DateTimeField(null=True,blank=True)
+    correo_verificado_en = models.DateTimeField(null=True,blank=True)
     fecha_nacimiento = models.DateField()
     telefono = models.CharField(max_length=20)
     correo = models.EmailField(unique=True)                       # Correo único para login

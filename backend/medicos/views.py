@@ -9,7 +9,6 @@ from medicos.models import (Medico, ExcepcionDisponibilidadMedico,)
 from medicos.services import (
     listarMedicosService,
     obtenerMedicoService,
-    crearMedicoService,
     actualizarMedicoService,
     eliminarMedicoService,
     listarEspecialidadesService,
@@ -42,7 +41,6 @@ from medicos.services import (
     obtenerEstadisticasMedicosService,
 )
 from medicos.serializers import (
-    RegistrarMedicoSerializer,
     EditarMedicoSerializer,
     RegistrarEspecialidadSerializer,
     EditarEspecialidadSerializer,
@@ -95,46 +93,6 @@ def respuesta_serializer_invalido(errors):
 # ── VISTAS DE MÉDICOS ────────────────────────────────────────────────────────
 
 # Vista pública: permite registrar un nuevo médico sin autenticación
-class RegistrarMedicoView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []
-    parser_classes = [MultiPartParser, FormParser]
-    def post(self, request):
-        try:
-            serializer = RegistrarMedicoSerializer(
-                data=request.data
-            )
-
-            if not serializer.is_valid():
-                return respuesta_serializer_invalido(
-                    serializer.errors
-                )
-
-            respuesta, status_code = crearMedicoService(
-                serializer.validated_data
-            )
-
-            if status_code != 201:
-                return respuesta_error(
-                    respuesta,
-                    status=status_code
-                )
-
-            return respuesta_ok(
-                data=respuesta,
-                mensaje="Médico registrado correctamente. Tu solicitud está pendiente de validación.",
-                status=status_code
-            )
-
-        except Exception as e:
-            print("Error registrando médico:", e)
-
-            return respuesta_error(
-                "Error interno en el servidor",
-                status=500
-            )
-
-
 # Vista admin: lista todos los médicos registrados
 class MedicoListView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]

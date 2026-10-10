@@ -23,7 +23,7 @@ from storage_app.models import Archivo
 def archivo_pdf(nombre="hoja-vida.pdf"):
     return SimpleUploadedFile(
         nombre,
-        b"%PDF-1.4 contenido ficticio",
+        b"%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [] /Count 0 >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF",
         content_type="application/pdf",
     )
 
