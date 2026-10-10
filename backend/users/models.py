@@ -6,12 +6,16 @@ from catalogos.models import Rol
 class Usuario(models.Model):
     TIPOS_DOCUMENTO=(("CC","Cédula de ciudadanía"),("TI","Tarjeta de identidad"),("PASAPORTE","Pasaporte"),("RC","Registro civil"))
     tipo_documento=models.CharField(max_length=20,choices=TIPOS_DOCUMENTO,default="CC")
+    GENEROS=(("M","Masculino"),("F","Femenino"),("OTRO","Otro"),("PREFIERO_NO_DECIR","Prefiero no decir"))
+    TIPOS_SANGRE=(("A+","A+"),("A-","A-"),("B+","B+"),("B-","B-"),("AB+","AB+"),("AB-","AB-"),("O+","O+"),("O-","O-"))
 
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     fecha_nacimiento = models.DateField()
     estatura = models.FloatField()
     peso = models.FloatField()
+    genero=models.CharField(max_length=20,choices=GENEROS,null=True,blank=True)
+    tipo_sangre=models.CharField(max_length=3,choices=TIPOS_SANGRE,null=True,blank=True)
     correo = models.EmailField(unique=True)
     contraseña = models.CharField(max_length=255)
     cedula=models.CharField(max_length=30,unique=True)
@@ -58,6 +62,9 @@ class ProcesoRegistroUsuario(models.Model):
     telefono=models.CharField(max_length=20,blank=True,default="")
     estatura=models.FloatField(null=True,blank=True)
     peso=models.FloatField(null=True,blank=True)
+    genero=models.CharField(max_length=20,choices=Usuario.GENEROS,null=True,blank=True)
+    tipo_sangre=models.CharField(max_length=3,choices=Usuario.TIPOS_SANGRE,null=True,blank=True)
+
 
     correo_verificado=models.BooleanField(default=False)
     correo_verificado_en=models.DateTimeField(null=True,blank=True)

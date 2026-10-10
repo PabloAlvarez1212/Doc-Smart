@@ -411,7 +411,9 @@ def guardarDatosAdicionalesRegistroService(datos):
     proceso.telefono=datos["telefono"]
     proceso.estatura=datos["estatura"]
     proceso.peso=datos["peso"]
-    proceso.save(update_fields=["telefono","estatura","peso"])
+    proceso.genero=datos["genero"]
+    proceso.tipo_sangre=datos["tipo_sangre"]
+    proceso.save(update_fields=["telefono","estatura","peso","genero","tipo_sangre"])
     return {"datos_guardados":True},200
 
 
@@ -421,7 +423,13 @@ def configurarCredencialesRegistroService(datos):
     error=validarProcesoRegistro(proceso)
     if error:return error
     if not proceso.documento_verificado:return {"documento":["Primero debes verificar el documento"]},403
-    if not proceso.telefono or proceso.estatura is None or proceso.peso is None:
+    if (
+        not proceso.telefono
+        or proceso.estatura is None
+        or proceso.peso is None
+        or not proceso.genero
+        or not proceso.tipo_sangre
+    ):
         return {"general":["Primero debes guardar los datos adicionales"]},403
     # No reiniciar intentos ni cambiar credenciales de un OTP ya emitido.
     correo=datos["correo"].strip().lower()
@@ -930,7 +938,15 @@ def completarRegistroUsuarioService(proceso_id):
     if not proceso.documento_verificado:
         return {"documento":["El documento no ha sido verificado"]},400
 
-    if not proceso.telefono or proceso.estatura is None or proceso.peso is None or not proceso.contraseña_hash or not proceso.correo:
+    if (
+        not proceso.telefono
+        or proceso.estatura is None
+        or proceso.peso is None
+        or not proceso.genero
+        or not proceso.tipo_sangre
+        or not proceso.contraseña_hash
+        or not proceso.correo
+    ):
         return {"general":["Los datos adicionales o las credenciales están incompletos"]},400
 
     if not all([
@@ -965,6 +981,8 @@ def completarRegistroUsuarioService(proceso_id):
         telefono=proceso.telefono,
         estatura=proceso.estatura,
         peso=proceso.peso,
+        genero=proceso.genero,
+        tipo_sangre=proceso.tipo_sangre,
         id_rol=rol,
     )
 
@@ -1053,27 +1071,26 @@ def obtenerUsuarioService(id):
     return serializer.data, 200
 
 
-def editarUsuarioService(id, datos):
+def editarUsuarioService(id,datos):
+    usuario=Usuario.objects.filter(id=id).first()
+    if not usuario:return "Usuario no encontrado",404
 
-    usuario = Usuario.objects.filter(id=id).first()
+    usuario.estatura=datos.get("estatura",usuario.estatura)
+    usuario.peso=datos.get("peso",usuario.peso)
+    usuario.telefono=datos.get("telefono",usuario.telefono)
+    usuario.genero=datos.get("genero",usuario.genero)
+    usuario.tipo_sangre=datos.get("tipo_sangre",usuario.tipo_sangre)
 
-    if not usuario:
-        return "Usuario no encontrado", 404
+    usuario.save(update_fields=[
+        "estatura",
+        "peso",
+        "telefono",
+        "genero",
+        "tipo_sangre",
+    ])
 
-    usuario.estatura = datos.get("estatura",usuario.estatura)
-    usuario.peso = datos.get("peso",usuario.peso)
-    usuario.telefono = datos.get("telefono",usuario.telefono)
-
-    usuario.save(
-        update_fields=[
-            "estatura",
-            "peso",
-            "telefono",
-        ]
-    )
-    serializer = UsuarioPerfilSerializer(usuario)
-
-    return serializer.data, 200
+    serializer=UsuarioPerfilSerializer(usuario)
+    return serializer.data,200
 
 def eliminarUsuarioService(id):
     usuario = Usuario.objects.filter(id=id).first()

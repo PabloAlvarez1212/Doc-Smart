@@ -34,7 +34,7 @@ export const validateRegisterStep1 = ({ nombre, apellido, cedula, tipo_documento
     return errors
 }
 
-export const validateRegisterPacienteStep2 = ({ telefono, estatura, peso }) => {
+export const validateRegisterPacienteStep2 = ({ telefono, estatura, peso, genero, tipo_sangre }) => {
     const errors = {}
 
     if (!telefono) errors.telefono = 'El teléfono es requerido'
@@ -56,6 +56,16 @@ export const validateRegisterPacienteStep2 = ({ telefono, estatura, peso }) => {
         if (isNaN(pesoNum) || pesoNum < 1 || pesoNum > 500)
             errors.peso = 'El peso debe estar entre 1 y 500 kg'
     }
+
+    const generosPermitidos = ['M', 'F', 'OTRO', 'PREFIERO_NO_DECIR']
+    if (!genero) errors.genero = 'El género es requerido'
+    else if (!generosPermitidos.includes(genero))
+        errors.genero = 'El género seleccionado no es válido'
+
+    const tiposSangrePermitidos = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+    if (!tipo_sangre) errors.tipo_sangre = 'El tipo de sangre es requerido'
+    else if (!tiposSangrePermitidos.includes(tipo_sangre))
+        errors.tipo_sangre = 'El tipo de sangre seleccionado no es válido'
 
     return errors
 }

@@ -2,6 +2,7 @@ import io,re,unicodedata,os,pytesseract
 from datetime import date
 from difflib import SequenceMatcher
 from PIL import Image,ImageOps,ImageEnhance,ImageFilter
+from collections import Counter
 
 if os.name=="nt":
     pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
@@ -69,6 +70,7 @@ def extraer_numero_cc(texto):
         if m:
             n=normalizar_numero(m.group(1))
             if 6<=len(n)<=12:return n
+
     c=[normalizar_numero(x) for x in re.findall(r"(?<!\d)(?:\d[\s.-]*){6,12}(?!\d)",texto)]
     c=[x for x in c if 6<=len(x)<=12]
     return max(c,key=len) if c else None
@@ -77,13 +79,16 @@ def extraer_fecha(texto):
     t=normalizar_texto(texto)
     p=r"(\d{1,2})[\s./-]+(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|SEPT|OCT|NOV|DIC)[\s./-]+(\d(?:\s*\d){3})"
     m=re.search(r"FECHA\s+DE\s+NACIMIENTO.{0,50}?"+p,t) or re.search(p,t)
+
     if m:
         try:return date(int(re.sub(r"\s+","",m.group(3))),MESES[m.group(2)],int(m.group(1)))
         except:pass
+
     m=re.search(r"\b(\d{1,2})[./-](\d{1,2})[./-](\d{4})\b",t)
     if m:
         try:return date(int(m.group(3)),int(m.group(2)),int(m.group(1)))
         except:pass
+
     return None
 
 def ejecutar_ocr_mrz(contenido):
@@ -135,8 +140,46 @@ def extraer_mrz(texto):
         if a or n:break
     return r
 
-def extraer_cc_vieja(tf,tr,nombre,apellido):
-    numero=extraer_numero_cc(tf) or extraer_numero_cc(tr)
+
+def extraer_numero_cc_imagen(contenido):
+    try:
+        img=Image.open(io.BytesIO(contenido)).convert("RGB")
+        if img.height>img.width:img=img.rotate(90,expand=True)
+
+        w,h=img.size
+        img=img.crop((0,0,w,int(h*.55)))
+        candidatos=[]
+
+        for escala in (2,3):
+            base=img.resize((img.width*escala,img.height*escala),Image.Resampling.LANCZOS)
+            gris=ImageOps.autocontrast(ImageOps.grayscale(base))
+
+            versiones=(
+                gris,
+                gris.point(lambda x:0 if x<150 else 255),
+                gris.point(lambda x:0 if x<180 else 255),
+                ImageEnhance.Contrast(gris).enhance(2)
+            )
+
+            for v in versiones:
+                for psm in (6,11):
+                    texto=pytesseract.image_to_string(
+                        v,
+                        lang="eng",
+                        config=f"--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789."
+                    )
+                    for linea in texto.splitlines():
+                        n=normalizar_numero(linea)
+                        if 6<=len(n)<=12:candidatos.append(n)
+
+        if not candidatos:return None
+        conteo=Counter(candidatos)
+        return max(conteo,key=lambda n:(conteo[n],len(n)))
+    except Exception:
+        return None
+    
+def extraer_cc_vieja(contenido_frente,tf,tr,nombre,apellido):
+    numero=extraer_numero_cc_imagen(contenido_frente) or extraer_numero_cc(tf) or extraer_numero_cc(tr)
     fecha=extraer_fecha(tr) or extraer_fecha(tf)
     total=tf+"\n"+tr
     nc=cn=ac=ca=None
@@ -186,7 +229,7 @@ def extraer_datos_cc(contenido_frente,contenido_reverso=None,nombre_declarado=No
         )
 
     return extraer_cc_vieja(
-        tf,tr,
+        contenido_frente,tf,tr,
         nombre_declarado,apellido_declarado
     )
 

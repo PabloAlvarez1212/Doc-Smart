@@ -66,7 +66,10 @@ export const useRegister = (role, setRole) => {
         contraseña: '',
         confirmar_contraseña: '',
         estatura: '',
+        estatura: '',
         peso: '',
+        genero: '',
+        tipo_sangre: '',
         hoja_vida: null
     })
 
@@ -98,7 +101,7 @@ export const useRegister = (role, setRole) => {
         if (role === 'paciente') {
             if (procesoId && ['nombre', 'apellido', 'tipo_documento', 'numero_documento', 'fecha_nacimiento'].includes(name)) return
             if (correoConfigurado) return
-            if (['telefono', 'estatura', 'peso'].includes(name)) setDatosGuardados(false)
+            if (['telefono','estatura','peso','genero','tipo_sangre'].includes(name)) {setDatosGuardados(false)}
         }
 
         if (name === 'hoja_vida') {
@@ -170,8 +173,14 @@ export const useRegister = (role, setRole) => {
             if (mostrarValidacion(validateRegisterPacienteStep2(form))) return
             return ejecutarPaso(async () => {
                 if (!datosGuardados) {
-                    await guardarDatosAdicionalesRegistroService({ proceso_id: procesoId, telefono: form.telefono,
-                        estatura: Number(String(form.estatura).replace(',', '.')), peso: Number(String(form.peso).replace(',', '.')) })
+                    await guardarDatosAdicionalesRegistroService({
+                        proceso_id: procesoId,
+                        telefono: form.telefono,
+                        estatura: Number(String(form.estatura).replace(',', '.')),
+                        peso: Number(String(form.peso).replace(',', '.')),
+                        genero: form.genero,
+                        tipo_sangre: form.tipo_sangre
+                    })
                     setDatosGuardados(true)
                 }
                 setStep(4)

@@ -17,7 +17,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Usuario
-        fields = ['id', 'nombre', 'apellido', 'correo', 'rol','telefono','cedula']
+        fields = ['id','nombre','apellido','correo','rol','telefono','cedula','genero','tipo_sangre']
 
 class MedicoSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source='id_rol.nombre')
@@ -50,10 +50,12 @@ class UsuarioPerfilSerializer(serializers.ModelSerializer):
             'telefono',
             'estatura',
             'peso',
+            'genero',
+            'tipo_sangre',
             'fecha_nacimiento',
             'edad',
             'rol',
-            "foto_perfil",
+            'foto_perfil',
         ]
     def get_edad(self, obj):
         return calcular_edad(obj.fecha_nacimiento)
@@ -159,6 +161,8 @@ class DatosAdicionalesRegistroSerializer(serializers.Serializer):
     telefono=serializers.CharField(min_length=10,max_length=10,allow_blank=False,trim_whitespace=True)
     estatura=serializers.FloatField(min_value=0.5,max_value=2.5,error_messages=msg_numero("estatura","La"))
     peso=serializers.FloatField(min_value=1.0,max_value=500.0,error_messages=msg_numero("peso"))
+    genero=serializers.ChoiceField(choices=["M","F","OTRO","PREFIERO_NO_DECIR"])
+    tipo_sangre=serializers.ChoiceField(choices=["A+","A-","B+","B-","AB+","AB-","O+","O-"])
 
     def validate_telefono(self,value):
         if not value.isdigit(): raise serializers.ValidationError("El teléfono solo puede contener números")
@@ -255,6 +259,16 @@ class EditarUsuarioSerializer(serializers.Serializer):
         max_value=500.0,
         required=False,
         error_messages=msg_numero("peso")
+    )
+
+    genero=serializers.ChoiceField(
+        choices=["M","F","OTRO","PREFIERO_NO_DECIR"],
+        required=False
+    )
+
+    tipo_sangre=serializers.ChoiceField(
+        choices=["A+","A-","B+","B-","AB+","AB-","O+","O-"],
+        required=False
     )
 
     def validate_telefono(self, value):
