@@ -1,17 +1,56 @@
-<<<<<<< HEAD
-.list { min-width: 0; }
-.list > [role="list"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 18px; }
-.empty { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 16px; min-height: 166px; padding: 28px 24px; border-top: 1px solid #dce5ee; border-bottom: 1px solid #dce5ee; background: #fff; }
-.empty > span { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 12px; color: #17664e; background: #dff0e9; }
-.empty h3 { margin: 0; color: #26354a; font-size: .98rem; line-height: 1.35; }
-.empty p { max-width: 600px; margin: 6px 0 0; color: #657489; font-size: .84rem; line-height: 1.5; }
-=======
-.list { min-width: 0; border-top: 1px solid var(--border); }
-.empty { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 16px; min-height: 166px; padding: 28px 24px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface); }
-.empty > span { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 12px; color: var(--ink-green); background: var(--surface-muted); }
-.empty h3 { margin: 0; color: var(--color-text); font-size: .98rem; line-height: 1.35; }
-.empty p { max-width: 600px; margin: 6px 0 0; color: var(--text-secondary); font-size: .84rem; line-height: 1.5; }
->>>>>>> 19a484190cb8007c09081bec7bb9950085536431
+/* Contenedor principal */
+.list {
+    min-width: 0;
+}
+
+/* Distribución de las tarjetas de citas */
+.list > [role="list"] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 18px;
+}
+
+/* Mensaje cuando no existen citas */
+.empty {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    min-height: 166px;
+    padding: 28px 24px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+}
+
+/* Ícono del estado vacío */
+.empty > span {
+    display: grid;
+    width: 46px;
+    height: 46px;
+    place-items: center;
+    border-radius: 12px;
+    color: #17664e;
+    background: #dff0e9;
+}
+
+/* Título */
+.empty h3 {
+    margin: 0;
+    color: var(--color-text);
+    font-size: 0.98rem;
+    line-height: 1.35;
+}
+
+/* Descripción */
+.empty p {
+    max-width: 600px;
+    margin: 6px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+    line-height: 1.5;
+}
 
 @media (max-width: 900px) {
     .list > [role="list"] { grid-template-columns: minmax(0, 1fr); }
