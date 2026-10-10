@@ -5,8 +5,8 @@
     height: 42px;
     flex: 0 0 auto;
     border-radius: 11px;
-    background: #fff1f2;
-    color: #b42335;
+    background: var(--surface-muted);
+    color: var(--ink-red);
 }
 
 .form {
@@ -20,7 +20,7 @@
 }
 
 .introduction > p {
-    color: #5f6c80;
+    color: var(--text-secondary);
     font-size: .88rem;
     line-height: 1.55;
 }
@@ -28,15 +28,15 @@
 .doctor {
     display: grid;
     gap: 3px;
-    border: 1px solid #e2e8f1;
+    border: 1px solid var(--border);
     border-left: 3px solid #d04455;
     border-radius: 10px;
     padding: 11px 13px;
-    background: #fbfcfe;
+    background: var(--surface);
 }
 
 .doctor span {
-    color: #8491a3;
+    color: var(--text-secondary);
     font-size: .67rem;
     font-weight: 680;
     letter-spacing: .045em;
@@ -45,7 +45,7 @@
 
 .doctor strong {
     overflow: hidden;
-    color: #2a374c;
+    color: var(--color-text);
     font-size: .9rem;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -64,13 +64,13 @@
 }
 
 .labelRow label {
-    color: #344054;
+    color: var(--text-secondary);
     font-size: .8rem;
     font-weight: 720;
 }
 
 .labelRow span {
-    color: #8491a3;
+    color: var(--text-secondary);
     font-size: .7rem;
     font-variant-numeric: tabular-nums;
 }
@@ -79,12 +79,12 @@
     width: 100%;
     min-height: 126px;
     resize: vertical;
-    border: 1px solid #d7dee9;
+    border: 1px solid var(--border);
     border-radius: 11px;
     padding: 11px 12px;
     outline: none;
-    background: #fff;
-    color: #29374d;
+    background: var(--surface);
+    color: var(--text-secondary);
     font: inherit;
     font-size: .86rem;
     line-height: 1.5;
@@ -92,7 +92,7 @@
 }
 
 .field textarea::placeholder {
-    color: #98a2b3;
+    color: var(--text-secondary);
 }
 
 .field textarea:focus {
@@ -101,7 +101,7 @@
 }
 
 .field small {
-    color: #8491a3;
+    color: var(--text-secondary);
     font-size: .7rem;
     line-height: 1.4;
 }
@@ -122,9 +122,9 @@
 }
 
 .cancelButton {
-    border: 1px solid #d8e0eb !important;
-    color: #46566e !important;
-    background: #fff !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-secondary) !important;
+    background: var(--surface) !important;
 }
 
 .rejectButton:disabled {

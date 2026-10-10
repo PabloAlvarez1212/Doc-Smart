@@ -31,7 +31,7 @@
 .eyebrow {
     margin-bottom: 5px;
 
-    color: #2b7fff;
+    color: var(--color-dark);
 
     font-size: .78rem;
     font-weight: 700;
@@ -41,7 +41,7 @@
 }
 
 .heading h1 {
-    color: #111827;
+    color: var(--color-text);
 
     font-size: clamp(
         2rem,
@@ -56,7 +56,7 @@
     max-width: 670px;
     margin-top: 10px;
 
-    color: #566174;
+    color: var(--text-secondary);
 
     font-size: 1.05rem;
     line-height: 1.6;
@@ -71,11 +71,11 @@
 
     padding: 14px 18px;
 
-    border: 1px solid #dbeafe;
+    border: 1px solid var(--border);
     border-radius: 12px;
 
-    color: #1733a4;
-    background: #f6faff;
+    color: var(--text-secondary);
+    background: var(--surface);
 }
 
 .summary div {
@@ -89,7 +89,7 @@
 }
 
 .summary span {
-    color: #667085;
+    color: var(--text-secondary);
     font-size: .78rem;
 }
 

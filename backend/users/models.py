@@ -160,4 +160,52 @@ class CambioCorreoUsuario(models.Model):
             ),
         ]
 
+class TipoInfoUser(models.Model):
+    codigo = models.SlugField(max_length=40, unique=True)
+    nombre = models.CharField(max_length=80)
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.nombre
+
+
+class InfoUser(models.Model):
+    class Estado(models.TextChoices):
+        VIGENTE = "vigente", "Vigente"
+        RESUELTO = "resuelto", "Resuelto"
+        INACTIVO = "inactivo", "Inactivo"
+
+    id_usuario = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, related_name="informacion_salud"
+    )
+    id_tipo = models.ForeignKey(TipoInfoUser, on_delete=models.PROTECT)
+    nombre = models.CharField(max_length=150)
+    descripcion = models.TextField(blank=True)
+    fecha_inicio = models.DateField(null=True, blank=True)
+    fecha_fin = models.DateField(null=True, blank=True)
+    estado = models.CharField(
+        max_length=10, choices=Estado.choices, default=Estado.VIGENTE
+    )
+    es_permanente = models.BooleanField(default=False)
+
+    # Medicamentos
+    dosis = models.CharField(max_length=80, blank=True)
+    frecuencia = models.CharField(max_length=100, blank=True)
+    via_administracion = models.CharField(max_length=60, blank=True)
+
+    # Alergias
+    reaccion = models.CharField(max_length=250, blank=True)
+
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["id_tipo__nombre", "nombre"]
+        indexes = [
+            models.Index(fields=["id_usuario", "id_tipo"]),
+        ]
+
+    def __str__(self):
+        return f"{self.id_tipo}: {self.nombre}"
+    
     # Create your models here.

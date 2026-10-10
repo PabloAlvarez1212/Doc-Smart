@@ -3,13 +3,13 @@
     border-radius: 16px;
     padding: 24px 32px;
     position: relative;
-    overflow: hidden; 
+    overflow: hidden;
     width: 90%;
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin: 0 auto;
-    
+
 }
 .saludo:hover{
     transform: translateY(-3px);
@@ -22,7 +22,7 @@
     width: 150px;
     height: 150px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--glass);
     filter: blur(20px);
 }
 .saludo p{
@@ -47,7 +47,7 @@
     font-size: 1rem;
     padding: 10px 25px;
     margin-top: 15px;
-    color: #3787FF;
+    color: var(--color-dark);
 }
 .containerText{
     display: flex;
@@ -72,3 +72,4 @@
   .saludo h2 { font-size: 1.5rem; }
   .saludo button { max-width: 100%; }
 }
+.saludo{background:var(--surface);box-shadow:var(--shadow);max-width:1160px}.saludo::before{display:none}.saludo:hover{transform:none}.containerText{color:var(--color-text)}.containerText>p{color:var(--text-secondary)}.saludo h2{font-size:clamp(26px,3.5vw,38px);letter-spacing:-.03em}.img{width:100px;height:100px;background:var(--surface-muted)}

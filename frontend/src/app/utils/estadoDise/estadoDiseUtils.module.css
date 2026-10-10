@@ -2,38 +2,38 @@
     padding: 10px;
     border-radius: 20px;
     font-weight: 600;
-    background-color: #e8f0fe;
-    color: #1a73e8;
+    background-color: var(--surface-muted);
+    color: var(--color-dark);
 }
 
 .pendiente {
     padding: 10px;
     border-radius: 20px;
     font-weight: 600;
-    background-color: #fef7e0;
-    color: #b06000;
+    background-color: var(--surface-muted);
+    color: var(--ink-orange);
 }
 
 .completada {
     padding: 10px;
     border-radius: 20px;
     font-weight: 600;
-    background-color: #e6f4ea;
-    color: #137333;
+    background-color: var(--surface-muted);
+    color: var(--ink-green);
 }
 
 .reprogramada {
     padding: 10px;
     border-radius: 20px;
     font-weight: 600;
-    background-color: #f3e8fd;
-    color: #7627bb;
+    background-color: var(--surface-muted);
+    color: var(--ink-purple);
 }
 
 .cancelada {
     padding: 10px;
     border-radius: 20px;
     font-weight: 600;
-    background-color: #fce8e6;
-    color: #c5221f;
+    background-color: var(--surface-muted);
+    color: var(--ink-red);
 }

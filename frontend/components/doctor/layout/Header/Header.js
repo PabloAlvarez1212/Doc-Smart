@@ -1,81 +1,56 @@
 "use client";
+
 import ResetPasswordFormComponent from "../../../ui/ResetPasswordComponent/ResetPasswordComponent";
-import Styles from "./Header.module.css";
-import Image from "next/image";
-import ResponsiveNav from "../../../ui/ResponsiveNav/ResponsiveNav";
-import { SettingsIcon,KeyRound } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import DocSmartNav from "../../../ui/DocSmartNav/DocSmartNav";
+import { KeyRound } from "lucide-react";
 import { useState } from "react";
 import useLogout from "../../../hooks/useLogout";
 import Modal from "../../../ui/Modal/Modal";
 import SettingsComponent from "../../../ui/SettingsComponent/SettingsComponent";
 import useDoctor from "../../useDoctor";
-
 export default function Header() {
-    const [modal, setModal] = useState(false);
-    const [modalCambiarContrasena, setModalCambiarContrasena] = useState(false)
-    const pathName = usePathname();
-    const {
-        eliminarCuentaMedico
-    } = useDoctor();
-    const activateLink = function (route) {
-        return pathName === route ? Styles.activar : Styles.link;
-    };
-    const { logoutUser } = useLogout();
-    return (
-        <div className={Styles.containerHeader}>
-            <div className={Styles.container}>
-                <div className={Styles.logo}>
-                    <Image src="/images/logo.png" width={130} height={100} alt="logo" />
-                    <h2><span>Doc</span>Smart</h2>
-                </div>
-                <button type="button" aria-label="Abrir ajustes" className={Styles.settingsButton} onClick={() => setModal(true)}>
-                    <SettingsIcon className={Styles.iconSettings} />
-                </button>
-            </div>
-            <ResponsiveNav className={Styles.containerNav} id="doctor-navigation">
-                <nav>
-                    <ul>
-                        <li><Link href="/doctor/home" className={activateLink("/doctor/home")}>Inicio</Link></li>
-                        <li><Link href="/doctor/dashboard" className={activateLink("/doctor/dashboard")}>Dashboard</Link></li>
-                        <li><Link href="/doctor/my-appointments" className={activateLink("/doctor/my-appointments")}>Mis Citas</Link></li>
-                        <li><Link href="/doctor/my-chats" className={activateLink("/doctor/my-chats")}>Mis Chats</Link></li>
-                        <li><Link href="/doctor/availability" className={activateLink("/doctor/availability")}>Disponibilidad</Link></li>
-                        <li><Link href="/doctor/my-profile" className={activateLink("/doctor/my-profile")}>Perfil</Link></li>
-                        <li><Link href="/doctor/notifications" className={activateLink("/doctor/notifications")}>Notificaciones</Link></li>
-                    </ul>
-                </nav>
-            </ResponsiveNav>
-            <Modal
-                titulo="Acciones"
-                abierto={modal}
-                headerVariant="white"
-                onCerrar={() => setModal(false)}
-            >
-                <SettingsComponent
-                    cerrarSesion={logoutUser}
-                    eliminarCuenta={eliminarCuentaMedico}
-                    abrirCambiarContrasena={() => {
-                        setModal(false)
-                        setModalCambiarContrasena(true)
-                    }}
-                />
+  const [modal, setModal] = useState(false);
+  const [modalCambiarContrasena, setModalCambiarContrasena] = useState(false);
+  const {
+    eliminarCuentaMedico
+  } = useDoctor();
+  const {
+    logoutUser
+  } = useLogout();
+  return <div>
+            <DocSmartNav home="/doctor/home" onSettings={() => setModal(true)} links={[{
+      href: "/doctor/home",
+      label: "Inicio"
+    }, {
+      href: "/doctor/dashboard",
+      label: "Dashboard"
+    }, {
+      href: "/doctor/my-appointments",
+      label: "Mis citas"
+    }, {
+      href: "/doctor/my-chats",
+      label: "Mis chats"
+    }, {
+      href: "/doctor/availability",
+      label: "Disponibilidad"
+    }, {
+      href: "/doctor/my-profile",
+      label: "Perfil"
+    }, {
+      href: "/doctor/notifications",
+      label: "Notificaciones"
+    }]} />
+            <Modal titulo="Acciones" abierto={modal} headerVariant="white" onCerrar={() => setModal(false)}>
+                <SettingsComponent cerrarSesion={logoutUser} eliminarCuenta={eliminarCuentaMedico} abrirCambiarContrasena={() => {
+        setModal(false);
+        setModalCambiarContrasena(true);
+      }} />
             </Modal>
-            <Modal
-                titulo="Cambiar contraseña"
-                abierto={modalCambiarContrasena}
-                onCerrar={() => {
-                    setModalCambiarContrasena(false)
-                    setModal(true)
-                }}
-                headerVariant="yellow"
-                text="Mantén tu cuenta segura con una contraseña fuerte"
-                width="500px"
-                icon={<KeyRound size={45} />}
-            >
+            <Modal titulo="Cambiar contraseña" abierto={modalCambiarContrasena} onCerrar={() => {
+      setModalCambiarContrasena(false);
+      setModal(true);
+    }} headerVariant="yellow" text="Mantén tu cuenta segura con una contraseña fuerte" width="500px" icon={<KeyRound size={45} />}>
                 <ResetPasswordFormComponent />
             </Modal>
-        </div>
-    );
+        </div>;
 }

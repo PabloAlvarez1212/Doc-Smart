@@ -27,9 +27,9 @@
 .attentionCard,
 .demandCard {
     min-width: 0;
-    border: 1px solid #e1e7f0;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #fff;
+    background: var(--surface);
     box-shadow: 0 8px 24px rgba(28, 54, 92, .045);
 }
 
@@ -53,7 +53,7 @@
 .demandContent > span {
     display: block;
     margin-bottom: 4px;
-    color: #2563eb;
+    color: var(--color-dark);
     font-size: .62rem;
     font-weight: 750;
     letter-spacing: .085em;
@@ -63,7 +63,7 @@
 .cardHeader h3,
 .demandContent h3 {
     margin: 0;
-    color: #172033;
+    color: var(--color-text);
     font-size: .92rem;
     font-weight: 720;
     line-height: 1.35;
@@ -71,7 +71,7 @@
 
 .cardHeader p {
     margin: 4px 0 0;
-    color: #64748b;
+    color: var(--text-secondary);
     font-size: .75rem;
     line-height: 1.45;
 }
@@ -84,8 +84,8 @@
     flex: 0 0 auto;
     place-items: center;
     border-radius: 11px;
-    background: #edf4ff;
-    color: #2563eb;
+    background: var(--surface-muted);
+    color: var(--color-dark);
 }
 
 .chartArea {
@@ -99,16 +99,16 @@
     gap: 4px;
     max-width: min(230px, 72vw);
     padding: 10px 12px;
-    border: 1px solid #dfe6ee;
+    border: 1px solid var(--border);
     border-radius: 10px;
-    background: rgba(255, 255, 255, .98);
+    background: var(--glass);
     box-shadow: 0 10px 26px rgba(28, 54, 92, .12);
-    color: #526078;
+    color: var(--text-secondary);
     font-size: .71rem;
     line-height: 1.4;
 }
 
-.chartTooltip strong { color: #172033; font-size: .76rem; }
+.chartTooltip strong { color: var(--color-text); font-size: .76rem; }
 
 .sideColumn {
     display: grid;
@@ -131,7 +131,7 @@
     align-items: center;
     gap: 14px;
     padding: 10px 0;
-    border-top: 1px solid #edf1f5;
+    border-top: 1px solid var(--border);
 }
 
 .attentionList dt {
@@ -139,16 +139,16 @@
     min-width: 0;
     align-items: center;
     gap: 9px;
-    color: #526078;
+    color: var(--text-secondary);
     font-size: .73rem;
     font-weight: 650;
     line-height: 1.4;
 }
 
-.attentionList dt svg { flex: 0 0 auto; color: #6b7b91; }
+.attentionList dt svg { flex: 0 0 auto; color: var(--text-secondary); }
 .attentionList dd {
     margin: 0;
-    color: #172033;
+    color: var(--color-text);
     font-size: .78rem;
     font-weight: 780;
     font-variant-numeric: tabular-nums;
@@ -163,19 +163,19 @@
     padding: 20px;
 }
 
-.demandIcon { background: #e9f8f6; color: #13796f; }
-.scheduleIcon { background: #edf4ff; color: #2563eb; }
+.demandIcon { background: var(--surface-muted); color: var(--ink-green); }
+.scheduleIcon { background: var(--surface-muted); color: var(--color-dark); }
 .demandContent { min-width: 0; }
 .demandDescription {
     margin: 5px 0 0;
-    color: #64748b;
+    color: var(--text-secondary);
     font-size: .72rem;
     line-height: 1.45;
 }
 .demandMetric { margin-top: 13px; }
 .demandMetric strong {
     display: block;
-    color: #172033;
+    color: var(--color-text);
     font-size: clamp(1.05rem, 2.2vw, 1.25rem);
     font-weight: 780;
     letter-spacing: -.035em;
@@ -186,7 +186,7 @@
 .demandMetric p,
 .demandEmpty {
     margin: 6px 0 0;
-    color: #64748b;
+    color: var(--text-secondary);
     font-size: .74rem;
     line-height: 1.45;
 }
@@ -200,10 +200,10 @@
     place-items: center;
     margin: 0;
     padding: 20px;
-    border: 1px dashed #dce5ef;
+    border: 1px dashed var(--border);
     border-radius: 10px;
-    background: #f8fafc;
-    color: #64748b;
+    background: var(--surface);
+    color: var(--text-secondary);
     font-size: .8rem;
     text-align: center;
 }
@@ -212,9 +212,9 @@
 .loadingPanel {
     display: block;
     min-height: 370px;
-    border: 1px solid #e1e7f0;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: linear-gradient(90deg, #f1f4f8 25%, #e5ebf2 50%, #f1f4f8 75%);
+    background: linear-gradient(90deg, var(--surface-muted) 25%, var(--surface-muted) 50%, var(--surface-muted) 75%);
     background-size: 200% 100%;
     animation: summary-shimmer 1.35s ease-in-out infinite;
 }

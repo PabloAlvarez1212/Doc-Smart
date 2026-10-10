@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-09T06:55:22.8433606Z",
+  "title": "Design System: DocSmart",
+  "extensions": {
+    "themeVariants": {
+      "dark": {
+        "selector": ":root[data-theme=\"dark\"]",
+        "properties": {
+          "--color-primary": "#202b40",
+          "--background": "#111215",
+          "--color-text": "#f1f2f5",
+          "--color-dark": "#97b7ff",
+          "--color-white": "#1c1e23",
+          "--surface": "#1c1e23",
+          "--surface-muted": "#262931",
+          "--text-secondary": "#b2b8c5",
+          "--border": "#414650",
+          "--glass": "rgba(28,30,35,.92)",
+          "--focus": "#a5c1ff",
+          "--shadow": "0 16px 48px rgba(0,0,0,.25)"
+        }
+      }
+    },
+    "shadows": [
+      {
+        "name": "surface",
+        "value": "0 16px 48px rgba(20,28,48,.08)",
+        "purpose": "Vista de demostración en tema claro."
+      },
+      {
+        "name": "navigation",
+        "value": "0 8px 28px #0000000a",
+        "purpose": "Barra flotante en reposo."
+      }
+    ],
+    "motion": [
+      {
+        "name": "interaction",
+        "value": "180ms",
+        "purpose": "Hover y respuesta de controles públicos."
+      },
+      {
+        "name": "theme",
+        "value": "180ms ease-out",
+        "purpose": "Transición de vista de tema, solo sin movimiento reducido."
+      },
+      {
+        "name": "navigation",
+        "value": "250ms",
+        "purpose": "Compactación de la barra."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "navigation",
+        "value": "1100px"
+      },
+      {
+        "name": "hero-density",
+        "value": "900px"
+      },
+      {
+        "name": "fields",
+        "value": "768px"
+      },
+      {
+        "name": "features",
+        "value": "760px"
+      },
+      {
+        "name": "hero-stack",
+        "value": "700px"
+      },
+      {
+        "name": "metrics-footer",
+        "value": "640px"
+      },
+      {
+        "name": "small-navigation",
+        "value": "480px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Acción principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción pública con contraste estable en ambos temas.",
+      "html": "<button class=\"ds-primary\">Crear cuenta</button>",
+      "css": ".ds-primary{font-family:var(--font-geist-sans),Arial,sans-serif;background:#1733a4;color:#fff;padding:14px 20px;border:0;border-radius:12px;min-height:48px;font-size:14px;font-weight:600;cursor:pointer;transition:transform .18s,background .18s}.ds-primary:hover{background:#244bd0}.ds-primary:active{transform:scale(.97)}.ds-primary:focus-visible{outline:3px solid var(--focus);outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none}.ds-primary:active{transform:none}}"
+    },
+    {
+      "name": "Acción secundaria",
+      "kind": "button",
+      "description": "Enlace complementario del hero.",
+      "html": "<a class=\"ds-secondary\" href=\"#features\">Conocer DocSmart <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M5 12h14m-7-7 7 7-7 7\"/></svg></a>",
+      "css": ".ds-secondary{font-family:var(--font-geist-sans),Arial,sans-serif;display:inline-flex;align-items:center;min-height:48px;padding:14px 0;color:var(--color-dark);font-size:14px;font-weight:600;text-decoration:none;border-radius:12px;transition:transform .18s}.ds-secondary svg{transition:transform .18s}.ds-secondary:hover svg{transform:translateX(3px)}.ds-secondary:active{transform:scale(.97)}.ds-secondary:focus-visible{outline:3px solid var(--focus);outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-secondary,.ds-secondary svg{transition:none}.ds-secondary:active,.ds-secondary:hover svg{transform:none}}"
+    },
+    {
+      "name": "Campo nativo",
+      "kind": "input",
+      "description": "Superficie y texto semánticos; el formulario aporta geometría local.",
+      "html": "<label class=\"ds-field\">Correo <input type=\"email\" placeholder=\"tu@correo.com\" /></label>",
+      "css": ".ds-field{font-family:var(--font-geist-sans),Arial,sans-serif;color:var(--color-text)}.ds-field input{font-family:inherit;color:var(--color-text);background:var(--surface);border-color:var(--border);caret-color:var(--color-dark);max-width:100%;transition:background-color .22s,color .22s,border-color .22s}.ds-field input::placeholder{color:var(--text-secondary);opacity:1}.ds-field input:focus-visible{outline:3px solid var(--focus);outline-offset:3px}@media(max-width:768px){.ds-field input{font-size:16px}}@media(prefers-reduced-motion:reduce){.ds-field input{transition:none}}"
+    },
+    {
+      "name": "Navegación",
+      "kind": "nav",
+      "description": "Muestra estática del material y estados de enlace; el menú real vive en React.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Navegación de ejemplo\"><a class=\"ds-link ds-active\" aria-current=\"page\" href=\"#inicio\">Inicio</a><a class=\"ds-link\" href=\"#features\">Servicios</a></nav>",
+      "css": ".ds-nav{display:flex;gap:4px;padding:12px 20px 8px;background:var(--glass);backdrop-filter:blur(18px) saturate(140%);border:1px solid var(--border);border-radius:20px;box-shadow:0 8px 28px #0000000a;font-family:var(--font-geist-sans),Arial,sans-serif}.ds-link{display:flex;align-items:center;min-height:40px;padding:8px 13px;text-decoration:none;color:var(--text-secondary);font-size:13px;font-weight:550;border-radius:9px;transition:color .18s,background .18s}.ds-link:hover{color:var(--color-text);background:var(--surface-muted)}.ds-active{color:var(--color-dark);background:var(--color-primary)}.ds-link:focus-visible{outline:3px solid var(--focus);outline-offset:3px}@media(prefers-reduced-transparency:reduce),(prefers-contrast:more){.ds-nav{background:var(--surface);backdrop-filter:none}}@media(prefers-reduced-motion:reduce){.ds-link{transition:none}}"
+    },
+    {
+      "name": "Vista de demostración",
+      "kind": "card",
+      "refersTo": "card-preview",
+      "description": "Panel de ejemplo con aclaración visible.",
+      "html": "<article class=\"ds-preview\"><strong>Tu próxima cita</strong><p>Demostración · datos de ejemplo</p></article>",
+      "css": ".ds-preview{font-family:var(--font-geist-sans),Arial,sans-serif;background:var(--surface);color:var(--color-text);border-radius:24px;padding:28px;box-shadow:var(--shadow)}.ds-preview strong{font-size:15px}.ds-preview p{font-size:11px;line-height:1.6;color:var(--text-secondary);margin:12px 0 26px}"
+    },
+    {
+      "name": "Etiqueta de demostración",
+      "kind": "chip",
+      "description": "Etiqueta informativa del preview, sin interacción inventada.",
+      "html": "<span class=\"ds-chip\">Demostración</span>",
+      "css": ".ds-chip{font-family:var(--font-geist-sans),Arial,sans-serif;display:inline-block;font-size:10px;padding:6px 9px;border-radius:6px;background:var(--surface-muted);color:var(--text-secondary)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Claridad serena",
+    "overview": "La dirección solicitada combina la elegancia y contención de interfaces Apple con la identidad azul existente. Geist conserva la continuidad del producto. Fondos blancos y grises, jerarquía tipográfica y espacio suficiente permiten entender las acciones sin decoración excesiva.\n\nEsta documentación captura la implementación; las propiedades CSS y los componentes citados al final siguen siendo la fuente de valores operativos. Los temas claro y oscuro tienen el mismo peso funcional.",
+    "keyCharacteristics": [
+      "Superficies neutras y azul reservado para acciones y orientación.",
+      "Navegación compacta, translúcida y adaptable.",
+      "Movimiento breve, interrumpible y respetuoso de preferencias."
+    ],
+    "rules": [
+      {
+        "name": "The Semantic Color Rule",
+        "body": "Usar las propiedades globales para texto, superficies y bordes; reservar colores sólidos fijos para parejas de contraste verificadas.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do usar tokens semánticos para que cada superficie funcione en claro y oscuro.",
+      "Do conservar Geist, jerarquía legible, foco visible y controles accesibles.",
+      "Do respetar movimiento reducido y mantener estados de carga, vacío y error explícitos."
+    ],
+    "donts": [
+      "Don't llenar la interfaz de gradientes, vidrio o acentos decorativos.",
+      "Don't introducir cifras de satisfacción, valoraciones o certificaciones sin respaldo.",
+      "Don't presentar médicos aprobados como médicos disponibles ni ejemplos como datos reales."
+    ]
+  }
+}

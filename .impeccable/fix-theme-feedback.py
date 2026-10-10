@@ -1,0 +1,3 @@
+from pathlib import Path
+p=Path('frontend/components/ui/Theme/ThemeProvider.js');s=p.read_text(encoding='utf-8').replace("    if (!['light', 'dark', 'system'].includes(value)) return;", "    if (!['light', 'dark', 'system'].includes(value)) return;\n    setPreference(value);");p.write_text(s,encoding='utf-8',newline='\n')
+p=Path('frontend/scripts/verify-design-corrections.cjs');s=p.read_text(encoding='utf-8').replace("await page.getByRole('radio',{name:'Oscuro',exact:true}).check();", "await page.getByRole('radio',{name:'Oscuro',exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');assert.ok(await page.getByRole('radio',{name:'Oscuro',exact:true}).isChecked());");p.write_text(s,encoding='utf-8',newline='\n')

@@ -1,5 +1,11 @@
 import api from "./api";
 
+export const solicitarCambioCorreoService = async (correo) =>
+    (await api.post("/perfil/correo/solicitar-cambio/", { correo })).data;
+
+export const confirmarCambioCorreoService = async (cambio_id, codigo) =>
+    (await api.post("/perfil/correo/confirmar-cambio/", { cambio_id, codigo })).data;
+
 export const obtenerDashboardPacienteInicioService = async function () {
     const response = await api.get(
         "/dashboard/inicio/paciente/"

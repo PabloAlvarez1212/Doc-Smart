@@ -14,7 +14,8 @@ from citas.views import (
     RecordatorioDetailView,
     CitaConfirmarView,
     RegistroCitaView,
-    EstadisticasCitasView
+    EstadisticasCitasView,
+    InfoPacienteCitaView,
 )
 
 urlpatterns = [
@@ -49,4 +50,6 @@ urlpatterns = [
     path('recordatorios/<int:pk>/', RecordatorioDetailView.as_view(),name='recordatorio-detalle'),
     # Estadísticas Dashboard
     path("admin/dashboard/", EstadisticasCitasView.as_view(),name="estadisticas-citas"),
+
+    path("<int:cita_id>/info-salud/",InfoPacienteCitaView.as_view(),name="info-paciente-cita",),
 ]

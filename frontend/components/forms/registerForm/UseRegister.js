@@ -32,6 +32,8 @@ export const useRegister = (role, setRole) => {
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
     const [errors, setErrors] = useState({})
+    const [feedback, setFeedback] = useState({kind:'idle',message:'',revision:0})
+    const report = (kind,message) => setFeedback(prev => ({kind,message,revision:prev.revision+1}))
 
     const [procesoId, setProcesoId] = useState('')
     const [otp, setOtp] = useState('')
@@ -117,20 +119,23 @@ export const useRegister = (role, setRole) => {
     const mostrarValidacion = (validationErrors) => {
         setErrors(validationErrors)
         if (!Object.keys(validationErrors).length) return false
-        Swal.fire({ icon: 'error', title: 'Campos inválidos', text: Object.values(validationErrors)[0] })
+        report('error', Object.values(validationErrors)[0] + '. Revisa el campo indicado.')
         return true
     }
 
-    const ejecutarPaso = async (accion) => {
+    const ejecutarPaso = async (accion, message = "Verificando y guardando tus datos…") => {
         if (ocupado.current) return
         ocupado.current = true
         setLoading(true)
+        setErrors({})
+        report("pending",message)
         try {
             await accion()
+            setFeedback(prev => prev.kind === "pending" ? {...prev,kind:"success",message:"Datos confirmados. Puedes continuar."} : prev)
         } catch (error) {
             const errores = error.response?.data?.errores
             setErrors(errores || {})
-            Swal.fire({ icon: 'error', title: 'No fue posible continuar', text: obtenerPrimerError(errores) || error.response?.data?.mensaje || error.message || 'Intenta nuevamente.' })
+            report('error', obtenerPrimerError(errores) || error.response?.data?.mensaje || error.message || 'No fue posible continuar. Reintenta; tus datos se conservan.')
         } finally {
             ocupado.current = false
             setLoading(false)
@@ -183,15 +188,12 @@ export const useRegister = (role, setRole) => {
         }
 
         if (Object.keys(validationErrors).length > 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Campos inválidos',
-                text: Object.values(validationErrors)[0],
-            })
+            report('error', Object.values(validationErrors)[0] + '. Revisa el campo indicado.')
             setErrors(validationErrors)
             return
         }
 
+        report("success","Campos validados. Continúa con el siguiente paso.")
         setStep((prev) => prev + 1)
     }
 
@@ -213,16 +215,15 @@ export const useRegister = (role, setRole) => {
 
         const validationErrors = validateRegisterStep3(form)
         if (Object.keys(validationErrors).length > 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Campos inválidos',
-                text: Object.values(validationErrors)[0],
-            })
+            report('error', Object.values(validationErrors)[0] + '. Revisa el campo indicado.')
             setErrors(validationErrors)
             return
         }
 
+        if (ocupado.current) return
+        ocupado.current = true
         setLoading(true)
+        report("pending","Enviando tu solicitud médica…")
 
         try {
             const formData = new FormData()
@@ -241,6 +242,7 @@ export const useRegister = (role, setRole) => {
             if (form.hoja_vida) formData.append('hoja_vida', form.hoja_vida)
 
             await registerMedicoService(formData)
+            report("success","Solicitud médica recibida. Tu perfil está pendiente de revisión.")
 
             await Swal.fire({
                 icon: 'success',
@@ -252,7 +254,7 @@ export const useRegister = (role, setRole) => {
             router.push('/login')
 
         } catch (error) {
-            console.log('error completo:', JSON.stringify(error.response?.data))
+
 
             const errores = error.response?.data?.errores
             let mensaje =
@@ -263,14 +265,11 @@ export const useRegister = (role, setRole) => {
             const errorExtraido = obtenerPrimerError(errores)
             if (errorExtraido) mensaje = errorExtraido
 
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: mensaje,
-            })
+            report('error',mensaje)
 
             if (errores) setErrors(errores)
         } finally {
+            ocupado.current = false
             setLoading(false)
         }
     }
@@ -283,11 +282,13 @@ export const useRegister = (role, setRole) => {
                 const response = await verificarCorreoRegistroService({ proceso_id: procesoId, codigo: otp.trim() })
                 if (response.data?.correo_verificado !== true) throw new Error('El correo todavía no está verificado')
                 setCorreoVerificado(true)
+                report("pending","Correo confirmado. Completando tu registro…")
             }
             await completarRegistroPacienteService({ proceso_id: procesoId })
+            report("success","Registro completado. Tu identidad y correo están verificados.")
             await Swal.fire({ icon: 'success', title: '¡Registro exitoso!', text: `Bienvenido ${form.nombre}, tu registro está completo.`, confirmButtonText: 'Aceptar' })
             router.push('/login')
-        })
+        }, correoVerificado ? 'Completando tu registro…' : 'Verificando el código de tu correo…')
     }
 
     const handleDocumento = async () => {
@@ -306,8 +307,9 @@ export const useRegister = (role, setRole) => {
             const response = await verificarDocumentoRegistroService({ proceso_id: procesoId })
             if (response.data?.documento_verificado !== true) throw new Error('La identidad todavía no está verificada')
             setDocumentoVerificado(true)
+            report("success","Identidad confirmada por DocSmart. Continúa con tus datos adicionales.")
             setStep(3)
-        })
+        }, "Verificando tu documento de identidad…")
     }
 
     const handleArchivoDocumento = (cara, archivo) => {
@@ -322,12 +324,12 @@ export const useRegister = (role, setRole) => {
         if (step !== 5 || !correoConfigurado || correoVerificado) return
         return ejecutarPaso(async () => {
             await reenviarCodigoRegistroService({ proceso_id: procesoId })
-            setOtp('')
-            await Swal.fire({ icon: 'success', title: 'Código reenviado', text: 'Revisa tu correo.' })
+            report('success','Código reenviado. Revisa tu correo e ingresa el nuevo código.')
         })
     }
     return {
         form,
+        feedback,
         step,
         setStep: role === 'medico' ? setStep : undefined,
         loading,

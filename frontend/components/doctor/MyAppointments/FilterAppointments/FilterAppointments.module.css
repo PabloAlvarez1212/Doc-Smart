@@ -17,9 +17,9 @@
     gap: 10px;
     height: 44px;
     padding: 0 14px;
-    border: 1px solid #dce2ea;
+    border: 1px solid var(--border);
     border-radius: 10px;
-    background: #fff;
+    background: var(--surface);
     transition:
         border-color .2s ease,
         box-shadow .2s ease;
@@ -49,7 +49,7 @@
 .searchField svg,
 .dateField svg {
     flex-shrink: 0;
-    color: #98a2b3;
+    color: var(--text-secondary);
 }
 
 
@@ -62,7 +62,7 @@
     width: 100%;
     border: 0;
     outline: 0;
-    color: #172033;
+    color: var(--color-text);
     background: transparent;
     font: inherit;
     font-size: .88rem;
@@ -70,7 +70,7 @@
 
 
 .searchField input::placeholder {
-    color: #98a2b3;
+    color: var(--text-secondary);
 }
 
 
@@ -85,10 +85,10 @@
     gap: 6px;
     height: 44px;
     padding: 0 14px;
-    border: 1px solid #dce2ea;
+    border: 1px solid var(--border);
     border-radius: 10px;
-    color: #566174;
-    background: #fff;
+    color: var(--text-secondary);
+    background: var(--surface);
     font: inherit;
     font-size: .82rem;
     font-weight: 600;
@@ -101,9 +101,9 @@
 
 
 .clearButton:hover {
-    color: #15803d;
-    border-color: #bbf7d0;
-    background: #f0fdf4;
+    color: var(--ink-green);
+    border-color: var(--border);
+    background: var(--surface-muted);
 }
 
 /* ========================================

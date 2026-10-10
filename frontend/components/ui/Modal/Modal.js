@@ -16,8 +16,11 @@ export default function Modal({
   text = "",
   width = "480px",
   icon,
+  footer,
+  initialFocusRef,
 }) {
   const titleId = useId();
+  const descriptionId = useId();
   const closeRef = useRef(null);
   const dialogRef = useRef(null);
   const reduceMotion = useReducedMotion();
@@ -26,17 +29,17 @@ export default function Modal({
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (!abierto) return;
+    if (!abierto || !mounted) return;
     const previousFocus = document.activeElement;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    closeRef.current?.focus();
+    (initialFocusRef?.current || closeRef.current)?.focus({ preventScroll: true });
 
     return () => {
       document.body.style.overflow = previousOverflow;
       if (previousFocus?.isConnected) previousFocus.focus();
     };
-  }, [abierto]);
+  }, [abierto, mounted, initialFocusRef]);
 
   function handleKeyDown(event) {
     if (event.key === "Escape") {
@@ -46,12 +49,16 @@ export default function Modal({
     if (event.key !== "Tab") return;
 
     const controls = Array.from(dialogRef.current?.querySelectorAll(
-      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
-    ) || []).filter((element) => element.getClientRects().length);
+      'button:not([disabled]), a[href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
+    ) || []).filter((element) => element.getClientRects().length &&
+      getComputedStyle(element).visibility !== "hidden" && !element.closest("[inert]"));
     const first = controls[0];
     const last = controls[controls.length - 1];
 
-    if (event.shiftKey && document.activeElement === first) {
+    if (!controls.includes(document.activeElement)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first)?.focus();
+    } else if (event.shiftKey && document.activeElement === first) {
       event.preventDefault();
       last?.focus();
     } else if (!event.shiftKey && document.activeElement === last) {
@@ -78,6 +85,7 @@ export default function Modal({
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
+            aria-describedby={text ? descriptionId : undefined}
             onKeyDown={handleKeyDown}
             className={styles.modal}
             style={{ width: "100%", maxWidth: width }}
@@ -92,7 +100,7 @@ export default function Modal({
                 {icon}
                 <div className={styles.containerTitle}>
                   <h2 id={titleId} className={styles.titulo}>{titulo}</h2>
-                  {text && <p>{text}</p>}
+                  {text && <p id={descriptionId}>{text}</p>}
                 </div>
               </div>
               <button
@@ -106,6 +114,7 @@ export default function Modal({
               </button>
             </div>
             <div className={styles.body}>{children}</div>
+            {footer && <footer className={styles.footer}>{footer}</footer>}
           </motion.div>
         </motion.div>
       )}

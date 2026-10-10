@@ -2,7 +2,7 @@
 
 .containerMain {
     font-family: 'Inter', sans-serif;
-    background: rgba(255, 255, 255, 0.92);
+    background: var(--glass);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -39,12 +39,12 @@
 .logoText {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #0d1f4a;
+    color: var(--color-text);
     letter-spacing: -0.5px;
 }
 
 .logoAccent {
-    color: #3b82f6;
+    color: var(--color-dark);
 }
 
 .btns {
@@ -67,16 +67,16 @@
 }
 
 .btnGhost:hover {
-    background: #f0f4ff;
+    background: var(--surface-muted);
     border-color: #3b82f6;
-    color: #3b82f6;
+    color: var(--color-dark);
 }
 
 .btnSolid {
     padding: 8px 22px;
     border: none;
     border-radius: 10px;
-    background: var(--color-dark);
+    background: var(--brand-solid);
     color: #fff;
     font-size: 14px;
     font-weight: 600;

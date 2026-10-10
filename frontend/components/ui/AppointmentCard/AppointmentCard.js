@@ -38,6 +38,7 @@ export default function AppointmentCard({
             </div>
 
             <div className={styles.person}>
+                
                 <Image
                     src={person?.image || "/images/foto_default.png"}
                     alt={`Foto de ${personName}`}
@@ -47,6 +48,19 @@ export default function AppointmentCard({
                 <div>
                     <strong>{personName}</strong>
                     {person?.secondary && <span>{person.secondary}</span>}
+                    {person?.onVerInfo && (
+                        <button
+                            type="button"
+                            className={styles.medicalLink}
+                            onClick={person.onVerInfo}
+                            aria-expanded={person.infoAbierta}
+                            aria-controls={person.infoPanelId}
+                        >
+                            {person.infoAbierta
+                                ? "Ocultar información médica"
+                                : "Presiona aquí para ver información médica"}
+                        </button>
+                    )}
                 </div>
             </div>
 

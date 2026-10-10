@@ -1,5 +1,5 @@
 .hero {
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;
@@ -16,13 +16,13 @@
 .title {
   font-size: 2rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--color-text);
 }
 
 .subtitle {
   margin-top: 8px;
   font-size: 1rem;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 .hero { width: 100%; }
 .content { flex-wrap: wrap; gap: 16px; }
