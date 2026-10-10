@@ -102,3 +102,41 @@ def validar_archivo_chat(archivo):
         raise ValidationError('Imagen inválida o demasiado grande')
     finally:
         archivo.seek(position)
+
+
+def validar_archivo_seguimiento(archivo):
+    """Reutiliza límites y validación real de imagen/PDF; restringe Word por contenido."""
+    from pathlib import Path
+    from zipfile import ZipFile, BadZipFile
+    from xml.etree import ElementTree
+    mime = getattr(archivo, 'content_type', '')
+    word = {'application/msword': '.doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx'}
+    if mime not in word:
+        return validar_archivo_chat(archivo)
+    validar_tipo_archivo(archivo, set(word))
+    validar_tamano_archivo(archivo, 10 * 1024 * 1024)
+    if archivo.size == 0 or Path(archivo.name).suffix.lower() != word[mime]:
+        raise ValidationError('Documento Word vacío o extensión incoherente')
+    position = archivo.tell()
+    try:
+        archivo.seek(0)
+        if word[mime] == '.doc':
+            contents = archivo.read()
+            if not contents.startswith(b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1') or 'WordDocument'.encode('utf-16le') not in contents:
+                raise ValidationError('Documento DOC inválido')
+        else:
+            with ZipFile(archivo) as archive:
+                if not {'[Content_Types].xml', 'word/document.xml'} <= set(archive.namelist()):
+                    raise ValidationError('Documento DOCX inválido')
+                if any(info.flag_bits & 1 for info in archive.infolist()) or sum(info.file_size for info in archive.infolist()) > 50 * 1024 * 1024:
+                    raise ValidationError('DOCX cifrado o demasiado grande')
+                if archive.getinfo('word/document.xml').file_size > 10 * 1024 * 1024:
+                    raise ValidationError('Contenido DOCX demasiado grande')
+                root = ElementTree.fromstring(archive.read('word/document.xml'))
+                if root.tag != '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}document':
+                    raise ValidationError('Contenido DOCX inválido')
+    except (BadZipFile, OSError, ValueError, ElementTree.ParseError) as exc:
+        raise ValidationError('Documento Word inválido') from exc
+    finally:
+        archivo.seek(position)

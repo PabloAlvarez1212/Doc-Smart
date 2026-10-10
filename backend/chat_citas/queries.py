@@ -23,6 +23,7 @@ def _query(actor):
         Q(cita__id_estado__nombre__iexact='completada') |
         Q(cita__id_estado__nombre__iexact='cancelada') |
         Q(cita__id_estado__nombre__iexact='inasistencia_paciente')
+        | Q(cita__id_estado__nombre__iexact='vencida')
     ).exclude(cita__id_estado__nombre__iexact='completada', cita__fecha_final__isnull=True,
               fecha_cierre__isnull=True).annotate(
         ultimo_id=Subquery(messages.order_by('-pk').values('pk')[:1]),

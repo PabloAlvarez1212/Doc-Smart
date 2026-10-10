@@ -10,6 +10,8 @@ class Fase3Fixture(ChatFixture):
         self.clock = patch('django.utils.timezone.now', return_value=self.now)
         self.clock.start()
         self.addCleanup(self.clock.stop)
+        availability = patch('citas.services.esHorarioDisponible', return_value=True)
+        availability.start(); self.addCleanup(availability.stop)
         self.cita.fecha_programada = self.now + timedelta(hours=1)
         self.cita.save()
         self.conv = Conversacion.objects.create(cita=self.cita)

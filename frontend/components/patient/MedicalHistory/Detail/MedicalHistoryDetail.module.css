@@ -14,15 +14,43 @@
 .doctor p { margin-top: 3px; color: var(--text-secondary); font-size: .84rem; }
 .doctor small { padding: 5px 8px; border-radius: 7px; color: var(--text-secondary); background: var(--surface-muted); white-space: nowrap; }
 .sections { display: flex; flex-direction: column; gap: 0; }
-.sections div { padding: 20px 0; border-bottom: 1px solid var(--border); }
-.sections dt { margin-bottom: 8px; color: var(--text-secondary); font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-.sections dd { margin: 0; color: var(--text-secondary); line-height: 1.65; }
-.note { display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 13px; border-left: 3px solid #2b7fff; color: var(--text-secondary); background: var(--surface); font-size: .84rem; line-height: 1.5; }
-.note svg { flex-shrink: 0; color: var(--color-dark); }
-.documentAction { display: grid; gap: 7px; margin-top: 20px; }
-.download { width: 100%; border: 1px solid var(--border) !important; color: var(--text-secondary) !important; background: var(--surface) !important; }
-.download:disabled { cursor: not-allowed; opacity: .72; transform: none; }
-.documentAction small { color: var(--text-secondary); font-size: .75rem; line-height: 1.4; text-align: center; }
+.sections > div {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.sections dt {
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.sections dd {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.65;
+}
+
+.note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 13px;
+    border-left: 3px solid #2b7fff;
+    color: var(--text-secondary);
+    background: var(--surface);
+    font-size: .84rem;
+    line-height: 1.5;
+}
+
+.note svg {
+    flex-shrink: 0;
+    color: var(--color-dark);
+}
 @media (max-width: 480px) { .dateBand { align-items: flex-start; flex-direction: column; } .doctor { grid-template-columns: auto 1fr; } .doctor small { grid-column: 2; justify-self: start; } }
 @keyframes detail-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }

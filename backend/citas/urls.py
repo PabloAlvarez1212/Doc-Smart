@@ -1,5 +1,7 @@
 from django.urls import path
 from citas.views import (
+    CitaDocumentosView,
+    CitaDocumentoUrlView,
     CitaInasistenciaView,
     CitaListView,
     CitaPacienteView,
@@ -17,6 +19,8 @@ from citas.views import (
 )
 
 urlpatterns = [
+    path('<int:pk>/documentos/', CitaDocumentosView.as_view(), name='cita-documentos'),
+    path('<int:pk>/documentos/<int:documento_id>/url/', CitaDocumentoUrlView.as_view(), name='cita-documento-url'),
     path('<int:pk>/inasistencia/', CitaInasistenciaView.as_view(), name='cita-inasistencia'),
     # ─── CITAS ───────────────────────────────────────────────────────────────
 

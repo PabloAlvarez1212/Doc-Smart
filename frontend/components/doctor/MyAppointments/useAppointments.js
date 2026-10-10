@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import Swal from "sweetalert2";
+import { useNotificationsContext } from '../../contex/NotificationsContext';
 
 import { obtenerPrimerError } from "@/app/utils/errrorUtils";
 
@@ -24,6 +25,7 @@ const PAGE_SIZE = 6;
 
 
 export default function useAppointments() {
+    const { eventoCita } = useNotificationsContext();
 
     // ==========================================
     // DATOS
@@ -255,6 +257,13 @@ export default function useAppointments() {
         };
 
     }, [paciente]);
+
+    useEffect(() => {
+        if (eventoCita?.tipo_evento === 'ACTUALIZACION_CITA') {
+            cargarCitas();
+            cargarResumen();
+        }
+    }, [eventoCita, cargarCitas, cargarResumen]);
 
 
     // ==========================================
@@ -517,83 +526,31 @@ export default function useAppointments() {
     // COMPLETAR CITA
     // ==========================================
 
-    const completarCita = async (
-        id_cita
-    ) => {
-
-        const confirmacion =
-            await Swal.fire({
-
-                title:
-                    "¿Completar cita?",
-
-                text:
-                    "La cita se marcará como completada.",
-
-                icon:
-                    "question",
-
-                showCancelButton:
-                    true,
-
-                confirmButtonText:
-                    "Sí, completar",
-
-                cancelButtonText:
-                    "Cancelar",
-
-            });
-
-
-        if (!confirmacion.isConfirmed) {
-            return;
-        }
-
-
+    const completarCita = async (id_cita, datosClinicos) => {
         try {
-
-            await completarCitaService(
-                id_cita
-            );
-
+            const resultado =
+                datosClinicos === null ? null : await completarCitaService(
+                    id_cita, datosClinicos
+                );
 
             await actualizarDatos();
-
-
             await Swal.fire({
-
                 title:
-                    "Cita completada",
-
+                    datosClinicos === null ? "Documentos guardados" : "Cita completada",
                 text:
-                    "La cita fue marcada como completada.",
-
+                    datosClinicos === null ? "La documentación de seguimiento fue actualizada." : "La consulta fue cerrada correctamente.",
                 icon:
                     "success",
-
             });
 
+            return resultado;
         } catch (error) {
 
             console.error(
                 "Error al completar cita:",
                 error
             );
-
-
-            Swal.fire({
-
-                title:
-                    "Error",
-
-                text:
-                    "No se pudo completar la cita.",
-
-                icon:
-                    "error",
-
-            });
-
+            throw error;
         }
 
     };

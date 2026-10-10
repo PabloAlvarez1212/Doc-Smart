@@ -24,6 +24,8 @@ class CicloFixture(ChatFixture):
         self.clock = patch('chat_citas.services.timezone.now', return_value=self.now)
         self.clock.start()
         self.addCleanup(self.clock.stop)
+        availability = patch('citas.services.esHorarioDisponible', return_value=True)
+        availability.start(); self.addCleanup(availability.stop)
 
     def estado(self):
         self.conv.refresh_from_db()
@@ -190,7 +192,8 @@ class ReprogramacionChatTests(CicloFixture):
         new = self.now + timedelta(hours=2)
         Cita.objects.create(id_usuario=self.patients[1], id_medico=self.doctors[1],
                             id_estado=self.states['confirmada'], fecha_programada=new)
-        self.assertEqual(self.reprogramar(new)[1], 400)
+        with patch('citas.services.esHorarioDisponible', return_value=False):
+            self.assertEqual(self.reprogramar(new)[1], 400)
         self.assert_sin_cambios()
 
     def test_sin_estado_reprogramada_no_modifica_chat(self):
@@ -242,8 +245,12 @@ class ReprogramacionChatTests(CicloFixture):
 
 
 class CompletadaChatTests(CicloFixture):
+    def setUp(self):
+        super().setUp()
+        self.preparar_cierre_clinico()
+
     def completar(self, medico=None):
-        return completarCitaService(self.cita.pk, (medico or self.doctors[1]).pk)
+        return completarCitaService(self.cita.pk, (medico or self.doctors[1]).pk, self.datos_historial)
 
     def test_completar_usa_instante_real_no_fin_previsto_y_conserva_chat(self):
         planned = self.cita.fecha_programada + timedelta(minutes=30)
@@ -251,8 +258,8 @@ class CompletadaChatTests(CicloFixture):
         with self.captureOnCommitCallbacks(execute=False) as callbacks:
             self.assertEqual(self.completar()[1], 200)
         self.cita.refresh_from_db()
-        self.assertEqual(self.cita.fecha_final, self.now)
-        self.assertNotEqual(self.cita.fecha_final, planned)
+        self.assertEqual(self.cita.fecha_final, planned)
+        self.assertEqual(self.cita.fecha_completada, self.now)
         self.assertEqual(self.cita.id_estado, self.states['completada'])
         self.assert_misma_conversacion()
         self.assertIsNone(self.conv.fecha_cierre)
@@ -295,7 +302,7 @@ class CompletadaChatTests(CicloFixture):
             self.assertEqual(self.completar()[1], 400)
             self.assertEqual(self.estado(), 'cerrado')
         self.cita.refresh_from_db()
-        self.assertEqual(self.cita.fecha_final, self.now)
+        self.assertEqual(self.cita.fecha_completada, self.now)
         self.assertEqual(Notificacion.objects.count(), 2)
 
     def test_ajeno_no_completa(self):
@@ -356,9 +363,9 @@ class CompletadaChatTests(CicloFixture):
 
     def test_bymax_completa_con_el_mismo_instante_real(self):
         from chatbot.services.cita_service import CitaService
-        self.assertEqual(CitaService.operar_medico(self.doctors[1], self.cita.pk, 'completar')[1], 200)
+        self.assertEqual(CitaService.operar_medico(self.doctors[1], self.cita.pk, 'completar', datos_historial=self.datos_historial)[1], 200)
         self.cita.refresh_from_db()
-        self.assertEqual(self.cita.fecha_final, self.now)
+        self.assertEqual(self.cita.fecha_completada, self.now)
         self.assertEqual(self.estado(), 'activo')
         self.assert_misma_conversacion()
 
@@ -396,7 +403,8 @@ class VisibilidadEscrituraTests(CicloFixture):
             self.assertFalse(self.escribir(actor))
 
     def test_completada_al_limite_sigue_visible_sin_escritura(self):
-        completarCitaService(self.cita.pk, self.doctors[1].pk)
+        self.preparar_cierre_clinico()
+        completarCitaService(self.cita.pk, self.doctors[1].pk, self.datos_historial)
         self.conv.refresh_from_db()
         for delta, can_write in ((timedelta(hours=23), True), (timedelta(hours=24), False)):
             with patch('chat_citas.services.timezone.now', return_value=self.now + delta):

@@ -14,6 +14,8 @@ from functools import wraps
 from notificaciones.services import enviarNotificacion
 from medicos.services_disponibilidad import esHorarioDisponible
 
+# Los exports de cierre se importan al final, después de definir serializar_agenda.
+
 
 
 def serializar_agenda(funcion):
@@ -543,8 +545,14 @@ def crearCitaService(
         )
     )
 
+    # 4. Calcular fecha límite de cierre
+    fecha_limite_cierre = (
+        fecha_final
+        + timedelta(hours=72)
+    )
 
-    # 4. Estado inicial
+
+    # 5. Estado inicial
     estado = (
         Estado.objects
         .filter(nombre="pendiente")
@@ -558,10 +566,11 @@ def crearCitaService(
         )
 
 
-    # 5. Crear cita
+    # 6. Crear cita
     cita = Cita.objects.create(
         fecha_programada=fecha_programada,
         fecha_final=fecha_final,
+        fecha_limite_cierre=fecha_limite_cierre,
         id_usuario_id=usuario_id,
         id_medico=medico,
         id_estado=estado,
@@ -569,7 +578,7 @@ def crearCitaService(
 
 
     fecha_fmt = (
-        cita.fecha_programada
+        timezone.localtime(cita.fecha_programada)
         .strftime(
             "%d/%m/%Y a las %H:%M"
         )
@@ -580,7 +589,7 @@ def crearCitaService(
     ).data
 
 
-    # 6. Notificación paciente
+    # 7. Notificación paciente
     enviarNotificacion(
         titulo="Cita solicitada",
         mensaje=(
@@ -599,7 +608,7 @@ def crearCitaService(
     )
 
 
-    # 7. Notificación médico
+    # 8. Notificación médico
     enviarNotificacion(
         titulo="Nueva solicitud de cita",
         mensaje=(
@@ -644,9 +653,16 @@ def editarCitaService(id, datos, solicitante):
     if cita.id_estado.nombre.lower() == 'inasistencia_paciente':
         return 'No se puede editar una cita con inasistencia del paciente', 400
 
-    if cita.id_estado.nombre in ['cancelada', 'completada']:
-        return 'No se puede editar una cita cancelada o completada', 400
-
+    if cita.id_estado.nombre.lower() in [
+        'cancelada',
+        'completada',
+        'vencida',
+    ]:
+        return (
+            'No se puede editar una cita cancelada, '
+            'completada o vencida',
+            400
+        )
     fecha_antigua = cita.fecha_programada
     nueva_fecha = datos.get('fecha_programada')
     
@@ -661,6 +677,13 @@ def editarCitaService(id, datos, solicitante):
 
         cita.fecha_programada = nueva_fecha
         cita.fecha_final = nueva_fecha + timedelta(minutes=cita.id_medico.duracion_consulta)
+        cita.fecha_limite_cierre =(
+            cita.fecha_final
+            + timedelta(hours=72)
+        )
+        cita.fecha_recordatorio_cierre_24h = None
+        cita.fecha_recordatorio_cierre_48h = None
+        cita.fecha_vencimiento = None
         estado_reprogramado = Estado.objects.filter(
             nombre__iexact='reprogramada'
         ).first()
@@ -682,7 +705,9 @@ def editarCitaService(id, datos, solicitante):
             evento='cita_reprogramada', instante=timezone.now(), metadata={
                 'fecha_anterior': fecha_antigua.isoformat(), 'fecha_nueva': nueva_fecha.isoformat()})
 
-        fecha_fmt = cita.fecha_programada.strftime(
+        fecha_fmt = timezone.localtime(
+            cita.fecha_programada
+        ).strftime(
             "%d/%m/%Y a las %H:%M"
         )
 
@@ -754,6 +779,8 @@ def cancelarCitaService(id, solicitante):
 
     if cita.id_estado.nombre == 'completada':
         return 'No se puede cancelar una cita completada', 400
+    if cita.id_estado.nombre.lower() == 'vencida':
+        return 'No se puede cancelar una cita vencida', 400
 
     estado_cancelada = Estado.objects.filter(
         nombre='cancelada'
@@ -774,7 +801,7 @@ def cancelarCitaService(id, solicitante):
         evento='cita_cancelada', instante=cita.fecha_cancelacion,
         metadata={'actor': {'tipo': 'medico' if isinstance(solicitante, Medico) else 'paciente', 'id': solicitante.pk}})
 
-    fecha_fmt = cita.fecha_programada.strftime(
+    fecha_fmt = timezone.localtime(cita.fecha_programada).strftime(
         "%d/%m/%Y a las %H:%M"
     )
 
@@ -814,7 +841,7 @@ def cancelarCitaService(id, solicitante):
     return 'Cita cancelada correctamente', 200
 
 @serializar_agenda
-def completarCitaService(id, medico_id):
+def completarCitaService(id, medico_id, datos_historial):
     cita = Cita.objects.select_for_update().filter(id=id, id_medico=medico_id).first()
     if not cita:
         return 'Cita no encontrada o no te pertenece', 404
@@ -828,23 +855,59 @@ def completarCitaService(id, medico_id):
     if cita.id_estado.nombre == 'cancelada':
         return 'No se puede completar una cita cancelada', 400
 
+    from .cierre_services import validarVentanaCierre
+    if not cita.id_medico.esta_aprobado or cita.id_medico.id_rol.nombre.lower() == 'admin':
+        return 'Se requiere aprobación médica vigente', 403
+    ahora = timezone.now()
+    error = validarVentanaCierre(cita, ahora)
+    if error:
+        return error
+    if not cita.documentos_seguimiento.filter(archivo__activo=True).exists():
+        return 'Debes registrar al menos un documento de seguimiento antes de completar la cita', 400
+
     estado_completada = Estado.objects.filter(nombre='completada').first()
     if not estado_completada:
         return "Estado 'completada' no configurado", 500
+    from historial_medico.serializers import CrearHistorialSerializer
+    serializer_historial = CrearHistorialSerializer(data={**datos_historial, 'cita_id': cita.pk})
+    if not serializer_historial.is_valid():
+        return serializer_historial.errors, 400
+    from historial_medico.services import (crearHistorialDesdeCierreService,)
+    historial, status_historial = (
+        crearHistorialDesdeCierreService(
+            cita=cita,
+            medico=cita.id_medico,
+            datos=serializer_historial.validated_data,
+        )
+    )
+    if status_historial != 201:
+        return (
+            historial,
+            status_historial
+        )
     cita.id_estado    = estado_completada
-    # Desde esta transición fecha_final representa el instante real, no el previsto.
-    cita.fecha_final  = timezone.now()
+    cita.fecha_completada = ahora
     cita.save()
-    from datetime import timedelta
+
     from chat_citas.event_services import registrarEventoConversacionService
-    registrarEventoConversacionService(cita, clave=f'completada:{cita.fecha_final.isoformat()}',
-        evento='cita_completada', instante=cita.fecha_final,
-        metadata={'disponible_hasta': (cita.fecha_final + timedelta(hours=24)).isoformat()})
-    fecha_fmt = cita.fecha_programada.strftime("%d/%m/%Y a las %H:%M")
+    registrarEventoConversacionService(
+        cita,
+        clave=f'completada:{cita.fecha_completada.isoformat()}',
+        evento='cita_completada',
+        instante=cita.fecha_completada,
+        metadata={
+            'documentos_editables_hasta': (
+                cita.fecha_limite_cierre.isoformat()
+                if cita.fecha_limite_cierre
+                else None
+            )
+        }
+    )
+    fecha_fmt = timezone.localtime(cita.fecha_programada).strftime("%d/%m/%Y a las %H:%M")
     cita_data = CitaSerializer(cita).data
     enviarNotificacion(
         titulo='Consulta finalizada',
-        mensaje=f'Tu consulta con el Dr. {cita.id_medico.nombre} {cita.id_medico.apellido} del {fecha_fmt} ha finalizado. Ya puedes revisar el resumen e indicaciones en tu historial.',
+        mensaje=f'Tu consulta con el Dr. {cita.id_medico.nombre} {cita.id_medico.apellido} del {fecha_fmt} fue completada. Ya existe documentación de seguimiento de la consulta.',
         tipo='cita_completada', 
         id_usuario=cita.id_usuario_id,
         extra_data={
@@ -920,6 +983,8 @@ def confirmarCitaService(id, medico_id):
         return 'Cita no encontrada o no te pertenece', 404
 
     estado_actual = cita.id_estado.nombre.lower()
+    if estado_actual == 'vencida':
+        return 'No se puede confirmar una cita vencida', 400
 
     if estado_actual == 'inasistencia_paciente':
         return 'No se puede confirmar una cita con inasistencia del paciente', 400
@@ -949,7 +1014,7 @@ def confirmarCitaService(id, medico_id):
     if codigo_chat not in (200, 201):
         raise RuntimeError(f'No se pudo preparar la conversación: {resultado_chat}')
 
-    fecha_fmt = cita.fecha_programada.strftime(
+    fecha_fmt = timezone.localtime(cita.fecha_programada).strftime(
         "%d/%m/%Y a las %H:%M"
     )
 
@@ -1149,6 +1214,7 @@ def obtenerEstadisticasCitas(anio=None, mes=None):
     return data,200
 
 
+from .cierre_services import subirDocumentosCitaService, procesarCierreCitasService
 def obtenerInfoPacienteCitaService(medico, cita_id):
     if not isinstance(medico, Medico):
         raise PermissionDenied("Esta función es exclusiva para médicos.")

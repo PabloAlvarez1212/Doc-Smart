@@ -47,11 +47,10 @@ export default function DoctorAppointmentList({
                         .filter(Boolean).join(", ");
                     const resolutionDate = status === "cancelada"
                         ? cita.fecha_cancelacion
-                        : status === "completada" ? cita.fecha_final : null;
-                    const resolution = resolutionDate
-                        ? formatearFecha(resolutionDate) : null;
-
+                        : status === "completada" ? cita.fecha_completada : null;
+                    const resolution = resolutionDate ? formatearFecha(resolutionDate) : null;
                     const actionMap = {
+                        documentos: { label: 'Agregar documentos', icon: ClipboardCheck, tone: 'secondary', onClick: () => completarCita?.(cita) },
                         reprogramar: {
                             label: "Reprogramar",
                             icon: CalendarClock,
@@ -74,12 +73,10 @@ export default function DoctorAppointmentList({
                             label: "Completar",
                             icon: ClipboardCheck,
                             tone: "success",
-                            onClick: () => completarCita?.(cita.id),
+                            onClick: () => completarCita?.(cita),
                         },
                     };
-
-                    const actions = getDoctorAppointmentActionKeys(status)
-                        .map((id) => ({ id, ...actionMap[id] }));
+                    const actions = getDoctorAppointmentActionKeys(status, cita).map((id) => ({ id, ...actionMap[id] }));
 
                     return (
                         <AppointmentCard
@@ -99,7 +96,7 @@ export default function DoctorAppointmentList({
                             location={{ name: location, address: cita.direccion }}
                             status={{ key: status, label: capitalize(cita.estado) }}
                             actions={actions}
-                            metadata={resolution
+                            metadata={status === 'vencida' ? 'El plazo de cierre de esta cita venció.' : resolution
                                 ? `${status === "cancelada" ? "Cancelada" : "Completada"} el ${resolution.fecha}, ${resolution.hora}`
                                 : null}
                         />
