@@ -2,9 +2,7 @@
 
 import {
     CalendarDays,
-    Check,
     Clock3,
-    Copy,
     MapPin,
     MessageSquareText,
     Stethoscope,
@@ -12,9 +10,8 @@ import {
     UserRound,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
-import { copyAppointmentCode } from "../AppointmentCard/appointmentDetails";
+import AppointmentCode from "../AppointmentCode/AppointmentCode";
 import Modal from "../Modal/Modal";
 import { getAppointmentDetailsData } from "./appointmentDetailsModalData";
 import styles from "./AppointmentDetailsModal.module.css";
@@ -64,7 +61,7 @@ export default function AppointmentDetailsModal({
                         icon={TicketCheck}
                         title="Información de la cita"
                     />
-                    <AppointmentCode value={data.code} appointmentId={data.id} />
+                    <AppointmentCode value={data.code} contextId={data.id} />
                     <div className={styles.dataGrid}>
                         <DetailItem icon={CalendarDays} label="Fecha programada" value={scheduled?.fecha || "No disponible"} />
                         <DetailItem icon={Clock3} label="Hora programada" value={scheduled?.hora || "No disponible"} />
@@ -133,56 +130,6 @@ function DetailItem({ icon: Icon, label, value, className = "" }) {
         <div className={`${styles.detailItem} ${className}`}>
             <span>{Icon && <Icon size={15} aria-hidden="true" />}{label}</span>
             <strong>{value}</strong>
-        </div>
-    );
-}
-
-function AppointmentCode({ value, appointmentId }) {
-    const timeoutRef = useRef(null);
-    const [copyState, setCopyState] = useState("idle");
-
-    useEffect(() => {
-        setCopyState("idle");
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    }, [appointmentId]);
-
-    useEffect(() => () => {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    }, []);
-
-    const handleCopy = async () => {
-        const copied = await copyAppointmentCode(value);
-        setCopyState(copied ? "copied" : "error");
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        timeoutRef.current = setTimeout(() => setCopyState("idle"), 2400);
-    };
-
-    const label = copyState === "copied" ? "Copiado" : copyState === "error" ? "Reintentar" : "Copiar";
-    const feedback = copyState === "copied"
-        ? "Código de cita copiado"
-        : copyState === "error" ? "No se pudo copiar el código de cita" : "";
-
-    return (
-        <div className={styles.codeBlock}>
-            <span>Código único</span>
-            <div className={styles.codeRow}>
-                <code className={!value ? styles.emptyCode : ""}>{value || "Código no disponible"}</code>
-                {value && (
-                    <button
-                        type="button"
-                        className={styles.copyButton}
-                        data-state={copyState}
-                        onClick={handleCopy}
-                        aria-label={`Copiar código de cita ${value}`}
-                    >
-                        {copyState === "copied"
-                            ? <Check size={15} aria-hidden="true" />
-                            : <Copy size={15} aria-hidden="true" />}
-                        {label}
-                    </button>
-                )}
-            </div>
-            <span className={styles.srOnly} role="status" aria-live="polite">{feedback}</span>
         </div>
     );
 }

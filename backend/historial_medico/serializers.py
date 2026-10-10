@@ -64,6 +64,11 @@ class HistorialClinicoSerializer(serializers.ModelSerializer):
     paciente = serializers.CharField(source='usuario.nombre')
     medico = serializers.SerializerMethodField()
     cita_id = serializers.IntegerField(read_only=True, allow_null=True)
+    codigo_cita = serializers.CharField(
+        source='cita.codigo_cita',
+        read_only=True,
+        allow_null=True,
+    )
     especialidad = serializers.SerializerMethodField()
     class Meta:
         model = HistorialClinico
@@ -78,6 +83,7 @@ class HistorialClinicoSerializer(serializers.ModelSerializer):
             'medico',
             'cita_id',
             'especialidad',
+            'codigo_cita',
         ]
 
     def get_medico(self, obj):

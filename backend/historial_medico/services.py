@@ -149,7 +149,7 @@ def listarHistorialesPacienteService(usuario, ordenamiento=None, filtros=None):
         return 'No tienes permiso para consultar estos historiales', 403
 
     historiales = HistorialClinico.objects.filter(usuario=usuario).select_related(
-        'usuario', 'medico__id_especialidad'
+        'usuario', 'medico__id_especialidad', 'cita'
     )
     historiales = _filtrar_historiales(historiales, filtros)
     historiales = _ordenar_historiales(historiales, ordenamiento)
@@ -166,7 +166,7 @@ def listarHistorialesMedicoService(medico, ordenamiento=None):
 
     historiales = _ordenar_historiales(
         HistorialClinico.objects.filter(medico=medico).select_related(
-            'usuario', 'medico__id_especialidad'
+            'usuario', 'medico__id_especialidad', 'cita'
         ),
         ordenamiento,
     )
@@ -199,7 +199,7 @@ def listarProfesionalesHistorialPacienteService(usuario):
 
 def obtenerHistorialService(historial_id, solicitante):
     queryset = HistorialClinico.objects.select_related(
-        'usuario', 'medico'
+        'usuario', 'medico__id_especialidad', 'cita'
     ).prefetch_related('versiones__medico_editor')
 
     if isinstance(solicitante, Medico):
@@ -276,7 +276,9 @@ def editarHistorialService(historial_id, datos, medico):
         historial.save(update_fields=[*CAMPOS_CLINICOS, 'version_actual'])
 
     historial = (
-        HistorialClinico.objects.select_related('usuario', 'medico')
+        HistorialClinico.objects.select_related(
+            'usuario', 'medico__id_especialidad', 'cita'
+        )
         .prefetch_related('versiones__medico_editor')
         .get(id=historial.id)
     )
