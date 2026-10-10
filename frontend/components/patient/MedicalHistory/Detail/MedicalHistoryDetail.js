@@ -10,6 +10,7 @@ import {
     UserRound,
 } from "lucide-react";
 import Button from "../../../ui/Button/Button";
+import DocumentosSeguimientoList from '../../../ui/DocumentosSeguimientoList/DocumentosSeguimientoList';
 import AppointmentCode from "../../../ui/AppointmentCode/AppointmentCode";
 import styles from "./MedicalHistoryDetail.module.css";
 import { formatMedicalHistoryDate, formatMedicalHistoryTime } from "../medicalHistoryFormatters";
@@ -70,7 +71,7 @@ export default function MedicalHistoryDetail({ record, loading, error, onRetry }
                     </div>
                 </section>
             </div>
-
+            <DocumentosSeguimientoList citaId={record.cita_id} documentos={record.documentos || []} />
             <section className={styles.section} aria-labelledby="history-clinical-title">
                 <SectionTitle id="history-clinical-title" icon={ClipboardList} title="Información clínica" />
                 <dl className={styles.clinicalSections}>
@@ -80,16 +81,6 @@ export default function MedicalHistoryDetail({ record, loading, error, onRetry }
                 </dl>
             </section>
             <div className={styles.note}><ClipboardList size={19} aria-hidden="true" /><p>Registro clínico versionado. Estás viendo la versión {record.version_actual}.</p></div>
-            <div className={styles.documentAction}>
-                <Button
-                    className={styles.download}
-                    variant="secundary"
-                    disabled
-                    aria-describedby="medical-history-pdf-status"
-                >
-                    <FileDown size={18} aria-hidden="true" /> Descargar PDF
-                </Button>
-            </div>
         </article>
     );
 }

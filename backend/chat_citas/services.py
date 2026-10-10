@@ -84,10 +84,12 @@ def _obtener_estado(conversacion, ahora):
             _utc(fecha)
     estado_cita = conversacion.cita.id_estado.nombre.lower()
     cierre_automatico = None
-    if estado_cita == 'completada' and conversacion.cita.fecha_final is not None:
-        # completarCitaService sustituye el fin previsto por el instante real.
-        cierre_automatico = _utc(conversacion.cita.fecha_final) + timedelta(hours=24)
-    if estado_cita in ('cancelada', 'inasistencia_paciente'):
+    if estado_cita == 'completada':
+        # Sin backfill: citas históricas usaban fecha_final como instante real.
+        completada = conversacion.cita.fecha_completada or conversacion.cita.fecha_final
+        if completada is not None:
+            cierre_automatico = _utc(completada) + timedelta(hours=24)
+    if estado_cita in ('cancelada', 'inasistencia_paciente', 'vencida'):
         estado = 'cerrado'
     elif estado_cita not in ('confirmada', 'reprogramada', 'completada'):
         estado = None

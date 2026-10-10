@@ -5,44 +5,44 @@
     align-items: center;
     gap: 13px;
     padding: 13px;
-    border: 1px solid #dce8f7;
+    border: 1px solid var(--border);
     border-radius: 12px;
-    background: #f6faff;
+    background: var(--surface);
 }
 
 .doctor img {
     flex: 0 0 64px;
     width: 64px;
     height: 64px;
-    border: 3px solid #fff;
+    border: 3px solid var(--border);
     border-radius: 13px 13px 13px 5px;
     object-fit: cover;
     box-shadow: 0 4px 12px rgba(34, 70, 120, .13);
 }
 
 .doctor div { display: flex; flex-direction: column; min-width: 0; }
-.doctor span { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; color: #315a99; font-size: .72rem; font-weight: 700; }
-.doctor strong { color: #172033; font-size: 1.05rem; }
-.doctor small { margin-top: 3px; color: #69778a; font-size: .76rem; }
+.doctor span { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; color: var(--text-secondary); font-size: .72rem; font-weight: 700; }
+.doctor strong { color: var(--color-text); font-size: 1.05rem; }
+.doctor small { margin-top: 3px; color: var(--text-secondary); font-size: .76rem; }
 
 .field { position: relative; display: flex; flex-direction: column; gap: 7px; }
-.field > span, .slotFieldset legend { color: #344054; font-size: .82rem; font-weight: 800; }
+.field > span, .slotFieldset legend { color: var(--text-secondary); font-size: .82rem; font-weight: 800; }
 
 .field input,
 .field textarea {
     width: 100%;
-    border: 1px solid #cfd8e5;
+    border: 1px solid var(--border);
     border-radius: 10px;
     outline: 0;
-    color: #263247;
-    background: #fff;
+    color: var(--color-text);
+    background: var(--surface);
     font: inherit;
 }
 
 .field input { min-height: 47px; padding: 0 12px; }
 .field textarea { resize: vertical; min-height: 104px; padding: 12px; line-height: 1.5; }
 .field input:focus, .field textarea:focus { border-color: #2b7fff; box-shadow: 0 0 0 3px rgba(43, 127, 255, .12); }
-.field > small { color: #7a8798; font-size: .7rem; line-height: 1.4; }
+.field > small { color: var(--text-secondary); font-size: .7rem; line-height: 1.4; }
 .characterCount { align-self: flex-end; }
 
 .slotFieldset { min-width: 0; padding: 0; border: 0; }
@@ -55,20 +55,20 @@
     gap: 10px;
     min-height: 60px;
     padding: 13px;
-    border: 1px dashed #cbd7e6;
+    border: 1px dashed var(--border);
     border-radius: 10px;
-    color: #68768a;
-    background: #fafcff;
+    color: var(--text-secondary);
+    background: var(--surface);
     font-size: .8rem;
 }
 
-.guidance svg, .noAvailability > svg { flex: 0 0 auto; color: #597aa8; }
+.guidance svg, .noAvailability > svg { flex: 0 0 auto; color: var(--color-dark); }
 .noAvailability div { display: flex; align-items: flex-start; flex-direction: column; gap: 4px; }
-.noAvailability strong { color: #4b596d; }
-.noAvailability button { padding: 0; border: 0; color: #225cb5; background: transparent; font: inherit; font-weight: 800; text-align: left; cursor: pointer; }
+.noAvailability strong { color: var(--text-secondary); }
+.noAvailability button { padding: 0; border: 0; color: var(--color-dark); background: transparent; font: inherit; font-weight: 800; text-align: left; cursor: pointer; }
 .noAvailability button:hover { text-decoration: underline; }
 
-.slotLegend { display: flex; align-items: center; gap: 15px; margin-bottom: 9px; color: #718096; font-size: .68rem; }
+.slotLegend { display: flex; align-items: center; gap: 15px; margin-bottom: 9px; color: var(--text-secondary); font-size: .68rem; }
 .slotLegend span { display: flex; align-items: center; gap: 5px; }
 .slotLegend i { width: 8px; height: 8px; border-radius: 50%; }
 .availableDot { background: #2b7fff; }
@@ -87,10 +87,10 @@
     gap: 5px;
     min-height: 42px;
     padding: 7px 5px;
-    border: 1px solid #cfe0fa;
+    border: 1px solid var(--border);
     border-radius: 9px;
-    color: #174c96;
-    background: #f8fbff;
+    color: var(--text-secondary);
+    background: var(--surface);
     font: inherit;
     font-size: .78rem;
     font-weight: 800;
@@ -98,30 +98,30 @@
     transition: border-color .16s ease, background .16s ease, color .16s ease;
 }
 
-.slot:hover:not(:disabled) { border-color: #2b7fff; background: #edf5ff; }
+.slot:hover:not(:disabled) { border-color: #2b7fff; background: var(--surface-muted); }
 .slot.selected { border-color: #1733a4; color: #fff; background: #1733a4; box-shadow: 0 5px 12px rgba(23, 51, 164, .18); }
-.slot.occupied { flex-direction: column; gap: 1px; border-color: #e2e6eb; color: #98a2b3; background: #f3f4f6; cursor: not-allowed; }
+.slot.occupied { flex-direction: column; gap: 1px; border-color: var(--border); color: var(--text-secondary); background: var(--surface-muted); cursor: not-allowed; }
 .slot small { font-size: .57rem; font-weight: 700; }
-.allOccupied { margin-top: 9px; color: #8a5b16; font-size: .74rem; }
+.allOccupied { margin-top: 9px; color: var(--ink-orange); font-size: .74rem; }
 
 .actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 3px; }
 .actions button { min-width: 142px; min-height: 46px; padding: 10px 15px !important; }
 .actions button:disabled { cursor: not-allowed; opacity: .45; transform: none; }
-.cancel { border: 1px solid #d3dbe6 !important; color: #3d4a5c !important; }
+.cancel { border: 1px solid var(--border) !important; color: var(--text-secondary) !important; }
 
 .confirmation { display: flex; align-items: center; flex-direction: column; text-align: center; }
-.confirmationIcon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 13px; border-radius: 18px; color: #168653; background: #e9f8f0; }
-.kicker { color: #168653; font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.confirmation h3 { margin-top: 5px; color: #172033; font-size: 1.25rem; }
-.confirmationText { max-width: 380px; margin-top: 7px; color: #69778a; font-size: .82rem; line-height: 1.5; }
+.confirmationIcon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 13px; border-radius: 18px; color: var(--ink-green); background: var(--surface-muted); }
+.kicker { color: var(--ink-green); font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.confirmation h3 { margin-top: 5px; color: var(--color-text); font-size: 1.25rem; }
+.confirmationText { max-width: 380px; margin-top: 7px; color: var(--text-secondary); font-size: .82rem; line-height: 1.5; }
 
-.summaryCard { width: 100%; margin-top: 20px; padding: 17px; border: 1px solid #dce8f7; border-radius: 12px; background: #f8fbff; text-align: left; }
-.summaryCard > strong { display: block; color: #1d304d; font-size: 1rem; }
-.summaryCard > span { display: block; margin: 3px 0 14px; color: #315a99; font-size: .76rem; font-weight: 700; }
+.summaryCard { width: 100%; margin-top: 20px; padding: 17px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); text-align: left; }
+.summaryCard > strong { display: block; color: var(--text-secondary); font-size: 1rem; }
+.summaryCard > span { display: block; margin: 3px 0 14px; color: var(--text-secondary); font-size: .76rem; font-weight: 700; }
 .summaryCard dl { display: flex; flex-direction: column; gap: 10px; }
 .summaryCard dl div { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 10px; }
-.summaryCard dt { color: #768398; font-size: .7rem; font-weight: 800; text-transform: uppercase; }
-.summaryCard dd { margin: 0; color: #344054; font-size: .82rem; line-height: 1.45; }
+.summaryCard dt { color: var(--text-secondary); font-size: .7rem; font-weight: 800; text-transform: uppercase; }
+.summaryCard dd { margin: 0; color: var(--text-secondary); font-size: .82rem; line-height: 1.45; }
 .confirmationActions { display: flex; justify-content: center; gap: 10px; width: 100%; margin-top: 20px; }
 .confirmationActions button { min-height: 46px; padding: 10px 15px !important; }
 

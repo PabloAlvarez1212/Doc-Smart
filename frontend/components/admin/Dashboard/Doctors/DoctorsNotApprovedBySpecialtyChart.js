@@ -18,7 +18,7 @@ import styles from "./DoctorStats/DoctorStats.module.css";
 const STATUS_SERIES = [
     { key: "pendiente", label: "Pendiente", color: "#a8640b" },
     { key: "rechazado", label: "Rechazado", color: "#b42335" },
-    { key: "sin_solicitud", label: "Sin solicitud", color: "#64748b" },
+    { key: "sin_solicitud", label: "Sin solicitud", color: "var(--text-secondary)" },
 ];
 
 function getChartLayout(data) {
@@ -82,13 +82,13 @@ export default function DoctorsNotApprovedBySpecialtyChart({ data }) {
                         barCategoryGap="28%"
                         margin={{ top: 6, right: 18, left: 4, bottom: 12 }}
                     >
-                        <CartesianGrid horizontal={false} stroke="#e9eef4" strokeDasharray="3 4" />
+                        <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 4" />
                         <XAxis
                             type="number"
                             allowDecimals={false}
                             domain={[0, axisMax]}
                             ticks={ticks}
-                            tick={{ fill: "#64748b", fontSize: 11 }}
+                            tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
                             tickLine={false}
                             axisLine={false}
                         />
@@ -107,7 +107,7 @@ export default function DoctorsNotApprovedBySpecialtyChart({ data }) {
                             verticalAlign="bottom"
                             iconType="circle"
                             iconSize={8}
-                            wrapperStyle={{ fontSize: 11, color: "#526078" }}
+                            wrapperStyle={{ fontSize: 11, color: "var(--text-secondary)" }}
                         />
                         {STATUS_SERIES.map((status, index) => (
                             <Bar

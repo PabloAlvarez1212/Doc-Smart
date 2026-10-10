@@ -1,33 +1,31 @@
 "use client";
-import styles from './Header.module.css';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 
+import { useEffect, useState } from 'react';
+import DocSmartNav from '../../../../components/ui/DocSmartNav/DocSmartNav';
+import { getPublicSession } from '../../services/publicServices';
 export default function Header() {
-    const router = useRouter();
-
-    return (
-        <header className={styles.containerMain}>
-            <div className={styles.logo}>
-                <Image
-                    src="/images/logoSentado.png"
-                    width={54}
-                    height={54}
-                    alt="DocSmart logo"
-                />
-                <span className={styles.logoText}>
-                    Doc<span className={styles.logoAccent}>Smart</span>
-                </span>
-            </div>
-
-            <nav className={styles.btns}>
-                <button className={styles.btnGhost} onClick={() => router.push('/login')}>
-                    Iniciar sesión
-                </button>
-                <button className={styles.btnSolid} onClick={() => router.push('/rol')}>
-                    Registrarse
-                </button>
-            </nav>
-        </header>
-    );
+  const [home, setHome] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const controller = new AbortController();
+    getPublicSession(controller.signal).then(setHome).catch(() => {}).finally(() => {
+      if (!controller.signal.aborted) setLoading(false);
+    });
+    const logout = () => setHome(null);
+    window.addEventListener('docsmart:session-ending', logout);
+    return () => {
+      controller.abort();
+      window.removeEventListener('docsmart:session-ending', logout);
+    };
+  }, []);
+  return <DocSmartNav sessionHome={home} sessionLoading={loading} links={[{
+    href: '/',
+    label: 'Inicio'
+  }, {
+    href: '/#funcionalidades',
+    label: 'Funcionalidades'
+  }, {
+    href: '/#comunidad',
+    label: 'DocSmart en cifras'
+  }]} />;
 }

@@ -107,7 +107,6 @@ export default function FormInfoSalud({
     return (
         <form className={styles.editor} onSubmit={guardar}
             aria-busy={guardando}>
-            <h3>{datoInicial ? "Editar dato médico" : "Agregar dato médico"}</h3>
 
             <fieldset disabled={guardando}>
                 <div className={styles.formGrid}>

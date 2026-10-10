@@ -1,9 +1,14 @@
 'use client'
 import { useCallback } from 'react'
+import { useEffect, useState } from "react";
+import { useReducedMotion } from 'motion/react'
 import Particles from 'react-particles'
 import { loadSlim } from 'tsparticles-slim'
 
 const particlesConfig = {
+    fpsLimit: 30,
+    pauseOnBlur: true,
+    pauseOnOutsideViewport: true,
     background: {
         color: { value: 'transparent' }
     },
@@ -14,7 +19,7 @@ const particlesConfig = {
             enable: true,
             color: '#C5DEFF',
             distance: 150,
-            opacity: 20
+            opacity: 0.25
         },
         move: {
             enable: true,
@@ -49,10 +54,19 @@ const particlesConfig = {
 }
 
 export default function ParticlesBackground() {
+    const reducedMotion = useReducedMotion();
     const particlesInit = useCallback(async (engine) => {
         await loadSlim(engine)
     }, [])
 
+    if (reducedMotion !== false) return null;
+    const [montado, setMontado] = useState(false);
+    useEffect(() => {
+        setMontado(true);
+    }, []);
+
+    // Colócalo después de todos los hooks.
+    if (!montado) return null;
     return (
         <Particles
             id="tsparticles"

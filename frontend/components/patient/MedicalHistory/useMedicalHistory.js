@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNotificationsContext } from '../../contex/NotificationsContext';
 import {
     listarHistorialPacienteService,
     listarProfesionalesHistorialPacienteService,
@@ -47,6 +48,8 @@ const getRequestError = (error, context = "list") => {
 };
 
 export default function useMedicalHistory() {
+    const { eventoCita } = useNotificationsContext();
+    const selectedRecordRef = useRef(null);
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -235,6 +238,14 @@ export default function useMedicalHistory() {
     const retryDetail = useCallback(() => {
         if (selectedRecord) openDetail(selectedRecord);
     }, [openDetail, selectedRecord]);
+
+    useEffect(() => { selectedRecordRef.current = selectedRecord; }, [selectedRecord]);
+    useEffect(() => {
+        if (eventoCita?.tipo_evento !== 'ACTUALIZACION_CITA') return;
+        setReloadKey(current => current + 1);
+        const record = selectedRecordRef.current;
+        if (record?.cita_id === eventoCita.cita?.id) openDetail(record);
+    }, [eventoCita, openDetail]);
 
     return {
         records,

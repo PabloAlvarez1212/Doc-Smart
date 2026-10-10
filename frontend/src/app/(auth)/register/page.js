@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect } from "react";
+import AuthCard from "../../../../components/ui/VerificationStatus/AuthCard";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -24,7 +25,7 @@ function RegisterContent() {
 
   return (
     <div className={styles.mainRegister}>
-      <div className={styles.container}>
+      <AuthCard className={styles.container}>
         <div className={styles.logo}>
           <Image
             src="/images/logoCara.png"
@@ -46,7 +47,7 @@ function RegisterContent() {
             setRole={() => router.push("/rol")}
           />
         </div>
-      </div>
+      </AuthCard>
     </div>
   );
 }

@@ -1,272 +1,303 @@
-.form { display: grid; min-width: 0; gap: 20px; }
-.section { overflow: hidden; min-width: 0; border: 1px solid #dce5ee; border-radius: 15px; background: #fff; box-shadow: 0 14px 38px rgba(30, 60, 98, .05); }
-.sectionHeader { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 13px; padding: 20px 24px; border-bottom: 1px solid #e1e8ef; }
-.sectionHeader > span { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 11px; color: #2456a6; background: #eaf1fb; }
-.sectionHeader h2 { margin: 0; color: #223147; font-size: 1.05rem; letter-spacing: -.015em; line-height: 1.35; }
-.sectionHeader p { margin: 4px 0 0; color: #6d7b8e; font-size: .79rem; line-height: 1.45; }
-.medicalSection .sectionHeader { background: #f8fbfd; }
-.medicalSection .sectionHeader > span { color: #17664e; background: #e3f1eb; }
+.form{display:grid;min-width:0;gap:20px}
 
-.fieldsGrid, .medicalGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding: 24px; }
-.medicalGrid { max-width: 680px; }
-.field { display: grid; min-width: 0; gap: 8px; }
-.wideField { grid-column: 1 / -1; max-width: calc(50% - 10px); }
-.labelRow { display: flex; align-items: center; justify-content: space-between; min-width: 0; gap: 10px; }
-.labelRow label { color: #344359; font-size: .78rem; font-weight: 720; line-height: 1.4; }
-.labelRow span { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 4px; color: #7b8797; font-size: .67rem; font-weight: 680; }
+.section{overflow:hidden;min-width:0;border:1px solid var(--border);border-radius:15px;background:var(--surface);box-shadow:0 14px 38px rgba(30,60,98,.05)}
 
-.field input { min-height: 46px; padding: 11px 13px; border: 1px solid #cfd9e4; border-radius: 10px; outline: 0; color: #25344a; background: #fff; text-align: left; font-size: .87rem; transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease; }
-.field input:hover:not([readonly]) { border-color: #aebed0; }
-.field input:focus { border-color: #4f76ae; box-shadow: 0 0 0 3px rgba(36, 86, 166, .12); }
-.field input[readonly] { cursor: default; color: #5e6b7d; border-color: #e0e6ec; background: #f3f5f7; }
-.lockedField .labelRow label { color: #59677a; }
+.sectionHeader{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:13px;padding:20px 24px;border-bottom:1px solid var(--border)}
+.sectionHeader>span{display:grid;width:40px;height:40px;place-items:center;border-radius:11px;color:var(--color-dark);background:var(--surface-muted)}
+.sectionHeader h2{margin:0;color:var(--color-text);font-size:1.05rem;letter-spacing:-.015em;line-height:1.35}
+.sectionHeader p{margin:4px 0 0;color:var(--text-secondary);font-size:.79rem;line-height:1.45}
 
-.actions { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 22px; border: 1px solid #dce5ee; border-radius: 15px; background: #fff; box-shadow: 0 10px 30px rgba(30, 60, 98, .045); }
-.actions > div { display: grid; gap: 3px; min-width: 0; }
-.actions strong { color: #344359; font-size: .84rem; }
-.actions span { color: #748297; font-size: .74rem; line-height: 1.4; }
-.saveButton { min-height: 42px; padding: 9px 14px; border-radius: 9px; background: #2456a6; font-size: .8rem; font-weight: 720; white-space: nowrap; transition: background-color 160ms ease, transform 120ms cubic-bezier(.23, 1, .32, 1); }
-.saveButton:hover { opacity: 1; background: #1e4a91; transform: translateY(-1px); }
-.saveButton:active { transform: scale(.98); }
-.saveButton:focus-visible { outline: 3px solid rgba(36, 86, 166, .23); outline-offset: 2px; }
+.medicalSection .sectionHeader{background:var(--surface)}
+.medicalSection .sectionHeader>span{color:var(--ink-green);background:var(--surface-muted)}
 
-@media (max-width: 760px) {
-    .fieldsGrid, .medicalGrid { grid-template-columns: minmax(0, 1fr); }
-    .wideField { grid-column: auto; max-width: none; }
-    .medicalGrid { max-width: none; }
+.fieldsGrid,.medicalGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;padding:24px}
+.medicalGrid{max-width:680px}
+
+.field{display:grid;min-width:0;gap:8px}
+.wideField{grid-column:1/-1;max-width:calc(50% - 10px)}
+
+.labelRow{display:flex;align-items:center;justify-content:space-between;min-width:0;gap:10px}
+.labelRow label{color:var(--text-secondary);font-size:.78rem;font-weight:720;line-height:1.4}
+.labelRow span{display:inline-flex;align-items:center;flex:0 0 auto;gap:4px;color:var(--text-secondary);font-size:.67rem;font-weight:680}
+
+.field input{min-height:46px;padding:11px 13px;border:1px solid var(--border);border-radius:10px;outline:0;color:var(--color-text);background:var(--surface);text-align:left;font-size:.87rem;transition:border-color 160ms ease,background-color 160ms ease,box-shadow 160ms ease}
+.field input:hover:not([readonly]){border-color:var(--border)}
+.field input:focus{border-color:#4f76ae;box-shadow:0 0 0 3px rgba(36,86,166,.12)}
+.field input[readonly]{cursor:default;color:var(--text-secondary);border-color:var(--border);background:var(--surface-muted)}
+.lockedField .labelRow label{color:var(--text-secondary)}
+
+.profileActions{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    padding:18px 22px;
+    border:1px solid var(--border);
+    border-radius:15px;
+    background:var(--surface);
+    box-shadow:0 10px 30px rgba(30,60,98,.045)
 }
 
-@media (max-width: 520px) {
-    .sectionHeader { align-items: flex-start; padding: 18px 16px; }
-    .fieldsGrid, .medicalGrid { gap: 17px; padding: 20px 16px; }
-    .actions { align-items: stretch; flex-direction: column; padding: 17px 16px; }
-    .saveButton { width: 100%; }
+.profileActions>div:first-child{display:grid;gap:3px;min-width:0}
+.profileActions strong{color:#344359;font-size:.84rem}
+.profileActions span{color:#748297;font-size:.74rem;line-height:1.4}
+
+.actionButtons{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-shrink:0
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .field input, .saveButton { transition: none; }
+.emailButton,.saveButton{
+    min-height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:9px 16px;
+    border-radius:9px;
+    font-size:.8rem;
+    font-weight:720;
+    white-space:nowrap
 }
 
-
-
-/* InfoSalud.module.css */
-.container {
-    margin: 24px;
-    padding-top: 24px;
-    border-top: 1px solid #dbe5f2;
-    color: #26364f;
+.emailButton{
+    color:var(--color-text)!important;
+    background:var(--surface-muted)!important;
+    border:1px solid var(--border)!important;
+    box-shadow:none!important
 }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 20px;
+.emailButton:hover:not(:disabled){
+    background:var(--surface)!important;
+    border-color:#aebdcd!important
 }
 
-.header h3 {
-    margin: 0 0 6px;
-    font-size: 17px;
+.saveButton{
+    background:#2456a6;
+    color:#fff;
+    transition:background-color 160ms ease,transform 120ms cubic-bezier(.23,1,.32,1)
 }
 
-.header p {
-    margin: 0;
-    color: #70809a;
-    font-size: 13px;
+.saveButton:hover:not(:disabled){
+    opacity:1;
+    background:#1e4a91;
+    transform:translateY(-1px)
 }
 
-.addButton {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 11px 16px;
-    border: 0;
-    border-radius: 10px;
-    background: #2857ad;
-    color: #fff;
-    font: inherit;
-    font-size: 13px;
-    white-space: nowrap;
-    cursor: pointer;
+.emailButton:active:not(:disabled),
+.saveButton:active:not(:disabled){transform:scale(.98)}
+
+.emailButton:focus-visible,
+.saveButton:focus-visible{
+    outline:3px solid rgba(36,86,166,.23);
+    outline-offset:2px
 }
 
-.tableContainer {
-    overflow-x: auto;
-    border: 1px solid #dbe5f2;
-    border-radius: 12px;
+/* InfoSalud */
+
+.container{
+    margin:24px;
+    padding-top:24px;
+    border-top:1px solid var(--border);
+    color:var(--text-secondary)
 }
 
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
+.header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:20px}
+.header h3{margin:0 0 6px;font-size:17px}
+.header p{margin:0;color:var(--text-secondary);font-size:13px}
+
+.addButton{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:11px 16px;
+    border:0;
+    border-radius:10px;
+    background:#2857ad;
+    color:#fff;
+    font:inherit;
+    font-size:13px;
+    white-space:nowrap;
+    cursor:pointer
 }
 
-.table th {
-    padding: 13px 16px;
-    background: #f3f7fc;
-    color: #607493;
-    text-align: left;
+.tableContainer{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{padding:13px 16px;background:var(--surface-muted);color:var(--text-secondary);text-align:left}
+.table td{padding:16px;border-top:1px solid var(--border);vertical-align:top}
+
+.detail{display:block;margin-top:5px;color:var(--text-secondary);font-size:12px}
+.badge{display:inline-block;padding:5px 9px;border-radius:8px;background:var(--surface-muted);color:var(--color-dark);text-transform:capitalize}
+
+.actions{display:flex;gap:8px}
+
+.actions button{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:34px;
+    height:34px;
+    border:0;
+    border-radius:9px;
+    background:var(--surface-muted);
+    color:var(--color-dark);
+    cursor:pointer
 }
 
-.table td {
-    padding: 16px;
-    border-top: 1px solid #e4ebf5;
-    vertical-align: top;
-}
-
-.detail {
-    display: block;
-    margin-top: 5px;
-    color: #70809a;
-    font-size: 12px;
-}
-
-.badge {
-    display: inline-block;
-    padding: 5px 9px;
-    border-radius: 8px;
-    background: #e8f0ff;
-    color: #2857ad;
-    text-transform: capitalize;
-}
-
-.actions {
-    display: flex;
-    gap: 8px;
-}
-
-.Actions button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border: 0;
-    border-radius: 9px;
-    background: #edf3ff;
-    color: #2857ad;
-    cursor: pointer;
-}
-
-.Actions .deleteButton {
-    background: #fff0ef;
-    color: #c73535;
-}
+.actions .deleteButton{background:var(--surface-muted);color:var(--ink-red)}
 
 .addButton:disabled,
-.Actions button:disabled {
-    opacity: .6;
-    cursor: not-allowed;
-}
+.actions button:disabled{opacity:.6;cursor:not-allowed}
 
 .addButton:focus-visible,
-.Actions button:focus-visible {
-    outline: 2px solid #2857ad;
-    outline-offset: 3px;
+.actions button:focus-visible{outline:2px solid #2857ad;outline-offset:3px}
+
+.table .empty{padding:28px 16px;text-align:center;color:var(--text-secondary)}
+
+.editor{
+    margin-top:20px;
+    padding:24px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    color:var(--text-secondary)
 }
 
-.table .empty {
-    padding: 28px 16px;
-    text-align: center;
-    color: #70809a;
-}
+.editor h3{margin:0 0 20px}
+.editor fieldset{border:0;padding:0;margin:0;min-width:0}
 
-@media (max-width: 640px) {
-    .container { margin: 16px; }
-    .header { flex-direction: column; align-items: flex-start; }
-    .table { min-width: 500px; }
-}
-
-
-.editor {
-    margin-top: 20px;
-    padding: 24px;
-    background: #fff;
-    border: 1px solid #dbe5f2;
-    border-radius: 16px;
-    color: #26364f;
-}
-
-.editor h3 { margin: 0 0 20px; }
-
-.editor fieldset {
-    border: 0;
-    padding: 0;
-    margin: 0;
-    min-width: 0;
-}
-
-.formGrid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
-}
-
-.formGrid label {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 600;
-}
+.formGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.formGrid label{display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:600}
 
 .formGrid input,
 .formGrid select,
-.formGrid textarea {
-    box-sizing: border-box;
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #cbd9ed;
-    border-radius: 9px;
-    background: #fff;
-    color: #26364f;
-    font: inherit;
-    font-weight: 400;
+.formGrid textarea{
+    box-sizing:border-box;
+    width:100%;
+    padding:12px;
+    border:1px solid var(--border);
+    border-radius:9px;
+    background:var(--surface);
+    color:var(--text-secondary);
+    font:inherit;
+    font-weight:400
 }
 
-.formGrid textarea { resize: vertical; }
+.formGrid textarea{resize:vertical}
 
-.check {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 18px;
-    font-size: 13px;
+.check{display:flex;align-items:center;gap:8px;margin-top:18px;font-size:13px}
+
+.formActions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+
+.formActions button{
+    padding:11px 16px;
+    border:1px solid var(--border);
+    border-radius:9px;
+    background:var(--surface);
+    color:var(--color-dark);
+    font:inherit;
+    cursor:pointer
 }
 
-.formActions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 22px;
+.formActions .addButton{background:#2857ad;color:#fff;border-color:#2857ad}
+.formActions button:disabled{opacity:.6;cursor:not-allowed}
+
+.error{color:var(--ink-red)}
+
+@media(max-width:760px){
+    .fieldsGrid,.medicalGrid{grid-template-columns:minmax(0,1fr)}
+    .wideField{grid-column:auto;max-width:none}
+    .medicalGrid{max-width:none}
+
+    .profileActions{
+        flex-direction:column;
+        align-items:stretch;
+        gap:15px
+    }
+
+    .actionButtons{width:100%}
+
+    .emailButton,.saveButton{flex:1}
 }
 
-.formActions button {
-    padding: 11px 16px;
-    border: 1px solid #dbe5f2;
-    border-radius: 9px;
-    background: #fff;
-    color: #2857ad;
-    font: inherit;
-    cursor: pointer;
+@media(max-width:640px){
+    .container{margin:16px}
+    .header{flex-direction:column;align-items:flex-start}
+    .table{min-width:500px}
+    .formGrid{grid-template-columns:1fr}
 }
 
-.formActions .addButton {
-    background: #2857ad;
-    color: #fff;
-    border-color: #2857ad;
+@media(max-width:520px){
+    .sectionHeader{align-items:flex-start;padding:18px 16px}
+    .fieldsGrid,.medicalGrid{gap:17px;padding:20px 16px}
+
+    .profileActions{padding:17px 16px}
+
+    .actionButtons{flex-direction:column}
+
+    .emailButton,.saveButton{
+        width:100%;
+        flex:none
+    }
 }
 
-.formActions button:disabled {
-    opacity: .6;
-    cursor: not-allowed;
+@media(prefers-reduced-motion:reduce){
+    .field input,.emailButton,.saveButton{transition:none}
 }
 
-.error { color: #b42318; }
 
-@media (max-width: 640px) {
-    .formGrid { grid-template-columns: 1fr; }
+.actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.actions button{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:34px;
+    height:34px;
+    border:0;
+    border-radius:9px;
+    cursor:pointer;
+    transition:transform .15s ease, background-color .15s ease, color .15s ease, opacity .15s ease;
+}
+
+.actions button svg{
+    stroke:currentColor;
+}
+
+.actions .editButton{
+    background:rgba(36,86,166,.12);
+    color:#2456a6;
+}
+
+.actions .editButton:hover:not(:disabled){
+    background:rgba(36,86,166,.18);
+    transform:translateY(-1px);
+}
+
+.actions .deleteButton{
+    background:rgba(220,53,69,.12);
+    color:#d64545;
+}
+
+.actions .deleteButton:hover:not(:disabled){
+    background:rgba(220,53,69,.18);
+    transform:translateY(-1px);
+}
+
+.actions button:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+    transform:none;
+}
+
+.actions button:focus-visible{
+    outline:2px solid rgba(36,86,166,.28);
+    outline-offset:3px;
 }

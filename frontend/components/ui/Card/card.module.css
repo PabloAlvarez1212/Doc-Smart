@@ -2,7 +2,7 @@
     border-radius: 20px;
     border: solid 1px;
     height: auto;
-    background-color: var(--color-white);
+    background-color: var(--surface);
     width: auto;
 }
 .vertical{

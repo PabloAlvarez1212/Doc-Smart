@@ -1,0 +1,13 @@
+.section { display: grid; gap: 12px; color: #263a33; }
+.section h3 { font-size: 1rem; margin: 0; }
+.section ul { padding: 0; margin: 0; list-style: none; display: grid; gap: 8px; }
+.section li { display: flex; align-items: center; gap: 10px; border: 1px solid #dce8e4; border-radius: 10px; padding: 12px; }
+.fileInfo { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.fileInfo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fileInfo small { color: #52675f; font-size: .8rem; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 560px) { .section li { flex-wrap: wrap; } .actions { flex-basis: 100%; justify-content: flex-end; } }
+.section button { border: 1px solid #17664e; border-radius: 8px; padding: 7px 12px; color: #17664e; background: #e4f3ed; cursor: pointer; }
+.section button:disabled { opacity: .6; cursor: default; }
+.section p { font-size: .9rem; margin: 0; }
+.section p[role="alert"] { color: #923444; }

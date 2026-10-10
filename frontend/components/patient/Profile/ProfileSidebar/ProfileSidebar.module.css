@@ -1,29 +1,29 @@
-.summary { overflow: hidden; min-width: 0; border: 1px solid #dce5ee; border-radius: 15px; background: #fff; box-shadow: 0 14px 38px rgba(30, 60, 98, .06); }
-.identity { display: grid; justify-items: center; gap: 18px; padding: 30px 24px 25px; border-bottom: 1px solid #e3eaf1; background: linear-gradient(180deg, #f5f9fe 0%, #fff 100%); text-align: center; }
+.summary { overflow: hidden; min-width: 0; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); box-shadow: 0 14px 38px rgba(30, 60, 98, .06); }
+.identity { display: grid; justify-items: center; gap: 18px; padding: 30px 24px 25px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, var(--surface) 0%, var(--surface) 100%); text-align: center; }
 .avatarWrap { position: relative; width: 136px; height: 136px; }
 .avatarSurface { position: relative; isolation: isolate; width: 100%; height: 100%; border-radius: 36px; }
-.avatar { display: block; width: 100%; height: 100%; border: 5px solid #fff; border-radius: inherit; object-fit: cover; box-shadow: 0 0 0 1px #cfdae6, 0 12px 28px rgba(31, 68, 118, .13); }
+.avatar { display: block; width: 100%; height: 100%; border: 5px solid var(--border); border-radius: inherit; object-fit: cover; box-shadow: 0 0 0 1px #cfdae6, 0 12px 28px rgba(31, 68, 118, .13); }
 .avatarOverlay { position: absolute; inset: 5px; z-index: 1; border-radius: 31px; background: rgba(15, 29, 49, .52); opacity: 0; pointer-events: none; transition: opacity 180ms ease; }
 .removePhotoButton { position: absolute; top: 50%; left: 50%; z-index: 2; display: grid; width: 44px; height: 44px; padding: 0; place-items: center; border: 1px solid rgba(255, 255, 255, .72); border-radius: 50%; color: #fff; background: rgba(28, 42, 61, .82); box-shadow: 0 8px 20px rgba(10, 22, 38, .24); opacity: 0; transform: translate(-50%, -50%) scale(.96); pointer-events: none; cursor: pointer; transition: opacity 180ms ease, transform 180ms cubic-bezier(.23, 1, .32, 1), background-color 160ms ease; }
 .avatarSurface:focus-within .avatarOverlay { opacity: 1; }
 .avatarSurface:focus-within .removePhotoButton { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
 .removePhotoButton:active { transform: translate(-50%, -50%) scale(.92); }
-.cameraButton { position: absolute; right: -4px; bottom: 6px; display: grid; width: 40px; height: 40px; place-items: center; border: 3px solid #fff; border-radius: 50%; color: #fff; background: #2456a6; cursor: pointer; transition: background-color 160ms ease, transform 140ms cubic-bezier(.23, 1, .32, 1); }
+.cameraButton { position: absolute; right: -4px; bottom: 6px; display: grid; width: 40px; height: 40px; place-items: center; border: 3px solid var(--border); border-radius: 50%; color: #fff; background: #2456a6; cursor: pointer; transition: background-color 160ms ease, transform 140ms cubic-bezier(.23, 1, .32, 1); }
 .cameraButton:active { transform: scale(.94); }
 .cameraButton:focus-visible, .removePhotoButton:focus-visible { outline: 3px solid rgba(36, 86, 166, .28); outline-offset: 3px; }
 .cameraButton:disabled, .removePhotoButton:disabled { cursor: wait; }
 .identityCopy { display: grid; justify-items: center; gap: 7px; min-width: 0; }
-.identityCopy h2 { max-width: 100%; margin: 0; color: #1d2b3f; font-size: 1.18rem; letter-spacing: -.02em; line-height: 1.35; overflow-wrap: break-word; }
-.identityCopy p { margin: 0; color: #748297; font-size: .77rem; }
-.role { display: inline-flex; padding: 5px 9px; border-radius: 999px; color: #2456a6; background: #e5eefb; font-size: .71rem; font-weight: 760; }
+.identityCopy h2 { max-width: 100%; margin: 0; color: var(--color-text); font-size: 1.18rem; letter-spacing: -.02em; line-height: 1.35; overflow-wrap: break-word; }
+.identityCopy p { margin: 0; color: var(--text-secondary); font-size: .77rem; }
+.role { display: inline-flex; padding: 5px 9px; border-radius: 999px; color: var(--color-dark); background: var(--surface-muted); font-size: .71rem; font-weight: 760; }
 
 .details { display: grid; margin: 0; padding: 14px 22px; }
-.details > div { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; min-width: 0; padding: 14px 0; border-bottom: 1px solid #e7edf3; }
+.details > div { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; min-width: 0; padding: 14px 0; border-bottom: 1px solid var(--border); }
 .details > div:last-child { border-bottom: 0; }
-.details > div > span { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 10px; color: #3c639d; background: #edf3fa; }
+.details > div > span { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 10px; color: var(--text-secondary); background: var(--surface-muted); }
 .details > div > div { min-width: 0; }
-.details dt { color: #7a8797; font-size: .69rem; font-weight: 720; line-height: 1.35; }
-.details dd { margin: 3px 0 0; color: #344359; font-size: .81rem; font-weight: 650; line-height: 1.4; }
+.details dt { color: var(--text-secondary); font-size: .69rem; font-weight: 720; line-height: 1.35; }
+.details dd { margin: 3px 0 0; color: var(--text-secondary); font-size: .81rem; font-weight: 650; line-height: 1.4; }
 .details .email { overflow-wrap: anywhere; }
 
 @media (hover: hover) and (pointer: fine) {
@@ -40,13 +40,13 @@
 
 @media (max-width: 1100px) {
     .summary { display: grid; grid-template-columns: minmax(240px, .7fr) minmax(0, 1fr); align-items: stretch; }
-    .identity { align-content: center; border-right: 1px solid #e3eaf1; border-bottom: 0; }
+    .identity { align-content: center; border-right: 1px solid var(--border); border-bottom: 0; }
     .details { align-content: center; padding: 18px 24px 4px; }
 }
 
 @media (max-width: 680px) {
     .summary { grid-template-columns: minmax(0, 1fr); }
-    .identity { grid-template-columns: auto minmax(0, 1fr); justify-items: start; padding: 24px 20px; border-right: 0; border-bottom: 1px solid #e3eaf1; text-align: left; }
+    .identity { grid-template-columns: auto minmax(0, 1fr); justify-items: start; padding: 24px 20px; border-right: 0; border-bottom: 1px solid var(--border); text-align: left; }
     .avatarWrap { width: 104px; height: 104px; }
     .avatarSurface { border-radius: 28px; }
     .avatarOverlay { border-radius: 23px; }

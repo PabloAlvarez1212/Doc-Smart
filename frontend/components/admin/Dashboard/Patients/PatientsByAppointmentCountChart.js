@@ -18,7 +18,7 @@ function AppointmentRangeTick({ x, y, payload }) {
     const lines = tickLines(payload?.value);
 
     return (
-        <text x={x} y={y} textAnchor="middle" fill="#64748b" fontSize="11">
+        <text x={x} y={y} textAnchor="middle" fill="var(--text-secondary)" fontSize="11">
             {lines.map((line, index) => (
                 <tspan key={`${line}-${index}`} x={x} dy={index === 0 ? 13 : 14}>
                     {line}
@@ -38,7 +38,7 @@ function CountLabel({ x, y, width, value }) {
             x={x + width / 2}
             y={Math.max(12, y - 7)}
             textAnchor="middle"
-            fill="#334155"
+            fill="var(--text-secondary)"
             fontSize="11"
             fontWeight="700"
         >
@@ -83,7 +83,7 @@ export default function PatientsByAppointmentCountChart({ data }) {
                     barCategoryGap="38%"
                     margin={{ top: 28, right: 10, left: -12, bottom: 16 }}
                 >
-                    <CartesianGrid vertical={false} stroke="#e9eef4" strokeDasharray="3 4" />
+                    <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 4" />
                     <XAxis
                         dataKey="rango"
                         interval={0}
@@ -95,7 +95,7 @@ export default function PatientsByAppointmentCountChart({ data }) {
                     <YAxis
                         allowDecimals={false}
                         domain={[0, axisMax]}
-                        tick={{ fill: "#64748b", fontSize: 11 }}
+                        tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
                         tickLine={false}
                         axisLine={false}
                         width={42}

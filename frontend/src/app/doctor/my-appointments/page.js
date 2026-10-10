@@ -15,6 +15,7 @@ import {
     getAppointmentsResultMotion,
     hasActiveAppointmentFilters,
 } from "../../../../components/ui/AppointmentCard/appointmentViewState";
+import CompleteAppointmentModal from "../../../../components/ui/CompleteAppointmentModal/CompleteAppointmentModal";
 import styles from "./myAppointments.module.css";
 
 export default function MyAppointments() {
@@ -56,6 +57,18 @@ export default function MyAppointments() {
 
     const cerrarReprogramacion = () => {
         setModalReprogramar(false);
+    };
+
+    const [modalCompletar, setModalCompletar] = useState(false);
+
+    const abrirCierre = (cita) => {
+        setCitaSeleccionada(cita);
+        setModalCompletar(true);
+    };
+
+
+    const cerrarCierre = () => {
+        setModalCompletar(false);
     };
 
     return (
@@ -106,7 +119,7 @@ export default function MyAppointments() {
                             hasActiveFilters={hasActiveFilters}
                             cancelarCita={cancelarCita}
                             confirmarCita={confirmarCita}
-                            completarCita={completarCita}
+                            completarCita={abrirCierre}
                             reprogramarCita={abrirReprogramacion}
                         />
                     </m.div>
@@ -131,6 +144,16 @@ export default function MyAppointments() {
                 cita={citaSeleccionada}
                 reprogramarCita={reprogramarCita}
                 counterpart="paciente"
+            />
+
+            <CompleteAppointmentModal
+                abierto={modalCompletar}
+                onCerrar={cerrarCierre}
+                onExitComplete={() =>
+                    setCitaSeleccionada(null)
+                }
+                cita={citaSeleccionada}
+                completarCita={completarCita}
             />
         </main>
     );

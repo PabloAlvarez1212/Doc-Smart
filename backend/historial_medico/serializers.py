@@ -1,7 +1,7 @@
 import unicodedata
 
 from rest_framework import serializers
-
+from citas.models import DocumentoSeguimientoCita
 from historial_medico.models import HistorialClinico, VersionHistorialClinico
 
 
@@ -59,6 +59,34 @@ class VersionHistorialClinicoSerializer(serializers.ModelSerializer):
     def get_medico_editor(self, obj):
         return f'{obj.medico_editor.nombre} {obj.medico_editor.apellido}'
 
+class DocumentoSeguimientoHistorialSerializer(
+    serializers.ModelSerializer
+):
+    nombre = serializers.CharField(
+        source="archivo.nombre_original",
+        read_only=True
+    )
+
+    content_type = serializers.CharField(
+        source="archivo.content_type",
+        read_only=True
+    )
+
+    tamano = serializers.IntegerField(
+        source="archivo.tamano",
+        read_only=True
+    )
+
+    class Meta:
+        model = DocumentoSeguimientoCita
+
+        fields = [
+            "id",
+            "nombre",
+            "content_type",
+            "tamano",
+            "fecha_subida",
+        ]
 
 class HistorialClinicoSerializer(serializers.ModelSerializer):
     paciente = serializers.CharField(source='usuario.nombre')
@@ -70,6 +98,7 @@ class HistorialClinicoSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     especialidad = serializers.SerializerMethodField()
+    documentos = serializers.SerializerMethodField()
     class Meta:
         model = HistorialClinico
         fields = [
@@ -84,12 +113,35 @@ class HistorialClinicoSerializer(serializers.ModelSerializer):
             'cita_id',
             'especialidad',
             'codigo_cita',
+            'documentos'
         ]
 
     def get_medico(self, obj):
         return f'{obj.medico.nombre} {obj.medico.apellido}'
     def get_especialidad(self,obj):
         return obj.medico.id_especialidad.nombre
+    def get_documentos(self, obj):
+        if not obj.cita_id:
+            return []
+        documentos_prefetch = getattr(
+            obj.cita,
+            "documentos_seguimiento_activos",
+            None
+        )
+        if documentos_prefetch is not None:
+            documentos = documentos_prefetch
+        else:
+            documentos = (
+                obj.cita.documentos_seguimiento.filter(archivo__activo=True)
+                .select_related("archivo").order_by("pk")
+            )
+
+        return (
+            DocumentoSeguimientoHistorialSerializer(
+                documentos,
+                many=True
+            ).data
+        )
 
 
 class HistorialClinicoDetalleSerializer(HistorialClinicoSerializer):

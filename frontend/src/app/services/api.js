@@ -255,4 +255,7 @@ export const editarInfoSalud = async (id, datos) =>
 export const eliminarInfoSalud = async (id) =>
     api.delete(`/info-salud/${id}/`);
 
+export const obtenerInfoPacienteCita = async (citaId) =>
+    (await api.get(`/citas/${citaId}/info-salud/`)).data;
+
 export default api;

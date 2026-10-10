@@ -4,16 +4,16 @@
     align-items: center;
     gap: 24px;
     padding: 22px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border);
     border-radius: 15px;
-    background: #fff;
+    background: var(--surface);
     box-shadow: 0 4px 15px rgba(31, 51, 85, .05);
     transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
 }
 
 .card:hover {
     transform: translateY(-2px);
-    border-color: #bfd6f8;
+    border-color: var(--border);
     box-shadow: 0 12px 29px rgba(43, 127, 255, .105);
 }
 
@@ -33,7 +33,7 @@
 .photo {
     width: 116px;
     height: 116px;
-    border: 4px solid #f2f7ff;
+    border: 4px solid var(--border);
     border-radius: 18px 18px 18px 6px;
     object-fit: cover;
 }
@@ -47,15 +47,15 @@
     margin-bottom: 9px;
     padding: 5px 9px;
     border-radius: 20px;
-    color: #174c96;
-    background: #edf5ff;
+    color: var(--text-secondary);
+    background: var(--surface-muted);
     font-size: .73rem;
     font-weight: 700;
 }
 
 .profile h2 {
     margin-bottom: 10px;
-    color: #172033;
+    color: var(--color-text);
     font-size: 1.32rem;
     line-height: 1.2;
 }
@@ -65,13 +65,13 @@
     display: flex;
     align-items: flex-start;
     gap: 7px;
-    color: #536174;
+    color: var(--text-secondary);
     font-size: .84rem;
     line-height: 1.45;
 }
 
 .location { margin-bottom: 5px; font-weight: 700; }
-.location svg, .address svg { flex: 0 0 auto; margin-top: 2px; color: #5b7eb1; }
+.location svg, .address svg { flex: 0 0 auto; margin-top: 2px; color: var(--color-dark); }
 
 .schedule {
     display: flex;
@@ -79,10 +79,10 @@
     gap: 12px;
     min-width: 0;
     padding: 15px;
-    border: 1px solid #e1e9f4;
+    border: 1px solid var(--border);
     border-radius: 12px;
-    color: #44546a;
-    background: #f8fafc;
+    color: var(--text-secondary);
+    background: var(--surface);
 }
 
 .scheduleIcon {
@@ -91,19 +91,19 @@
     flex: 0 0 38px;
     height: 38px;
     border-radius: 10px;
-    color: #52719d;
-    background: #eaf2fc;
+    color: var(--text-secondary);
+    background: var(--surface-muted);
 }
 
 .schedule strong {
     display: block;
     margin-bottom: 4px;
-    color: #28384e;
+    color: var(--text-secondary);
     font-size: .86rem;
 }
 
 .schedule p {
-    color: #6b7789;
+    color: var(--text-secondary);
     font-size: .76rem;
     line-height: 1.45;
 }
@@ -116,7 +116,7 @@
 }
 
 .actionHint {
-    color: #7a8698;
+    color: var(--text-secondary);
     font-size: .7rem;
     font-weight: 600;
     text-align: center;

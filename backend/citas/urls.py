@@ -1,5 +1,7 @@
 from django.urls import path
 from citas.views import (
+    CitaDocumentosView,
+    CitaDocumentoUrlView,
     CitaInasistenciaView,
     CitaListView,
     CitaPacienteView,
@@ -12,10 +14,13 @@ from citas.views import (
     RecordatorioDetailView,
     CitaConfirmarView,
     RegistroCitaView,
-    EstadisticasCitasView
+    EstadisticasCitasView,
+    InfoPacienteCitaView,
 )
 
 urlpatterns = [
+    path('<int:pk>/documentos/', CitaDocumentosView.as_view(), name='cita-documentos'),
+    path('<int:pk>/documentos/<int:documento_id>/url/', CitaDocumentoUrlView.as_view(), name='cita-documento-url'),
     path('<int:pk>/inasistencia/', CitaInasistenciaView.as_view(), name='cita-inasistencia'),
     # ─── CITAS ───────────────────────────────────────────────────────────────
 
@@ -45,4 +50,6 @@ urlpatterns = [
     path('recordatorios/<int:pk>/', RecordatorioDetailView.as_view(),name='recordatorio-detalle'),
     # Estadísticas Dashboard
     path("admin/dashboard/", EstadisticasCitasView.as_view(),name="estadisticas-citas"),
+
+    path("<int:cita_id>/info-salud/",InfoPacienteCitaView.as_view(),name="info-paciente-cita",),
 ]

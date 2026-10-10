@@ -65,13 +65,13 @@ export default function DoctorsBySpecialtyChart({ data }) {
                         barCategoryGap="30%"
                         margin={{ top: 6, right: 34, left: 4, bottom: 2 }}
                     >
-                        <CartesianGrid horizontal={false} stroke="#e9eef4" strokeDasharray="3 4" />
+                        <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 4" />
                         <XAxis
                             type="number"
                             allowDecimals={false}
                             domain={[0, axisMax]}
                             ticks={ticks}
-                            tick={{ fill: "#64748b", fontSize: 11 }}
+                            tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
                             tickLine={false}
                             axisLine={false}
                         />
@@ -96,7 +96,7 @@ export default function DoctorsBySpecialtyChart({ data }) {
                             <LabelList
                                 dataKey="total_medicos"
                                 position="right"
-                                fill="#334155"
+                                fill="var(--text-secondary)"
                                 fontSize={11}
                                 fontWeight={750}
                             />

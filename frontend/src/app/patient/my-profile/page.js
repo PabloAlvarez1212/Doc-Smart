@@ -15,6 +15,8 @@ import PersonalInfo from "../../../../components/patient/Profile/PersonalInfo/Pe
 import FormInfoSalud from "../../../../components/forms/InfoUser/FormInfoSalud";
 import ProfileSidebar from "../../../../components/patient/Profile/ProfileSidebar/ProfileSidebar";
 import useProfile from "../../../../components/patient/Profile/useProfile";
+import Modal from "../../../../components/ui/Modal/Modal";
+import EmailChangeModal from "../../../../components/patient/Profile/EmailChangeModal/EmailChangeModal";
 import styles from "./MyProfile.module.css";
 
 const lista = (datos) =>
@@ -25,6 +27,8 @@ export default function MyProfile() {
     const {
         perfil, actualizarPerfilPaciente, error, guardando, loading,
         actualizarFotoPerfil, eliminarFotoPerfil,
+        cambioCorreo, ocupadoCorreo, abrirCambioCorreo, cerrarCambioCorreo,
+        editarCambioCorreo, enviarCambioCorreo, reiniciarCambioCorreo,
     } = useProfile();
 
     const [datosSalud, setDatosSalud] = useState([]);
@@ -80,20 +84,28 @@ export default function MyProfile() {
         }
     }
 
+    function cerrarFormulario() {
+        if (!ocupadoSalud) setFormAbierto(false);
+    }
+
     async function guardarDato(datos) {
-        const resultado = datoEditado
-            ? await editarInfoSalud(datoEditado.id, datos)
-            : await crearInfoSalud(datos);
+        setOcupadoSalud(true);
+        try {
+            const resultado = datoEditado
+                ? await editarInfoSalud(datoEditado.id, datos)
+                : await crearInfoSalud(datos);
 
-        setDatosSalud((actuales) => datoEditado
-            ? actuales.map((dato) =>
-                dato.id === datoEditado.id ? resultado : dato)
-            : [...actuales, resultado]
-        );
+            setDatosSalud((actuales) => datoEditado
+                ? actuales.map((dato) =>
+                    dato.id === datoEditado.id ? resultado : dato)
+                : [...actuales, resultado]
+            );
 
-        setFormAbierto(false);
-        setDatoEditado(null);
-        setErrorSalud("");
+            setFormAbierto(false);
+            setErrorSalud("");
+        } finally {
+            setOcupadoSalud(false);
+        }
     }
 
     async function eliminarDato(dato) {
@@ -168,6 +180,10 @@ export default function MyProfile() {
                 <span>Perfil del paciente</span>
             </header>
 
+            <EmailChangeModal actual={perfil.correo} flujo={cambioCorreo} ocupado={ocupadoCorreo}
+                onCerrar={cerrarCambioCorreo} onEditar={editarCambioCorreo}
+                onEnviar={enviarCambioCorreo} onReiniciar={reiniciarCambioCorreo}/>
+
             <div className={styles.profileLayout}>
                 <m.div className={styles.sidebarColumn} {...entrance}>
                     <ProfileSidebar
@@ -176,6 +192,24 @@ export default function MyProfile() {
                         guardando={guardando}
                         eliminarFotoPerfil={eliminarFotoPerfil}
                     />
+
+                    <Modal
+                        abierto={formAbierto}
+                        onCerrar={cerrarFormulario}
+                        titulo={datoEditado ? "Editar dato médico" : "Agregar dato médico"}
+                        text="Registra información importante para tu atención."
+                        width="720px"
+                    >
+                        <FormInfoSalud
+                            key={formAbierto
+                                ? `abierto-${datoEditado?.id ?? "nuevo"}`
+                                : "cerrado"}
+                            tipos={tiposSalud}
+                            datoInicial={datoEditado}
+                            onGuardar={guardarDato}
+                            onCancelar={cerrarFormulario}
+                        />
+                    </Modal>
                 </m.div>
 
                 <m.div className={styles.formColumn} {...entrance}>
@@ -185,6 +219,8 @@ export default function MyProfile() {
                     <PersonalInfo
                         perfil={perfil}
                         actualizarPerfilPaciente={actualizarPerfilPaciente}
+                        onCambiarCorreo={abrirCambioCorreo}
+                        ocupadoCorreo={ocupadoCorreo}
                         guardando={guardando}
                         datosSalud={datosSalud}
                         onAgregarSalud={accionesDisponibles

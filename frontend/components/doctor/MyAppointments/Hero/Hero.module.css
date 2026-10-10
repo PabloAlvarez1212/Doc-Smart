@@ -14,7 +14,7 @@
 .heading h1 {
     margin: 0;
 
-    color: #111827;
+    color: var(--color-text);
 
     font-size: clamp(2rem, 4vw, 2.45rem);
 
@@ -27,7 +27,7 @@
 
     margin-top: 10px;
 
-    color: #566174;
+    color: var(--text-secondary);
 
     font-size: .98rem;
 
@@ -50,12 +50,12 @@
 
     padding: 14px 18px;
 
-    border: 1px solid #bbf7d0;
+    border: 1px solid var(--border);
     border-radius: 12px;
 
-    color: #15803d;
+    color: var(--ink-green);
 
-    background: #ecfdf3;
+    background: var(--surface-muted);
 
     transition:
         border-color .2s ease,
@@ -72,11 +72,11 @@
 
     margin-top: 2px;
 
-    color: #16a34a;
+    color: var(--ink-green);
 }
 
 .summary strong {
-    color: #15803d;
+    color: var(--ink-green);
 
     font-size: .95rem;
 }
@@ -105,7 +105,7 @@
 
     margin-top: 7px;
 
-    color: #344054;
+    color: var(--text-secondary);
 }
 
 
@@ -114,7 +114,7 @@
 
     max-width: 190px;
 
-    color: #344054;
+    color: var(--text-secondary);
 
     font-size: .8rem;
     font-weight: 600;
@@ -128,14 +128,14 @@
 .patient svg {
     flex-shrink: 0;
 
-    color: #667085;
+    color: var(--text-secondary);
 }
 
 
 .date {
     margin-top: 2px;
 
-    color: #98a2b3 !important;
+    color: var(--text-secondary) !important;
 
     font-size: .72rem !important;
 }

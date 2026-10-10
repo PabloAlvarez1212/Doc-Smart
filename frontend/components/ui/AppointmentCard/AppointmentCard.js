@@ -27,14 +27,20 @@ export default function AppointmentCard({
                     <span className={styles.dateIcon} aria-hidden="true">
                         <CalendarDays size={19} />
                     </span>
+
                     <div>
                         <strong>{date}</strong>
-                        <span><Clock3 size={14} aria-hidden="true" />{time}</span>
+                        <span>
+                            <Clock3 size={14} aria-hidden="true" />
+                            {time}
+                        </span>
                     </div>
                 </div>
 
                 <div className={styles.statusBlock}>
-                    <span className={`${styles.status} ${styles[statusKey] || ""}`}>
+                    <span
+                        className={`${styles.status} ${styles[statusKey] || ""}`}
+                    >
                         {status?.label || "Sin estado"}
                     </span>
                 </div>
@@ -48,22 +54,48 @@ export default function AppointmentCard({
                         width={52}
                         height={52}
                     />
+
                     <div>
                         <strong>{personName}</strong>
-                        {person?.secondary && <span>{person.secondary}</span>}
+
+                        {person?.secondary && (
+                            <span>{person.secondary}</span>
+                        )}
+
+                        {/* Información médica: cambio proveniente de main */}
+                        {person?.onVerInfo && (
+                            <button
+                                type="button"
+                                className={styles.medicalLink}
+                                onClick={person.onVerInfo}
+                                aria-expanded={person.infoAbierta}
+                                aria-controls={person.infoPanelId}
+                            >
+                                {person.infoAbierta
+                                    ? "Ocultar información médica"
+                                    : "Presiona aquí para ver información médica"}
+                            </button>
+                        )}
                     </div>
                 </div>
 
                 <div className={styles.location}>
                     <MapPin size={18} aria-hidden="true" />
+
                     <div>
-                        <strong>{location?.name || "Ubicación no disponible"}</strong>
-                        <span>{location?.address || "Dirección no disponible"}</span>
+                        <strong>
+                            {location?.name || "Ubicación no disponible"}
+                        </strong>
+
+                        <span>
+                            {location?.address || "Dirección no disponible"}
+                        </span>
                     </div>
                 </div>
             </div>
 
             <footer className={styles.actions}>
+                {/* Botón Ver detalles: cambio de tu rama */}
                 {onViewDetails && (
                     <button
                         type="button"
@@ -76,18 +108,25 @@ export default function AppointmentCard({
                     </button>
                 )}
 
+                {/* Fecha de finalización o cancelación */}
                 {metadata && ResolutionIcon && (
-                    <div className={`${styles.resolutionInfo} ${statusKey === "completada"
-                        ? styles.resolutionCompleted
-                        : styles.resolutionCancelled}`}
+                    <div
+                        className={`${styles.resolutionInfo} ${statusKey === "completada"
+                                ? styles.resolutionCompleted
+                                : styles.resolutionCancelled
+                            }`}
                     >
                         <ResolutionIcon size={15} aria-hidden="true" />
                         <span>{metadata}</span>
                     </div>
                 )}
 
+                {/* Acciones de la cita */}
                 {actions.length > 0 && (
-                    <div className={styles.actionButtons} data-action-count={actions.length}>
+                    <div
+                        className={styles.actionButtons}
+                        data-action-count={actions.length}
+                    >
                         {actions.map(({
                             id,
                             label,
@@ -100,13 +139,17 @@ export default function AppointmentCard({
                             <button
                                 key={id}
                                 type="button"
-                                className={`${styles.actionButton} ${styles[tone] || styles.secondary}`}
+                                className={`${styles.actionButton} ${styles[tone] || styles.secondary
+                                    }`}
                                 data-tone={tone}
                                 onClick={onClick}
                                 disabled={disabled || loading}
                                 aria-busy={loading || undefined}
                             >
-                                {Icon && <Icon size={15} aria-hidden="true" />}
+                                {Icon && (
+                                    <Icon size={15} aria-hidden="true" />
+                                )}
+
                                 <span>{label}</span>
                             </button>
                         ))}

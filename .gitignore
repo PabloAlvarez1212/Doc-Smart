@@ -1,4 +1,5 @@
 # Configuración local de Codex / AI Skills
 .codex/
 .agents/
+.impeccable/
 skills-lock.json

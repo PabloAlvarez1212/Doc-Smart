@@ -1,3 +1,4 @@
+/* Tarjeta principal */
 .item {
     display: flex;
     flex-direction: column;
@@ -8,9 +9,12 @@
     border: 1px solid #dce5ee;
     border-radius: 15px;
     background: #fff;
-    transition: border-color 180ms ease, background-color 180ms ease;
+    transition:
+        border-color 180ms ease,
+        background-color 180ms ease;
 }
 
+/* Encabezado */
 .cardHeader {
     display: flex;
     align-items: flex-start;
@@ -19,6 +23,7 @@
     gap: 14px;
 }
 
+/* Evitar desbordamientos */
 .schedule,
 .person,
 .location,
@@ -26,6 +31,7 @@
     min-width: 0;
 }
 
+/* Fecha y hora */
 .schedule {
     display: flex;
     align-items: center;
@@ -61,7 +67,7 @@
 
 .schedule strong {
     color: #26354a;
-    font-size: .91rem;
+    font-size: 0.91rem;
     line-height: 1.4;
 }
 
@@ -70,10 +76,11 @@
     align-items: center;
     gap: 5px;
     color: #657489;
-    font-size: .8rem;
+    font-size: 0.8rem;
     font-variant-numeric: tabular-nums;
 }
 
+/* Estado de la cita */
 .statusBlock {
     display: flex;
     align-items: flex-end;
@@ -83,6 +90,67 @@
     text-align: right;
 }
 
+/* Información del médico o paciente */
+.person {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.person img {
+    width: 50px;
+    height: 50px;
+    flex: 0 0 50px;
+    border-radius: 14px;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px #d9e2ec;
+}
+
+.person strong {
+    color: #26354a;
+    font-size: 0.91rem;
+    line-height: 1.35;
+}
+
+.person span {
+    color: #657489;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+/* Ubicación */
+.location {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    color: #657489;
+}
+
+.location strong {
+    color: #657489;
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.location span {
+    color: #657489;
+    font-size: 0.77rem;
+    line-height: 1.45;
+}
+
+/* Pie de la tarjeta */
+.actions {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-width: 0;
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: auto;
+}
+
+/* Estado de la cita */
 .status {
     display: inline-flex;
     width: fit-content;
@@ -90,28 +158,33 @@
     border-radius: 999px;
     color: #244f91;
     background: #e3edfb;
-    font-size: .72rem;
+    font-size: 0.72rem;
     font-weight: 760;
     line-height: 1.3;
     white-space: nowrap;
 }
 
+/* Citas pendientes, reprogramadas o vencidas */
 .pendiente,
-.reprogramada {
+.reprogramada,
+.vencida {
     color: #81510d;
     background: #fbedca;
 }
 
+/* Citas completadas */
 .completada {
     color: #17664e;
     background: #dff0e9;
 }
 
+/* Citas canceladas */
 .cancelada {
     color: #923444;
     background: #f8e0e4;
 }
 
+/* Cuerpo de la tarjeta */
 .cardBody {
     display: grid;
     min-width: 0;
@@ -119,6 +192,7 @@
     padding: 0;
 }
 
+/* Información del médico o paciente */
 .person {
     display: flex;
     align-items: center;
@@ -136,16 +210,17 @@
 
 .person strong {
     color: #202f44;
-    font-size: .93rem;
+    font-size: 0.93rem;
     line-height: 1.35;
 }
 
 .person span {
     color: #657489;
-    font-size: .8rem;
+    font-size: 0.8rem;
     line-height: 1.4;
 }
 
+/* Ubicación */
 .location {
     display: flex;
     align-items: flex-start;
@@ -160,16 +235,17 @@
 
 .location strong {
     color: #344359;
-    font-size: .82rem;
+    font-size: 0.82rem;
     line-height: 1.4;
 }
 
 .location span {
     color: #718095;
-    font-size: .77rem;
+    font-size: 0.77rem;
     line-height: 1.45;
 }
 
+/* Acciones */
 .actions {
     display: flex;
     align-items: stretch;
@@ -250,9 +326,9 @@
 }
 
 .secondary {
-    color: #24599d;
-    border-color: #bfd0e6;
-    background: #f3f7fc;
+    color: var(--text-secondary);
+    border-color: var(--border);
+    background: var(--surface-muted);
 }
 
 .primary {
@@ -270,9 +346,15 @@
 }
 
 .danger {
-    color: #91394a;
-    border-color: #dfc1c8;
-    background: #fff8f9;
+    color: var(--ink-red);
+    border-color: var(--border);
+    background: var(--surface);
+}
+.actions small { 
+    max-width: 28ch; 
+    color: var(--text-secondary); 
+    font-size: .73rem; 
+    line-height: 1.45; 
 }
 
 .detailsButton {
@@ -335,9 +417,9 @@
     }
 
     .secondary:not(:disabled):hover {
-        color: #1c4b89;
+        color: var(--text-secondary);
         border-color: #8facd0;
-        background: #eaf2fc;
+        background: var(--surface-muted);
         box-shadow: 0 4px 10px rgba(36, 86, 166, .1);
     }
 
@@ -363,9 +445,9 @@
     }
 
     .danger:not(:disabled):hover {
-        color: #7c2d3d;
-        border-color: #ca9fab;
-        background: #fff0f2;
+        color: var(--ink-red);
+        border-color: var(--border);
+        background: var(--surface-muted);
         box-shadow: 0 4px 10px rgba(145, 57, 74, .09);
     }
 
@@ -442,4 +524,22 @@
     .detailsButton:hover {
         transform: none;
     }
+}
+
+.person .medicalLink {
+    display: block;
+    margin-top: 7px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-dark);
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.medicalLink:focus-visible {
+    outline: 2px solid #2857ad;
+    outline-offset: 3px;
 }

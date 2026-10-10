@@ -2,25 +2,15 @@
 import { obtenerPrimerError } from "@/app/utils/errrorUtils";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import {
-    CalendarCheck2,
-    CalendarX2,
-    CheckCircle2,
-    Clock3,
-    Stethoscope
-} from "lucide-react";
+import {CalendarCheck2, CalendarX2, CheckCircle2, Clock3, Stethoscope} from "lucide-react";
 
 import Button from "../../../ui/Button/Button";
 import Modal from "../../../ui/Modal/Modal";
 
-import {
-    obtenerHorariosDisponiblesMedicoService
-} from "../../../../src/app/services/doctorServices";
+import {obtenerHorariosDisponiblesMedicoService} from "../../../../src/app/services/doctorServices";
 
-import {
-    registrarCitaService
-} from "../../../../src/app/services/appointmentsServices";
-
+import { registrarCitaService} from "../../../../src/app/services/appointmentsServices";
+import { getBogotaDateInputValue } from "../../../ui/AppointmentCard/appointmentViewState";
 import styles from "./ScheduleAppointmentModal.module.css";
 
 const INITIAL_FORM = {
@@ -327,6 +317,7 @@ export default function ScheduleAppointmentModal({
 
                         <input
                             type="date"
+                            min={getBogotaDateInputValue()}
                             value={form.date}
                             onChange={(event) =>
                                 updateDate(event.target.value)

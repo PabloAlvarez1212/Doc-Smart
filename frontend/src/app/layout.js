@@ -1,28 +1,42 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import ThemeProvider from "../../components/ui/Theme/ThemeProvider";
+import { themeBootstrap } from "../../components/ui/Theme/themeScript";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  subsets: ["latin"]
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  subsets: ["latin"]
 });
 
 export const metadata = {
   title: "Doc Smart",
-  description: "Doc smart",
+  description: "Doc smart"
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+    <html
+      lang="es"
+      suppressHydrationWarning
+      data-scroll-behavior="smooth"
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: themeBootstrap
+          }}
+        />
+      </head>
+
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

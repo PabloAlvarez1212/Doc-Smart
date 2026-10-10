@@ -91,18 +91,30 @@ class CopilotoTests(TestCase):
         for accion, estado in (("Confirma", "confirmada"), ("Cancela", "cancelada"), ("Completa", "completada")):
             with self.subTest(accion=accion):
                 cita = self.cita(self.medico, self.paciente, "pendiente")
+                if accion == 'Completa':
+                    from citas.models import DocumentoSeguimientoCita
+                    from storage_app.models import Archivo
+                    cita.fecha_programada = timezone.now() - timedelta(minutes=30)
+                    cita.fecha_final = timezone.now()
+                    cita.fecha_limite_cierre = cita.fecha_final + timedelta(hours=72)
+                    cita.save()
+                    archivo = Archivo.objects.create(medico=self.medico, nombre_original='seguimiento.pdf', storage_key='test/copiloto/seguimiento')
+                    DocumentoSeguimientoCita.objects.create(cita=cita, archivo=archivo)
                 inicial = Notificacion.objects.count()
                 with self.captureOnCommitCallbacks(execute=True) as callbacks:
                     self.assertTrue(self.operar(accion, cita)["requires_confirmation"])
                     cita.refresh_from_db()
                     self.assertEqual(cita.id_estado.nombre, "pendiente")
                     resultado = ConversationManager.procesar(self.chat, "Sí confirmar")
-                    self.assertTrue(resultado["success"], resultado)
+                    if accion == 'Completa':
+                        self.assertFalse(resultado['success'], resultado)
+                    else:
+                        self.assertTrue(resultado["success"], resultado)
                     self.assertIn("No hay", ConversationManager.procesar(self.chat, "Confirmo"))
                 cita.refresh_from_db()
-                self.assertEqual(cita.id_estado.nombre, estado)
-                self.assertEqual(Notificacion.objects.count(), inicial + 2)
-                self.assertEqual(len(callbacks), 2)
+                self.assertEqual(cita.id_estado.nombre, 'pendiente' if accion == 'Completa' else estado)
+                self.assertEqual(Notificacion.objects.count(), inicial + (0 if accion == 'Completa' else 2))
+                self.assertEqual(len(callbacks), 0 if accion == 'Completa' else 2)
                 self.chat.refresh_from_db()
                 self.assertEqual(self.chat.contexto_temporal["clinico"], clinico)
                 self.assertNotIn("operacion_medica", self.chat.contexto_temporal)
