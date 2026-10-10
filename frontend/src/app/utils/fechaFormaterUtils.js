@@ -15,6 +15,29 @@ export default function formatearFecha(fechaISO) {
     };
 }
 
+export function formatearFechaResolucion(fechaISO) {
+    if (!fechaISO) return "";
+
+    const fecha = new Date(fechaISO);
+    if (Number.isNaN(fecha.getTime())) return "";
+
+    const opcionesBase = { timeZone: "America/Bogota" };
+    const fechaFormateada = new Intl.DateTimeFormat("es-CO", {
+        ...opcionesBase,
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+    }).format(fecha);
+    const horaFormateada = new Intl.DateTimeFormat("es-CO", {
+        ...opcionesBase,
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+    }).format(fecha).replace(/[\u00a0\u202f]/g, " ");
+
+    return `${fechaFormateada} a las ${horaFormateada}`;
+}
+
 export function formatearFechaRelativa(isoString) {
     if (!isoString) return "";
 

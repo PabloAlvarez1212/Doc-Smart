@@ -1,5 +1,5 @@
 "use client";
-
+import { obtenerPrimerError } from "@/app/utils/errrorUtils";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import {CalendarCheck2, CalendarX2, CheckCircle2, Clock3, Stethoscope} from "lucide-react";
@@ -82,7 +82,7 @@ export default function ScheduleAppointmentModal({
             setSlots(data?.horarios ?? []);
 
         } catch (error) {
-            console.error(
+            console.log(
                 "Error cargando horarios disponibles:",
                 error
             );
@@ -120,7 +120,7 @@ export default function ScheduleAppointmentModal({
             await registrarCitaService({
                 id_medico: doctor.id,
                 fecha_programada: fechaProgramada,
-                motivo: form.reason.trim(),
+                motivo_consulta: form.reason.trim(),
             });
 
             setConfirmation({
@@ -130,7 +130,7 @@ export default function ScheduleAppointmentModal({
             });
 
         } catch (error) {
-            console.error(
+            console.log(
                 "Error registrando cita:",
                 error
             );
@@ -158,7 +158,7 @@ export default function ScheduleAppointmentModal({
                     setSlots(data?.horarios ?? []);
 
                 } catch (refreshError) {
-                    console.error(
+                    console.log(
                         "Error actualizando horarios:",
                         refreshError
                     );

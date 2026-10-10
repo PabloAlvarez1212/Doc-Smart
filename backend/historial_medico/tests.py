@@ -263,6 +263,37 @@ class HistorialClinicoSecurityTests(APITestCase):
         ids = {item["id"] for item in response.data["data"]["results"]}
         self.assertEqual(ids, {self.historial_paciente_uno.id})
 
+    def test_listado_y_detalle_exponen_el_codigo_de_la_cita_asociada(self):
+        self.authenticate(self.paciente_uno)
+
+        listado = self.client.get("/api/historial/paciente/")
+        detalle = self.client.get(
+            f"/api/historial/{self.historial_paciente_uno.id}/"
+        )
+
+        self.assertEqual(listado.status_code, 200)
+        self.assertEqual(detalle.status_code, 200)
+        registro = listado.data["data"]["results"][0]
+        codigo_esperado = self.cita_paciente_uno.codigo_cita
+        self.assertEqual(registro["codigo_cita"], codigo_esperado)
+        self.assertEqual(detalle.data["data"]["codigo_cita"], codigo_esperado)
+
+    def test_historial_sin_cita_expone_codigo_nulo_sin_inventarlo(self):
+        historial_sin_cita = HistorialClinico.objects.create(
+            diagnostico_general="Diagnostico legado ficticio",
+            observaciones="",
+            motivo_consulta="Consulta anterior ficticia",
+            cita=None,
+            usuario=self.paciente_uno,
+            medico=self.medico_dos,
+        )
+        self.authenticate(self.paciente_uno)
+
+        response = self.client.get(f"/api/historial/{historial_sin_cita.id}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["data"]["codigo_cita"])
+
     def test_medico_solo_lista_los_historiales_que_creo(self):
         self.authenticate(self.medico_uno)
         response = self.client.get("/api/historial/medico/")
@@ -1015,6 +1046,15 @@ class HistorialClinicoSecurityTests(APITestCase):
 
     def test_periodos_filtran_por_fecha_de_creacion(self):
         ahora = timezone.now()
+        ahora_local = timezone.localtime(ahora)
+        inicio_este_anio = ahora_local.replace(
+            month=1,
+            day=1,
+            hour=12,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
         reciente = self.crear_historial(
             diagnostico="Registro reciente",
             fecha_creacion=ahora - timedelta(days=60),
@@ -1029,11 +1069,13 @@ class HistorialClinicoSecurityTests(APITestCase):
         )
         registro_este_anio = self.crear_historial(
             diagnostico="Registro de este anio",
-            fecha_creacion=ahora.replace(month=1, day=1),
+            fecha_creacion=inicio_este_anio,
         )
         anio_anterior = self.crear_historial(
             diagnostico="Registro del anio anterior",
-            fecha_creacion=ahora.replace(year=ahora.year - 1, month=1, day=1),
+            fecha_creacion=inicio_este_anio.replace(
+                year=inicio_este_anio.year - 1
+            ),
         )
         self.authenticate(self.paciente_uno)
 

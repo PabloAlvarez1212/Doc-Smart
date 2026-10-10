@@ -44,14 +44,15 @@
 .errorState button:hover { background: #224a8d; }
 .errorState button:active { transform: scale(.98); }
 
-.skeletonList { display: grid; overflow: hidden; border-top: 1px solid var(--appointments-line); }
-.skeletonList span { display: block; height: 142px; border-bottom: 1px solid var(--appointments-line); background: linear-gradient(90deg, var(--surface-muted) 25%, var(--surface-muted) 50%, var(--surface-muted) 75%); background-size: 200% 100%; animation: shimmer 1.3s ease-in-out infinite; }
+.skeletonList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.skeletonList span { display: block; height: 265px; border: 1px solid var(--appointments-line); border-radius: 15px; background: linear-gradient(90deg, #f4f6f8 25%, #e7ecf1 50%, #f4f6f8 75%); background-size: 200% 100%; animation: shimmer 1.3s ease-in-out infinite; }
 
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes pulse { to { opacity: .35; transform: scale(.8); } }
 
 @media (max-width: 900px) {
     .page { width: min(calc(100% - 44px), 1240px); padding-top: 36px; }
+    .skeletonList { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 560px) {
@@ -60,7 +61,7 @@
     .resultsHeader { align-items: flex-start; }
     .errorState { grid-template-columns: auto minmax(0, 1fr); padding: 19px 17px; }
     .errorState button { grid-column: 1 / -1; width: 100%; }
-    .skeletonList span { height: 260px; }
+    .skeletonList { gap: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
