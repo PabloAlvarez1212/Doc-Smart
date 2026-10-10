@@ -43,7 +43,7 @@ class MigracionInasistenciaTests(TransactionTestCase):
                       'Falta migración nueva para fecha_inasistencia y catálogo')
         latest = executor.loader.graph.leaf_nodes()
         try:
-            before = [node for node in latest if node != self.target] + [('citas', '0006_cita_fecha_creacion')]
+            before = [node for node in latest if node[0] != 'citas'] + [('citas', '0006_cita_fecha_creacion')]
             executor.migrate(before)
             old = executor.loader.project_state(before).apps
             EstadoOld = old.get_model('catalogos', 'Estado')
@@ -66,8 +66,9 @@ class MigracionInasistenciaTests(TransactionTestCase):
             conv = Conversacion.objects.create(cita_id=with_chat.pk)
             created = conv.fecha_creacion
             MigrationExecutor(connection).migrate([self.target])
+            CitaAfter = MigrationExecutor(connection).loader.project_state([self.target]).apps.get_model('citas', 'Cita')
             for pk in (historical.pk, with_chat.pk):
-                current = Cita.objects.get(pk=pk)
+                current = CitaAfter.objects.get(pk=pk)
                 self.assertIsNone(current.fecha_inasistencia)
                 self.assertEqual(current.id_estado_id, estado.pk)
             self.assertEqual(Conversacion.objects.count(), 1)
@@ -292,7 +293,7 @@ class InasistenciaTerminalTests(InasistenciaFixture):
 
     def test_completar_no_sustituye_transicion_clinica(self):
         from citas.services import completarCitaService
-        self.comprobar_rechazo(lambda: completarCitaService(self.cita.pk, self.doctors[1].pk))
+        self.comprobar_rechazo(lambda: completarCitaService(self.cita.pk, self.doctors[1].pk, self.datos_historial))
 
     def test_reprogramar_no_borra_evidencia(self):
         from citas.services import editarCitaService

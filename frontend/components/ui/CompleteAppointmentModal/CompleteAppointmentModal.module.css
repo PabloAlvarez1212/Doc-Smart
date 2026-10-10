@@ -1,0 +1,258 @@
+.headerIcon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 12px;
+    color: #17664e;
+    background: #e4f3ed;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.appointment {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 15px 17px;
+    border: 1px solid #dce8e4;
+    border-radius: 14px;
+    background: #f6fbf9;
+}
+
+.appointment > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #17664e;
+}
+
+.appointment span {
+    display: grid;
+    gap: 2px;
+}
+
+.appointment small {
+    color: #74837d;
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.appointment strong {
+    color: #263a33;
+    font-size: .92rem;
+}
+
+.date {
+    color: #52675f;
+    font-size: .85rem;
+    font-weight: 700;
+}
+
+.documents {
+    display: grid;
+    gap: 14px;
+}
+
+.sectionHeading h3 {
+    margin: 0 0 4px;
+    color: #24372f;
+    font-size: .96rem;
+}
+
+.sectionHeading p {
+    margin: 0;
+    color: #687b73;
+    font-size: .84rem;
+    line-height: 1.5;
+}
+
+.dropzone {
+    display: grid;
+    place-items: center;
+    gap: 6px;
+    min-height: 135px;
+    padding: 20px;
+    border: 1.5px dashed #9fcbbb;
+    border-radius: 14px;
+    cursor: pointer;
+    color: #17664e;
+    background: #f7fcfa;
+    transition:
+        border-color 160ms ease,
+        background-color 160ms ease;
+}
+
+.dropzone:hover {
+    border-color: #17664e;
+    background: #eff9f5;
+}
+
+.dropzone span {
+    color: #71827b;
+    font-size: .78rem;
+}
+
+.existing,
+.loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: #28624f;
+    background: #edf8f4;
+    font-size: .83rem;
+}
+
+.loading svg,
+.spinner {
+    animation: spin 700ms linear infinite;
+}
+
+.fileList {
+    display: grid;
+    gap: 8px;
+}
+
+.file {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #dce7e3;
+    border-radius: 11px;
+    background: #fff;
+}
+
+.file > svg {
+    color: #24745b;
+}
+
+.file span {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+}
+
+.file strong {
+    overflow: hidden;
+    color: #2d3b36;
+    font-size: .82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file small {
+    color: #819089;
+    font-size: .72rem;
+}
+
+.file button {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #9a4050;
+    background: transparent;
+}
+
+.file button:hover {
+    background: #fff0f2;
+}
+
+.feedback {
+    min-height: 20px;
+}
+
+.feedback p {
+    margin: 0;
+    color: #a23535;
+    font-size: .84rem;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.cancelButton,
+.submitButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 44px;
+    padding: 0 17px;
+    border-radius: 10px;
+    font: inherit;
+    font-size: .88rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.cancelButton {
+    border: 1px solid #ccd8d3;
+    color: #3b4c45;
+    background: #fff;
+}
+
+.submitButton {
+    border: 1px solid #17614b;
+    color: #fff;
+    background: #17664e;
+}
+
+.submitButton:hover:not(:disabled) {
+    background: #125a44;
+}
+
+.cancelButton:hover:not(:disabled) {
+    background: #f5f8f7;
+}
+
+.submitButton:disabled,
+.cancelButton:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 560px) {
+    .appointment {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .actions {
+        flex-direction: column-reverse;
+    }
+
+    .cancelButton,
+    .submitButton {
+        width: 100%;
+    }
+}
+.clinicalFields { display: grid; gap: 10px; color: #263a33; }
+.clinicalFields label { font-size: .9rem; font-weight: 600; }
+.clinicalFields textarea { width: 100%; min-height: 86px; resize: vertical; padding: 12px; border: 1px solid #dce8e4; border-radius: 10px; font: inherit; color: inherit; background: white; }
+.clinicalFields textarea:focus { outline: 2px solid #17664e; outline-offset: 2px; }

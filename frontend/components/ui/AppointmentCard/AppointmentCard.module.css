@@ -45,6 +45,7 @@
 .pendiente, .reprogramada { color: #81510d; background: #fbedca; }
 .completada { color: #17664e; background: #dff0e9; }
 .cancelada { color: #923444; background: #f8e0e4; }
+.vencida { color: #81510d; background: #fbedca; }
 
 .actionButtons {
     display: grid;

@@ -1,11 +1,11 @@
 from calendar import monthrange
 
 from django.db import IntegrityError, transaction
-from django.db.models import Q, Value
+from django.db.models import Q, Value, Prefetch
 from django.db.models.functions import Concat
 from django.utils import timezone
 
-from citas.models import Cita
+from citas.models import (Cita, DocumentoSeguimientoCita)
 from historial_medico.models import HistorialClinico, VersionHistorialClinico
 from historial_medico.serializers import HistorialClinicoDetalleSerializer
 from medicos.models import Medico
@@ -23,6 +23,24 @@ CAMPOS_CLINICOS = (
     'diagnostico_general',
     'observaciones',
     'motivo_consulta',
+)
+
+DOCUMENTOS_SEGUIMIENTO_PREFETCH = Prefetch(
+    "cita__documentos_seguimiento",
+    queryset=(
+        DocumentoSeguimientoCita
+        .objects
+        .filter(
+            archivo__activo=True
+        )
+        .select_related(
+            "archivo"
+        )
+        .order_by(
+            "pk"
+        )
+    ),
+    to_attr="documentos_seguimiento_activos",
 )
 
 
@@ -100,6 +118,73 @@ def _crear_version(historial, version, medico_editor, motivo_cambio, valores=Non
         medico_editor=medico_editor,
     )
 
+def crearHistorialDesdeCierreService(
+    cita,
+    medico,
+    datos,
+):
+    """
+    Crea el historial durante el cierre de una cita.
+
+    No exige que la cita ya esté completada porque esta
+    función se ejecuta dentro de la misma transacción
+    que realiza el cierre.
+    """
+
+    if not isinstance(medico, Medico):
+        return (
+            "No tienes permiso para crear historiales",
+            403,
+        )
+
+    if cita.id_medico_id != medico.id:
+        return (
+            "La cita no pertenece al médico",
+            403,
+        )
+
+    if HistorialClinico.objects.filter(
+        cita=cita
+    ).exists():
+        return (
+            "Esta cita ya tiene un historial registrado",
+            400,
+        )
+
+    try:
+        historial = HistorialClinico.objects.create(
+            diagnostico_general=datos[
+                "diagnostico_general"
+            ],
+            motivo_consulta=datos[
+                "motivo_consulta"
+            ],
+            observaciones=datos.get(
+                "observaciones",
+                "",
+            ),
+            cita=cita,
+            usuario=cita.id_usuario,
+            medico=medico,
+        )
+
+        _crear_version(
+            historial=historial,
+            version=1,
+            medico_editor=medico,
+            motivo_cambio=(
+                "Creación inicial del historial clínico"
+            ),
+        )
+
+    except IntegrityError:
+        return (
+            "Esta cita ya tiene un historial registrado",
+            400,
+        )
+
+    return historial, 201
+
 
 def crearHistorialService(datos, medico):
     if not isinstance(medico, Medico):
@@ -123,20 +208,17 @@ def crearHistorialService(datos, medico):
             if HistorialClinico.objects.filter(cita=cita).exists():
                 return 'Esta cita ya tiene un historial registrado', 400
 
-            historial = HistorialClinico.objects.create(
-                diagnostico_general=datos['diagnostico_general'],
-                motivo_consulta=datos['motivo_consulta'],
-                observaciones=datos.get('observaciones', ''),
-                cita=cita,
-                usuario=cita.id_usuario,
-                medico=medico,
+            historial, status_code = (
+                crearHistorialDesdeCierreService(
+                    cita=cita,
+                    medico=medico,
+                    datos=datos,
+                )
             )
-            _crear_version(
-                historial=historial,
-                version=1,
-                medico_editor=medico,
-                motivo_cambio='Creación inicial del historial clínico',
-            )
+
+            if status_code != 201:
+                return historial, status_code
+
     except IntegrityError:
         return 'Esta cita ya tiene un historial registrado', 400
 
@@ -148,9 +230,20 @@ def listarHistorialesPacienteService(usuario, ordenamiento=None, filtros=None):
     if not isinstance(usuario, Usuario):
         return 'No tienes permiso para consultar estos historiales', 403
 
-    historiales = HistorialClinico.objects.filter(usuario=usuario).select_related(
-        'usuario', 'medico__id_especialidad'
+    historiales = (
+    HistorialClinico.objects
+    .filter(
+        usuario=usuario
     )
+    .select_related(
+        "usuario",
+        "medico__id_especialidad",
+        "cita",
+    )
+    .prefetch_related(
+        DOCUMENTOS_SEGUIMIENTO_PREFETCH
+    )
+)
     historiales = _filtrar_historiales(historiales, filtros)
     historiales = _ordenar_historiales(historiales, ordenamiento)
 
@@ -165,8 +258,10 @@ def listarHistorialesMedicoService(medico, ordenamiento=None):
         return 'No tienes permiso para consultar estos historiales', 403
 
     historiales = _ordenar_historiales(
-        HistorialClinico.objects.filter(medico=medico).select_related(
-            'usuario', 'medico__id_especialidad'
+        HistorialClinico.objects.filter(medico=medico).select_related
+        ("usuario","medico__id_especialidad","cita")
+        .prefetch_related(
+            DOCUMENTOS_SEGUIMIENTO_PREFETCH
         ),
         ordenamiento,
     )
@@ -199,8 +294,10 @@ def listarProfesionalesHistorialPacienteService(usuario):
 
 def obtenerHistorialService(historial_id, solicitante):
     queryset = HistorialClinico.objects.select_related(
-        'usuario', 'medico'
-    ).prefetch_related('versiones__medico_editor')
+        'usuario', 'medico', 'cita',
+    ).prefetch_related('versiones__medico_editor',
+        DOCUMENTOS_SEGUIMIENTO_PREFETCH,
+    )
 
     if isinstance(solicitante, Medico):
         historial = queryset.filter(id=historial_id, medico=solicitante).first()
@@ -276,8 +373,10 @@ def editarHistorialService(historial_id, datos, medico):
         historial.save(update_fields=[*CAMPOS_CLINICOS, 'version_actual'])
 
     historial = (
-        HistorialClinico.objects.select_related('usuario', 'medico')
-        .prefetch_related('versiones__medico_editor')
+        HistorialClinico.objects.select_related('usuario', 'medico', 'cita')
+        .prefetch_related('versiones__medico_editor',
+            DOCUMENTOS_SEGUIMIENTO_PREFETCH,
+        )
         .get(id=historial.id)
     )
     serializer = HistorialClinicoDetalleSerializer(historial)

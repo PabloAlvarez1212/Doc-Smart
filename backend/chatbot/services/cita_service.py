@@ -289,7 +289,7 @@ class CitaService:
 
     @staticmethod
     @transaction.atomic
-    def operar_medico(medico, id_cita, accion, fecha=None, esperado=None):
+    def operar_medico(medico, id_cita, accion, fecha=None, esperado=None, datos_historial=None):
         if not isinstance(medico, Medico):
             return "No fue posible modificar esta cita.", 403
         # Serializa también las reservas en fechas que todavía no tienen filas.
@@ -315,7 +315,9 @@ class CitaService:
         if accion == "confirmar":
             return confirmarCitaService(cita.pk, medico.pk)
         if accion == "completar":
-            return completarCitaService(cita.pk, medico.pk)
+            if datos_historial is None:
+                return "Para completar la cita, registra motivo, diagnóstico y seguimiento en el modal de cierre de tu agenda.", 400
+            return completarCitaService(cita.pk, medico.pk, datos_historial)
         return "Operación no permitida.", 400
 
     @staticmethod

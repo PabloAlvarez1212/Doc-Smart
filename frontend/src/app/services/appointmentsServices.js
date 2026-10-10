@@ -67,15 +67,46 @@ export const confirmarCitaService = async (id_cita) => {
 };
 
 
-export const completarCitaService = async (id_cita) => {
+export const completarCitaService = async (id_cita, datosClinicos) => {
 
     const response = await api.put(
-        `/citas/${id_cita}/completar/`
+        `/citas/${id_cita}/completar/`, datosClinicos
     );
 
     return response.data;
 };
 
+export const listarDocumentosSeguimientoCitaService = async (id_cita) => {
+    const response = await api.get(
+        `/citas/${id_cita}/documentos/`
+    );
+
+    return response.data?.data ?? response.data;
+};
+
+export const obtenerUrlDocumentoSeguimientoService = async (citaId, documentoId) => {
+    const response = await api.get(`/citas/${citaId}/documentos/${documentoId}/url/`);
+    return response.data.data;
+};
+
+
+export const subirDocumentosSeguimientoCitaService = async (id_cita,archivos) => {
+    const formData = new FormData();
+
+    archivos.forEach((archivo) => {
+        formData.append(
+            "archivos",
+            archivo
+        );
+    });
+
+    const response = await api.post(
+        `/citas/${id_cita}/documentos/`,
+        formData
+    );
+
+    return response.data?.data ?? response.data;
+};
 
 export const reprogramarCitaService = async (
     id_cita,

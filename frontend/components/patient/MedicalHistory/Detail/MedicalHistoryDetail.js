@@ -1,5 +1,6 @@
-import { AlertTriangle, CalendarDays, Clock3, ClipboardList, FileDown, RefreshCw, Stethoscope } from "lucide-react";
+import { AlertTriangle, CalendarDays, Clock3, ClipboardList, RefreshCw, Stethoscope } from "lucide-react";
 import Button from "../../../ui/Button/Button";
+import DocumentosSeguimientoList from '../../../ui/DocumentosSeguimientoList/DocumentosSeguimientoList';
 import styles from "./MedicalHistoryDetail.module.css";
 import { formatMedicalHistoryDate, formatMedicalHistoryTime } from "../medicalHistoryFormatters";
 
@@ -34,22 +35,13 @@ export default function MedicalHistoryDetail({ record, loading, error, onRetry }
                 <span><Stethoscope size={23} /></span>
                 <div><strong>{record.medico}</strong><p>{record.especialidad}</p></div>
             </div>
+            <DocumentosSeguimientoList citaId={record.cita_id} documentos={record.documentos || []} />
             <dl className={styles.sections}>
                 <div><dt>Motivo de consulta</dt><dd>{record.motivo_consulta}</dd></div>
                 <div><dt>Diagnóstico general</dt><dd>{record.diagnostico_general}</dd></div>
                 <div><dt>Observaciones</dt><dd>{record.observaciones || "Sin observaciones adicionales."}</dd></div>
             </dl>
             <div className={styles.note}><ClipboardList size={19} aria-hidden="true" /><p>Registro clínico versionado. Estás viendo la versión {record.version_actual}.</p></div>
-            <div className={styles.documentAction}>
-                <Button
-                    className={styles.download}
-                    variant="secundary"
-                    disabled
-                    aria-describedby="medical-history-pdf-status"
-                >
-                    <FileDown size={18} aria-hidden="true" /> Descargar PDF
-                </Button>
-            </div>
         </article>
     );
 }

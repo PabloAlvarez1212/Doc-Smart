@@ -1,9 +1,12 @@
 import logging
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from utils import IsMedicoAprobado,IsPaciente,IsPacienteOrMedicoAprobado,IsAdmin,FiltroPeriodoSerializer
 from rest_framework.permissions import IsAuthenticated
+from historial_medico.serializers import ( CrearHistorialSerializer,)
 from citas.services import (
     listarCitasService,
     listarCitasPacienteService,
@@ -273,18 +276,109 @@ class CitaCancelarView(APIView):
 
 
 class CitaCompletarView(APIView):
-    permission_classes = [IsAuthenticated,IsMedicoAprobado]
-    # Médico completa la cita
+    permission_classes = [
+        IsAuthenticated,
+        IsMedicoAprobado
+    ]
+
     def put(self, request, pk):
+
+        serializer = CrearHistorialSerializer(
+            data={
+                "cita_id": pk,
+
+                "motivo_consulta":
+                    request.data.get(
+                        "motivo_consulta"
+                    ),
+
+                "diagnostico_general":
+                    request.data.get(
+                        "diagnostico_general"
+                    ),
+
+                "observaciones":
+                    request.data.get(
+                        "observaciones",
+                        ""
+                    ),
+            }
+        )
+
+        if not serializer.is_valid():
+
+            return respuesta_serializer_invalido(
+                serializer.errors
+            )
+
         try:
+
             medico_id = request.user.id
-            resultado, status_code = completarCitaService(pk, medico_id)
+
+            resultado, status_code = (
+                completarCitaService(
+                    pk,
+                    medico_id,
+                    serializer.validated_data,
+                )
+            )
+
             if status_code != 200:
-                return respuesta_error(resultado, status=status_code)
-            return respuesta_ok(data=resultado, mensaje='Cita completada correctamente')
-        except Exception as e:
-            print(e)
-            return respuesta_error('Error interno del servidor', status=500)
+
+                return respuesta_error(
+                    resultado,
+                    status=status_code
+                )
+
+            return respuesta_ok(
+                data=resultado,
+                mensaje=(
+                    "Cita completada correctamente"
+                )
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Error completando cita %s",
+                pk
+            )
+
+            return respuesta_error(
+                "Error interno del servidor",
+                status=500
+            )
+
+class CitaDocumentosView(APIView):
+    permission_classes = [IsAuthenticated, IsPacienteOrMedicoAprobado]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get(self, request, pk):
+        from .cierre_services import listarDocumentosCitaService
+        resultado, status = listarDocumentosCitaService(pk, request.user)
+        return respuesta_ok(data=resultado) if status == 200 else respuesta_error(resultado, status=status)
+
+    def post(self, request, pk):
+        from .services import subirDocumentosCitaService
+        try:
+            resultado, status = subirDocumentosCitaService(pk, request.user, request.FILES.getlist('archivos'))
+            if status != 201:
+                return respuesta_error(resultado, status=status)
+            return respuesta_ok(data=resultado, mensaje='Documentos de seguimiento registrados', status=201)
+        except DjangoValidationError as exc:
+            return respuesta_error('; '.join(exc.messages), status=400)
+        except Exception:
+            logger.exception('Error registrando seguimiento de cita %s', pk)
+            return respuesta_error('No se pudo registrar la documentación de seguimiento', status=500)
+
+
+class CitaDocumentoUrlView(APIView):
+    permission_classes = [IsAuthenticated, IsPacienteOrMedicoAprobado]
+
+    def get(self, request, pk, documento_id):
+        from .cierre_services import obtenerUrlDocumentoCitaService
+        resultado, status = obtenerUrlDocumentoCitaService(pk, documento_id, request.user)
+        return respuesta_ok(data=resultado) if status == 200 else respuesta_error(resultado, status=status)
 
 class CitaConfirmarView(APIView):
     permission_classes = [IsAuthenticated,IsMedicoAprobado]

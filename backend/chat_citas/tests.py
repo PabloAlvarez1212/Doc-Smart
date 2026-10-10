@@ -20,6 +20,7 @@ from users.models import Usuario
 
 
 class ChatFixture(TestCase):
+    datos_historial = {'motivo_consulta': 'Consulta de prueba', 'diagnostico_general': 'Resultado de prueba', 'observaciones': ''}
     @classmethod
     def setUpTestData(cls):
         cls.now = datetime(2027, 1, 10, 15, tzinfo=dt_timezone.utc)
@@ -50,6 +51,15 @@ class ChatFixture(TestCase):
     def model(self):
         self.assertTrue(apps.is_installed('chat_citas'), 'Falta registrar chat_citas')
         return apps.get_model('chat_citas', 'Conversacion')
+
+    def preparar_cierre_clinico(self):
+        from citas.models import DocumentoSeguimientoCita
+        self.cita.fecha_programada = self.now - timedelta(minutes=15)
+        self.cita.fecha_final = self.now + timedelta(minutes=30)
+        self.cita.fecha_limite_cierre = self.cita.fecha_final + timedelta(hours=72)
+        self.cita.save()
+        archivo = Archivo.objects.create(medico=self.cita.id_medico, nombre_original='seguimiento.pdf', storage_key=f'test/seguimiento/{self.cita.pk}')
+        DocumentoSeguimientoCita.objects.create(cita=self.cita, archivo=archivo)
 
     def service(self, name):
         module = import_module('chat_citas.services')
