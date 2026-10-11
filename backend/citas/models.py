@@ -20,6 +20,7 @@ class Cita(models.Model):
     fecha_recordatorio_cierre_24h = models.DateTimeField(null=True, blank=True)
     fecha_recordatorio_cierre_48h = models.DateTimeField(null=True, blank=True)
     fecha_vencimiento = models.DateTimeField(null=True, blank=True)
+    fecha_limite_confirmacion = models.DateTimeField(null=True,blank=True)
 
     def __str__(self):
         return f"Cita {self.id} - {self.fecha_programada}"
