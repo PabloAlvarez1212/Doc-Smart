@@ -999,6 +999,9 @@ def confirmarCitaService(id, medico_id):
 
     if estado_actual == 'completada':
         return 'No se puede confirmar una cita completada', 400
+    
+    if cita.fecha_programada <= timezone.now():
+        return "No se puede confirmar una cita cuya fecha ya venció", 400
 
     estado_confirmada = Estado.objects.filter(
         nombre__iexact='confirmada'
@@ -1237,3 +1240,72 @@ def obtenerInfoPacienteCitaService(medico, cita_id):
     ).select_related("id_tipo")
 
     return paciente, registros
+def obtenerCitasPendientesVencidasService():
+
+    fecha_actual = timezone.now()
+
+    citas = Cita.objects.filter(
+        id_estado__nombre__iexact="pendiente",
+        fecha_programada__lte=fecha_actual
+    )
+
+    return citas
+
+@serializar_agenda
+def cancelarCitaVencidaService(id):
+
+    cita = Cita.objects.select_for_update().filter(
+        pk=id
+    ).first()
+
+    if not cita:
+        return "Cita no encontrada", 404
+
+    if cita.id_estado.nombre.lower() != "pendiente":
+        return "La cita ya no está pendiente", 400
+
+    if cita.fecha_programada > timezone.now():
+        return "La cita todavía no ha vencido", 400
+
+    estado_cancelada = Estado.objects.filter(
+        nombre="cancelada"
+    ).first()
+
+    if not estado_cancelada:
+        return "Estado cancelada no configurado", 500
+
+    cita.id_estado = estado_cancelada
+
+    cita.fecha_cancelacion = timezone.now()
+
+    cita.save(
+        update_fields=[
+            "id_estado",
+            "fecha_cancelacion"
+        ]
+    )
+
+    return "Cita cancelada automáticamente", 200
+
+def cancelarCitasPendientesVencidasService():
+
+    citas = obtenerCitasPendientesVencidasService()
+
+    canceladas = 0
+    omitidas = 0
+
+    for cita_id in citas.values_list("id", flat=True).iterator():
+
+        mensaje, status_code = cancelarCitaVencidaService(
+            cita_id
+        )
+
+        if status_code == 200:
+            canceladas += 1
+        else:
+            omitidas += 1
+
+    return {
+        "canceladas": canceladas,
+        "omitidas": omitidas
+    }
