@@ -12,7 +12,7 @@ export default function MedicalHistoryFilters({ filters, professionals, onChange
         <section className={styles.filters} aria-label="Filtros del historial clínico">
             <label className={styles.search}>
                 <span className={styles.visuallyHidden}>Buscar en el historial</span><Search size={20} aria-hidden="true" />
-                <input type="search" value={filters.search} placeholder="Buscar por médico, diagnóstico o motivo" onChange={(event) => onChange("search", event.target.value)} />
+                <input type="search" value={filters.search} placeholder="Buscar por médico, código de cita, diagnóstico o motivo" onChange={(event) => onChange("search", event.target.value)} />
             </label>
             <label className={styles.field}>
                 <span>Periodo</span>
