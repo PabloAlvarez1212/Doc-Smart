@@ -38,9 +38,14 @@ export default function AppointmentList({
                     const status = String(cita.estado || "").toLowerCase();
                     const { fecha, hora } = formatearFecha(cita.fecha_programada);
                     const location = [cita.ciudad, cita.departamento].filter(Boolean).join(", ");
-                    const resolutionDate = status === "cancelada"
-                        ? cita.fecha_cancelacion
-                        : status === "completada" ? cita.fecha_final : null;
+                    const resolutionDate =
+                        status === "cancelada"
+                            ? cita.fecha_cancelacion
+                            : status === "vencida"
+                                ? cita.fecha_vencimiento
+                                : status === "completada"
+                                    ? (cita.fecha_completada || cita.fecha_final)
+                                    : null;
                     const resolution = formatearFechaResolucion(resolutionDate);
                     const actionKeys = getPatientAppointmentActionKeys(status);
                     const actions = actionKeys.map((action) => action === "reprogramar"
@@ -73,9 +78,17 @@ export default function AppointmentList({
                             status={{ key: status, label: capitalize(cita.estado) }}
                             actions={actions}
                             onViewDetails={() => openDetails(cita)}
-                            metadata={resolution
-                                ? `${status === "cancelada" ? "Cancelada" : "Completada"} el ${resolution}`
-                                : null}
+                            metadata={
+                                resolution
+                                    ? `${
+                                        status === "cancelada"
+                                            ? "Cancelada"
+                                            : status === "vencida"
+                                                ? "Vencida"
+                                                : "Completada"
+                                    } el ${resolution}`
+                                    : null
+                            }
                         />
                     );
                     })}
