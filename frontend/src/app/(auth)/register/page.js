@@ -14,12 +14,12 @@ function RegisterContent() {
   const role = searchParams.get("role");
 
   useEffect(() => {
-    if (!role) {
+    if (!['paciente','medico'].includes(role)) {
       router.replace("/rol");
     }
   }, [role, router]);
 
-  if (!role) {
+  if (!['paciente','medico'].includes(role)) {
     return null;
   }
 

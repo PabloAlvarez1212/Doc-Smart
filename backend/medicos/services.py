@@ -10,7 +10,7 @@ from medicos.models import Medico, Especialidad,SolicitudValidacionMedico, Dispo
 from citas.models import Cita
 from users.models import Usuario
 from historial_medico.models import HistorialClinico
-from catalogos.models import Rol, Ciudad
+from catalogos.models import Ciudad
 from medicos.serializers import (
     EspecialidadSerializer,
     MedicoPerfilSerializer,
@@ -471,114 +471,6 @@ def obtenerMedicoService(id_medico):
 
 
 # Crea un nuevo médico tras validar datos, unicidad de correo/cédula y existencia de relaciones
-@transaction.atomic
-def crearMedicoService(data_validada):
-
-    # Verifica que el correo no esté en uso por otro médico o usuario
-    if Usuario.objects.filter(
-        correo=data_validada['correo']
-    ).exists() or Medico.objects.filter(
-        correo=data_validada['correo']
-    ).exists():
-
-        return {
-            'correo': ['El correo ya está registrado']
-        }, 400
-
-    # Verifica que la cédula no esté en uso por otro médico o usuario
-    if Usuario.objects.filter(
-        cedula=data_validada['cedula']
-    ).exists() or Medico.objects.filter(
-        cedula=data_validada['cedula']
-    ).exists():
-
-        return {
-            'cedula': ['La cédula ya está registrada']
-        }, 400
-
-    # Verifica que la especialidad enviada exista
-    especialidad = Especialidad.objects.filter(
-        id=data_validada['id_especialidad']
-    ).first()
-
-    if not especialidad:
-        return {
-            'id_especialidad': ['Especialidad no encontrada']
-        }, 404
-
-    # Verifica que la ciudad enviada exista
-    ciudad = Ciudad.objects.filter(
-        id=data_validada['ciudad']
-    ).first()
-
-    if not ciudad:
-        return {
-            'ciudad': ['Ciudad no encontrada']
-        }, 404
-
-    # Busca el rol doctor
-    rol = Rol.objects.filter(
-        nombre='doctor'
-    ).first()
-
-    if not rol:
-        return {
-            'general': ['Rol médico no encontrado']
-        }, 404
-
-    hoja_vida = data_validada["hoja_vida"]
-
-    # Encripta la contraseña
-    password_encriptada = bcrypt.hashpw(
-        data_validada['contraseña'].encode('utf-8'),
-        bcrypt.gensalt()
-    ).decode('utf-8')
-
-    # Crea el médico
-    medico = Medico.objects.create(
-        nombre=data_validada['nombre'],
-        apellido=data_validada['apellido'],
-        cedula=data_validada['cedula'],
-        fecha_nacimiento=data_validada['fecha_nacimiento'],
-        telefono=data_validada.get('telefono', ''),
-        correo=data_validada['correo'],
-        contraseña=password_encriptada,
-        id_especialidad=especialidad,
-        ciudad=ciudad,
-        id_rol=rol,
-        direccion=data_validada.get('direccion', ''),
-    )
-
-    try:
-        # Guarda PDF y retorna el registro Archivo
-        archivo_hoja_vida = guardar_archivo_medico(
-            archivo=hoja_vida,
-            medico_id=medico.id,
-            categoria="hoja_vida"
-        )
-
-        # Crear primera solicitud
-        SolicitudValidacionMedico.objects.create(
-            medico=medico,
-            hoja_vida=archivo_hoja_vida
-        )
-
-    except Exception as error:
-
-        print(
-            "Error creando solicitud de validación médica:",
-            error
-        )
-
-        # Al lanzar excepción,
-        # transaction.atomic revierte
-        # la creación del médico.
-        raise
-
-    return MedicoPerfilSerializer(medico).data, 201
-
-
-# Actualiza los campos enviados de un médico existente
 def actualizarMedicoService(id_medico, data):
 
     medico = Medico.objects.filter(
@@ -594,6 +486,11 @@ def actualizarMedicoService(id_medico, data):
         return serializer.errors, 400
 
     data_validada = serializer.validated_data
+    if medico.documento_verificado_en:
+        errores_identidad={campo:["La identidad verificada no puede modificarse desde el perfil"]
+            for campo in ("nombre","apellido","fecha_nacimiento")
+            if campo in data_validada and data_validada[campo]!=getattr(medico,campo)}
+        if errores_identidad:return errores_identidad,400
 
     # Verifica que el nuevo correo no pertenezca a otro médico
     if 'correo' in data_validada:
@@ -1073,6 +970,11 @@ def editarPerfilMedicoService(id_medico, data):
         return serializer.errors, 400
 
     data_validada = serializer.validated_data
+    if medico.documento_verificado_en:
+        errores_identidad={campo:["La identidad verificada no puede modificarse desde el perfil"]
+            for campo in ("nombre","apellido","fecha_nacimiento")
+            if campo in data_validada and data_validada[campo]!=getattr(medico,campo)}
+        if errores_identidad:return errores_identidad,400
 
     # Validar correo
     if 'correo' in data_validada:

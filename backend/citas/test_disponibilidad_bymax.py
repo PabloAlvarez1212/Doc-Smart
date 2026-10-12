@@ -83,7 +83,11 @@ class DisponibilidadConfirmacionTests(TestCase):
 
     def test_slot_ofrecido_crea_una_sola_cita(self):
         self.assertTrue(generarSlotsDisponibles(self.medico, self.fecha))
-        datos = {"id_medico": self.medico.pk, "fecha_programada": self.inicio}
+        datos = {
+            "id_medico": self.medico.pk,
+            "fecha_programada": self.inicio,
+            "motivo_consulta": "Consulta general de prueba",
+        }
         self.assertEqual(crearCitaService(datos, self.paciente.pk)[1], 201)
         self.assertEqual(crearCitaService(datos, self.paciente.pk)[1], 400)
         self.assertEqual(Cita.objects.count(), 1)

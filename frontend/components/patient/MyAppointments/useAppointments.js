@@ -21,7 +21,7 @@ export default function useAppointments() {
     const [totalPaginas, setTotalPaginas] = useState(1);
     const [totalRegistros, setTotalRegistros] = useState(0);
     const [filtros, setFiltros] = useState({
-        doctor: "",
+        busqueda: "",
         ciudad: "",
         departamento: "",
         especialidad: "",
@@ -155,8 +155,8 @@ export default function useAppointments() {
                 params.estado = estado;
             }
 
-            if (filtros.doctor.trim()) {
-                params.doctor = filtros.doctor;
+            if (filtros.busqueda.trim()) {
+                params.busqueda = filtros.busqueda;
             }
 
             if (filtros.ciudad.trim()) {

@@ -29,7 +29,7 @@ class RegistroPacienteTests(TestCase):
         Rol.objects.get_or_create(nombre='paciente')
         self.personales = dict(nombre='Ana', apellido='Perez', tipo_documento='CC',
                                numero_documento='1234567890', fecha_nacimiento='1990-05-10')
-        self.adicionales = dict(telefono='3001234567', estatura=1.75, peso=70)
+        self.adicionales = dict(telefono='3001234567', estatura=1.75, peso=70, genero='F', tipo_sangre='O+')
         self.credenciales = {'correo': 'ANA@example.com', 'contraseña': 'Segura123!'}
 
     def post(self, ruta, datos):
@@ -86,6 +86,7 @@ class RegistroPacienteTests(TestCase):
         self.assertEqual(response.status_code, 201, response.data)
         usuario = Usuario.objects.get()
         self.assertEqual((usuario.nombre, usuario.cedula, usuario.id_rol.nombre), ('Ana', '1234567890', 'paciente'))
+        self.assertEqual((usuario.genero, usuario.tipo_sangre), ('F', 'O+'))
         self.assertEqual(self.post('completar/', datos).status_code, 400)
 
     def test_no_permite_saltar_pasos(self):

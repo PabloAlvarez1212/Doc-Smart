@@ -101,7 +101,7 @@ class CitaPacienteView(APIView):
         try:
             usuario_id = request.user.id
             estado = request.GET.get("estado")
-            doctor = request.GET.get("doctor")
+            busqueda = request.GET.get("busqueda")
             ciudad = request.GET.get("ciudad")
             departamento = request.GET.get("departamento")
             especialidad = request.GET.get("especialidad")
@@ -109,7 +109,7 @@ class CitaPacienteView(APIView):
             page = request.query_params.get('page')
             page_size = request.query_params.get('page_size', 10)
             
-            resultado, status_code = listarCitasPacienteService(usuario_id,estado,doctor,ciudad,departamento,especialidad,fecha,page,page_size)
+            resultado, status_code = listarCitasPacienteService(usuario_id=usuario_id,estado=estado,busqueda=busqueda,ciudad=ciudad,departamento=departamento,especialidad=especialidad,fecha=fecha,page=page,page_size=page_size)
             
             if status_code != 200:
                 return respuesta_error(resultado, status=status_code)

@@ -83,6 +83,7 @@ def _filtrar_historiales(queryset, filtros=None):
             Q(nombre_completo_medico__icontains=search)
             | Q(diagnostico_general__icontains=search)
             | Q(motivo_consulta__icontains=search)
+            | Q(cita__codigo_cita__iexact=search)
         )
 
     if doctor:

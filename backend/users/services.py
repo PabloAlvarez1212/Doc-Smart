@@ -18,6 +18,7 @@ from django.core.mail import send_mail
 import os
 import resend
 from django.template.loader import render_to_string
+from urllib.parse import urlencode
 from django.core.paginator import Paginator
 from citas.models import Cita
 import calendar
@@ -150,6 +151,203 @@ def refreshTokenService(refresh_token):
             },
             401
         )
+
+def solicitarCambioService(correo):
+
+    # Buscar el correo en ambas tablas
+    usuario = Usuario.objects.filter(
+        correo=correo
+    ).first()
+
+    medico = Medico.objects.filter(
+        correo=correo
+    ).first()
+
+    if not usuario and not medico:
+        return {
+            "general": [
+                "El correo no se encuentra registrado"
+            ]
+        }, 404
+
+    persona = usuario or medico
+
+    ahora = timezone.now()
+
+    # ==========================================
+    # 1. VERIFICAR TIEMPO ENTRE SOLICITUDES
+    # ==========================================
+
+    if persona.ultimo_envio:
+
+        tiempo_transcurrido = (
+            ahora - persona.ultimo_envio
+        )
+
+        if tiempo_transcurrido < timedelta(minutes=5):
+
+            segundos_restantes = max(
+                0,
+                300 - int(
+                    tiempo_transcurrido.total_seconds()
+                )
+            )
+
+            minutos = segundos_restantes // 60
+            segundos = segundos_restantes % 60
+
+            if minutos > 0:
+                return {
+                    "general": [
+                        f"Espera {minutos} min "
+                        f"{segundos} seg antes de reenviar"
+                    ]
+                }, 400
+
+            else:
+                return {
+                    "general": [
+                        f"Espera {segundos} segundos "
+                        f"antes de reenviar"
+                    ]
+                }, 400
+
+    # ==========================================
+    # 2. VERIFICAR CONFIGURACIÓN
+    # ==========================================
+
+    frontend_url = os.getenv(
+        "FRONTEND_URL", ""
+    ).rstrip("/")
+
+    remitente = os.getenv("RESEND_FROM_EMAIL")
+
+    if not frontend_url or not remitente or not resend.api_key:
+
+        logger.error(
+            "Configuración incompleta para recuperación "
+            "de contraseña mediante Resend"
+        )
+
+        return {
+            "general": [
+                "Error enviando el correo"
+            ]
+        }, 500
+
+    # ==========================================
+    # 3. GENERAR TOKEN TEMPORAL
+    # ==========================================
+
+    token = secrets.token_urlsafe(32)
+
+    expiracion = (
+        ahora + timedelta(minutes=15)
+    )
+
+    # ==========================================
+    # 4. CREAR ENLACE DE RECUPERACIÓN
+    # ==========================================
+
+    parametros = urlencode({
+        "token": token
+    })
+
+    link = (
+        f"{frontend_url}/reset-password?"
+        f"{parametros}"
+    )
+
+    # ==========================================
+    # 5. PREPARAR INFORMACIÓN DEL CORREO
+    # ==========================================
+
+    nombre = persona.nombre or "Usuario"
+    apellido = persona.apellido or ""
+
+    # ==========================================
+    # 6. GUARDAR TOKEN
+    # ==========================================
+
+    persona.token_reset = token
+    persona.token_reset_expira = expiracion
+
+    persona.save(
+        update_fields=[
+            "token_reset",
+            "token_reset_expira",
+        ]
+    )
+
+    # ==========================================
+    # 7. ENVIAR CORREO MEDIANTE RESEND
+    # ==========================================
+
+    try:
+
+        html_content = render_to_string(
+            "emails/reset_password.html",
+            {
+                "link": link,
+                "nombre": nombre,
+                "apellido": apellido,
+            }
+        )
+
+        respuesta = resend.Emails.send({
+            "from": remitente,
+
+            "to": [persona.correo],
+
+            "subject": (
+                "Recupera tu contraseña - DocSmart"
+            ),
+
+            "html": html_content,
+
+            "text": (
+                f"Hola {nombre},\n\n"
+                "Recibimos una solicitud para "
+                "restablecer tu contraseña de DocSmart.\n\n"
+                f"Utiliza este enlace: {link}\n\n"
+                "El enlace expirará en 15 minutos.\n\n"
+                "Si no solicitaste este cambio, "
+                "puedes ignorar este mensaje."
+            ),
+        })
+
+        # ======================================
+        # 8. REGISTRAR ENVÍO EXITOSO
+        # ======================================
+
+        persona.ultimo_envio = timezone.now()
+
+        persona.save(
+            update_fields=[
+                "ultimo_envio"
+            ]
+        )
+
+        logger.info(
+            "Correo de recuperación aceptado "
+            "por Resend. ID: %s",
+            respuesta.get("id")
+        )
+
+        return "Email enviado correctamente", 200
+
+    except Exception:
+
+        logger.exception(
+            "Error enviando correo de "
+            "recuperación mediante Resend"
+        )
+
+        return {
+            "general": [
+                "Error enviando el correo"
+            ]
+        }, 500
 
 def solicitarCambioCorreoService(usuario,nuevo_correo):
 
@@ -371,7 +569,7 @@ def cambiarContraseñaAutenticadoService(persona,contraseña_actual,nueva_contra
 
     return 'Contraseña actualizada correctamente', 200
 
-def registrarUsuarioService(datos):
+def registrarUsuarioService(datos, tipo_registro="paciente"):
     tipo=datos["tipo_documento"]
     numero=datos["numero_documento"].strip().upper()
 
@@ -380,6 +578,7 @@ def registrarUsuarioService(datos):
 
     ahora=timezone.now()
     proceso=ProcesoRegistroUsuario.objects.create(
+        tipo_registro=tipo_registro,
         nombre_declarado=datos["nombre"],
         apellido_declarado=datos["apellido"],
         fecha_nacimiento_declarada=datos["fecha_nacimiento"],
@@ -390,8 +589,9 @@ def registrarUsuarioService(datos):
     return {"proceso_id":str(proceso.id)},201
 
 
-def validarProcesoRegistro(proceso):
+def validarProcesoRegistro(proceso, tipo_registro="paciente"):
     if not proceso:return {"general":["Proceso de registro inválido"]},400
+    if proceso.tipo_registro != tipo_registro:return {"general":["El proceso no corresponde a este registro"]},403
     if proceso.estado in [ProcesoRegistroUsuario.Estado.BLOQUEADO,ProcesoRegistroUsuario.Estado.EXPIRADO,ProcesoRegistroUsuario.Estado.COMPLETADO]:
         return {"general":["El proceso ya no está disponible"]},400
     if proceso.expira_en<=timezone.now():
@@ -411,17 +611,27 @@ def guardarDatosAdicionalesRegistroService(datos):
     proceso.telefono=datos["telefono"]
     proceso.estatura=datos["estatura"]
     proceso.peso=datos["peso"]
-    proceso.save(update_fields=["telefono","estatura","peso"])
+    proceso.genero=datos["genero"]
+    proceso.tipo_sangre=datos["tipo_sangre"]
+    proceso.save(update_fields=["telefono","estatura","peso","genero","tipo_sangre"])
     return {"datos_guardados":True},200
 
 
 @transaction.atomic
-def configurarCredencialesRegistroService(datos):
+def configurarCredencialesRegistroService(datos, tipo_registro="paciente"):
     proceso=ProcesoRegistroUsuario.objects.select_for_update().filter(id=datos["proceso_id"]).first()
-    error=validarProcesoRegistro(proceso)
+    error=validarProcesoRegistro(proceso,tipo_registro)
     if error:return error
     if not proceso.documento_verificado:return {"documento":["Primero debes verificar el documento"]},403
-    if not proceso.telefono or proceso.estatura is None or proceso.peso is None:
+    if tipo_registro == "medico" and not all([proceso.telefono,proceso.direccion_profesional,proceso.ciudad_profesional_id,proceso.especialidad_id,proceso.hoja_vida_id]):
+        return {"general":["Primero debes guardar los datos profesionales y la hoja de vida"]},403
+    if tipo_registro == "paciente" and (
+        not proceso.telefono
+        or proceso.estatura is None
+        or proceso.peso is None
+        or not proceso.genero
+        or not proceso.tipo_sangre
+    ):
         return {"general":["Primero debes guardar los datos adicionales"]},403
     # No reiniciar intentos ni cambiar credenciales de un OTP ya emitido.
     correo=datos["correo"].strip().lower()
@@ -462,12 +672,18 @@ def validarArchivoDocumentoService(archivo):
     if not archivo or archivo.size<=0: return None,{"documento":["Archivo vacío"]},400
     if archivo.size>MAX_DOCUMENTO_BYTES: return None,{"documento":["El archivo supera los 8 MB"]},400
 
+    extension=os.path.splitext(archivo.name)[1].lower()
+    formatos={".jpg":"JPEG",".jpeg":"JPEG",".png":"PNG",".webp":"WEBP"}
+    if extension not in formatos:return None,{"documento":["Solo se permiten archivos JPG, PNG o WEBP"]},400
     archivo.seek(0)
     contenido=archivo.read()
     archivo.seek(0)
 
     try:
         img=Image.open(ContentFile(contenido))
+        formato_real=img.format
+        if formato_real!=formatos[extension] or archivo.content_type!={"JPEG":"image/jpeg","PNG":"image/png","WEBP":"image/webp"}.get(formato_real):
+            return None,{"documento":["El contenido de la imagen no coincide con su formato"]},400
         img.verify()
         img=Image.open(ContentFile(contenido))
         formato=img.format
@@ -490,10 +706,13 @@ def validarArchivoDocumentoService(archivo):
 def subirDocumentoRegistroService(
     proceso_id,
     documento_frente=None,
-    documento_reverso=None
+    documento_reverso=None,
+    tipo_registro="paciente"
 ):
     proceso=ProcesoRegistroUsuario.objects.select_for_update().filter(id=proceso_id).first()
 
+    if proceso and proceso.tipo_registro != tipo_registro:
+        return {"general":["El proceso no corresponde a este registro"]},403
     if not proceso:
         return {"general":["Proceso inválido"]},400
 
@@ -512,11 +731,17 @@ def subirDocumentoRegistroService(
     if proceso.documento_verificado:
         return {"documento":["El documento ya fue verificado"]},400
 
+    validados={}
+    for cara,archivo in (("frente",documento_frente),("reverso",documento_reverso)):
+        if archivo:
+            datos,error,status=validarArchivoDocumentoService(archivo)
+            if error:return error,status
+            validados[cara]=(datos,error,status)
     campos=[]
 
     try:
         if documento_frente:
-            datos,error,status=validarArchivoDocumentoService(documento_frente)
+            datos,error,status=validados["frente"]
             if error:
                 return error,status
 
@@ -544,7 +769,7 @@ def subirDocumentoRegistroService(
             campos+=["documento","documento_sha256"]
 
         if documento_reverso:
-            datos,error,status=validarArchivoDocumentoService(documento_reverso)
+            datos,error,status=validados["reverso"]
             if error:
                 return error,status
 
@@ -588,7 +813,7 @@ def subirDocumentoRegistroService(
     },200
 
 
-def extraerDocumentoRegistroService(proceso_id):
+def extraerDocumentoRegistroService(proceso_id,tipo_registro="paciente"):
     proceso=ProcesoRegistroUsuario.objects.filter(
         id=proceso_id
     ).select_related(
@@ -596,6 +821,8 @@ def extraerDocumentoRegistroService(proceso_id):
         "documento_reverso"
     ).first()
 
+    if proceso and proceso.tipo_registro != tipo_registro:
+        return {"general":["El proceso no corresponde a este registro"]},403
     if not proceso:
         return {"general":["Proceso inválido"]},400
 
@@ -648,10 +875,12 @@ def extraerDocumentoRegistroService(proceso_id):
     return datos,200
 
 @transaction.atomic
-def verificarCorreoRegistroService(proceso_id,codigo):
+def verificarCorreoRegistroService(proceso_id,codigo,tipo_registro="paciente"):
     ahora = timezone.now()
     proceso = (ProcesoRegistroUsuario.objects.select_for_update().filter(id=proceso_id).first())
 
+    if proceso and proceso.tipo_registro != tipo_registro:
+        return {"general":["El proceso no corresponde a este registro"]},403
     if not proceso:
         return {"general": ["Proceso de registro inválido"]}, 400
 
@@ -732,10 +961,12 @@ def verificarCorreoRegistroService(proceso_id,codigo):
 
 
 @transaction.atomic
-def reenviarCodigoRegistroService(proceso_id):
+def reenviarCodigoRegistroService(proceso_id,tipo_registro="paciente"):
 
     proceso = (ProcesoRegistroUsuario.objects.select_for_update().filter(id=proceso_id).first())
 
+    if proceso and proceso.tipo_registro != tipo_registro:
+        return {"general":["El proceso no corresponde a este registro"]},403
     if not proceso:
         return {"general": ["Proceso de registro inválido"]}, 400
 
@@ -820,11 +1051,13 @@ def reenviarCodigoRegistroService(proceso_id):
 
 
 @transaction.atomic
-def verificarDocumentoRegistroService(proceso_id):
+def verificarDocumentoRegistroService(proceso_id,tipo_registro="paciente"):
     proceso=ProcesoRegistroUsuario.objects.select_for_update().filter(id=proceso_id).select_related(
         "documento","documento_reverso"
     ).first()
 
+    if proceso and proceso.tipo_registro != tipo_registro:
+        return {"general":["El proceso no corresponde a este registro"]},403
     if not proceso:return {"general":["Proceso inválido"]},400
     if proceso.estado in [ProcesoRegistroUsuario.Estado.BLOQUEADO,ProcesoRegistroUsuario.Estado.EXPIRADO,ProcesoRegistroUsuario.Estado.COMPLETADO]:
         return {"general":["El proceso ya no está disponible"]},400
@@ -879,10 +1112,11 @@ def verificarDocumentoRegistroService(proceso_id):
     elif fecha!=proceso.fecha_nacimiento_declarada:
         errores["fecha_nacimiento"]=["La fecha de nacimiento no coincide"]
 
+    comparaciones={campo:campo not in errores for campo in ("nombre","apellido","numero_documento","fecha_nacimiento")}
     if errores:
         proceso.intentos_documento+=1
         proceso.save(update_fields=["intentos_documento"])
-        return errores,400
+        return ({"errores":errores,"comparaciones":comparaciones} if tipo_registro=="medico" else errores),400
 
     ahora=timezone.now()
 
@@ -906,7 +1140,8 @@ def verificarDocumentoRegistroService(proceso_id):
 
     return {
         "documento_verificado":True,
-        "formato_cc":datos.get("formato_cc")
+        "formato_cc":datos.get("formato_cc"),
+        **({"comparaciones":comparaciones} if tipo_registro=="medico" else {})
     },200
 
 
@@ -914,6 +1149,8 @@ def verificarDocumentoRegistroService(proceso_id):
 def completarRegistroUsuarioService(proceso_id):
     proceso=ProcesoRegistroUsuario.objects.select_for_update().filter(id=proceso_id).first()
 
+    if proceso and proceso.tipo_registro != "paciente":
+        return {"general":["El proceso no corresponde a este registro"]},403
     if not proceso:return {"general":["Proceso de registro inválido"]},400
     if proceso.estado==ProcesoRegistroUsuario.Estado.COMPLETADO:
         return {"general":["El registro ya fue completado"]},400
@@ -930,7 +1167,15 @@ def completarRegistroUsuarioService(proceso_id):
     if not proceso.documento_verificado:
         return {"documento":["El documento no ha sido verificado"]},400
 
-    if not proceso.telefono or proceso.estatura is None or proceso.peso is None or not proceso.contraseña_hash or not proceso.correo:
+    if (
+        not proceso.telefono
+        or proceso.estatura is None
+        or proceso.peso is None
+        or not proceso.genero
+        or not proceso.tipo_sangre
+        or not proceso.contraseña_hash
+        or not proceso.correo
+    ):
         return {"general":["Los datos adicionales o las credenciales están incompletos"]},400
 
     if not all([
@@ -965,6 +1210,8 @@ def completarRegistroUsuarioService(proceso_id):
         telefono=proceso.telefono,
         estatura=proceso.estatura,
         peso=proceso.peso,
+        genero=proceso.genero,
+        tipo_sangre=proceso.tipo_sangre,
         id_rol=rol,
     )
 
@@ -1053,27 +1300,26 @@ def obtenerUsuarioService(id):
     return serializer.data, 200
 
 
-def editarUsuarioService(id, datos):
+def editarUsuarioService(id,datos):
+    usuario=Usuario.objects.filter(id=id).first()
+    if not usuario:return "Usuario no encontrado",404
 
-    usuario = Usuario.objects.filter(id=id).first()
+    usuario.estatura=datos.get("estatura",usuario.estatura)
+    usuario.peso=datos.get("peso",usuario.peso)
+    usuario.telefono=datos.get("telefono",usuario.telefono)
+    usuario.genero=datos.get("genero",usuario.genero)
+    usuario.tipo_sangre=datos.get("tipo_sangre",usuario.tipo_sangre)
 
-    if not usuario:
-        return "Usuario no encontrado", 404
+    usuario.save(update_fields=[
+        "estatura",
+        "peso",
+        "telefono",
+        "genero",
+        "tipo_sangre",
+    ])
 
-    usuario.estatura = datos.get("estatura",usuario.estatura)
-    usuario.peso = datos.get("peso",usuario.peso)
-    usuario.telefono = datos.get("telefono",usuario.telefono)
-
-    usuario.save(
-        update_fields=[
-            "estatura",
-            "peso",
-            "telefono",
-        ]
-    )
-    serializer = UsuarioPerfilSerializer(usuario)
-
-    return serializer.data, 200
+    serializer=UsuarioPerfilSerializer(usuario)
+    return serializer.data,200
 
 def eliminarUsuarioService(id):
     usuario = Usuario.objects.filter(id=id).first()

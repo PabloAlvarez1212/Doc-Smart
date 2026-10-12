@@ -9,6 +9,8 @@ MAX_HOJA_VIDA_SIZE = 5 * 1024 * 1024
 
 
 def validar_hoja_vida_pdf(archivo):
+    if not archivo.size:
+        raise serializers.ValidationError("El PDF está vacío")
     if archivo.size > MAX_HOJA_VIDA_SIZE:
         raise serializers.ValidationError(
             "La hoja de vida no puede superar los 5 MB"
@@ -19,6 +21,13 @@ def validar_hoja_vida_pdf(archivo):
             "La hoja de vida debe estar en formato PDF"
         )
 
+    if not archivo.name.lower().endswith(".pdf"):
+        raise serializers.ValidationError("La hoja de vida debe tener extensión .pdf")
+    archivo.seek(0)
+    contenido=archivo.read()
+    archivo.seek(0)
+    if not contenido.startswith(b"%PDF-") or b"%%EOF" not in contenido[-1024:] or b"/Type" not in contenido or b"/Catalog" not in contenido:
+        raise serializers.ValidationError("El contenido del archivo no corresponde a un PDF válido")
     return archivo
 
 
@@ -245,137 +254,6 @@ def msg(campo, articulo='El'):
 # ── SERIALIZERS DE ENTRADA ────────────────────────────────────────────────────
 
 # Valida los datos necesarios para registrar un nuevo médico
-class RegistrarMedicoSerializer(serializers.Serializer):
-
-    nombre = serializers.CharField(
-        max_length=100,
-        allow_blank=False,
-        trim_whitespace=True,
-        error_messages=msg('nombre')
-    )
-
-    apellido = serializers.CharField(
-        max_length=100,
-        allow_blank=False,
-        trim_whitespace=True,
-        error_messages=msg('apellido')
-    )
-
-    cedula = serializers.CharField(
-        min_length=6,
-        max_length=10,
-        allow_blank=False,
-        trim_whitespace=True,
-        error_messages={
-            **msg('cédula', 'La'),
-            'min_length': 'La cédula debe tener mínimo 6 dígitos',
-            'max_length': 'La cédula debe tener máximo 10 dígitos'
-        }
-    )
-
-    def validate_cedula(self, value):
-        error = validarNumber(value)
-
-        if error:
-            raise serializers.ValidationError(error)
-
-        return value
-
-    fecha_nacimiento = serializers.DateField(
-        error_messages={
-            'required': 'La fecha de nacimiento es obligatoria',
-            'invalid': 'La fecha de nacimiento no tiene un formato válido'
-        }
-    )
-
-    def validate_fecha_nacimiento(self, value):
-        hoy = date.today()
-
-        if value > hoy:
-            raise serializers.ValidationError("La fecha de nacimiento no puede ser futura")
-
-        edad = hoy.year - value.year - (
-            (hoy.month, hoy.day) < (value.month, value.day)
-        )
-
-        if edad < 18:
-            raise serializers.ValidationError(
-                "Debes ser mayor de edad para registrarte como médico"
-            )
-
-        return value
-    
-    hoja_vida = serializers.FileField(
-        required=True,
-        error_messages={
-            "required": "La hoja de vida es obligatoria",
-            "invalid": "La hoja de vida enviada no es un archivo válido"
-        }
-    )
-
-    def validate_hoja_vida(self, value):
-        return validar_hoja_vida_pdf(value)
-
-    telefono = serializers.CharField(
-        max_length=20,
-        trim_whitespace=True,
-        error_messages=msg('teléfono')
-    )
-
-    def validate_telefono(self, value):
-        error = validarNumber(value)
-
-        if error:
-            raise serializers.ValidationError(error)
-
-        return value
-
-    correo = serializers.EmailField(
-        trim_whitespace=True,
-        error_messages={
-            **msg('correo'),
-            'invalid': 'El correo no tiene un formato válido'
-        }
-    )
-
-    contraseña = serializers.CharField(
-        min_length=8,
-        error_messages={
-            **msg('contraseña', 'La'),
-            'min_length': 'La contraseña debe tener mínimo 8 caracteres'
-        }
-    )
-
-    def validate_contraseña(self, value):
-        error = validarContraseña(value)
-
-        if error:
-            raise serializers.ValidationError(error)
-
-        return value
-
-    id_especialidad = serializers.IntegerField(
-        error_messages={
-            'required': 'La especialidad es obligatoria',
-            'invalid': 'La especialidad debe ser un número válido'
-        }
-    )
-
-    ciudad = serializers.IntegerField(
-        error_messages={
-            'required': 'La ciudad es obligatoria',
-            'invalid': 'La ciudad debe ser un número válido'
-        }
-    )
-
-    direccion = serializers.CharField(
-        max_length=100,
-        allow_blank=False,
-        trim_whitespace=True,
-        error_messages=msg('dirección', 'La')
-    )
-
-
 # Valida los datos para actualizar un médico
 class EditarMedicoSerializer(serializers.Serializer):
 

@@ -1,68 +1,38 @@
-"use client";
+'use client'
 
-import styles from "./page.module.css";
-import { useRouter } from "next/navigation";
+import Link from 'next/link'
+import Image from 'next/image'
+import { motion, useReducedMotion } from 'motion/react'
+import { ArrowLeft, ArrowUpRight, CalendarDays, UserRound, Stethoscope, HeartPulse, MessageCircle, ClipboardList, UsersRound } from 'lucide-react'
+import styles from './page.module.css'
+
+const roles=[
+    {id:'paciente',title:'Paciente',Icon:UserRound,description:'Gestiona tus citas, consulta tu información y utiliza Bymax para acompañarte en tu experiencia de salud.',features:[[CalendarDays,'Tus citas, en un solo lugar'],[HeartPulse,'Tu información de salud'],[MessageCircle,'Asistencia con Bymax']],action:'Crear cuenta de paciente'},
+    {id:'medico',title:'Médico',Icon:Stethoscope,description:'Gestiona tus pacientes, citas y herramientas profesionales dentro de DocSmart.',features:[[UsersRound,'Gestión de pacientes'],[CalendarDays,'Agenda y disponibilidad'],[ClipboardList,'Información clínica']],action:'Iniciar registro médico'}
+]
 
 export default function RolPage() {
-  const router = useRouter();
-
-  return (
-    <div className={styles.main}>
-
-      <button className={styles.backBtn} onClick={() => router.push("/")}>
-        ← Volver
-      </button>
-
-      <div className={styles.header}>
-        <h1 className={styles.title}>Selecciona tu Rol</h1>
-        <p className={styles.subtitle}>Elige tu rol para crear tu cuenta</p>
-      </div>
-
-      <div className={styles.cards}>
-
-        <div className={`${styles.card} ${styles.cardPaciente}`}>
-          <div className={`${styles.iconWrapper} ${styles.iconPaciente}`}>
-            <span className={styles.icon}>👤</span>
-          </div>
-          <h2 className={styles.cardTitle}>Paciente</h2>
-          <p className={styles.cardDesc}>
-            Gestiona tus citas, consulta con el asistente virtual y accede a tus recetas médicas
-          </p>
-          <ul className={styles.features}>
-            <li><span className={styles.dotPaciente}>●</span> Agendar y gestionar citas médicas</li>
-            <li><span className={styles.dotPaciente}>●</span> Chatbot asistente 24/7</li>
-            <li><span className={styles.dotPaciente}>●</span> Fórmulas de medicamentos</li>
-          </ul>
-          <button
-            className={`${styles.btn} ${styles.btnPaciente}`}
-            onClick={() => router.push("/register?role=paciente")}
-          >
-            Registrarse como Paciente
-          </button>
+    const reduced=useReducedMotion()
+    return <main className={styles.main}>
+        <div className={styles.topbar}>
+            <Link href="/" className={styles.back}><ArrowLeft size={18} aria-hidden="true"/> Volver al inicio</Link>
+            <Link href="/" className={styles.brand} aria-label="DocSmart, inicio"><Image src="/images/logoCara.png" alt="" width={30} height={30}/><span>Doc<span>Smart</span></span></Link>
         </div>
-
-        <div className={`${styles.card} ${styles.cardMedico}`}>
-          <div className={`${styles.iconWrapper} ${styles.iconMedico}`}>
-            <span className={styles.icon}>🩺</span>
-          </div>
-          <h2 className={styles.cardTitle}>Médico</h2>
-          <p className={styles.cardDesc}>
-            Gestiona tus pacientes, crea diagnósticos y prescribe recetas médicas
-          </p>
-          <ul className={styles.features}>
-            <li><span className={styles.dotMedico}>●</span> Gestión de pacientes</li>
-            <li><span className={styles.dotMedico}>●</span> Chatbot asistente médico</li>
-            <li><span className={styles.dotMedico}>●</span> Recetas y diagnósticos</li>
-          </ul>
-          <button
-            className={`${styles.btn} ${styles.btnMedico}`}
-            onClick={() => router.push("/register?role=medico")}
-          >
-            Registrarse como Médico
-          </button>
+        <header className={styles.header}>
+            <h1>Tu espacio en <span>DocSmart.</span></h1>
+            <p>Elige cómo quieres usar DocSmart.<br/>Te acompañamos paso a paso para crear tu cuenta.</p>
+        </header>
+        <div className={styles.cards}>
+            {roles.map(({id,title,Icon,description,features,action},index)=><motion.div key={id} className={styles.cardWrap} initial={{opacity:1,y:10}} animate={{y:0}} transition={{duration:reduced?0:.32,delay:reduced?0:index*.05,ease:[.16,1,.3,1]}}>
+                <Link href={`/register?role=${id}`} className={styles.card} data-role={id} aria-labelledby={`role-${id}-title role-${id}-action`} aria-describedby={`role-${id}-description`}>
+                    <div className={styles.cardTop}><span className={styles.icon}><Icon size={31} strokeWidth={1.65} aria-hidden="true"/></span>{id==='medico'&&<span className={styles.badge}>Requiere verificación</span>}</div>
+                    <h2 id={`role-${id}-title`}>{title}</h2>
+                    <p id={`role-${id}-description`} className={styles.description}>{description}</p>
+                    <ul className={styles.features}>{features.map(([Feature,text])=><li key={text}><Feature size={18} strokeWidth={1.7} aria-hidden="true"/>{text}</li>)}</ul>
+                    <span id={`role-${id}-action`} className={styles.action}>{action}<ArrowUpRight size={20} aria-hidden="true"/></span>
+                </Link>
+            </motion.div>)}
         </div>
-
-      </div>
-    </div>
-  );
+        <footer className={styles.footer}><p>¿Ya tienes una cuenta? <Link href="/login">Inicia sesión</Link></p><span>La identidad y el correo se verifican durante el registro.</span></footer>
+    </main>
 }

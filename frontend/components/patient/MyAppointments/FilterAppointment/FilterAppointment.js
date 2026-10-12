@@ -22,14 +22,14 @@ export default function FilterAppointment({
 
             <div className={styles.controls} role="search">
                 <label className={`${styles.field} ${styles.searchField}`}>
-                    <span>Profesional</span>
+                    <span>Profesional o código de cita</span>
                     <span className={styles.searchControl}>
                         <Search size={17} aria-hidden="true" />
                         <input
                             type="search"
-                            placeholder="Buscar por nombre"
-                            value={filtros.doctor}
-                            onChange={(event) => cambiarFiltro("doctor", event.target.value)}
+                            placeholder="Buscar por nombre o código de cita"
+                            value={filtros.busqueda}
+                            onChange={(event) => cambiarFiltro("busqueda", event.target.value)}
                         />
                     </span>
                 </label>

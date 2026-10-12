@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone as dt_timezone
 from functools import wraps
 from notificaciones.services import enviarNotificacion
 from medicos.services_disponibilidad import esHorarioDisponible
+from notificaciones.email_citas_services import enviarCorreosCitaProgramada,enviarCorreosCitaConfirmada, enviarCorreosCitaReprogramada,enviarCorreosCitaCancelada,enviarCorreosCitaVencida, enviarCorreosCitaCompletada
 
 # Los exports de cierre se importan al final, después de definir serializar_agenda.
 
@@ -42,14 +43,14 @@ def listarCitasService():
     serializer = CitaSerializer(citas, many=True)
     return serializer.data, 200
 
-def listarCitasPacienteService(usuario_id,estado=None,doctor=None,ciudad=None,departamento=None,especialidad=None,fecha=None,page=None, page_size=10):
+def listarCitasPacienteService(usuario_id,busqueda=None,estado=None,ciudad=None,departamento=None,especialidad=None,fecha=None,page=None, page_size=10):
     citas = Cita.objects.filter(id_usuario=usuario_id)
     
     #estado
     if estado:
         citas = citas.filter(id_estado__nombre = estado)
     #doctor
-    if doctor:
+    if busqueda:
         citas = citas.annotate(
         nombre_completo=Concat(
             "id_medico__nombre",
@@ -57,7 +58,7 @@ def listarCitasPacienteService(usuario_id,estado=None,doctor=None,ciudad=None,de
             "id_medico__apellido"
         )
     ).filter(
-        nombre_completo__icontains=doctor
+        Q(nombre_completo__icontains=busqueda) | Q(codigo_cita__iexact=busqueda)
     )
     #ciudad
     if ciudad:
@@ -340,6 +341,13 @@ def resumenCitasMedicoService(medico_id):
                 id_estado__nombre__iexact="pendiente"
             )
         ),
+        
+        vencidas=Count(
+            "id",
+            filter=Q(
+                id_estado__nombre__iexact="vencida"
+            )
+        ),
 
         confirmadas=Count(
             "id",
@@ -440,6 +448,8 @@ def resumenCitasMedicoService(medico_id):
         "citas_hoy": resumen["citas_hoy"],
 
         "pendientes": resumen["pendientes"],
+        
+        "vencidas": resumen["vencidas"],
 
         "confirmadas": resumen["confirmadas"],
 
@@ -496,7 +506,6 @@ def crearCitaService(
 
         return "El usuario no existe", 404
 
-
     medico = (
         Medico.objects
         .filter(id=datos["id_medico"])
@@ -506,24 +515,16 @@ def crearCitaService(
     if not medico:
         return "Médico no encontrado", 404
 
-
-    fecha_programada = datos[
-        "fecha_programada"
-    ]
-
+    fecha_programada = datos["fecha_programada"]
+    ahora = timezone.now()
 
     # 1. Anticipación mínima
-    if (
-        fecha_programada
-        < timezone.now()
-        + timedelta(hours=1)
-    ):
+    if fecha_programada < ahora + timedelta(hours=1):
         return (
             "La cita debe programarse con "
             "al menos 1 hora de anticipación",
             400
         )
-
 
     # 2. Validar disponibilidad real
     if not esHorarioDisponible(
@@ -536,7 +537,6 @@ def crearCitaService(
             400
         )
 
-
     # 3. Calcular fecha final
     fecha_final = (
         fecha_programada
@@ -545,17 +545,26 @@ def crearCitaService(
         )
     )
 
-    # 4. Calcular fecha límite de cierre
+    # 4. Límite para que el médico confirme.
+    #
+    # Tiene máximo 24 horas desde la solicitud.
+    # Si la cita ocurre antes de esas 24 horas,
+    # el límite será la propia fecha programada.
+    fecha_limite_confirmacion = min(
+        ahora + timedelta(hours=24),
+        fecha_programada
+    )
+
+    # 5. Límite posterior para cerrar la consulta
     fecha_limite_cierre = (
         fecha_final
         + timedelta(hours=72)
     )
 
-
-    # 5. Estado inicial
+    # 6. Estado inicial
     estado = (
         Estado.objects
-        .filter(nombre="pendiente")
+        .filter(nombre__iexact="pendiente")
         .first()
     )
 
@@ -565,20 +574,31 @@ def crearCitaService(
             500
         )
 
+    motivo_consulta = datos["motivo_consulta"]
 
-    # 6. Crear cita
+    # 7. Crear cita
     cita = Cita.objects.create(
         fecha_programada=fecha_programada,
         fecha_final=fecha_final,
+        fecha_limite_confirmacion=fecha_limite_confirmacion,
         fecha_limite_cierre=fecha_limite_cierre,
         id_usuario_id=usuario_id,
         id_medico=medico,
         id_estado=estado,
+        motivo_consulta=motivo_consulta
     )
-
 
     fecha_fmt = (
         timezone.localtime(cita.fecha_programada)
+        .strftime(
+            "%d/%m/%Y a las %H:%M"
+        )
+    )
+
+    limite_confirmacion_fmt = (
+        timezone.localtime(
+            cita.fecha_limite_confirmacion
+        )
         .strftime(
             "%d/%m/%Y a las %H:%M"
         )
@@ -588,16 +608,16 @@ def crearCitaService(
         cita
     ).data
 
-
-    # 7. Notificación paciente
+    # 8. Notificación paciente
     enviarNotificacion(
         titulo="Cita solicitada",
         mensaje=(
             f"Tu cita con el Dr. "
             f"{cita.id_medico.nombre} "
-            f"{fecha_fmt} hs fue agendada "
-            f"con éxito. Queda en espera de "
-            f"la confirmación del médico."
+            f"{cita.id_medico.apellido} "
+            f"para el {fecha_fmt} fue solicitada "
+            f"correctamente. Está pendiente de "
+            f"confirmación por parte del médico."
         ),
         tipo="cita_pendiente",
         id_usuario=cita.id_usuario_id,
@@ -607,8 +627,7 @@ def crearCitaService(
         }
     )
 
-
-    # 8. Notificación médico
+    # 9. Notificación médico
     enviarNotificacion(
         titulo="Nueva solicitud de cita",
         mensaje=(
@@ -616,8 +635,9 @@ def crearCitaService(
             f"{cita.id_usuario.nombre} "
             f"{cita.id_usuario.apellido} "
             f"ha solicitado una cita para "
-            f"el {fecha_fmt} hs. "
-            f"Revisa tu agenda para confirmarla."
+            f"el {fecha_fmt}. "
+            f"Debes confirmarla antes del "
+            f"{limite_confirmacion_fmt}."
         ),
         tipo="nueva_solicitud",
         id_medico=cita.id_medico_id,
@@ -627,6 +647,13 @@ def crearCitaService(
         }
     )
 
+    transaction.on_commit(
+        lambda cita_id=cita.id: enviarCorreosCitaProgramada(
+            cita_id
+        ),
+        robust=True,
+    )
+    
     return cita_data, 201
 
 
@@ -665,33 +692,47 @@ def editarCitaService(id, datos, solicitante):
         )
     fecha_antigua = cita.fecha_programada
     nueva_fecha = datos.get('fecha_programada')
+
+    # Validar que se proporcione una nueva fecha
+    if nueva_fecha is None:
+        return 'Debes proporcionar una nueva fecha para reprogramar la cita', 400
+
+    # Evitar reprogramar con la misma fecha
+    if nueva_fecha == fecha_antigua:
+        return 'La nueva fecha debe ser diferente a la fecha actual', 400
+
+    if timezone.is_naive(nueva_fecha):
+        return 'La fecha programada debe incluir zona horaria', 400
     
-    if nueva_fecha:
-        if timezone.is_naive(nueva_fecha):
-            return 'La fecha programada debe incluir zona horaria', 400
-        if nueva_fecha < timezone.now() + timedelta(hours=1):
-            return 'La cita debe programarse con al menos 1 hora de anticipación', 400
+    if nueva_fecha < timezone.now() + timedelta(hours=1):
+        return 'La cita debe programarse con al menos 1 hora de anticipación', 400
 
-        if not esHorarioDisponible(cita.id_medico, nueva_fecha, excluir_cita_id=cita.pk):
-            return 'El horario seleccionado ya no está disponible', 400
+    if not esHorarioDisponible(cita.id_medico, nueva_fecha, excluir_cita_id=cita.pk):
+        return 'El horario seleccionado ya no está disponible', 400
 
-        cita.fecha_programada = nueva_fecha
-        cita.fecha_final = nueva_fecha + timedelta(minutes=cita.id_medico.duracion_consulta)
-        cita.fecha_limite_cierre =(
-            cita.fecha_final
-            + timedelta(hours=72)
-        )
-        cita.fecha_recordatorio_cierre_24h = None
-        cita.fecha_recordatorio_cierre_48h = None
-        cita.fecha_vencimiento = None
-        estado_reprogramado = Estado.objects.filter(
-            nombre__iexact='reprogramada'
-        ).first()
+    ahora = timezone.now()
+    cita.fecha_programada = nueva_fecha
+    cita.fecha_final = (nueva_fecha+ timedelta(minutes=cita.id_medico.duracion_consulta))
 
-        if not estado_reprogramado:
-            return "Estado 'Reprogramada' no configurado", 404
+    # Reinicia el plazo de confirmación.
+    # El médico tiene máximo 24 horas desde la reprogramación,
+    # pero nunca más allá del inicio de la cita.
+    cita.fecha_limite_confirmacion = min(ahora + timedelta(hours=24),nueva_fecha)
 
-        cita.id_estado = estado_reprogramado
+    # Reinicia el límite posterior para cerrar la consulta
+    cita.fecha_limite_cierre = (cita.fecha_final+ timedelta(hours=72))
+
+    # Reiniciar estados temporales relacionados con la fecha anterior
+    cita.fecha_recordatorio_cierre_24h = None
+    cita.fecha_recordatorio_cierre_48h = None
+    cita.fecha_vencimiento = None
+
+    estado_reprogramado = (Estado.objects.filter(nombre__iexact='reprogramada').first())
+
+    if not estado_reprogramado:
+        return "Estado 'Reprogramada' no configurado", 404
+
+    cita.id_estado = estado_reprogramado
 
     cita.save()
     
@@ -710,6 +751,8 @@ def editarCitaService(id, datos, solicitante):
         ).strftime(
             "%d/%m/%Y a las %H:%M"
         )
+
+        limite_confirmacion_fmt = (timezone.localtime(cita.fecha_limite_confirmacion).strftime("%d/%m/%Y a las %H:%M"))
 
         cita_data = CitaSerializer(cita).data
 
@@ -735,8 +778,9 @@ def editarCitaService(id, datos, solicitante):
                 f'La cita con el paciente '
                 f'{cita.id_usuario.nombre} '
                 f'{cita.id_usuario.apellido} '
-                f'fue reprogramada para el {fecha_fmt} hs. '
-                f'Revisa tu agenda para confirmarla.'
+                f'fue reprogramada para el {fecha_fmt}. '
+                f'Debes confirmarla antes del '
+                f'{limite_confirmacion_fmt}.'
             ),
             tipo='cita_reprogramada',
             id_medico=cita.id_medico_id,
@@ -744,6 +788,17 @@ def editarCitaService(id, datos, solicitante):
                 "tipo_evento": "ACTUALIZACION_CITA",
                 "cita": cita_data
             })
+
+        transaction.on_commit(
+            lambda cita_id=cita.id, fecha_anterior=fecha_antigua: (
+                enviarCorreosCitaReprogramada(
+                    cita_id,
+                    fecha_anterior
+                )
+            ),
+            robust=True,
+        )
+        
     return CitaSerializer(cita).data, 200
 
 @serializar_agenda
@@ -770,6 +825,13 @@ def cancelarCitaService(id, solicitante):
 
     if not autorizado:
         return 'No tienes permiso para cancelar esta cita', 403
+    
+    # Identificar quién está cancelando la cita
+    cancelada_por = (
+        "medico"
+        if isinstance(solicitante, Medico)
+        else "paciente"
+    )
 
     if cita.id_estado.nombre.lower() == 'inasistencia_paciente':
         return 'No se puede cancelar una cita con inasistencia del paciente', 400
@@ -836,6 +898,16 @@ def cancelarCitaService(id, solicitante):
             "tipo_evento": "ACTUALIZACION_CITA",
             "cita": cita_data
         }
+    )
+    
+    transaction.on_commit(
+        lambda cita_id=cita.id, actor=cancelada_por: (
+            enviarCorreosCitaCancelada(
+                cita_id,
+                actor
+            )
+        ),
+        robust=True,
     )
 
     return 'Cita cancelada correctamente', 200
@@ -925,6 +997,13 @@ def completarCitaService(id, medico_id, datos_historial):
             "cita": cita_data
         }
     )
+    
+    transaction.on_commit(
+        lambda cita_id=cita.id: enviarCorreosCitaCompletada(
+            cita_id
+        ),
+        robust=True,
+    )
 
     return cita_data, 200
 
@@ -974,20 +1053,33 @@ def marcarInasistenciaPacienteService(id, solicitante):
 
 @serializar_agenda
 def confirmarCitaService(id, medico_id):
-    cita = Cita.objects.filter(
-        id=id,
-        id_medico=medico_id
-    ).first()
+    
+    cita = (
+        Cita.objects
+        .select_for_update()
+        .filter(
+            id=id,
+            id_medico=medico_id
+        )
+        .first()
+    )
 
     if not cita:
         return 'Cita no encontrada o no te pertenece', 404
 
-    estado_actual = cita.id_estado.nombre.lower()
+    estado_actual = cita.id_estado.nombre.strip().lower()
+    ahora = timezone.now()
+
+    # Estados que nunca pueden confirmarse
     if estado_actual == 'vencida':
         return 'No se puede confirmar una cita vencida', 400
 
     if estado_actual == 'inasistencia_paciente':
-        return 'No se puede confirmar una cita con inasistencia del paciente', 400
+        return (
+            'No se puede confirmar una cita con '
+            'inasistencia del paciente',
+            400
+        )
 
     if estado_actual == 'confirmada':
         return 'La cita ya está confirmada', 400
@@ -998,33 +1090,110 @@ def confirmarCitaService(id, medico_id):
     if estado_actual == 'completada':
         return 'No se puede confirmar una cita completada', 400
 
-    estado_confirmada = Estado.objects.filter(
-        nombre__iexact='confirmada'
-    ).first()
+    # Solo una solicitud pendiente o reprogramada
+    # puede pasar a confirmada.
+    if estado_actual not in (
+        'pendiente',
+        'reprogramada',
+    ):
+        return (
+            'El estado actual de la cita '
+            'no permite confirmarla',
+            400
+        )
+
+    # Compatibilidad con citas antiguas creadas antes
+    # de agregar fecha_limite_confirmacion.
+    limite_confirmacion = cita.fecha_limite_confirmacion
+
+    if limite_confirmacion is None:
+
+        limite_confirmacion = min(
+            cita.fecha_creacion + timedelta(hours=24),
+            cita.fecha_programada
+        )
+
+        cita.fecha_limite_confirmacion = limite_confirmacion
+
+        cita.save(
+            update_fields=[
+                'fecha_limite_confirmacion'
+            ]
+        )
+
+    # El médico perdió el plazo para confirmar.
+    if ahora >= limite_confirmacion:
+        return (
+            'El plazo para confirmar esta cita ha vencido',
+            400
+        )
+
+    # Protección adicional:
+    # nunca confirmar una cita cuya hora ya pasó.
+    if ahora >= cita.fecha_programada:
+        return (
+            'No se puede confirmar una cita '
+            'cuya fecha ya venció',
+            400
+        )
+
+    estado_confirmada = (
+        Estado.objects
+        .filter(
+            nombre__iexact='confirmada'
+        )
+        .first()
+    )
 
     if not estado_confirmada:
-        return "No existe el estado 'confirmada' en el catálogo", 404
+        return (
+            "No existe el estado 'confirmada' "
+            "en el catálogo",
+            404
+        )
 
     cita.id_estado = estado_confirmada
-    cita.save()
+
+    cita.save(
+        update_fields=[
+            'id_estado'
+        ]
+    )
 
     from chat_citas.services import prepararConversacionService
 
-    resultado_chat, codigo_chat = prepararConversacionService(cita.pk)
-    if codigo_chat not in (200, 201):
-        raise RuntimeError(f'No se pudo preparar la conversación: {resultado_chat}')
-
-    fecha_fmt = timezone.localtime(cita.fecha_programada).strftime(
-        "%d/%m/%Y a las %H:%M"
+    resultado_chat, codigo_chat = (
+        prepararConversacionService(
+            cita.pk
+        )
     )
 
-    cita_data = CitaSerializer(cita).data
+    if codigo_chat not in (200, 201):
+        raise RuntimeError(
+            f'No se pudo preparar la conversación: '
+            f'{resultado_chat}'
+        )
+
+    fecha_fmt = (
+        timezone.localtime(
+            cita.fecha_programada
+        )
+        .strftime(
+            "%d/%m/%Y a las %H:%M"
+        )
+    )
+
+    cita_data = CitaSerializer(
+        cita
+    ).data
 
     enviarNotificacion(
         titulo='Cita confirmada',
         mensaje=(
-            f'Tu cita del {fecha_fmt} ha sido confirmada por el '
-            f'Dr. {cita.id_medico.nombre} {cita.id_medico.apellido}'
+            f'Tu cita del {fecha_fmt} '
+            f'ha sido confirmada por el '
+            f'Dr. {cita.id_medico.nombre} '
+            f'{cita.id_medico.apellido}'
         ),
         tipo='cita_confirmada',
         id_usuario=cita.id_usuario_id,
@@ -1038,7 +1207,8 @@ def confirmarCitaService(id, medico_id):
         titulo='Cita confirmada',
         mensaje=(
             f'Confirmaste la cita con el paciente '
-            f'{cita.id_usuario.nombre} {cita.id_usuario.apellido} '
+            f'{cita.id_usuario.nombre} '
+            f'{cita.id_usuario.apellido} '
             f'para el {fecha_fmt}'
         ),
         tipo='cita_confirmada',
@@ -1047,6 +1217,13 @@ def confirmarCitaService(id, medico_id):
             "tipo_evento": "ACTUALIZACION_CITA",
             "cita": cita_data
         }
+    )
+    
+    transaction.on_commit(
+        lambda cita_id=cita.id: enviarCorreosCitaConfirmada(
+            cita_id
+        ),
+        robust=True,
     )
 
     return cita_data, 200
@@ -1235,3 +1412,179 @@ def obtenerInfoPacienteCitaService(medico, cita_id):
     ).select_related("id_tipo")
 
     return paciente, registros
+
+def obtenerCitasPendientesVencidasService():
+    ahora = timezone.now()
+
+    return (
+        Cita.objects
+        .filter(
+            Q(id_estado__nombre__iexact="pendiente") |
+            Q(id_estado__nombre__iexact="reprogramada"),
+            fecha_limite_confirmacion__isnull=False,
+            fecha_limite_confirmacion__lte=ahora,
+        )
+        .order_by("fecha_limite_confirmacion", "id")
+    )
+
+
+@serializar_agenda
+def vencerCitaPorFaltaConfirmacionService(id):
+    cita = (
+        Cita.objects
+        .select_for_update()
+        .select_related(
+            "id_estado",
+            "id_usuario",
+            "id_medico",
+        )
+        .filter(pk=id)
+        .first()
+    )
+
+    if not cita:
+        return "Cita no encontrada", 404
+
+    estado_actual = cita.id_estado.nombre.strip().lower()
+
+    # Solo las citas pendientes o reprogramadas
+    # pueden vencer por falta de confirmación.
+    if estado_actual not in (
+        "pendiente",
+        "reprogramada",
+    ):
+        return (
+            "La cita ya no está pendiente de confirmación",
+            400
+        )
+
+    ahora = timezone.now()
+
+    if cita.fecha_limite_confirmacion is None:
+        return (
+            "La cita no tiene fecha límite de confirmación configurada",
+            400
+        )
+
+    if ahora < cita.fecha_limite_confirmacion:
+        return (
+            "El plazo de confirmación todavía no ha vencido",
+            400
+        )
+
+    estado_vencida = (
+        Estado.objects
+        .filter(nombre__iexact="vencida")
+        .first()
+    )
+
+    if not estado_vencida:
+        return (
+            "Estado 'vencida' no configurado",
+            500
+        )
+
+    # La cita venció porque el médico no la confirmó
+    cita.id_estado = estado_vencida
+    cita.fecha_vencimiento = ahora
+
+    cita.save(
+        update_fields=[
+            "id_estado",
+            "fecha_vencimiento",
+        ]
+    )
+
+    fecha_fmt = (
+        timezone.localtime(
+            cita.fecha_programada
+        )
+        .strftime(
+            "%d/%m/%Y a las %H:%M"
+        )
+    )
+
+    cita_data = CitaSerializer(
+        cita
+    ).data
+
+    # Notificación al paciente
+    enviarNotificacion(
+        titulo="Solicitud de cita vencida",
+        mensaje=(
+            f"Tu solicitud de cita con el Dr. "
+            f"{cita.id_medico.nombre} "
+            f"{cita.id_medico.apellido} "
+            f"para el {fecha_fmt} venció porque "
+            f"no fue confirmada por el médico "
+            f"dentro del plazo establecido. "
+            f"Puedes solicitar una nueva cita."
+        ),
+        tipo="cita_vencida",
+        id_usuario=cita.id_usuario_id,
+        extra_data={
+            "tipo_evento": "ACTUALIZACION_CITA",
+            "cita": cita_data,
+        }
+    )
+
+    # Notificación al médico
+    enviarNotificacion(
+        titulo="Solicitud de cita vencida",
+        mensaje=(
+            f"La solicitud de cita con el paciente "
+            f"{cita.id_usuario.nombre} "
+            f"{cita.id_usuario.apellido} "
+            f"para el {fecha_fmt} venció porque "
+            f"no fue confirmada dentro de las "
+            f"24 horas permitidas."
+        ),
+        tipo="cita_vencida",
+        id_medico=cita.id_medico_id,
+        extra_data={
+            "tipo_evento": "ACTUALIZACION_CITA",
+            "cita": cita_data,
+        }
+    )
+    
+    transaction.on_commit(
+        lambda cita_id=cita.id: enviarCorreosCitaVencida(
+            cita_id
+        ),
+        robust=True,
+    )
+
+    return cita_data, 200
+
+
+# Compatibilidad con código/tareas que todavía importen el nombre anterior.
+def cancelarCitaVencidaService(id):
+    return vencerCitaPorFaltaConfirmacionService(id)
+
+def cancelarCitasPendientesVencidasService():
+
+    citas = obtenerCitasPendientesVencidasService()
+
+    vencidas = 0
+    omitidas = 0
+
+    for cita_id in citas.values_list(
+        "id",
+        flat=True
+    ).iterator():
+
+        _, status_code = (
+            vencerCitaPorFaltaConfirmacionService(
+                cita_id
+            )
+        )
+
+        if status_code == 200:
+            vencidas += 1
+        else:
+            omitidas += 1
+
+    return {
+        "vencidas": vencidas,
+        "omitidas": omitidas,
+    }

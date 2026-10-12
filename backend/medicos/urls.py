@@ -3,7 +3,6 @@ from .views import (
     MedicoListView,
     MedicoDetailView,
     EspecialidadListView,
-    RegistrarMedicoView,
     EspecialidadDetailView,
     DashboardInicioMedicoView,
     PerfilMedicoView,
@@ -25,9 +24,11 @@ from .views import (
     ExcepcionDisponibilidadFechaView,
     EstadisticasMedicosView,
 )
+from .registro import RegistroMedicoView
+
 urlpatterns = [
     path('', MedicoListView.as_view(), name='medico-list'),
-    path('registro/',RegistrarMedicoView.as_view(), name='medico-registro'),
+    path('registro/',RegistroMedicoView.as_view(), name='medico-registro'),
     path("<int:medico_id>/horarios-disponibles/", HorariosDisponiblesMedicoView.as_view(), name="horarios-disponibles-medico"),
     path("<int:medico_id>/dias-disponibles/", DiasDisponiblesMedicoView.as_view(),name="dias-disponibles-medico"),
     path('<int:id_medico>/', MedicoDetailView.as_view(), name='medico-detail'),
@@ -61,3 +62,5 @@ urlpatterns = [
     #!Estadisticas dashboard medico
     path("admin/dashboard/",EstadisticasMedicosView.as_view()),
 ]
+
+urlpatterns += [path(f"registro/{fase}/", RegistroMedicoView.as_view(fase=fase), name="registro-medico-"+fase.replace("/","-")) for fase in ("datos-profesionales","credenciales","subir-documento","documento/verificar","documento/extraer","verificar-correo","reenviar-codigo","completar")]

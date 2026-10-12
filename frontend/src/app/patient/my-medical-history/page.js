@@ -1,5 +1,6 @@
 "use client";
 
+import { ClipboardList } from "lucide-react";
 import Modal from "../../../../components/ui/Modal/Modal";
 import Pagination from "../../../../components/ui/Pagination/Pagination";
 import MedicalHistoryHero from "../../../../components/patient/MedicalHistory/Hero/MedicalHistoryHero";
@@ -72,7 +73,11 @@ export default function MedicalHistory() {
             <Modal
                 abierto={Boolean(selectedRecord)}
                 onCerrar={closeDetail}
-                titulo="Detalle de la consulta"
+                titulo="Detalles del historial clínico"
+                text="Consulta la información clínica registrada en esta atención."
+                headerVariant="white"
+                width="780px"
+                icon={<span className={styles.modalIcon} aria-hidden="true"><ClipboardList size={22} /></span>}
             >
                 {selectedRecord && (
                     <MedicalHistoryDetail
