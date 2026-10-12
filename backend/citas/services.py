@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone as dt_timezone
 from functools import wraps
 from notificaciones.services import enviarNotificacion
 from medicos.services_disponibilidad import esHorarioDisponible
+from notificaciones.email_citas_services import enviarCorreosCitaProgramada,enviarCorreosCitaConfirmada, enviarCorreosCitaReprogramada,enviarCorreosCitaCancelada,enviarCorreosCitaVencida, enviarCorreosCitaCompletada
 
 # Los exports de cierre se importan al final, después de definir serializar_agenda.
 
@@ -340,6 +341,13 @@ def resumenCitasMedicoService(medico_id):
                 id_estado__nombre__iexact="pendiente"
             )
         ),
+        
+        vencidas=Count(
+            "id",
+            filter=Q(
+                id_estado__nombre__iexact="vencida"
+            )
+        ),
 
         confirmadas=Count(
             "id",
@@ -440,6 +448,8 @@ def resumenCitasMedicoService(medico_id):
         "citas_hoy": resumen["citas_hoy"],
 
         "pendientes": resumen["pendientes"],
+        
+        "vencidas": resumen["vencidas"],
 
         "confirmadas": resumen["confirmadas"],
 
@@ -637,6 +647,13 @@ def crearCitaService(
         }
     )
 
+    transaction.on_commit(
+        lambda cita_id=cita.id: enviarCorreosCitaProgramada(
+            cita_id
+        ),
+        robust=True,
+    )
+    
     return cita_data, 201
 
 
@@ -675,39 +692,47 @@ def editarCitaService(id, datos, solicitante):
         )
     fecha_antigua = cita.fecha_programada
     nueva_fecha = datos.get('fecha_programada')
+
+    # Validar que se proporcione una nueva fecha
+    if nueva_fecha is None:
+        return 'Debes proporcionar una nueva fecha para reprogramar la cita', 400
+
+    # Evitar reprogramar con la misma fecha
+    if nueva_fecha == fecha_antigua:
+        return 'La nueva fecha debe ser diferente a la fecha actual', 400
+
+    if timezone.is_naive(nueva_fecha):
+        return 'La fecha programada debe incluir zona horaria', 400
     
-    if nueva_fecha:
-        if timezone.is_naive(nueva_fecha):
-            return 'La fecha programada debe incluir zona horaria', 400
-        if nueva_fecha < timezone.now() + timedelta(hours=1):
-            return 'La cita debe programarse con al menos 1 hora de anticipación', 400
+    if nueva_fecha < timezone.now() + timedelta(hours=1):
+        return 'La cita debe programarse con al menos 1 hora de anticipación', 400
 
-        if not esHorarioDisponible(cita.id_medico, nueva_fecha, excluir_cita_id=cita.pk):
-            return 'El horario seleccionado ya no está disponible', 400
+    if not esHorarioDisponible(cita.id_medico, nueva_fecha, excluir_cita_id=cita.pk):
+        return 'El horario seleccionado ya no está disponible', 400
 
-        ahora = timezone.now()
-        cita.fecha_programada = nueva_fecha
-        cita.fecha_final = (nueva_fecha+ timedelta(minutes=cita.id_medico.duracion_consulta))
+    ahora = timezone.now()
+    cita.fecha_programada = nueva_fecha
+    cita.fecha_final = (nueva_fecha+ timedelta(minutes=cita.id_medico.duracion_consulta))
 
-        # Reinicia el plazo de confirmación.
-        # El médico tiene máximo 24 horas desde la reprogramación,
-        # pero nunca más allá del inicio de la cita.
-        cita.fecha_limite_confirmacion = min(ahora + timedelta(hours=24),nueva_fecha)
+    # Reinicia el plazo de confirmación.
+    # El médico tiene máximo 24 horas desde la reprogramación,
+    # pero nunca más allá del inicio de la cita.
+    cita.fecha_limite_confirmacion = min(ahora + timedelta(hours=24),nueva_fecha)
 
-        # Reinicia el límite posterior para cerrar la consulta
-        cita.fecha_limite_cierre = (cita.fecha_final+ timedelta(hours=72))
+    # Reinicia el límite posterior para cerrar la consulta
+    cita.fecha_limite_cierre = (cita.fecha_final+ timedelta(hours=72))
 
-        # Reiniciar estados temporales relacionados con la fecha anterior
-        cita.fecha_recordatorio_cierre_24h = None
-        cita.fecha_recordatorio_cierre_48h = None
-        cita.fecha_vencimiento = None
+    # Reiniciar estados temporales relacionados con la fecha anterior
+    cita.fecha_recordatorio_cierre_24h = None
+    cita.fecha_recordatorio_cierre_48h = None
+    cita.fecha_vencimiento = None
 
-        estado_reprogramado = (Estado.objects.filter(nombre__iexact='reprogramada').first())
+    estado_reprogramado = (Estado.objects.filter(nombre__iexact='reprogramada').first())
 
-        if not estado_reprogramado:
-            return "Estado 'Reprogramada' no configurado", 404
+    if not estado_reprogramado:
+        return "Estado 'Reprogramada' no configurado", 404
 
-        cita.id_estado = estado_reprogramado
+    cita.id_estado = estado_reprogramado
 
     cita.save()
     
@@ -763,6 +788,17 @@ def editarCitaService(id, datos, solicitante):
                 "tipo_evento": "ACTUALIZACION_CITA",
                 "cita": cita_data
             })
+
+        transaction.on_commit(
+            lambda cita_id=cita.id, fecha_anterior=fecha_antigua: (
+                enviarCorreosCitaReprogramada(
+                    cita_id,
+                    fecha_anterior
+                )
+            ),
+            robust=True,
+        )
+        
     return CitaSerializer(cita).data, 200
 
 @serializar_agenda
@@ -789,6 +825,13 @@ def cancelarCitaService(id, solicitante):
 
     if not autorizado:
         return 'No tienes permiso para cancelar esta cita', 403
+    
+    # Identificar quién está cancelando la cita
+    cancelada_por = (
+        "medico"
+        if isinstance(solicitante, Medico)
+        else "paciente"
+    )
 
     if cita.id_estado.nombre.lower() == 'inasistencia_paciente':
         return 'No se puede cancelar una cita con inasistencia del paciente', 400
@@ -855,6 +898,16 @@ def cancelarCitaService(id, solicitante):
             "tipo_evento": "ACTUALIZACION_CITA",
             "cita": cita_data
         }
+    )
+    
+    transaction.on_commit(
+        lambda cita_id=cita.id, actor=cancelada_por: (
+            enviarCorreosCitaCancelada(
+                cita_id,
+                actor
+            )
+        ),
+        robust=True,
     )
 
     return 'Cita cancelada correctamente', 200
@@ -943,6 +996,13 @@ def completarCitaService(id, medico_id, datos_historial):
             "tipo_evento": "ACTUALIZACION_CITA",
             "cita": cita_data
         }
+    )
+    
+    transaction.on_commit(
+        lambda cita_id=cita.id: enviarCorreosCitaCompletada(
+            cita_id
+        ),
+        robust=True,
     )
 
     return cita_data, 200
@@ -1158,6 +1218,13 @@ def confirmarCitaService(id, medico_id):
             "cita": cita_data
         }
     )
+    
+    transaction.on_commit(
+        lambda cita_id=cita.id: enviarCorreosCitaConfirmada(
+            cita_id
+        ),
+        robust=True,
+    )
 
     return cita_data, 200
 # ─── RECORDATORIOS ────────────────────────────────────────────────────────────
@@ -1347,10 +1414,18 @@ def obtenerInfoPacienteCitaService(medico, cita_id):
     return paciente, registros
 
 def obtenerCitasPendientesVencidasService():
-    
     ahora = timezone.now()
 
-    return (Cita.objects.filter(id_estado__nombre__iexact="pendiente",fecha_limite_confirmacion__isnull=False,fecha_limite_confirmacion__lte=ahora,).order_by("fecha_limite_confirmacion", "id"))
+    return (
+        Cita.objects
+        .filter(
+            Q(id_estado__nombre__iexact="pendiente") |
+            Q(id_estado__nombre__iexact="reprogramada"),
+            fecha_limite_confirmacion__isnull=False,
+            fecha_limite_confirmacion__lte=ahora,
+        )
+        .order_by("fecha_limite_confirmacion", "id")
+    )
 
 
 @serializar_agenda
@@ -1372,9 +1447,16 @@ def vencerCitaPorFaltaConfirmacionService(id):
 
     estado_actual = cita.id_estado.nombre.strip().lower()
 
-    # protección contra cambios concurrentes
-    if estado_actual != "pendiente":
-        return "La cita ya no está pendiente", 400
+    # Solo las citas pendientes o reprogramadas
+    # pueden vencer por falta de confirmación.
+    if estado_actual not in (
+        "pendiente",
+        "reprogramada",
+    ):
+        return (
+            "La cita ya no está pendiente de confirmación",
+            400
+        )
 
     ahora = timezone.now()
 
@@ -1463,6 +1545,13 @@ def vencerCitaPorFaltaConfirmacionService(id):
             "tipo_evento": "ACTUALIZACION_CITA",
             "cita": cita_data,
         }
+    )
+    
+    transaction.on_commit(
+        lambda cita_id=cita.id: enviarCorreosCitaVencida(
+            cita_id
+        ),
+        robust=True,
     )
 
     return cita_data, 200
