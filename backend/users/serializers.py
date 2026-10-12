@@ -294,6 +294,11 @@ class LoginSerializer(serializers.Serializer):
                     error_messages=msg('contraseña'))
 
 
+class SolicitarCambioSerializer(serializers.Serializer):
+    correo = serializers.EmailField(
+                 trim_whitespace=True,
+                 error_messages={**msg('correo'), 'invalid': 'El correo no tiene un formato válido'})
+
 class SolicitarCambioCorreoSerializer(serializers.Serializer):
 
     correo = serializers.EmailField(
