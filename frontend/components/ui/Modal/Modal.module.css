@@ -148,19 +148,21 @@
   color:var(--text-primary);
 }
 
-.yellow{
-  background:var(--tone-orange);
+.yellow {
+    background: #f59e0b;
+    color: #2b1700;
 }
 
 .yellow .titulo,
 .yellow .containerTitle p,
 .yellow .cerrar,
-.yellow .container svg{
-  color:#452600;
+.yellow .container svg {
+    color: #2b1700;
 }
 
-.yellow .cerrar:hover{
-  background:rgb(255 255 255 / 35%);
+.yellow .cerrar:hover {
+    background: #d97706;
+    color: #ffffff;
 }
 
 @media (max-width:640px){

@@ -1,0 +1,74 @@
+.section {
+    max-width: 1160px;
+    margin: auto;
+    padding: 90px 32px;
+    scroll-margin-top: 140px;
+}
+
+.label {
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.section h2 {
+    margin: 12px 0 24px;
+    font-size: clamp(30px, 4vw, 44px);
+    letter-spacing: -.035em;
+    color: var(--text-primary);
+}
+
+.description {
+    max-width: 75ch;
+    margin-bottom: 16px;
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--text-secondary);
+}
+
+.team {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    margin-top: 36px;
+}
+
+.member {
+    padding: 28px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+}
+
+.member h3 {
+    margin: 0 0 12px;
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+.member span {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.note {
+    max-width: 80ch;
+    margin-top: 28px;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .team {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .section {
+        padding: 64px 24px;
+    }
+}
