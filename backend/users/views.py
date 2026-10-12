@@ -40,6 +40,7 @@ from users.services import (
     crearInfoUserService,
     editarInfoUserService,
     eliminarInfoUserService,
+    solicitarCambioService
     
 )
 from users.serializers import (
@@ -62,6 +63,7 @@ from users.serializers import (
     CompletarRegistroUsuarioSerializer,
     InfoUserSerializer, 
     TipoInfoUserSerializer,
+    SolicitarCambioSerializer
 )
 
 
@@ -274,6 +276,27 @@ class ExtraerDocumentoRegistroView(APIView):
             mensaje="Datos extraídos correctamente",
             status=200
         )
+
+class SolicitarCambioView(APIView):
+    permission_classes = [AllowAny]
+    def post(self, request):
+        serializer = SolicitarCambioSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+
+        try:
+            mensaje, status_code = solicitarCambioService(
+                serializer.validated_data['correo']
+            )
+
+            if status_code != 200:
+                return respuesta_error('Error',  errores=mensaje , status=status_code)
+
+            return respuesta_ok(mensaje=mensaje)
+
+        except Exception as e:
+            print(e)
+            return respuesta_error('Error interno del servidor', status=500)
 
 class SolicitarCambioCorreoView(APIView):
 

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Notificación de cita - DocSmart</title>
+  </head>
+
+  <body style="
+    margin: 0;
+    padding: 30px 15px;
+    background-color: #f4f7fb;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #26354a;
+">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+        ">
+      <tr>
+        <td style="
+                padding: 26px 30px;
+                background-color: #1f55b7;
+                color: #ffffff;
+                border-radius: 14px 14px 0 0;
+            ">
+          <h1 style="
+                    margin: 0;
+                    font-size: 25px;
+                    font-weight: 700;
+                ">DocSmart</h1>
+
+          <p style="
+                    margin: 8px 0 0;
+                    font-size: 13px;
+                    color: #e2ecff;
+                ">Tu salud, nuestra prioridad.</p>
+        </td>
+      </tr>
+
+      <tr>
+        <td style="padding: 30px;">
+          <h2 style="
+                    margin: 0 0 20px;
+                    color: #1f2f45;
+                    font-size: 22px;
+                ">{{ titulo }}</h2>
+
+          <p style="
+                    font-size: 15px;
+                    line-height: 1.7;
+                ">
+            Hola, <strong>{{ nombre }}</strong>.
+          </p>
+
+          <p style="
+                    font-size: 14px;
+                    line-height: 1.7;
+                    color: #53627a;
+                ">{{ mensaje }}</p>
+
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="
+                        margin: 25px 0;
+                        background-color: #f5f8fc;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 10px;
+                    ">
+            <tr>
+              <td style="padding: 20px;">
+                <h3 style="
+                                margin: 0 0 18px;
+                                font-size: 16px;
+                                color: #26354a;
+                            ">Detalles de la cita</h3>
+
+                <p>
+                  <strong>Código:</strong>
+                  {{ codigo_cita }}
+                </p>
+
+                {% if paciente %}
+                  <p>
+                    <strong>Paciente:</strong>
+                    {{ paciente }}
+                  </p>
+                {% endif %}
+
+                <p>
+                  <strong>Médico:</strong>
+                  {{ profesional }}
+                </p>
+
+                <p>
+                  <strong>Fecha:</strong>
+                  {{ fecha }}
+                </p>
+
+                <p>
+                  <strong>Hora:</strong>
+                  {{ hora }}
+                </p>
+
+                {% if fecha_completada %}
+                    <tr>
+                        <td style="
+                            padding: 12px;
+                            font-weight: bold;
+                            border-bottom: 1px solid #e5e7eb;
+                        ">
+                            Fecha de finalización
+                        </td>
+
+                        <td style="
+                            padding: 12px;
+                            border-bottom: 1px solid #e5e7eb;
+                        ">
+                            {{ fecha_completada }}
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                {% if fecha_limite_confirmacion %}
+
+                <tr>
+                    <td style="
+                        padding: 12px;
+                        font-weight: bold;
+                        border-bottom: 1px solid #e5e7eb;
+                    ">
+                        Límite de confirmación
+                    </td>
+
+                    <td style="
+                        padding: 12px;
+                        border-bottom: 1px solid #e5e7eb;
+                    ">
+                        {{ fecha_limite_confirmacion }}
+                    </td>
+                </tr>
+
+                {% endif %}
+
+
+                {% if fecha_vencimiento %}
+
+                <tr>
+                    <td style="
+                        padding: 12px;
+                        font-weight: bold;
+                        border-bottom: 1px solid #e5e7eb;
+                    ">
+                        Fecha de vencimiento
+                    </td>
+
+                    <td style="
+                        padding: 12px;
+                        border-bottom: 1px solid #e5e7eb;
+                    ">
+                        {{ fecha_vencimiento }}
+                    </td>
+                </tr>
+
+                {% endif %}
+
+
+                {% if motivo_vencimiento %}
+
+                <tr>
+                    <td style="
+                        padding: 12px;
+                        font-weight: bold;
+                        border-bottom: 1px solid #e5e7eb;
+                    ">
+                        Motivo del vencimiento
+                    </td>
+
+                    <td style="
+                        padding: 12px;
+                        border-bottom: 1px solid #e5e7eb;
+                    ">
+                        {{ motivo_vencimiento }}
+                    </td>
+                </tr>
+
+                {% endif %}
+                {% if fecha_cancelacion %}
+                  <tr>
+                    <td style="
+                        padding: 12px;
+                        font-weight: bold;
+                        border-bottom: 1px solid #e5e7eb;
+                    ">Cancelada por</td>
+
+                    <td style="
+                        padding: 12px;
+                        border-bottom: 1px solid #e5e7eb;
+                    ">{{ cancelada_por }}</td>
+                  </tr>
+
+                  <tr>
+                    <td style="
+                        padding: 12px;
+                        font-weight: bold;
+                        border-bottom: 1px solid #e5e7eb;
+                    ">Fecha de cancelación</td>
+
+                    <td style="
+                        padding: 12px;
+                        border-bottom: 1px solid #e5e7eb;
+                    ">{{ fecha_cancelacion }}</td>
+                  </tr>
+                {% endif %}
+                <p>
+                  <strong>Estado:</strong>
+                  {{ estado }}
+                </p>
+              </td>
+            </tr>
+          </table>
+
+          <p style="
+                    font-size: 14px;
+                    line-height: 1.7;
+                    color: #53627a;
+                ">{{ mensaje_adicional }}</p>
+
+          {% if url_citas %}
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 25px auto;">
+              <tr>
+                <td style="
+                            background-color: #1f55b7;
+                            border-radius: 8px;
+                        ">
+                  <a href="{{ url_citas }}" style="
+                                    display: inline-block;
+                                    padding: 13px 24px;
+                                    color: #ffffff;
+                                    text-decoration: none;
+                                    font-weight: 700;
+                                    font-size: 14px;
+                                ">Ver mis citas</a>
+                </td>
+              </tr>
+            </table>
+          {% endif %}
+
+          <p style="
+                    margin-top: 25px;
+                    font-size: 13px;
+                    color: #718095;
+                    line-height: 1.6;
+                ">Este correo fue enviado automáticamente por DocSmart. No es necesario responder.</p>
+        </td>
+      </tr>
+
+      <tr>
+        <td style="
+                padding: 20px 30px;
+                border-top: 1px solid #e2e8f0;
+                text-align: center;
+                color: #8491a4;
+                font-size: 12px;
+            ">© DocSmart - Sistema de gestión de citas médicas</td>
+      </tr>
+    </table>
+  </body>
+</html>
