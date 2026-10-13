@@ -29,15 +29,18 @@ Para conocer el detalle técnico y metodológico, consulta los módulos en [`/do
 
 | Sección | Documento | Descripción |
 |---|---|---|
-| **Análisis** | [Requerimientos](docs/analisis/requerimientos.md) | Alcance, requerimientos funcionales y no funcionales |
-| **Análisis** | [Casos De USo](docs/Analisis//casos-de-uso.md) | Identificación de actores, Diagrama UML y Especificaciones De casos De Uso |
-| **Análisis** | [Vision De Producto](docs/Analisis//product.md) | Alcance, lineamientos funcionales y reglas de negocio |
-| **Diseño** | [Diseño del Aplicativo](docs/Diseno//sistema-de-diseno.md) | Componentes Reutilizados para el diseño del Frontend |
-| **Implementación** | [Arquitectura](docs/implementacion/arquitectura.md) | Diseño desacoplado, WebSockets y flujo de datos |
-| **Implementación** | [API & Endpoints](docs/implementacion/endpoints.md) | Catálogo de rutas REST y eventos en tiempo real |
-| **Implementación** | [Base de Datos](docs/implementacion/base-de-datos.md) | Modelo entidad-relación y diccionario de datos |
-| **IA & Bymax** | [Módulo Asistente](docs/asistente-bymax/arquitectura-ia.md) | Integración con LLMs, memoria, prompts y síntesis de voz |
-| **Evidencias** | [Pruebas](docs/evidencias/pruebas-unitarias.md) | Resultados de test automatizados y validaciones |
+| **Análisis** | [Requerimientos](docs/Analisis/requerimientos.md) | Alcance, requerimientos funcionales y no funcionales |
+| **Análisis** | [Casos de Uso](docs/Analisis/casos-de-uso.md) | Identificación de actores, diagrama UML y especificaciones (CU-01 al CU-10) |
+| **Análisis** | [Visión de Producto](docs/Analisis/product.md) | Alcance, lineamientos funcionales y reglas de negocio |
+| **Diseño** | [Sistema de Diseño](docs/Diseno/sistema-de-diseno.md) | Tokens UI, tipografía Geist, paleta de colores y componentes reutilizables |
+| **Asistente Bymax** | [Flujo Conversacional](docs/Asistente-Bymax/flujo-conversacional.md) | Gestión de contexto clínico, memoria, prompts y ejecución de herramientas (tools) |
+| **Asistente Bymax** | [Integración de Voz](docs/Asistente-Bymax/integracion-de-voz.md) | Captura por micrófono (Web Audio API) y síntesis de voz con ElevenLabs (TTS) |
+| **Implementación** | [Arquitectura](docs/Implementacion/arquitectura.md) | Arquitectura desacoplada, WebSockets (Daphne/Channels) y flujo de datos |
+| **Implementación** | [API & Endpoints](docs/Implementacion/endpoints.md) | Catálogo completo de rutas REST y eventos en tiempo real |
+| **Implementación** | [Base de Datos](docs/Implementacion/base-de-datos.md) | Modelo relacional, tablas maestras y diccionario de datos |
+| **Implementación** | [Registro de Médicos](docs/Implementacion/registro-medico.md) | Flujo de registro profesional, carga de soportes y validación administrativa |
+| **Implementación** | [Despliegue](docs/Implementacion/despliegue.md) | Guía de instalación paso a paso, configuración de entorno (.env) y ejecución |
+| **Evidencias** | [Pruebas](docs/Evidencias/pruebas-unitarias.md) | Cobertura de pruebas automatizadas en backend/frontend y validaciones |
 
 ---
 
