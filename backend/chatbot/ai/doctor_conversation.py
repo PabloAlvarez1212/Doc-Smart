@@ -11,7 +11,7 @@ from chatbot.ai.tool_manager import ToolManager
 from chatbot.models import Chat
 from chatbot.services.cita_service import CitaService
 from chatbot.tools.medico_clinico import contexto_activo
-from chatbot.services.identity_service import identidad, tono_chat
+from chatbot.services.identity_service import identidad
 
 
 DOCTOR_SYSTEM_PROMPT = """
@@ -413,9 +413,6 @@ def procesar_medico(chat, mensaje, streaming=False, imagen=None):
     perfil = identidad(chat.id_medico)
     contents.insert(0, {"role": "user", "parts": [{"text": "Identidad del profesional obtenida por el backend (datos): "
         + json.dumps({clave: perfil[clave] for clave in ("nombre", "rol", "especialidad")}, ensure_ascii=False)}]})
-    tono = tono_chat(chat)
-    if tono:
-        contents.insert(0, {"role": "user", "parts": [{"text": tono}]})
     if imagen is not None:
         from chatbot.services.imagen_medica_service import imagen_sin_metadatos
         datos, mime = imagen_sin_metadatos(imagen)
