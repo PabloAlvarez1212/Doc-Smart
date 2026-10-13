@@ -12,8 +12,6 @@ function datos(response) {
 
 export const bymaxService = {
   async identidad() { return datos(await api.get("/chatbot/identidad/")); },
-  async preguntarAnimo() { return datos(await api.post("/chatbot/identidad/", {})); },
-  async guardarAnimo(puntuacion) { return datos(await api.post("/chatbot/identidad/", { puntuacion, confirmado: true })); },
   async diagnosticoEstado() { return datos(await api.get("/chatbot/diagnosticos/")); },
   async diagnosticoAccion(accion, comando) { return datos(await api.post("/chatbot/diagnosticos/", { accion, comando, confirmado: true })); },
   async obtenerContextoMedico(idChat, alcance = "proximas") {
