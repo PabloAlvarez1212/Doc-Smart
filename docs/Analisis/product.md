@@ -1,6 +1,8 @@
+- [Regresar - Pagina Principal](../../README.md)
+
 # DocSmart
 
-Contexto extraído del brief del usuario y del código existente, sin añadir promesas de producto.
+***Contexto extraído del brief del usuario y del código existente, sin añadir promesas de producto.***
 
 DocSmart reúne gestión de historia clínica, citas y chat para pacientes; disponibilidad para profesionales; y administración con métricas. La interfaz busca claridad, elegancia y continuidad con Geist y los azules existentes. Claro, oscuro y sistema son preferencias persistentes.
 

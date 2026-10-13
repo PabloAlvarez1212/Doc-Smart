@@ -50,6 +50,8 @@ components:
     padding: "28px"
 ---
 
+- [Regresar - Página Principal](../../README.md)
+
 # Design System: DocSmart
 
 ## Overview
