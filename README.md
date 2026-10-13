@@ -1,86 +1,94 @@
-<!--
-  PLANTILLA DE REFERENCIA
-  Este es un ejemplo de README profesional. Puedes usarlo como base o seguir otro formato.
-  Cómo usarlo: copia este archivo en la raíz de tu repo con el nombre README.md
-  y reemplaza todo lo que está entre [corchetes] con la información de tu proyecto.
-  Borra las secciones que no apliquen. (Este comentario no se ve en GitHub.)
--->
+# 🏥 DocSmart
 
-# Doc Smart
+> Plataforma web para la gestión integral de citas médicas, historial clínico digital y teleorientación asistida por Inteligencia Artificial (Bymax).
 
-> Sistema web para que pacientes gestionen sus citas médicas y reciban orientación, mientras los médicos administran su atención.
+![Captura principal del proyecto](docs/img/Captura-Principal.png)
 
-![Captura principal del proyecto](docs/img/Caprtura-Principal-Proyecto.png)
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js-black?logo=next.js)](https://nextjs.org/)
+[![Django](https://img.shields.io/badge/Backend-Django_DRF-092E20?logo=django)](https://www.djangoproject.com/)
+[![WebSockets](https://img.shields.io/badge/Realtime-Channels_/_ASGI-blue)](https://channels.readthedocs.io/)
+[![Demo](https://img.shields.io/badge/Demo-docsmart.site-brightgreen)](https://docsmart.site/)
 
-## 📌 El problema
-Los pacientes suelen tener dificultades para encontrar médicos, gestionar sus citas y acceder de forma organizada a servicios de salud. DocSmart busca centralizar estos procesos en una plataforma web, facilitando la conexión entre pacientes y médicos.
+---
 
-## ✅ La solución
-DocSmart permite a los pacientes **buscar médicos según sus necesidades, agendar y gestionar citas médicas desde un solo lugar**. Además, facilita la comunicación y el seguimiento de la atención entre pacientes y médicos.
+## 📌 El Problema
+El acceso a servicios de salud ambulatorios suele presentar demoras en la asignación de citas, dispersión de historiales clínicos y falta de canales de orientación médica oportunos. Tanto pacientes como profesionales independientes requieren un ecosistema centralizado para organizar la atención de forma ágil y segura.
 
+## ✅ La Solución
+**DocSmart** centraliza la experiencia médica en una plataforma web moderna que integra:
+- **Agendamiento Inteligente:** Búsqueda por especialidad y ciudad, validación de disponibilidad y reprogramación de citas.
+- **Historial Clínico Seguro:** Registro de diagnósticos, trazabilidad de atenciones y gestión documental.
+- **Asistente Clínico Bymax:** Chatbot con soporte de voz e IA para orientación inicial de pacientes, registro de estado de ánimo y apoyo en el triaje.
+- **Comunicación en Tiempo Real:** Salas de chat por cita y notificaciones instantáneas mediante WebSockets.
 
-**Funcionalidades principales:**
-- Búsqueda de médicos por especialidad o ubicación.
-- Agendamiento y gestión de citas médicas.
-- Chatbot inteligente para brindar orientación y apoyo tanto a pacientes como a médicos.
+---
+
+## 📚 Documentación del Proyecto
+
+Para conocer el detalle técnico y metodológico, consulta los módulos en [`/docs`](docs/):
+
+| Sección | Documento | Descripción |
+|---|---|---|
+| **Análisis** | [Requerimientos](docs/Analisis/requerimientos.md) | Alcance, requerimientos funcionales y no funcionales |
+| **Análisis** | [Casos de Uso](docs/Analisis/casos-de-uso.md) | Identificación de actores, diagrama UML y especificaciones (CU-01 al CU-10) |
+| **Análisis** | [Visión de Producto](docs/Analisis/product.md) | Alcance, lineamientos funcionales y reglas de negocio |
+| **Diseño** | [Sistema de Diseño](docs/Diseno/sistema-de-diseno.md) | Tokens UI, tipografía Geist, paleta de colores y componentes reutilizables |
+| **Asistente Bymax** | [Flujo Conversacional](docs/Asistente-Bymax/flujo-conversacional.md) | Gestión de contexto clínico, memoria, prompts y ejecución de herramientas (tools) |
+| **Asistente Bymax** | [Integración de Voz](docs/Asistente-Bymax/integracion-de-voz.md) | Captura por micrófono (Web Audio API) y síntesis de voz con ElevenLabs (TTS) |
+| **Implementación** | [Arquitectura](docs/Implementacion/arquitectura.md) | Arquitectura desacoplada, WebSockets (Daphne/Channels) y flujo de datos |
+| **Implementación** | [API & Endpoints](docs/Implementacion/endpoints.md) | Catálogo completo de rutas REST y eventos en tiempo real |
+| **Implementación** | [Base de Datos](docs/Implementacion/base-de-datos.md) | Modelo relacional, tablas maestras y diccionario de datos |
+| **Implementación** | [Registro de Médicos](docs/Implementacion/registro-medico.md) | Flujo de registro profesional, carga de soportes y validación administrativa |
+| **Implementación** | [Despliegue](docs/Implementacion/despliegue.md) | Guía de instalación paso a paso, configuración de entorno (.env) y ejecución |
+| **Evidencias** | [Pruebas](docs/Evidencias/pruebas-unitarias.md) | Cobertura de pruebas automatizadas en backend/frontend y validaciones |
+
+---
 
 ## 🛠️ Tecnologías
-| Capa | Tecnología |
-|---|---|
-| Frontend | React, Html, Css, Js |
-| Backend | Django, Python |
-| Base de datos | MySQL|
-| Otras | Git, GitHub |
 
-## 🏗️ Arquitectura
+| Capa | Tecnologías |
+|---|---|
+| **Frontend** | Next.js, React, CSS Modules, Tailwind CSS, Web Audio API |
+| **Backend** | Python, Django, Django REST Framework, Django Channels (ASGI / Daphne) |
+| **Inteligencia Artificial** | OpenAI API, ElevenLabs API |
+| **Base de Datos** | MySQL / PostgreSQL |
+| **DevOps & Herramientas** | Git, GitHub, Docker |
+
+---
+
+## 🏗️ Arquitectura y Flujo
 
 ![Diagrama](docs/img/Flujo-Proyecto.png)
 
-## 🚀 Cómo ejecutarlo
+---
 
+## 🚀 Cómo Ejecutarlo
+
+### 1. Clonar el repositorio
 ```bash
-
-# 1. Clonar el repositorio
-git clone [URL_DEL_REPOSITORIO]
+git clone [https://github.com/tu-usuario/DocSmart.git](https://github.com/tu-usuario/DocSmart.git)
 cd DocSmart
 
-# 2. Instalar dependencias del backend
 cd backend
 python -m venv venv
+
+# Windows:
 venv\Scripts\activate
+# Linux/macOS:
+source venv/bin/activate
+
 pip install -r requirements.txt
 
-# 3. Configurar las variables de entorno
-# Crear el archivo .env con las variables necesarias
+# Configurar variables de entorno copiando el archivo de ejemplo
+cp .env.example .env
 
-# 4. Aplicar las migraciones
 python manage.py migrate
-
-# 5. Ejecutar el backend
 daphne -b 0.0.0.0 -p 8000 core.asgi:application
 
-# 6. En otra terminal, instalar dependencias del frontend
-cd frontend
+
+cd ../frontend
 npm install
 
-# 7. Ejecutar el frontend
+# Iniciar en modo desarrollo
 npm run dev
 ```
-
-**Demo:** https://docsmart.site/
-
-## 📸 Capturas
-| Pantalla | Descripción |
-|---|---|
-| ![](docs/img/Pagina-Inicio-Paciente.png) | Pagina principal del paciente |
-| ![](docs/img/Pagina-Inicio-Medico.png) | Pagina principal del médico |
-
-## 👥 Equipo
-| Nombre | Rol | GitHub |
-|---|---|---|
-| Juan Pablo Alvarez | Full Stack | @PabloAlvarez1212 |
-| Kleider Echeverry | Full Stack | @kleyder15 |
-| Miguel Racero | Full Stack | @Angel-12334 |
-
-## 📄 Contexto
-Proyecto formativo del programa **Análisis y Desarrollo de Software (ADSO)** · SENA · Centro tecnológico del mobiliario · 2026.
