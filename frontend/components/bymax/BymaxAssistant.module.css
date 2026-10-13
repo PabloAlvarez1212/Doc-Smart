@@ -149,12 +149,8 @@
 .quickActions, .confirmation { display: flex; flex-wrap: wrap; gap: 6px; margin-block: 8px; }
 .confirmation { padding: 12px; border-radius: 12px; background: var(--surface-muted); }
 .confirmation p { display: flex; align-items: center; gap: 8px; flex-basis: 100%; margin: 0 0 6px; font-size: 13px; color: var(--bymax-ink); }
-.confirmation button, .mood > button { min-height: 44px; border: 1px solid #286e52; border-radius: 8px; background: var(--surface); color: var(--ink-green); padding: 8px 12px; }
+.confirmation button { min-height: 44px; border: 1px solid #286e52; border-radius: 8px; background: var(--surface); color: var(--ink-green); padding: 8px 12px; }
 .confirmation button:first-of-type { background:var(--bymax-solid); color: #fff; border-color:var(--bymax-solid); }
-.mood { padding: 12px; border: 1px solid var(--border); border-radius: 12px; margin-block: 12px; }
-.moodScores { display: flex; flex-wrap: wrap; gap: 5px; margin-block: 8px; }
-.moodScores button { display: grid; gap: 2px; min-width: 40px; min-height: 48px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
-.moodScores button[aria-pressed="true"] { background: var(--tone-green); border-color: #286e52; }
 .diagnostics { position: fixed; right: 16px; bottom: 16px; z-index: 10001; color: var(--ink-green); font: 13px/1.5 system-ui, sans-serif; }
 .diagnostics button { cursor: pointer; padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); color: var(--ink-green); margin: 3px; }
 .diagnostics section { width: min(420px, calc(100vw - 32px)); max-height: 75dvh; overflow: auto; background: var(--surface); padding: 16px; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 32px #183e3430; }
@@ -318,120 +314,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .shell, .shell *, .launcher, .launcher * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
-}
-
-.moodFloatingCard {
-  position: fixed;
-  z-index: 10015;
-  right: 132px;
-  bottom: 30px;
-  width: min(520px, calc(100vw - 32px));
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: rgb(255 255 255 / 97%);
-  box-shadow:
-    0 20px 55px rgb(19 62 49 / 18%),
-    0 4px 14px rgb(19 62 49 / 10%);
-  color: var(--ink-green);
-  backdrop-filter: blur(12px);
-}
-
-.moodFloatingArrow {
-  position: absolute;
-  right: -9px;
-  bottom: 42px;
-  width: 18px;
-  height: 18px;
-  border-top: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  background: var(--surface);
-  transform: rotate(45deg);
-}
-
-.moodHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.moodHeader strong {
-  display: block;
-  font-size: 18px;
-}
-
-.moodHeader p {
-  margin: 3px 0 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.moodOptions {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.moodFooter {
-  display: flex;
-  justify-content: center;
-  margin-top: 14px;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.moodFooter button {
-  min-height: 40px;
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-muted);
-  color: var(--ink-green);
-  cursor: pointer;
-}
-
-.moodError {
-  margin: 10px 0 0;
-  color: var(--ink-orange);
-  font-size: 12px;
-  text-align: center;
-}
-
-.moodMicrophone {
-  font-size: 24px;
-}
-
-@media (max-width: 600px) {
-  .moodFloatingCard {
-    right: 12px;
-    bottom: 122px;
-    width: calc(100vw - 24px);
-    max-height: calc(100dvh - 150px);
-    overflow-y: auto;
-    padding: 14px;
-  }
-
-  .moodFloatingArrow {
-    right: 28px;
-    bottom: -9px;
-    transform: rotate(135deg);
-  }
-
-  .moodOptions {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 5px;
-  }
-
-  .moodOption,
-  .moodOptionSelected {
-    min-width: 0;
-  }
-
-  .moodOptionLabel {
-    display: none;
-  }
 }
 
 .clinicalBackdrop {

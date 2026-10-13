@@ -247,11 +247,6 @@ class ConversationManager:
             f'Últimos filtros de cita (datos, no consentimiento): {contexto_cita}. '
             'Conserva los filtros pertinentes en seguimientos; una recomendación del asistente no autoriza agendar.'
         )}]})
-        from chatbot.services.identity_service import tono_chat
-        tono = tono_chat(chat)
-        if tono:
-            state.historial.insert(0, {"role": "user", "parts": [{"text": tono}]})
-
         state.contexto = obtener_contexto(chat)
 
         perfil = PerfilUsuarioService.contexto_minimo_para_ia(

@@ -173,11 +173,6 @@ class SesionBymax(models.Model):
         default="activo",
     )
 
-    escala_animo = models.PositiveSmallIntegerField(
-        null=True,
-        blank=True,
-    )
-
     voz_activada = models.BooleanField(default=False)
 
     despertador_activo = models.BooleanField(default=False)
@@ -272,93 +267,6 @@ class ToolLog(models.Model):
 
     def __str__(self):
         return self.nombre_tool
-
-
-class EstadoAnimoDiario(models.Model):
-
-    usuario = models.ForeignKey(
-        Usuario,
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE,
-    )
-
-    medico = models.ForeignKey(
-        "medicos.Medico",
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE,
-    )
-
-    rol = models.CharField(
-        max_length=20,
-    )
-
-    fecha = models.DateField()
-
-    puntuacion = models.PositiveSmallIntegerField(
-        null=True,
-        blank=True,
-    )
-
-    preguntado_en = models.DateTimeField(
-        auto_now_add=True,
-    )
-
-    respondido_en = models.DateTimeField(
-        null=True,
-        blank=True,
-    )
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=[
-                    "usuario",
-                    "fecha",
-                ],
-                name="animo_usuario_dia",
-            ),
-
-            models.UniqueConstraint(
-                fields=[
-                    "medico",
-                    "fecha",
-                ],
-                name="animo_medico_dia",
-            ),
-
-            models.CheckConstraint(
-                check=(
-                    models.Q(
-                        usuario__isnull=False,
-                        medico__isnull=True,
-                        rol="paciente",
-                    )
-                    |
-                    models.Q(
-                        usuario__isnull=True,
-                        medico__isnull=False,
-                        rol="medico",
-                    )
-                ),
-                name="animo_actor_rol",
-            ),
-
-            models.CheckConstraint(
-                check=(
-                    models.Q(
-                        puntuacion__isnull=True,
-                    )
-                    |
-                    models.Q(
-                        puntuacion__gte=1,
-                        puntuacion__lte=10,
-                    )
-                ),
-                name="animo_escala",
-            ),
-        ]
 
 
 class PermisoDiagnostico(models.Model):

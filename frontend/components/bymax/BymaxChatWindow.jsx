@@ -9,7 +9,7 @@ import useDraggableBymaxWindow from "./useDraggableBymaxWindow";
 import { DEFAULT_VOICE } from "./bymaxVoiceController.mjs";
 import styles from "./BymaxAssistant.module.css";
 
-export default function BymaxChatWindow({ open, close, status, label, chats, chatId, messages, loading, sending, streamingId, sidebar, setSidebar, loadChat, newChat, deleteChat, voice, viewportStyle, composer, connection, reconnect, modo = "paciente", onOpenClinical, daily }) {
+export default function BymaxChatWindow({ open, close, status, label, chats, chatId, messages, loading, sending, streamingId, sidebar, setSidebar, loadChat, newChat, deleteChat, voice, viewportStyle, composer, connection, reconnect, modo = "paciente", onOpenClinical, identity }) {
   const [present, setPresent] = useState(open);
   const [settings, setSettings] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
@@ -88,7 +88,7 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
     <section className={styles.chatPanel} inert={settings || sidebar}>
       <header className={styles.header} {...draggable.handlers} title="Arrastra la cabecera para mover la ventana. Doble clic para restaurar.">
         <button ref={historyButtonRef} type="button" className={styles.mobileMenu} onClick={() => setSidebar(true)} aria-label="Abrir historial" aria-expanded={sidebar}><Menu size={21}/></button>
-        <div className={styles.assistant}><BymaxCharacter compact status={status} paused={!open}/><div><strong>{modo === "medico" ? "Bymax Médico" : "Bymax"}</strong><small><span className={styles.stateMark}/>{label}</small>{daily?.identity && <small>{daily.identity.nombre}{daily.identity.especialidad ? ` · ${daily.identity.especialidad}` : ""}</small>}</div></div>
+        <div className={styles.assistant}><BymaxCharacter compact status={status} paused={!open}/><div><strong>{modo === "medico" ? "Bymax Médico" : "Bymax"}</strong><small><span className={styles.stateMark}/>{label}</small>{identity && <small>{identity.nombre}{identity.especialidad ? ` · ${identity.especialidad}` : ""}</small>}</div></div>
         <div className={styles.headerActions}>
           {modo === "medico" && <button type="button" onClick={onOpenClinical} aria-label="Abrir copiloto clínico" title="Copiloto clínico"><Stethoscope size={19}/></button>}
           <button ref={settingsButtonRef} type="button" onClick={() => setSettings(true)} aria-label="Configurar voz" title="Configurar voz"><Settings2 size={19}/></button>
@@ -153,7 +153,7 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
                   </h2>
 
                   <p>
-                    {daily?.identity?.saludo ||
+                    {identity?.saludo ||
                       (modo === "medico"
                         ? "Revisemos tus casos y preparemos borradores para tu valoración."
                         : "Estoy aquí para orientarte y ayudarte a cuidar de ti.")}
