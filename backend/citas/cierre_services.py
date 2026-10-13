@@ -10,6 +10,8 @@ from medicos.models import Medico
 from notificaciones.services import enviarNotificacion
 from storage_app import services as storage
 from storage_app.validators import validar_archivo_seguimiento
+from django.db import transaction
+from notificaciones.email_citas_services import enviarCorreosCitaVencidaPorCierre,enviarCorreoRecordatorioCierre
 
 logger = logging.getLogger(__name__)
 ESTADOS_ATENCION = ('pendiente', 'confirmada', 'reprogramada')
@@ -140,6 +142,12 @@ def _procesarCitaCierre(id):
         registrarEventoConversacionService(cita, clave=f'vencida:{ahora.isoformat()}', evento='cita_vencida', instante=ahora, metadata={})
         _notificar(cita, 'Plazo de cierre vencido', f'El plazo de cierre de la cita del {fecha} venció. Requiere gestión o revisión.', 'cita_vencida', medico=True)
         _notificar(cita, 'Cita pendiente de gestión', f'La cita del {fecha} quedó vencida pendiente de gestión o revisión.', 'cita_vencida')
+        transaction.on_commit(
+            lambda cita_id=cita.id: enviarCorreosCitaVencidaPorCierre(
+                cita_id
+            ),
+            robust=True,
+        )
         return {'vencidas': 1}
     for hours, field, title, text in [
         (24, 'fecha_recordatorio_cierre_24h', 'Seguimiento pendiente', 'Debes registrar el seguimiento y completar la cita.'),
@@ -147,6 +155,15 @@ def _procesarCitaCierre(id):
         if ahora >= cita.fecha_final + timedelta(hours=hours) and getattr(cita, field) is None:
             setattr(cita, field, ahora); cita.save(update_fields=[field])
             _notificar(cita, title, f'Cita del {fecha}: {text}', f'cierre_cita_{hours}h', medico=True)
+            transaction.on_commit(
+                lambda cita_id=cita.id, horas=hours: (
+                    enviarCorreoRecordatorioCierre(
+                        cita_id,
+                        horas
+                    )
+                ),
+                robust=True,
+            )
             counts[f'recordatorios_{hours}h'] = 1
     return counts
 

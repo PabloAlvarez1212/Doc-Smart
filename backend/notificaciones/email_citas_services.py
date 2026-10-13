@@ -1170,3 +1170,341 @@ def enviarCorreosCitaCompletada(cita_id):
         asunto="Has completado una cita médica - DocSmart",
         contexto=contexto_medico
     )
+    
+def enviarCorreosCitaVencidaPorCierre(cita_id):
+    """
+    Envía correos al paciente y al médico cuando
+    vence el plazo de cierre de una consulta.
+    """
+
+    cita = (
+        Cita.objects
+        .select_related(
+            "id_usuario",
+            "id_medico",
+            "id_estado"
+        )
+        .filter(pk=cita_id)
+        .first()
+    )
+
+    if not cita:
+        logger.warning(
+            "No existe la cita %s para enviar "
+            "correo de vencimiento por cierre.",
+            cita_id
+        )
+        return
+
+    estado = cita.id_estado.nombre.strip().lower()
+
+    if estado != "vencida":
+        logger.warning(
+            "La cita %s no está vencida.",
+            cita_id
+        )
+        return
+
+    paciente = cita.id_usuario
+    medico = cita.id_medico
+
+    nombre_paciente = (
+        f"{paciente.nombre} {paciente.apellido}"
+    )
+
+    nombre_medico = (
+        f"{medico.nombre} {medico.apellido}"
+    )
+
+    # Fecha programada
+    fecha_local = timezone.localtime(
+        cita.fecha_programada
+    )
+
+    fecha_cita = fecha_local.strftime("%d/%m/%Y")
+    hora_cita = fecha_local.strftime("%I:%M %p")
+
+    # Fecha de vencimiento
+    fecha_vencimiento_fmt = None
+
+    if cita.fecha_vencimiento:
+        fecha_vencimiento_fmt = (
+            timezone.localtime(
+                cita.fecha_vencimiento
+            ).strftime("%d/%m/%Y a las %I:%M %p")
+        )
+
+    # Fecha límite de cierre
+    fecha_limite_cierre_fmt = None
+
+    if cita.fecha_limite_cierre:
+        fecha_limite_cierre_fmt = (
+            timezone.localtime(
+                cita.fecha_limite_cierre
+            ).strftime("%d/%m/%Y a las %I:%M %p")
+        )
+
+    frontend_url = os.getenv(
+        "FRONTEND_URL", ""
+    ).rstrip("/")
+
+    # =====================================
+    # CORREO PARA EL PACIENTE
+    # =====================================
+
+    contexto_paciente = {
+        "titulo": "Actualización del estado de tu consulta",
+
+        "nombre": paciente.nombre,
+
+        "mensaje": (
+            f"Te informamos que el plazo establecido "
+            f"para cerrar tu consulta médica con "
+            f"el Dr. {nombre_medico} ha vencido. "
+            "La consulta no fue registrada como "
+            "completada dentro del tiempo permitido."
+        ),
+
+        "codigo_cita": cita.codigo_cita,
+
+        "profesional": nombre_medico,
+
+        "fecha": fecha_cita,
+
+        "hora": hora_cita,
+
+        "estado": "Vencida",
+
+        "fecha_vencimiento": fecha_vencimiento_fmt,
+
+        "motivo_vencimiento": (
+            "Vencimiento del plazo para cerrar la consulta"
+        ),
+
+        "mensaje_adicional": (
+            "La consulta se encuentra pendiente de "
+            "gestión o revisión. Puedes ingresar "
+            "a DocSmart para consultar su estado."
+        ),
+
+        "url_citas": (
+            f"{frontend_url}/patient/my-appointments"
+            if frontend_url else None
+        ),
+    }
+
+    enviarCorreoCita(
+        destinatario=paciente.correo,
+        asunto=(
+            "Actualización del estado de tu consulta - DocSmart"
+        ),
+        contexto=contexto_paciente
+    )
+
+    # =====================================
+    # CORREO PARA EL MÉDICO
+    # =====================================
+
+    contexto_medico = {
+        "titulo": "El plazo de cierre de una consulta ha vencido",
+
+        "nombre": medico.nombre,
+
+        "mensaje": (
+            f"El plazo de cierre de la consulta "
+            f"del paciente {nombre_paciente} ha vencido. "
+            "La consulta no fue completada dentro "
+            "de las 72 horas posteriores a su "
+            "finalización programada."
+        ),
+
+        "codigo_cita": cita.codigo_cita,
+
+        "paciente": nombre_paciente,
+
+        "profesional": nombre_medico,
+
+        "fecha": fecha_cita,
+
+        "hora": hora_cita,
+
+        "estado": "Vencida",
+
+        "fecha_vencimiento": fecha_vencimiento_fmt,
+
+        "fecha_limite_cierre": fecha_limite_cierre_fmt,
+
+        "motivo_vencimiento": (
+            "Vencimiento del plazo para cerrar la consulta"
+        ),
+
+        "mensaje_adicional": (
+            "Esta consulta requiere gestión o revisión. "
+            "Ingresa a DocSmart para consultar "
+            "su información y estado."
+        ),
+
+        "url_citas": (
+            f"{frontend_url}/doctor/my-appointments"
+            if frontend_url else None
+        ),
+    }
+
+    enviarCorreoCita(
+        destinatario=medico.correo,
+        asunto=(
+            "Plazo de cierre de consulta vencido - DocSmart"
+        ),
+        contexto=contexto_medico
+    )
+    
+def enviarCorreoRecordatorioCierre(cita_id, horas):
+    """
+    Envía un recordatorio al médico sobre
+    una consulta pendiente de cierre.
+
+    horas:
+        24 -> Primer recordatorio
+        48 -> Segundo recordatorio
+    """
+
+    if horas not in (24, 48):
+        logger.warning(
+            "Recordatorio de cierre inválido: %s horas",
+            horas
+        )
+        return
+
+    cita = (
+        Cita.objects
+        .select_related(
+            "id_usuario",
+            "id_medico",
+            "id_estado"
+        )
+        .filter(pk=cita_id)
+        .first()
+    )
+
+    if not cita:
+        logger.warning(
+            "No existe la cita %s para el recordatorio",
+            cita_id
+        )
+        return
+
+    # No enviar recordatorios de citas
+    # que ya no requieren cierre.
+    estado = cita.id_estado.nombre.strip().lower()
+
+    if estado not in (
+        "pendiente",
+        "confirmada",
+        "reprogramada",
+    ):
+        return
+
+    if not cita.fecha_limite_cierre:
+        return
+
+    # Evitar recordatorios tardíos
+    if timezone.now() >= cita.fecha_limite_cierre:
+        return
+
+    medico = cita.id_medico
+    paciente = cita.id_usuario
+
+    fecha_local = timezone.localtime(
+        cita.fecha_programada
+    )
+
+    fecha_cita = fecha_local.strftime("%d/%m/%Y")
+    hora_cita = fecha_local.strftime("%I:%M %p")
+
+    fecha_limite_cierre = timezone.localtime(
+        cita.fecha_limite_cierre
+    ).strftime("%d/%m/%Y a las %I:%M %p")
+
+    nombre_paciente = (
+        f"{paciente.nombre} {paciente.apellido}"
+    )
+
+    nombre_medico = (
+        f"{medico.nombre} {medico.apellido}"
+    )
+
+    frontend_url = os.getenv(
+        "FRONTEND_URL", ""
+    ).rstrip("/")
+
+    # Personalizar mensaje según recordatorio
+    if horas == 24:
+        titulo = "Tienes una consulta pendiente de cierre"
+
+        mensaje = (
+            f"La consulta del paciente {nombre_paciente} "
+            "todavía se encuentra pendiente de cierre. "
+            "Recuerda registrar la documentación "
+            "de seguimiento y completar la cita "
+            "dentro del plazo establecido."
+        )
+
+        asunto = (
+            "Recordatorio: consulta pendiente de cierre - DocSmart"
+        )
+
+    else:
+        titulo = "El plazo de cierre está próximo a vencer"
+
+        mensaje = (
+            f"La consulta del paciente {nombre_paciente} "
+            "continúa pendiente de cierre. "
+            "El plazo máximo está próximo a vencer. "
+            "Debes registrar el seguimiento "
+            "y completar la consulta antes "
+            "de la fecha límite."
+        )
+
+        asunto = (
+            "Importante: plazo de cierre próximo a vencer - DocSmart"
+        )
+
+    contexto = {
+        "titulo": titulo,
+
+        "nombre": medico.nombre,
+
+        "mensaje": mensaje,
+
+        "codigo_cita": cita.codigo_cita,
+
+        "paciente": nombre_paciente,
+
+        "profesional": nombre_medico,
+
+        "fecha": fecha_cita,
+
+        "hora": hora_cita,
+
+        "estado": cita.id_estado.nombre,
+
+        "fecha_limite_cierre": fecha_limite_cierre,
+
+        "mensaje_adicional": (
+            "Ingresa a DocSmart para registrar "
+            "los documentos de seguimiento y "
+            "completar la consulta antes "
+            "de que venza el plazo."
+        ),
+
+        "url_citas": (
+            f"{frontend_url}/doctor/my-appointments"
+            if frontend_url else None
+        ),
+    }
+
+    enviarCorreoCita(
+        destinatario=medico.correo,
+        asunto=asunto,
+        contexto=contexto
+    )
