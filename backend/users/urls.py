@@ -30,12 +30,13 @@ from .views import (
     TipoInfoUserListView,
     InfoUserListCreateView,
     InfoUserDetailView,
-
+    SolicitarCambioView,
 )
 
 urlpatterns = [
 
     path("login/",LoginView.as_view()),
+    path('solicitar-cambio/', SolicitarCambioView.as_view()),
     path("cambiar-contraseña/",CambiarContraseñaView.as_view()),
     path("cambiar-contraseña-auth/",CambiarContraseñaAutenticadoView.as_view()),
     path("usuarios/registro/",RegistroView.as_view()),

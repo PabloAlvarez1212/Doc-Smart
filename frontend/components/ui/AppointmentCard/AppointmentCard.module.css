@@ -406,6 +406,10 @@
     color: #923444;
 }
 
+.resolutionExpired {
+    color: #9a5b13;
+}
+
 @media (hover: hover) and (pointer: fine) {
     .item:hover {
         border-color: #b9cbe0;

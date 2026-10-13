@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CalendarX, CheckCircle2, Clock3, Eye, MapPin } from "lucide-react";
+import { CalendarDays, CalendarX, CheckCircle2, Clock3, Eye, MapPin, AlertTriangle } from "lucide-react";
 import Image from "next/image";
 import styles from "./AppointmentCard.module.css";
 
@@ -16,9 +16,14 @@ export default function AppointmentCard({
 }) {
     const personName = person?.name || "Usuario de DocSmart";
     const statusKey = String(status?.key || "").toLowerCase();
-    const ResolutionIcon = statusKey === "completada"
-        ? CheckCircle2
-        : statusKey === "cancelada" ? CalendarX : null;
+    const ResolutionIcon =
+        statusKey === "completada"
+            ? CheckCircle2
+            : statusKey === "cancelada"
+                ? CalendarX
+                : statusKey === "vencida"
+                    ? AlertTriangle
+                    : null;
 
     return (
         <article className={styles.item} role="listitem">
@@ -95,7 +100,7 @@ export default function AppointmentCard({
             </div>
 
             <footer className={styles.actions}>
-                {/* Botón Ver detalles: cambio de tu rama */}
+                {/* Botón Ver detalles*/}
                 {onViewDetails && (
                     <button
                         type="button"
@@ -108,15 +113,19 @@ export default function AppointmentCard({
                     </button>
                 )}
 
-                {/* Fecha de finalización o cancelación */}
+                {/* Fecha de finalización, cancelación o vencimiento */}
                 {metadata && ResolutionIcon && (
                     <div
-                        className={`${styles.resolutionInfo} ${statusKey === "completada"
+                        className={`${styles.resolutionInfo} ${
+                            statusKey === "completada"
                                 ? styles.resolutionCompleted
-                                : styles.resolutionCancelled
-                            }`}
+                                : statusKey === "vencida"
+                                    ? styles.resolutionExpired
+                                    : styles.resolutionCancelled
+                        }`}
                     >
                         <ResolutionIcon size={15} aria-hidden="true" />
+
                         <span>{metadata}</span>
                     </div>
                 )}

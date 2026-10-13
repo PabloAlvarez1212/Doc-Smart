@@ -52,6 +52,10 @@ function obtenerFechaResolucion(cita, status) {
         return cita.fecha_completada || cita.fecha_final || null;
     }
 
+    if (status === "vencida") {
+        return cita.fecha_vencimiento || null;
+    }
+
     return null;
 }
 
@@ -61,17 +65,15 @@ function obtenerFechaResolucion(cita, status) {
  * Ver detalles.
  */
 function obtenerMetadata(cita, status) {
-    if (status === "vencida") {
-        return "El plazo de cierre de esta cita venció.";
-    }
-
     const fechaResolucion = obtenerFechaResolucion(cita, status);
 
     if (!fechaResolucion) {
         return null;
     }
 
-    const fechaFormateada = formatearFechaResolucion(fechaResolucion);
+    const fechaFormateada = formatearFechaResolucion(
+        fechaResolucion
+    );
 
     if (!fechaFormateada) {
         return null;
@@ -83,6 +85,10 @@ function obtenerMetadata(cita, status) {
 
     if (status === "completada") {
         return `Completada el ${fechaFormateada}`;
+    }
+
+    if (status === "vencida") {
+        return `Vencida el ${fechaFormateada}`;
     }
 
     return null;

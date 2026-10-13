@@ -18,6 +18,7 @@ from django.core.mail import send_mail
 import os
 import resend
 from django.template.loader import render_to_string
+from urllib.parse import urlencode
 from django.core.paginator import Paginator
 from citas.models import Cita
 import calendar
@@ -150,6 +151,203 @@ def refreshTokenService(refresh_token):
             },
             401
         )
+
+def solicitarCambioService(correo):
+
+    # Buscar el correo en ambas tablas
+    usuario = Usuario.objects.filter(
+        correo=correo
+    ).first()
+
+    medico = Medico.objects.filter(
+        correo=correo
+    ).first()
+
+    if not usuario and not medico:
+        return {
+            "general": [
+                "El correo no se encuentra registrado"
+            ]
+        }, 404
+
+    persona = usuario or medico
+
+    ahora = timezone.now()
+
+    # ==========================================
+    # 1. VERIFICAR TIEMPO ENTRE SOLICITUDES
+    # ==========================================
+
+    if persona.ultimo_envio:
+
+        tiempo_transcurrido = (
+            ahora - persona.ultimo_envio
+        )
+
+        if tiempo_transcurrido < timedelta(minutes=5):
+
+            segundos_restantes = max(
+                0,
+                300 - int(
+                    tiempo_transcurrido.total_seconds()
+                )
+            )
+
+            minutos = segundos_restantes // 60
+            segundos = segundos_restantes % 60
+
+            if minutos > 0:
+                return {
+                    "general": [
+                        f"Espera {minutos} min "
+                        f"{segundos} seg antes de reenviar"
+                    ]
+                }, 400
+
+            else:
+                return {
+                    "general": [
+                        f"Espera {segundos} segundos "
+                        f"antes de reenviar"
+                    ]
+                }, 400
+
+    # ==========================================
+    # 2. VERIFICAR CONFIGURACIÓN
+    # ==========================================
+
+    frontend_url = os.getenv(
+        "FRONTEND_URL", ""
+    ).rstrip("/")
+
+    remitente = os.getenv("RESEND_FROM_EMAIL")
+
+    if not frontend_url or not remitente or not resend.api_key:
+
+        logger.error(
+            "Configuración incompleta para recuperación "
+            "de contraseña mediante Resend"
+        )
+
+        return {
+            "general": [
+                "Error enviando el correo"
+            ]
+        }, 500
+
+    # ==========================================
+    # 3. GENERAR TOKEN TEMPORAL
+    # ==========================================
+
+    token = secrets.token_urlsafe(32)
+
+    expiracion = (
+        ahora + timedelta(minutes=15)
+    )
+
+    # ==========================================
+    # 4. CREAR ENLACE DE RECUPERACIÓN
+    # ==========================================
+
+    parametros = urlencode({
+        "token": token
+    })
+
+    link = (
+        f"{frontend_url}/reset-password?"
+        f"{parametros}"
+    )
+
+    # ==========================================
+    # 5. PREPARAR INFORMACIÓN DEL CORREO
+    # ==========================================
+
+    nombre = persona.nombre or "Usuario"
+    apellido = persona.apellido or ""
+
+    # ==========================================
+    # 6. GUARDAR TOKEN
+    # ==========================================
+
+    persona.token_reset = token
+    persona.token_reset_expira = expiracion
+
+    persona.save(
+        update_fields=[
+            "token_reset",
+            "token_reset_expira",
+        ]
+    )
+
+    # ==========================================
+    # 7. ENVIAR CORREO MEDIANTE RESEND
+    # ==========================================
+
+    try:
+
+        html_content = render_to_string(
+            "emails/reset_password.html",
+            {
+                "link": link,
+                "nombre": nombre,
+                "apellido": apellido,
+            }
+        )
+
+        respuesta = resend.Emails.send({
+            "from": remitente,
+
+            "to": [persona.correo],
+
+            "subject": (
+                "Recupera tu contraseña - DocSmart"
+            ),
+
+            "html": html_content,
+
+            "text": (
+                f"Hola {nombre},\n\n"
+                "Recibimos una solicitud para "
+                "restablecer tu contraseña de DocSmart.\n\n"
+                f"Utiliza este enlace: {link}\n\n"
+                "El enlace expirará en 15 minutos.\n\n"
+                "Si no solicitaste este cambio, "
+                "puedes ignorar este mensaje."
+            ),
+        })
+
+        # ======================================
+        # 8. REGISTRAR ENVÍO EXITOSO
+        # ======================================
+
+        persona.ultimo_envio = timezone.now()
+
+        persona.save(
+            update_fields=[
+                "ultimo_envio"
+            ]
+        )
+
+        logger.info(
+            "Correo de recuperación aceptado "
+            "por Resend. ID: %s",
+            respuesta.get("id")
+        )
+
+        return "Email enviado correctamente", 200
+
+    except Exception:
+
+        logger.exception(
+            "Error enviando correo de "
+            "recuperación mediante Resend"
+        )
+
+        return {
+            "general": [
+                "Error enviando el correo"
+            ]
+        }, 500
 
 def solicitarCambioCorreoService(usuario,nuevo_correo):
 

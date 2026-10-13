@@ -38,6 +38,11 @@ export default function HeaderAppointment({
             label: "Canceladas",
             count: resumen?.canceladas ?? 0,
         },
+        {
+            value: "vencida",
+            label: "Vencidas",
+            count: resumen?.vencidas ?? 0,
+        },
     ];
 
 

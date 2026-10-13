@@ -1,60 +1,94 @@
 "use client";
-import Swal from "sweetalert2";
-import { forgotPasswordValidate } from "@/app/validations/forgotPasswordValidate";
+
 import { useState } from "react";
-import styles from "./forgotPassword.module.css"
+import { forgotPasswordValidate } from "@/app/validations/forgotPasswordValidate";
 import { forgotPasswordService } from "@/app/services/authService";
-import { obtenerPrimerError } from '@/app/utils/errrorUtils'
+import { obtenerPrimerError } from "@/app/utils/errrorUtils";
+
+const initialFeedback = { kind: "idle", message: "", revision: 0 };
 
 export const useForgotPassword = () => {
-    const [loading,setLoading] = useState(false);
-    const [formData, setFormData] = useState({
-        correo: ''
-    })
-    const handleChange = (e) => {
-        const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
-    }
-    const handleSubmit = async (e) => {
-        e.preventDefault()
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({ correo: "" });
+    const [errors, setErrors] = useState({});
+    const [feedback, setFeedback] = useState(initialFeedback);
+    const [submittedEmail, setSubmittedEmail] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
+
+    const handleChange = (event) => {
+        const { name, value } = event.target;
+        setFormData((current) => ({ ...current, [name]: value }));
+        setErrors((current) => ({ ...current, [name]: undefined }));
+        if (feedback.kind === "error") setFeedback(initialFeedback);
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        if (loading) return;
+
         const validationErrors = forgotPasswordValidate(formData);
+        setErrors(validationErrors);
+
         if (Object.keys(validationErrors).length > 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Campos inválidos',
-                text: Object.values(validationErrors)[0],
-                customClass: { popup: styles.swal }
-            })
-            return
+            setFeedback((current) => ({
+                kind: "error",
+                message: Object.values(validationErrors)[0],
+                revision: current.revision + 1,
+            }));
+            return;
         }
-        setLoading(true)
-        try{
+
+        setLoading(true);
+        setFeedback((current) => ({
+            kind: "pending",
+            message: "Estamos procesando tu solicitud…",
+            revision: current.revision + 1,
+        }));
+
+        try {
             const data = await forgotPasswordService(formData);
-            await Swal.fire({
-                    icon: 'success',
-                    title: "Exito",
-                    text: `email enviado correctamente`,
-                    customClass: { popup: styles.swal }
-                })
-                console.log(data);
-        } catch(error){
-            console.log(error)
+            setSuccessMessage(
+                data?.mensaje || "Procesamos correctamente tu solicitud.",
+            );
+            setSubmittedEmail(formData.correo.trim());
+            setFeedback((current) => ({
+                kind: "success",
+                message: data?.mensaje || "Solicitud procesada correctamente.",
+                revision: current.revision + 1,
+            }));
+        } catch (error) {
             const errores = error.response?.data?.errores;
-            let mensaje =error.response?.data?.mensaje ||'Error al conectar con el servidor';
             const errorExtraido = obtenerPrimerError(errores);
-            if (errorExtraido) {
-                mensaje = errorExtraido;
-            }
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: mensaje,
-                customClass: { popup: styles.swal }
-            })
+            const mensaje = errorExtraido
+                || error.response?.data?.mensaje
+                || "No pudimos procesar la solicitud. Inténtalo nuevamente.";
+
+            setFeedback((current) => ({
+                kind: "error",
+                message: mensaje,
+                revision: current.revision + 1,
+            }));
+        } finally {
+            setLoading(false);
         }
-        finally{
-            setLoading(false)
-        }
-    }
-    return { handleChange, handleSubmit, formData , loading};
-}
+    };
+
+    const resetForm = () => {
+        setSubmittedEmail("");
+        setSuccessMessage("");
+        setErrors({});
+        setFeedback(initialFeedback);
+    };
+
+    return {
+        handleChange,
+        handleSubmit,
+        resetForm,
+        formData,
+        errors,
+        feedback,
+        loading,
+        submittedEmail,
+        successMessage,
+    };
+};
