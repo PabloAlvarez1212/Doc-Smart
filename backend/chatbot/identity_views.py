@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from chatbot.throttles import ActorScopedRateThrottle as ScopedRateThrottle
 from rest_framework.authentication import SessionAuthentication
 from chatbot.services import ChatService
-from chatbot.services.identity_service import identidad, preguntar_animo, guardar_animo, consultar_animo
+from chatbot.services.identity_service import identidad
 from chatbot.services import diagnostics
 from chatbot.models import ErrorBymax, SesionDiagnostico
 from chatbot.tools.medico_clinico import contexto_activo
@@ -18,11 +18,8 @@ class IdentidadBymaxView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        registro = consultar_animo(request.user)
         data = identidad(request.user)
         data["diagnostico_autorizado"] = bool(diagnostics.autorizado(request.user))
-        data["animo"] = registro.puntuacion if registro else None
-        data["fecha"] = registro.fecha.isoformat() if registro else None
         chat_id = request.query_params.get("chat_id")
         if chat_id:
             try:
@@ -37,21 +34,6 @@ class IdentidadBymaxView(APIView):
         patch_cache_control(response, private=True, no_store=True)
         return response
 
-    def post(self, request):
-        try:
-            if "puntuacion" in request.data:
-                if request.data.get("confirmado") is not True:
-                    return respuesta_error("Confirma la puntuación antes de guardarla.")
-                registro = guardar_animo(request.user, request.data["puntuacion"])
-                preguntar = False
-            else:
-                registro, preguntar = preguntar_animo(request.user)
-            response = respuesta_ok(data={"preguntar": preguntar, "puntuacion": registro.puntuacion,
-                "fecha": registro.fecha.isoformat()})
-            patch_cache_control(response, private=True, no_store=True)
-            return response
-        except ValueError as error:
-            return respuesta_error(str(error))
 
 
 class DiagnosticoBymaxView(APIView):

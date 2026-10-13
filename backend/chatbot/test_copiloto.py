@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime, timezone as dt_timezone
+from datetime import timedelta
 from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -19,9 +19,8 @@ from chatbot.ai.conversation_manager import ConversationManager
 from chatbot.ai.doctor_conversation import _normalizar, _extraer_fecha
 from chatbot.ai.tool_executor import ejecutar_tool
 from chatbot.consumers import BymaxConsumer
-from chatbot.identity_views import IdentidadBymaxView, DiagnosticoBymaxView
-from chatbot.models import Chat, Mensaje, EstadoAnimoDiario, PermisoDiagnostico, SesionDiagnostico, ErrorBymax, TurnoBymax
-from chatbot.services.identity_service import preguntar_animo, guardar_animo, tono_chat
+from chatbot.identity_views import DiagnosticoBymaxView
+from chatbot.models import Chat, Mensaje, PermisoDiagnostico, SesionDiagnostico, ErrorBymax, TurnoBymax
 from chatbot.services.imagen_medica_service import validar_imagen_medica
 from chatbot.services.turn_service import iniciar_turno
 from chatbot.throttles import ActorScopedRateThrottle
@@ -187,34 +186,6 @@ class CopilotoTests(TestCase):
         cita.refresh_from_db()
         self.assertNotEqual(cita.fecha_programada, fecha)
         self.assertEqual(Notificacion.objects.count(), 0)
-
-    def test_animo_una_vez_dia_separado_por_tipo_actor_y_validado(self):
-        for actor in (self.medico, self.paciente):
-            self.assertTrue(preguntar_animo(actor)[1])
-            self.assertFalse(preguntar_animo(actor)[1])
-            self.assertEqual(guardar_animo(actor, 2).puntuacion, 2)
-            self.assertEqual(guardar_animo(actor, 9).puntuacion, 2)
-        self.assertEqual(EstadoAnimoDiario.objects.count(), 2)
-        for valor in (0, 11, True, "5"):
-            with self.assertRaises(ValueError):
-                guardar_animo(self.medico, valor)
-        self.assertIn("Nunca deduzcas riesgo", tono_chat(self.chat))
-
-    def test_animo_usa_fecha_local_django_y_nuevo_dia(self):
-        with patch("chatbot.services.identity_service.timezone.now", return_value=datetime(2027, 9, 8, 2, tzinfo=dt_timezone.utc)):
-            registro, nuevo = preguntar_animo(self.medico)
-            self.assertEqual(str(registro.fecha), "2027-09-07")
-        with patch("chatbot.services.identity_service.timezone.now", return_value=datetime(2027, 9, 8, 6, tzinfo=dt_timezone.utc)):
-            self.assertTrue(preguntar_animo(self.medico)[1])
-
-    def test_identidad_no_confia_actor_frontend_y_animo_exige_confirmacion(self):
-        respuesta = self.request(IdentidadBymaxView, self.medico)
-        self.assertEqual(respuesta.data["data"]["nombre"], str(self.medico))
-        self.assertEqual(respuesta.data["data"]["especialidad"], "General")
-        self.assertEqual(self.request(IdentidadBymaxView, self.medico, "post", {"puntuacion": 5}).status_code, 400)
-        respuesta = self.request(IdentidadBymaxView, self.medico, "post", {"puntuacion": 5, "confirmado": True, "medico_id": self.otro.pk})
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertEqual(EstadoAnimoDiario.objects.get().medico_id, self.medico.pk)
 
     def diagnostico_request(self, actor, data=None, csrf=True, method="post"):
         factory = APIRequestFactory(enforce_csrf_checks=True)

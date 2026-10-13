@@ -25,9 +25,9 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
   const saludo = modo === "medico" ? "Hola, soy Bymax Médico, tu copiloto clínico y operativo. Selecciona un paciente para revisar tus registros, estudiar diferenciales o preparar borradores para tu valoración." : SALUDO;
   const [ventanaAbierta, setVentanaAbierta] = useState(false);
   const [copilotoAbierto, setCopilotoAbierto] = useState(false);
-  const daily = useBymaxIdentity(ventanaAbierta);
+  const { identity } = useBymaxIdentity();
   const greetingRef = useRef(saludo);
-  greetingRef.current = daily.identity?.saludo || saludo;
+  greetingRef.current = identity?.saludo || saludo;
   const [chats, setChats] = useState([]);
   const [chatId, setChatId] = useState(null);
   const [mensajes, setMensajes] = useState([]);
@@ -247,7 +247,7 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
     <BymaxLauncher {...draggable} status={status} label={label} open={ventanaAbierta} buttonRef={launcherRef}/>
     <BymaxChatWindow open={ventanaAbierta} close={close} status={status} label={label} chats={chats} chatId={chatId} messages={mensajes} loading={cargando} sending={enviando} streamingId={streamingId}
       connection={connection} reconnect={() => setConnectionAttempt(value => value + 1)}
-      modo={modo} daily={daily} onOpenClinical={() => {
+      modo={modo} identity={identity} onOpenClinical={() => {
         setVentanaAbierta(false);
         setCopilotoAbierto(true);
       }}
