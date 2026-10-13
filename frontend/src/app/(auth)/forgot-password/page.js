@@ -1,32 +1,61 @@
-import styles from "./forgotPassword.module.css"
-import Image from "next/image"
-import Cards from "../../../../components/ui/Card/Cards"
-import ForgotPasswordForm from "../../../../components/forms/forgotPasswordForm/forgotPasswordForm"
-import { AlertTriangle } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { LockKeyhole, ShieldCheck } from "lucide-react";
+import ForgotPasswordForm from "../../../../components/forms/forgotPasswordForm/forgotPasswordForm";
+import styles from "./forgotPassword.module.css";
 
 export default function ForgotPassword() {
     return (
-        <div className={styles.containerMain}>
-            <div className={styles.containerCard}>
-                <Image src='/images/logo-seguridad.png' width='200' height='200' alt="logo"/>
-                <div className={styles.title}>
-                    <h1>¿Olvidaste tu contraseña?</h1>
-                    <p>No te preocupes, te ayudaremos a recuperarla</p>
+        <main className={styles.page}>
+            <section className={styles.securityPanel} aria-label="Protección de tu cuenta">
+                <Link href="/" className={styles.brand} aria-label="Ir al inicio de DocSmart">
+                    <span className={styles.brandMark}>
+                        <Image src="/images/logoCara.png" width={42} height={42} alt="" priority />
+                    </span>
+                    <span><strong>Doc</strong>Smart</span>
+                </Link>
+
+                <div className={styles.securityContent}>
+                    <div className={styles.securityCopy}>
+                        <span className={styles.securityIcon} aria-hidden="true">
+                            <LockKeyhole size={24} strokeWidth={1.8} />
+                        </span>
+                        <p className={styles.securityTitle}>Recupera el acceso con tranquilidad</p>
+                        <p>Te enviaremos las instrucciones al correo asociado con tu cuenta.</p>
+                    </div>
+
+                    <div className={styles.illustration} aria-hidden="true">
+                        <Image
+                            src="/images/logo-seguridad.png"
+                            width={560}
+                            height={507}
+                            alt=""
+                        />
+                    </div>
                 </div>
-                <div className={styles.instruction}>
-                    <Cards
-                        description='Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.'
-                        className={styles.card}
-                        layout="horizontal"
-                        title= {<AlertTriangle color="orange" size={30} />}
-                        variant="compact"
-                        align="center"
-                    />
+
+                <div className={styles.securityAdvice}>
+                    <ShieldCheck size={20} strokeWidth={1.8} aria-hidden="true" />
+                    <p>No compartas el enlace de recuperación con otras personas.</p>
                 </div>
-                <div className={styles.containerForm}>
-                    <ForgotPasswordForm></ForgotPasswordForm>
+            </section>
+
+            <section className={styles.formPanel}>
+                <div className={styles.formContent}>
+                    <div className={styles.heading}>
+                        <span className={styles.mobileIcon} aria-hidden="true">
+                            <LockKeyhole size={24} strokeWidth={1.8} />
+                        </span>
+                        <h1>¿Olvidaste tu contraseña?</h1>
+                        <p>Ingresa tu correo y te ayudaremos a recuperar el acceso a DocSmart.</p>
+                        <div className={styles.mobileSecurityAdvice}>
+                            <ShieldCheck size={18} strokeWidth={1.8} aria-hidden="true" />
+                            <p>Tu enlace de recuperación es personal y confidencial.</p>
+                        </div>
+                    </div>
+                    <ForgotPasswordForm />
                 </div>
-            </div>
-        </div>
-    )
+            </section>
+        </main>
+    );
 }
