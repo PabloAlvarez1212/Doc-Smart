@@ -1,3 +1,5 @@
+- [Regresar - Página Princiapl](../../README.md)
+
 # Registro médico por etapas
 
 El registro público médico reutiliza `ProcesoRegistroUsuario` y los servicios OCR/OTP del paciente. `tipo_registro` separa las dos familias de rutas. Los procesos anteriores conservan el valor `paciente`.
