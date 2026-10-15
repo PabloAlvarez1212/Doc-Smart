@@ -1,5 +1,4 @@
-from multiprocessing.util import DEBUG
-
+from .login_attempts import TIEMPO_BLOQUEO
 from rest_framework.views import APIView
 from django.middleware.csrf import get_token
 from rest_framework.response import Response
@@ -110,11 +109,13 @@ class LoginView(APIView):
             )
 
             if status_code != 200:
-                return respuesta_error(
-                    "Error",
-                    errores=resultado,
-                    status=status_code
-                )
+
+                response = respuesta_error("Error",errores=resultado,status=status_code)
+
+                if status_code == 429:
+                    response["Retry-After"] = str(resultado.get("segundos_restantes",TIEMPO_BLOQUEO))
+
+                return response
 
             response = Response({
                 "ok": True,

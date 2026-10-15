@@ -14,7 +14,14 @@ from users.documento_identidad import DocumentoError,extraer_datos_documento
 import secrets
 from django.utils import timezone
 from datetime import timedelta
-from django.core.mail import send_mail
+import math
+from redis.exceptions import RedisError
+from .login_attempts import (
+    TIEMPO_BLOQUEO,
+    verificarBloqueo,
+    registrarIntentoFallido,
+    reiniciarIntentos,
+)
 import os
 import resend
 from django.template.loader import render_to_string
@@ -22,14 +29,13 @@ from urllib.parse import urlencode
 from django.core.paginator import Paginator
 from citas.models import Cita
 import calendar
-from notificaciones.models import Notificacion
 import logging
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.exceptions import NotFound, PermissionDenied
 from utils import filtrarMedicosAprobados
 from django.db.models import Count,Case, When, Value, CharField,Q
-from django.db.models.functions import TruncMonth, Coalesce,TruncDay
+from django.db.models.functions import TruncMonth, TruncDay
 from dateutil.relativedelta import relativedelta
 from django.contrib.auth.hashers import (
     make_password,
@@ -66,72 +72,136 @@ resend.api_key = os.getenv("RESEND_API_KEY")
 
 def loginService(correo, contraseña):
     correo = correo.strip().lower()
+    try:
+        # 1. Verificar si existe un bloqueo activo.
+        segundos_restantes = verificarBloqueo(correo)
 
-    # Busca el correo en ambas tablas
-    usuario = Usuario.objects.filter(
-        correo__iexact=correo
-    ).first()
+        if segundos_restantes > 0:
 
-    medico = Medico.objects.filter(
-        correo__iexact=correo
-    ).first()
+            minutos = math.ceil(segundos_restantes / 60)
 
-    # El correo no existe en ninguna de las dos tablas
-    if not usuario and not medico:
+            return (
+                None,
+                {
+                    "general": [
+                        "Has alcanzado el límite de intentos. "
+                        f"Inténtalo nuevamente en {minutos} minuto(s)."
+                    ],
+                    "segundos_restantes": segundos_restantes,
+                },
+                429,
+            )
+
+        # 2. Buscar el correo en ambas tablas.
+        usuario = Usuario.objects.filter(
+            correo__iexact=correo
+        ).first()
+
+        medico = Medico.objects.filter(
+            correo__iexact=correo
+        ).first()
+
+        # 3. Verificar paciente.
+        if usuario and bcrypt.checkpw(
+            contraseña.encode(),
+            usuario.contraseña.encode()
+        ):
+
+            reiniciarIntentos(correo)
+
+            token = RefreshToken.for_user(usuario)
+
+            token["tipo"] = "usuario"
+
+            serializer = UsuarioSerializer(usuario)
+
+            return token, serializer.data, 200
+
+        # 4. Verificar médico.
+        if medico and bcrypt.checkpw(
+            contraseña.encode(),
+            medico.contraseña.encode()
+        ):
+
+            reiniciarIntentos(correo)
+
+            ultima_solicitud = medico.ultima_solicitud_validacion
+
+            token = RefreshToken.for_user(medico)
+
+            token["tipo"] = "medico"
+
+            token["estado_validacion"] = (
+                ultima_solicitud.estado
+                if ultima_solicitud
+                else None
+            )
+
+            serializer = MedicoSerializer(medico)
+
+            return token, serializer.data, 200
+
+        # 5. Registrar intento fallido.
+        # Se aplica tanto a contraseñas incorrectas
+        # como a correos no registrados.
+        resultado = registrarIntentoFallido(correo)
+
+        if resultado["bloqueado"]:
+
+            return (
+                None,
+                {
+                    "general": [
+                        "Has alcanzado el límite de 5 intentos. "
+                        "Por seguridad, debes esperar 15 minutos "
+                        "para volver a iniciar sesión."
+                    ],
+                    "segundos_restantes": TIEMPO_BLOQUEO,
+                },
+                429,
+            )
+
+        intentos_restantes = resultado["intentos_restantes"]
+
+        # 6. Mostrar advertencia cuando quedan
+        # pocos intentos disponibles.
+        if intentos_restantes <= 2:
+
+            if intentos_restantes == 1:
+                mensaje = (
+                    "Credenciales incorrectas. "
+                    "Te queda 1 intento."
+                )
+            else:
+                mensaje = (
+                    "Credenciales incorrectas. "
+                    f"Te quedan {intentos_restantes} intentos."
+                )
+
+        else:
+            mensaje = "Credenciales incorrectas."
+
         return (
             None,
             {
-                "correo": [
-                    "El correo no se encuentra registrado"
+                "general": [mensaje],
+                "intentos_restantes": intentos_restantes,
+            },
+            401,
+        )
+
+    except (RedisError, RuntimeError):
+
+        return (
+            None,
+            {
+                "general": [
+                    "El inicio de sesión no está disponible "
+                    "temporalmente. Inténtalo más tarde."
                 ]
             },
-            404
+            503,
         )
-
-    # Verifica paciente
-    if usuario and bcrypt.checkpw(
-        contraseña.encode(),
-        usuario.contraseña.encode()
-    ):
-        token = RefreshToken.for_user(usuario)
-        token["tipo"] = "usuario"
-
-        serializer = UsuarioSerializer(usuario)
-
-        return token, serializer.data, 200
-
-    # Verifica médico
-    if medico and bcrypt.checkpw(
-        contraseña.encode(),
-        medico.contraseña.encode()
-    ):
-        # Obtiene la última solicitud de validación del médico
-        ultima_solicitud = medico.ultima_solicitud_validacion
-
-        token = RefreshToken.for_user(medico)
-        token["tipo"] = "medico"
-
-        # Agrega el estado actual de validación al token
-        token["estado_validacion"] = (
-            ultima_solicitud.estado
-            if ultima_solicitud
-            else None
-        )
-
-        serializer = MedicoSerializer(medico)
-
-        return token, serializer.data, 200
-
-    # El correo existe, pero la contraseña es incorrecta
-    return (
-        None,
-        {
-            "general": [
-                "Credenciales incorrectas"
-            ]
-        },
-        401
-    )
 
 def refreshTokenService(refresh_token):
     try:
