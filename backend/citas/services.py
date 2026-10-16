@@ -14,10 +14,11 @@ from functools import wraps
 from notificaciones.services import enviarNotificacion
 from medicos.services_disponibilidad import esHorarioDisponible
 from notificaciones.email_citas_services import enviarCorreosCitaProgramada,enviarCorreosCitaConfirmada, enviarCorreosCitaReprogramada,enviarCorreosCitaCancelada,enviarCorreosCitaVencida, enviarCorreosCitaCompletada
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Los exports de cierre se importan al final, después de definir serializar_agenda.
-
-
 
 def serializar_agenda(funcion):
     """Todas las entradas oficiales comparten el bloqueo de agenda del médico."""
@@ -735,7 +736,15 @@ def editarCitaService(id, datos, solicitante):
     cita.id_estado = estado_reprogramado
 
     cita.save()
-    
+
+    # Cancelar recordatorios pendientes de la programación anterior.
+    RecordatorioCita.objects.filter(
+        id_cita=cita,
+        estado_envio__in=["pendiente", "fallido"]
+    ).update(
+        estado_envio="cancelado"
+    )
+
     if nueva_fecha and nueva_fecha != fecha_antigua:
         from chat_citas.services import reiniciarConversacionPorReprogramacionService
 
