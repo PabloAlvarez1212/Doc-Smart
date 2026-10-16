@@ -64,22 +64,50 @@ export const validateRegisterPacienteStep2 = ({ telefono, estatura, peso, genero
     return errors
 }
 
-export const validateRegisterMedicoStep2 = ({ telefono, direccion, departamento_filtro, id_ciudad, id_especialidad, hoja_vida }) => {
-    const errors = {}
+export const validateRegisterMedicoStep2 = ({
+    telefono,
+    departamento_filtro,
+    id_ciudad,
+    id_especialidad,
+    hoja_vida,
+}) => {
+    const errors = {};
 
-    if (!telefono) errors.telefono = 'El teléfono es requerido'
-    else if (!/^\d+$/.test(telefono)) errors.telefono = 'El teléfono debe contener solo números'
+    if (!telefono) {
+        errors.telefono = "El teléfono es requerido";
+    } 
+    
+    else if (!/^3\d{9}$/.test(telefono)) {
+        errors.telefono =
+            "El celular debe tener 10 dígitos y comenzar por 3";
+    }
 
-    if (!/^3\d{9}$/.test(telefono)) errors.telefono = 'El celular debe tener 10 dígitos y comenzar por 3'
-    if (!direccion || direccion.trim().length < 5 || direccion.length > 255) errors.direccion = 'Ingresa una dirección de entre 5 y 255 caracteres'
-    if (!hoja_vida) errors.hoja_vida = 'Adjunta tu hoja de vida en PDF'
-    else if (hoja_vida.type !== 'application/pdf' || !/\.pdf$/i.test(hoja_vida.name) || !hoja_vida.size || hoja_vida.size > 5 * 1024 * 1024) errors.hoja_vida = 'Selecciona un PDF válido de hasta 5 MB'
-    if (!departamento_filtro) errors.departamento_filtro = 'El departamento es requerido'
-    if (!id_ciudad) errors.id_ciudad = 'La ciudad es requerida'
-    if (!id_especialidad) errors.id_especialidad = 'La especialidad es requerida'
+    if (!departamento_filtro) {
+        errors.departamento_filtro = "El departamento es requerido";
+    }
 
-    return errors
-}
+    if (!id_ciudad) {
+        errors.id_ciudad = "La ciudad es requerida";
+    }
+
+    if (!id_especialidad) {
+        errors.id_especialidad = "La especialidad es requerida";
+    }
+
+    if (!hoja_vida) {
+        errors.hoja_vida = "Adjunta tu hoja de vida en PDF";
+    } 
+    else if (
+        hoja_vida.type !== "application/pdf" ||
+        !/\.pdf$/i.test(hoja_vida.name) ||
+        !hoja_vida.size ||
+        hoja_vida.size > 5 * 1024 * 1024
+    ) {
+        errors.hoja_vida = "Selecciona un PDF válido de hasta 5 MB";
+    }
+
+    return errors;
+};
 
 export const validateRegisterStep3 = ({ correo, contraseña, confirmar_contraseña }) => {
     const errors = {}
