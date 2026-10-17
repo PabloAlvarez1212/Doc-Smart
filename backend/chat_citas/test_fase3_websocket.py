@@ -7,8 +7,22 @@ from rest_framework_simplejwt.tokens import AccessToken
 from .tests import ChatFixture
 from .test_support import Fase3Fixture
 from .models import Conversacion, Mensaje
+from django.test import override_settings
 
 
+@override_settings(
+    CHANNEL_LAYERS={
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer"
+        }
+    },
+    CACHES={
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "docsmart-websocket-tests",
+        }
+    }
+)
 class WebsocketTests(TransactionTestCase):
     def setUp(self):
         ChatFixture.setUpTestData.__func__(type(self))

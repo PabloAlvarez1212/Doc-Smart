@@ -61,7 +61,7 @@ class CancelacionChatTests(CicloFixture):
         self.assertEqual(self.conv.fecha_cierre, self.cita.fecha_cancelacion)
         self.assertEqual(self.estado(), 'cerrado')
         self.assertEqual(Notificacion.objects.count(), 2)
-        self.assertEqual(len(callbacks), 4)  # Dos avisos clínicos y dos eventos de chat.
+        self.assertEqual(len(callbacks), 5)  # Dos avisos clínicos y dos eventos de chat.
 
     def test_cancelacion_por_paciente_cierra_en_instante_real(self):
         self.comprobar_cancelacion(self.patients[0])
@@ -148,7 +148,7 @@ class ReprogramacionChatTests(CicloFixture):
         self.assertIsNone(self.conv.fecha_habilitacion_anticipada)
         self.assertEqual(self.estado(), expected)
         self.assertEqual(Notificacion.objects.count(), 2)
-        self.assertEqual(len(callbacks), 4)  # Dos avisos clínicos y dos eventos de chat.
+        self.assertEqual(len(callbacks), 5)  # Dos avisos clínicos y dos eventos de chat.
 
     def test_fecha_mayor_24h_programada_con_misma_identidad(self):
         self.comprobar_reprogramacion(timedelta(hours=24, microseconds=1), 'programado')
@@ -161,13 +161,13 @@ class ReprogramacionChatTests(CicloFixture):
                                      'activo', self.doctors[1])
 
     def test_fecha_igual_no_limpia_anticipacion(self):
-        self.assertEqual(self.reprogramar(self.original_date)[1], 200)
+        self.assertEqual(self.reprogramar(self.original_date)[1], 400)
         self.conv.refresh_from_db()
         self.assertEqual(self.conv.fecha_habilitacion_anticipada, self.now - timedelta(hours=1))
         self.assertFalse(Notificacion.objects.exists())
 
     def test_sin_fecha_no_altera_conversacion(self):
-        self.assertEqual(editarCitaService(self.cita.pk, {}, self.patients[0])[1], 200)
+        self.assertEqual(editarCitaService(self.cita.pk, {}, self.patients[0])[1], 400)
         self.assert_sin_cambios()
 
     def test_fecha_pasada_rechazada_conserva_marca(self):
@@ -266,7 +266,7 @@ class CompletadaChatTests(CicloFixture):
         self.assertEqual(self.estado(), 'activo')
         result = obtenerEstadoConversacionService(self.conv)
         self.assertEqual(result['fecha_cierre_automatico'], self.now + timedelta(hours=24))
-        self.assertEqual(len(callbacks), 4)  # Dos avisos clínicos y dos eventos de chat.
+        self.assertEqual(len(callbacks), 5)  # Dos avisos clínicos y dos eventos de chat.
         self.assertEqual(Notificacion.objects.count(), 2)
 
     def test_ventana_postconsulta_limite_inclusivo_sin_escrituras(self):

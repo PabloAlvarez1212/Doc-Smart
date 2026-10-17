@@ -56,6 +56,10 @@ function obtenerFechaResolucion(cita, status) {
         return cita.fecha_vencimiento || null;
     }
 
+    if (status === "inasistencia_paciente") {
+        return cita.fecha_inasistencia || null;
+    }
+
     return null;
 }
 
@@ -91,12 +95,17 @@ function obtenerMetadata(cita, status) {
         return `Vencida el ${fechaFormateada}`;
     }
 
+    if (status === "inasistencia_paciente") {
+        return `Inasistencia registrada el ${fechaFormateada}`;
+    }
+
     return null;
 }
 
 
 export default function DoctorAppointmentList({
     citas = [],
+    seccion = "agenda",
     hasActiveFilters = false,
     cancelarCita,
     confirmarCita,
@@ -163,6 +172,7 @@ export default function DoctorAppointmentList({
         return (
             <EmptyAppointments
                 filtered={hasActiveFilters}
+                seccion = {seccion}
             />
         );
     }
@@ -313,9 +323,10 @@ export default function DoctorAppointmentList({
                                 }}
                                 status={{
                                     key: status,
-                                    label: capitalize(
-                                        cita.estado
-                                    ),
+                                    label:
+                                        status === "inasistencia_paciente"
+                                            ? "Inasistencia del paciente"
+                                            : capitalize(cita.estado),
                                 }}
                                 actions={actions}
                                 /*
@@ -545,26 +556,37 @@ function InfoMedicaCard({ citaId, panelId }) {
 /**
  * Mensaje cuando no existen citas.
  */
-function EmptyAppointments({ filtered }) {
+function EmptyAppointments({
+    filtered,
+    seccion = "agenda",
+}) {
+
+    const esHistorial = seccion === "historial";
+
+    const titulo = filtered
+        ? "No hay citas con estos filtros"
+        : esHistorial
+            ? "Todavía no tienes citas en el historial"
+            : "No tienes citas programadas";
+
+    const descripcion = filtered
+        ? "Prueba otro estado, paciente o fecha para ampliar los resultados."
+        : esHistorial
+            ? "Aquí aparecerán tus consultas completadas, canceladas, vencidas y las inasistencias registradas."
+            : "Las nuevas solicitudes y consultas confirmadas aparecerán en esta agenda.";
+
     return (
         <div className={styles.empty}>
+
             <span aria-hidden="true">
                 <SearchX size={24} />
             </span>
 
             <div>
-                <h3>
-                    {filtered
-                        ? "No hay citas con estos filtros"
-                        : "No tienes citas programadas"}
-                </h3>
-
-                <p>
-                    {filtered
-                        ? "Prueba otro estado, paciente o fecha para ampliar los resultados."
-                        : "Las nuevas solicitudes y consultas confirmadas aparecerán en esta agenda."}
-                </p>
+                <h3>{titulo}</h3>
+                <p>{descripcion}</p>
             </div>
+
         </div>
     );
 }

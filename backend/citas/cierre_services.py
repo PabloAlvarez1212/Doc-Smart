@@ -14,7 +14,7 @@ from django.db import transaction
 from notificaciones.email_citas_services import enviarCorreosCitaVencidaPorCierre,enviarCorreoRecordatorioCierre
 
 logger = logging.getLogger(__name__)
-ESTADOS_ATENCION = ('pendiente', 'confirmada', 'reprogramada')
+ESTADOS_ATENCION = ('confirmada',)
 
 
 def limiteCierre(cita):
@@ -23,8 +23,14 @@ def limiteCierre(cita):
 
 
 def validarVentanaCierre(cita, ahora):
-    if cita.id_estado.nombre.lower() not in (*ESTADOS_ATENCION, 'completada') or cita.fecha_inasistencia:
-        return 'La cita cancelada, vencida o con inasistencia no admite seguimiento', 400
+    estado_actual = cita.id_estado.nombre.strip().lower()
+
+    if (estado_actual not in (*ESTADOS_ATENCION, 'completada') or cita.fecha_inasistencia is not None):
+        return (
+            'El seguimiento clínico solo está disponible '
+            'para consultas confirmadas o completadas '
+            'que no registren inasistencia', 400
+        )
     limite = limiteCierre(cita)
     if limite is None:
         return 'La cita no tiene un fin programado válido para establecer el plazo de cierre', 400

@@ -127,9 +127,48 @@ class TransicionInasistenciaTests(InasistenciaFixture):
     def test_propietario_aprobado_marca_confirmada_iniciada(self):
         self.comprobar_exito()
 
-    def test_permite_reprogramada(self):
-        Cita.objects.filter(pk=self.cita.pk).update(id_estado=self.reprogramada)
-        self.comprobar_exito()
+    def test_no_permite_inasistencia_en_cita_reprogramada(self):
+
+        Cita.objects.filter(
+            pk=self.cita.pk
+        ).update(
+            id_estado=self.reprogramada
+        )
+
+        with self.captureOnCommitCallbacks(execute=False) as callbacks:
+
+            _, codigo = self.marcar(
+                self.doctors[1]
+            )
+
+        self.assertEqual(codigo, 400)
+
+        self.cita.refresh_from_db()
+
+        # La cita debe conservar su estado.
+        self.assertEqual(
+            self.cita.id_estado,
+            self.reprogramada
+        )
+
+        # No debe registrar una inasistencia.
+        self.assertIsNone(
+            self.cita.fecha_inasistencia
+        )
+
+        # No debe cerrar la conversación.
+        self.conv.refresh_from_db()
+
+        self.assertIsNone(
+            self.conv.fecha_cierre
+        )
+
+        # No debe generar efectos secundarios.
+        self.assertFalse(
+            Notificacion.objects.exists()
+        )
+
+        self.assertEqual(callbacks, [])
 
     def test_inicio_exacto_sin_periodo_de_gracia(self):
         Cita.objects.filter(pk=self.cita.pk).update(fecha_programada=self.now)

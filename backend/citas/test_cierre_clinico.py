@@ -726,6 +726,12 @@ class CierreClinicoTests(ChatFixture):
             nombre="reprogramada"
         )
 
+        self.cita.fecha_programada = (self.now + timedelta(days=2))
+
+        self.cita.fecha_final = (self.cita.fecha_programada + timedelta(minutes=self.doctors[1].duracion_consulta))
+
+        self.cita.fecha_limite_cierre = (self.cita.fecha_final + timedelta(hours= 72))
+
         self.cita.fecha_recordatorio_cierre_24h = (
             self.now
         )
@@ -1193,6 +1199,112 @@ class CierreClinicoTests(ChatFixture):
         self.cita.refresh_from_db()
         self.assertIsNone(self.cita.fecha_completada)
 
+    def test_no_completar_citas_sin_confirmar(self):
+
+        self.documents()
+
+        estados = [
+            'pendiente',
+            'reprogramada',
+        ]
+
+        for nombre_estado in estados:
+
+            with self.subTest(estado=nombre_estado):
+
+                estado, _ = Estado.objects.get_or_create(
+                    nombre=nombre_estado
+                )
+
+                self.cita.id_estado = estado
+                self.cita.save(update_fields=['id_estado'])
+
+                # No debe permitir completar la cita.
+                _, codigo = services.completarCitaService(
+                    self.cita.pk,
+                    self.doctors[1].pk,
+                    self.datos_historial,
+                )
+
+                self.assertEqual(codigo, 400)
+
+                # Tampoco debe permitir subir seguimiento.
+                self.assertEqual(
+                    self.upload()[1],
+                    400
+                )
+
+                self.cita.refresh_from_db()
+
+                self.assertEqual(
+                    self.cita.id_estado_id,
+                    estado.pk
+                )
+
+                self.assertIsNone(
+                    self.cita.fecha_completada
+                )
+
+    def test_cierre_automatico_ignora_citas_sin_confirmar(self):
+
+        estados = [
+            'pendiente',
+            'reprogramada',
+        ]
+
+        for nombre_estado in estados:
+
+            with self.subTest(estado=nombre_estado):
+
+                estado, _ = Estado.objects.get_or_create(
+                    nombre=nombre_estado
+                )
+
+                self.cita.id_estado = estado
+
+                self.cita.fecha_final = (
+                    self.now - timedelta(hours=74)
+                )
+
+                self.cita.fecha_programada = (
+                    self.cita.fecha_final
+                    - timedelta(minutes=30)
+                )
+
+                self.cita.fecha_limite_cierre = (
+                    self.cita.fecha_final
+                    + timedelta(hours=72)
+                )
+
+                self.cita.save()
+
+                resultado = self.process()
+
+                self.assertEqual(
+                    resultado['vencidas'],
+                    0
+                )
+
+                self.assertEqual(
+                    resultado['recordatorios_24h'],
+                    0
+                )
+
+                self.assertEqual(
+                    resultado['recordatorios_48h'],
+                    0
+                )
+
+                self.cita.refresh_from_db()
+
+                self.assertEqual(
+                    self.cita.id_estado_id,
+                    estado.pk
+                )
+
+                self.assertIsNone(
+                    self.cita.fecha_vencimiento
+                )
 
 class ValidacionSeguimientoTests(
     ChatFixture
