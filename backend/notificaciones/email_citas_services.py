@@ -1508,3 +1508,83 @@ def enviarCorreoRecordatorioCierre(cita_id, horas):
         asunto=asunto,
         contexto=contexto
     )
+
+def enviarCorreoRecordatorioCita(cita, tipo_recordatorio):
+    """
+    Envía al paciente un recordatorio de su cita médica.
+
+    Tipos:
+    - 24h: Un día antes.
+    - 2h: Dos horas antes.
+    """
+
+    paciente = cita.id_usuario
+    medico = cita.id_medico
+
+    fecha_local = timezone.localtime(
+        cita.fecha_programada
+    )
+
+    fecha = fecha_local.strftime("%d/%m/%Y")
+    hora = fecha_local.strftime("%I:%M %p")
+
+    nombre_paciente = paciente.nombre
+
+    nombre_medico = " ".join(
+        parte for parte in [
+            getattr(medico, "nombre", ""),
+            getattr(medico, "apellido", "")
+        ]
+        if parte
+    )
+
+    if tipo_recordatorio == "24h":
+
+        asunto = "DocSmart | Tu cita médica es mañana"
+
+        titulo = "¡Tu cita médica es mañana!"
+
+        mensaje = (
+            "Te recordamos que tienes una cita médica "
+            "programada para mañana. "
+            "Te recomendamos revisar los detalles de tu "
+            "cita y prepararte con anticipación."
+        )
+
+    elif tipo_recordatorio == "2h":
+
+        asunto = "DocSmart | Tu cita médica comienza pronto"
+
+        titulo = "¡Tu cita médica es en 2 horas!"
+
+        mensaje = (
+            "Tu cita médica está próxima a comenzar. "
+            "Recuerda prepararte para tu atención "
+            "y consultar los detalles de tu cita."
+        )
+
+    else:
+        logger.warning(
+            "Tipo de recordatorio no válido: %s",
+            tipo_recordatorio
+        )
+        return False
+
+    contexto = {
+        "titulo": titulo,
+        "nombre": nombre_paciente,
+        "mensaje": mensaje,
+        "codigo_cita": cita.codigo_cita,
+        "paciente": nombre_paciente,
+        "profesional": nombre_medico,
+        "fecha": fecha,
+        "hora": hora,
+        "estado": "confirmada",
+        "url_citas": os.getenv("DOCSMART_URL_CITAS", ""),
+    }
+
+    return enviarCorreoCita(
+        destinatario=paciente.correo,
+        asunto=asunto,
+        contexto=contexto
+    )

@@ -259,7 +259,7 @@ Cada servicio tiene configurado su respectivo comando de Django y las variables 
 La ejecución se realiza automáticamente mediante las tareas programadas de Railway, sin intervención manual de los usuarios.
 
 
-10. Verificación del despliegue
+## 10. Verificación del despliegue
 
 Una vez publicados los servicios, se comprueba que:
 

@@ -1,9 +1,14 @@
+"use client";
+
+import { useState } from "react";
+import Modal from "../../../ui/Modal/Modal";
 import Image from "next/image";
 import {
     Building2,
     CalendarClock,
     CalendarPlus,
     MapPin,
+    Navigation,
     Stethoscope
 } from "lucide-react";
 
@@ -21,6 +26,40 @@ function formatearFecha(fecha) {
 }
 
 export default function DoctorCard({ doctor, onSchedule }) {
+
+    const [mapaAbierto, setMapaAbierto] = useState(false);
+
+    const tieneCoordenadas =
+        doctor.latitud != null &&
+        doctor.longitud != null &&
+        String(doctor.latitud).trim() !== "" &&
+        String(doctor.longitud).trim() !== "" &&
+        Number.isFinite(Number(doctor.latitud)) &&
+        Number.isFinite(Number(doctor.longitud)) &&
+        Math.abs(Number(doctor.latitud)) <= 90 &&
+        Math.abs(Number(doctor.longitud)) <= 180;
+
+    const destino = tieneCoordenadas
+        ? `${Number(doctor.latitud)},${Number(doctor.longitud)}`
+        : "";
+
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+    const mapaUrl = apiKey && destino
+        ? `https://www.google.com/maps/embed/v1/place?${new URLSearchParams({
+            key: apiKey,
+            q: destino,
+            zoom: "17",
+            language: "es",
+        })}`
+        : "";
+
+    const rutaUrl = destino
+        ? `https://www.google.com/maps/dir/?${new URLSearchParams({
+            api: "1",
+            destination: destino,
+        })}`
+        : "";
 
     const fullName =
         [doctor.nombre, doctor.apellido]
@@ -72,10 +111,27 @@ export default function DoctorCard({ doctor, onSchedule }) {
                     )}
 
                     {doctor.direccion && (
-                        <p className={styles.address}>
-                            <Building2 size={16} />
-                            {doctor.direccion}
-                        </p>
+                        tieneCoordenadas ? (
+                            <button
+                                type="button"
+                                className={styles.addressLink}
+                                onClick={() => setMapaAbierto(true)}
+                                aria-haspopup="dialog"
+                                aria-label={`Ver ubicación de ${fullName}`}
+                            >
+                                <Building2 size={16} aria-hidden="true" />
+
+                                <span>
+                                    {doctor.direccion}
+                                    <small>Ver ubicación y cómo llegar</small>
+                                </span>
+                            </button>
+                        ) : (
+                            <p className={styles.address}>
+                                <Building2 size={16} aria-hidden="true" />
+                                {doctor.direccion}
+                            </p>
+                        )
                     )}
                 </div>
             </div>
@@ -140,6 +196,59 @@ export default function DoctorCard({ doctor, onSchedule }) {
                         : "Sin horarios disponibles"}
                 </small>
             </div>
+
+            <Modal
+                abierto={mapaAbierto}
+                onCerrar={() => setMapaAbierto(false)}
+                titulo="Ubicación del consultorio"
+                text={fullName}
+                width="760px"
+                icon={<MapPin size={24} aria-hidden="true" />}
+            >
+                <div className={styles.mapContent}>
+                    <p className={styles.mapAddress}>
+                        <Building2 size={18} aria-hidden="true" />
+                        {doctor.direccion}
+                    </p>
+
+                    {location && (
+                        <p className={styles.mapLocation}>{location}</p>
+                    )}
+
+                    {mapaAbierto && mapaUrl ? (
+                        <iframe
+                            title={`Ubicación del consultorio de ${fullName}`}
+                            src={mapaUrl}
+                            className={styles.mapFrame}
+                            loading="lazy"
+                            allowFullScreen
+                            referrerPolicy="no-referrer-when-downgrade"
+                        />
+                    ) : (
+                        <p role="status">
+                            El mapa no está disponible. Puedes consultar la
+                            ubicación en Google Maps.
+                        </p>
+                    )}
+
+                    {rutaUrl && (
+                        <a
+                            href={rutaUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.directionsLink}
+                        >
+                            <Navigation size={18} aria-hidden="true" />
+                            Cómo llegar
+                        </a>
+                    )}
+
+                    <p className={styles.mapNote}>
+                        Se abrirá Google Maps para elegir tu punto de salida
+                        y medio de transporte.
+                    </p>
+                </div>
+            </Modal>
 
         </article>
     );

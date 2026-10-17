@@ -4,24 +4,26 @@ import Swal from "sweetalert2";
 import { useEffect, useState } from "react";
 import Button from "../../../ui/Button/Button";
 import Input from "../../../ui/Input/Input";
+import ConsultorioMap from "../../../ui/ConsultorioMap/ConsultorioMap";
 import styles from "./PersonalInfo.module.css";
 
 export default function PersonalInfo({
     perfil,
     actualizarPerfilMedico,
-    guardando
+    guardando,
 }) {
-    // Información personal
     const [nombre, setNombre] = useState("");
     const [apellido, setApellido] = useState("");
     const [fechaNacimiento, setFechaNacimiento] = useState("");
     const [telefono, setTelefono] = useState("");
     const [correo, setCorreo] = useState("");
 
-    // Información profesional
     const [direccion, setDireccion] = useState("");
+    const [latitud, setLatitud] = useState("");
+    const [longitud, setLongitud] = useState("");
     const [ciudad, setCiudad] = useState("");
     const [especialidad, setEspecialidad] = useState("");
+    const [errorUbicacion, setErrorUbicacion] = useState("");
 
     useEffect(() => {
         if (!perfil) return;
@@ -33,12 +35,63 @@ export default function PersonalInfo({
         setCorreo(perfil.correo ?? "");
 
         setDireccion(perfil.direccion ?? "");
+        setLatitud(perfil.latitud ?? "");
+        setLongitud(perfil.longitud ?? "");
         setCiudad(perfil.ciudad ?? "");
         setEspecialidad(perfil.especialidad ?? "");
+        setErrorUbicacion("");
     }, [perfil]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleUbicacion = (ubicacion) => {
+        if (guardando) return;
+
+        setDireccion(ubicacion.direccion);
+        setLatitud(ubicacion.latitud);
+        setLongitud(ubicacion.longitud);
+        setErrorUbicacion("");
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        if (guardando) return;
+
+        const tieneValor = (valor) =>
+            valor != null && String(valor).trim() !== "";
+
+        const tieneLatitud = tieneValor(latitud);
+        const tieneLongitud = tieneValor(longitud);
+
+        const ubicacionValida =
+            tieneLatitud &&
+            tieneLongitud &&
+            Number.isFinite(Number(latitud)) &&
+            Number.isFinite(Number(longitud)) &&
+            Math.abs(Number(latitud)) <= 90 &&
+            Math.abs(Number(longitud)) <= 180;
+
+        const cambioDireccion =
+            direccion !== (perfil?.direccion ?? "");
+
+        if (
+            !ubicacionValida &&
+            (cambioDireccion || tieneLatitud || tieneLongitud)
+        ) {
+            setErrorUbicacion(
+                "Selecciona una dirección de las sugerencias del mapa."
+            );
+            return;
+        }
+
+        if (
+            ubicacionValida &&
+            (!direccion.trim() || direccion.length > 100)
+        ) {
+            setErrorUbicacion(
+                "La dirección debe tener entre 1 y 100 caracteres."
+            );
+            return;
+        }
 
         const formData = {
             nombre,
@@ -46,17 +99,22 @@ export default function PersonalInfo({
             fecha_nacimiento: fechaNacimiento,
             telefono,
             correo,
-            direccion
         };
+
+        if (ubicacionValida) {
+            formData.direccion = direccion;
+            formData.latitud = Number(latitud).toFixed(7);
+            formData.longitud = Number(longitud).toFixed(7);
+        }
 
         const result = await Swal.fire({
             title: "¿Actualizar información?",
-            text: "Se guardarán los cambios realizados en tu perfil.",
+            text: "Se guardarán tus datos y la ubicación del consultorio.",
             icon: "question",
             showCancelButton: true,
             confirmButtonText: "Sí, actualizar",
             cancelButtonText: "Cancelar",
-            reverseButtons: true
+            reverseButtons: true,
         });
 
         if (result.isConfirmed) {
@@ -68,70 +126,59 @@ export default function PersonalInfo({
         <form
             className={styles.containerPersonalInfo}
             onSubmit={handleSubmit}
+            aria-busy={guardando}
         >
             <div className={styles.infoSection}>
-
                 <div className={styles.title}>
                     <h2>Información Personal</h2>
-
-                    <p>
-                        Actualiza tu información personal
-                    </p>
+                    <p>Consulta y actualiza tus datos personales.</p>
                 </div>
 
-                <div className={styles.inputs}>
-
+                <div className={`${styles.inputs} ${styles.professionalGrid}`}>
                     <div className={styles.itemInput}>
-                        <label htmlFor="nombre">
-                            Nombre
-                        </label>
-
+                        <label htmlFor="nombre">Nombre</label>
                         <Input
                             id="nombre"
                             name="nombre"
                             value={nombre}
-                            onChange={(e) =>
-                                setNombre(e.target.value)
+                            onChange={(event) =>
+                                setNombre(event.target.value)
                             }
+                            disabled={guardando}
                         />
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label htmlFor="apellido">
-                            Apellido
-                        </label>
-
+                        <label htmlFor="apellido">Apellido</label>
                         <Input
                             id="apellido"
                             name="apellido"
                             value={apellido}
-                            onChange={(e) =>
-                                setApellido(e.target.value)
+                            onChange={(event) =>
+                                setApellido(event.target.value)
                             }
+                            disabled={guardando}
                         />
                     </div>
 
                     <div className={styles.itemInput}>
                         <label htmlFor="fechaNacimiento">
-                            Fecha de Nacimiento
+                            Fecha de nacimiento
                         </label>
-
                         <Input
                             id="fechaNacimiento"
                             name="fechaNacimiento"
                             type="date"
                             value={fechaNacimiento}
-                            onChange={(e) =>
-                                setFechaNacimiento(e.target.value)
+                            onChange={(event) =>
+                                setFechaNacimiento(event.target.value)
                             }
+                            disabled={guardando}
                         />
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label htmlFor="cedula">
-                            Cédula
-                        </label>
-
+                        <label htmlFor="cedula">Cédula</label>
                         <Input
                             id="cedula"
                             name="cedula"
@@ -141,56 +188,49 @@ export default function PersonalInfo({
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label htmlFor="telefono">
-                            Teléfono
-                        </label>
-
+                        <label htmlFor="telefono">Teléfono</label>
                         <Input
                             id="telefono"
                             name="telefono"
+                            type="tel"
                             value={telefono}
-                            onChange={(e) =>
-                                setTelefono(e.target.value)
+                            onChange={(event) =>
+                                setTelefono(event.target.value)
                             }
+                            disabled={guardando}
                         />
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label htmlFor="correo">
-                            Correo
-                        </label>
-
+                        <label htmlFor="correo">Correo</label>
                         <Input
                             id="correo"
                             name="correo"
                             type="email"
                             value={correo}
-                            onChange={(e) =>
-                                setCorreo(e.target.value)
+                            onChange={(event) =>
+                                setCorreo(event.target.value)
                             }
+                            disabled={guardando}
                         />
                     </div>
-
                 </div>
-
             </div>
-            <div className={styles.infoSection}>
 
+            <div className={styles.infoSection}>
                 <div className={styles.title}>
                     <h2>Información Profesional</h2>
-
                     <p>
-                        Actualiza tu información profesional
+                        Configura dónde atiendes para que los pacientes
+                        puedan encontrar tu consultorio.
                     </p>
                 </div>
 
                 <div className={styles.inputs}>
-
                     <div className={styles.itemInput}>
                         <label htmlFor="especialidad">
                             Especialidad
                         </label>
-
                         <Input
                             id="especialidad"
                             name="especialidad"
@@ -200,10 +240,7 @@ export default function PersonalInfo({
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label htmlFor="ciudad">
-                            Ciudad
-                        </label>
-
+                        <label htmlFor="ciudad">Ciudad</label>
                         <Input
                             id="ciudad"
                             name="ciudad"
@@ -213,35 +250,39 @@ export default function PersonalInfo({
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label htmlFor="direccion">
-                            Dirección
-                        </label>
+                        <label htmlFor="direccion">Dirección del consultorio</label>
 
                         <Input
                             id="direccion"
                             name="direccion"
                             value={direccion}
-                            onChange={(e) =>
-                                setDireccion(e.target.value)
-                            }
+                            placeholder="Selecciona la dirección en el mapa"
+                            readOnly
                         />
                     </div>
-
                 </div>
 
+                <div className={styles.mapContainer}>
+                    <ConsultorioMap
+                        direccion={direccion}
+                        latitud={latitud}
+                        longitud={longitud}
+                        onChange={handleUbicacion}
+                        disabled={guardando}
+                        error={errorUbicacion}
+                    />
+                </div>
             </div>
+
             <div className={styles.btn}>
-                <Button className={styles.btnGreen}
+                <Button
+                    className={styles.btnGreen}
                     type="submit"
                     disabled={guardando}
                 >
-                    {guardando
-                        ? "Guardando..."
-                        : "Guardar cambios" 
-                    }
+                    {guardando ? "Guardando..." : "Guardar cambios"}
                 </Button>
             </div>
-
         </form>
     );
 }

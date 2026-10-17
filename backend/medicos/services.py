@@ -1038,6 +1038,8 @@ def editarPerfilMedicoService(id_medico, data):
         'correo',
         'fecha_nacimiento',
         'direccion',
+        'latitud',
+        'longitud',
     ]
 
     for campo in campos_actualizables:

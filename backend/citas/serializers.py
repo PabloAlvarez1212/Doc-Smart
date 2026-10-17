@@ -27,6 +27,21 @@ class CitaSerializer(serializers.ModelSerializer):
     ciudad    = serializers.CharField(source='id_medico.ciudad.nombre', allow_null=True, read_only=True)
     departamento = serializers.CharField(source='id_medico.ciudad.departamento.nombre', allow_null=True, read_only=True)
     direccion = serializers.CharField(source='id_medico.direccion')
+    latitud = serializers.DecimalField(
+        source="id_medico.latitud",
+        max_digits=10,
+        decimal_places=7,
+        allow_null=True,
+        read_only=True,
+    )
+
+    longitud = serializers.DecimalField(
+        source="id_medico.longitud",
+        max_digits=10,
+        decimal_places=7,
+        allow_null=True,
+        read_only=True,
+    )
     especialidad = serializers.CharField(source='id_medico.id_especialidad.nombre')
     foto_paciente = serializers.SerializerMethodField()
     foto_medico = serializers.SerializerMethodField()
@@ -52,6 +67,8 @@ class CitaSerializer(serializers.ModelSerializer):
             'departamento',
             'ciudad',
             'direccion',
+            'latitud',
+            'longitud',
             'especialidad',
             'foto_paciente',
             'foto_medico',
@@ -114,6 +131,8 @@ class CrearCitaSerializer(serializers.Serializer):
             'max_length': 'El motivo de consulta no puede superar los 1000 caracteres',
             'null': 'El motivo de consulta no puede ser nulo'
         })
+
+
 
 
 

@@ -47,7 +47,6 @@ export const useRegister = (role, setRole) => {
         numero_documento: '',
         fecha_nacimiento: '',
         telefono: '',
-        direccion: '',
         departamento_filtro: '',
         id_ciudad: '',
         id_especialidad: '',
@@ -89,7 +88,7 @@ export const useRegister = (role, setRole) => {
         {
             if (procesoId && ['nombre', 'apellido', 'tipo_documento', 'numero_documento', 'fecha_nacimiento'].includes(name)) return
             if (correoConfigurado) return
-            if (['telefono','estatura','peso','genero','tipo_sangre','direccion','departamento_filtro','id_ciudad','id_especialidad','hoja_vida'].includes(name)) {setDatosGuardados(false)}
+            if (['telefono','estatura','peso','genero','tipo_sangre','departamento_filtro','id_ciudad','id_especialidad','hoja_vida'].includes(name)) {setDatosGuardados(false)}
         }
 
         if (name === 'hoja_vida') {
@@ -164,10 +163,20 @@ export const useRegister = (role, setRole) => {
                 let datos = {proceso_id:procesoId, telefono:form.telefono,
                     estatura:Number(String(form.estatura).replace(',', '.')), peso:Number(String(form.peso).replace(',', '.')),
                     genero:form.genero, tipo_sangre:form.tipo_sangre}
-                if (role === 'medico') {
-                    datos = new FormData()
-                    for (const [nombre, valor] of Object.entries({proceso_id:procesoId, telefono:form.telefono,
-                        direccion:form.direccion, ciudad:form.id_ciudad, id_especialidad:form.id_especialidad, hoja_vida:form.hoja_vida})) datos.append(nombre, valor)
+                if (role === "medico") {
+                    datos = new FormData();
+
+                    const datosProfesionales = {
+                        proceso_id: procesoId,
+                        telefono: form.telefono,
+                        ciudad: form.id_ciudad,
+                        id_especialidad: form.id_especialidad,
+                        hoja_vida: form.hoja_vida,
+                    };
+
+                    for (const [nombre, valor] of Object.entries(datosProfesionales)) {
+                        datos.append(nombre, valor);
+                    }
                 }
                 const response = await registroService(role, role === 'medico' ? 'datos-profesionales' : 'datos-adicionales', datos)
                 if (response.data?.datos_guardados !== true) throw new Error('Todavía no se confirmaron los datos')

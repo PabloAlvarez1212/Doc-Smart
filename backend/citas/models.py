@@ -1,7 +1,7 @@
 from django.db import models
 from users.models import Usuario
 from medicos.models import Medico
-from catalogos.models import Estado, Medio
+from catalogos.models import Estado
 from .utils import generarCodigoCita
 
 class Cita(models.Model):
@@ -55,11 +55,51 @@ class DocumentoSeguimientoCita(models.Model):
         )
 
 class RecordatorioCita(models.Model):
+
+    TIPOS_RECORDATORIO = [
+        ("24h", "24 horas antes"),
+        ("2h", "2 horas antes"),
+    ]
+
+    ESTADOS_ENVIO = [
+        ("pendiente", "Pendiente"),
+        ("procesando", "Procesando"),
+        ("enviado", "Enviado"),
+        ("fallido", "Fallido"),
+        ("cancelado", "Cancelado"),
+    ]
+
+    id_cita = models.ForeignKey(
+        Cita,
+        on_delete=models.CASCADE,
+        related_name="recordatorios"
+    )
+
+    tipo_recordatorio = models.CharField(
+        max_length=3,
+        choices=TIPOS_RECORDATORIO
+    )
+
     fecha_programada = models.DateTimeField()
-    fecha_envio_recordatorio = models.DateTimeField()
-    id_cita = models.ForeignKey(Cita, on_delete=models.CASCADE)
-    id_estado = models.ForeignKey(Estado, on_delete=models.PROTECT)
-    id_medios = models.ForeignKey(Medio, on_delete=models.PROTECT)
+
+    fecha_envio_recordatorio = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    estado_envio = models.CharField(
+        max_length=20,
+        choices=ESTADOS_ENVIO,
+        default="pendiente"
+    )
+
+    intentos_envio = models.PositiveIntegerField(
+        default=0
+    )
 
     def __str__(self):
-        return f"Recordatorio {self.id} - Cita {self.id_cita.id}"
+        return (
+            f"Recordatorio {self.id} - "
+            f"Cita {self.id_cita.codigo_cita} - "
+            f"{self.tipo_recordatorio}"
+        )

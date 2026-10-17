@@ -54,6 +54,8 @@ class ProcesoRegistroUsuario(models.Model):
     id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     tipo_registro=models.CharField(max_length=10,choices=(("paciente","Paciente"),("medico","Médico")),default="paciente")
     direccion_profesional=models.CharField(max_length=255,blank=True,default="")
+    latitud_profesional = models.DecimalField(max_digits=10,decimal_places=7,null=True,blank=True,)
+    longitud_profesional = models.DecimalField(max_digits=10,decimal_places=7,null=True,blank=True,)
     ciudad_profesional=models.ForeignKey("catalogos.Ciudad",on_delete=models.PROTECT,null=True,blank=True)
     especialidad=models.ForeignKey("medicos.Especialidad",on_delete=models.PROTECT,null=True,blank=True)
     hoja_vida=models.ForeignKey("storage_app.Archivo",on_delete=models.PROTECT,null=True,blank=True,related_name="procesos_registro_medico")
