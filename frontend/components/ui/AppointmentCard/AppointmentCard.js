@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarDays, CalendarX, CheckCircle2, Clock3, Eye, MapPin, AlertTriangle } from "lucide-react";
+import ConsultorioLink from "../ConsultorioLink/ConsultorioLink";
 import Image from "next/image";
 import styles from "./AppointmentCard.module.css";
 
@@ -11,6 +12,7 @@ export default function AppointmentCard({
     location,
     status,
     actions = [],
+    permitirMapa = false,
     metadata,
     onViewDetails,
 }) {
@@ -92,9 +94,17 @@ export default function AppointmentCard({
                             {location?.name || "Ubicación no disponible"}
                         </strong>
 
-                        <span>
-                            {location?.address || "Dirección no disponible"}
-                        </span>
+                        {permitirMapa ? (
+                            <ConsultorioLink
+                                direccion={location?.address}
+                                latitud={location?.latitud}
+                                longitud={location?.longitud}
+                            />
+                        ) : (
+                            <span>
+                                {location?.address || "Ubicación no disponible"}
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>

@@ -66,6 +66,7 @@ export default function AppointmentList({
 
                     return (
                         <AppointmentCard
+                            permitirMapa={true}
                             key={cita.id}
                             date={fecha}
                             time={hora}
@@ -74,7 +75,12 @@ export default function AppointmentList({
                                 image: cita.foto_medico,
                                 secondary: cita.especialidad || "Especialidad no disponible",
                             }}
-                            location={{ name: location, address: cita.direccion }}
+                            location={{
+                                name: location,
+                                address: cita.direccion,
+                                latitud: cita.latitud,
+                                longitud: cita.longitud,
+                            }}
                             status={{ key: status, label: capitalize(cita.estado) }}
                             actions={actions}
                             onViewDetails={() => openDetails(cita)}

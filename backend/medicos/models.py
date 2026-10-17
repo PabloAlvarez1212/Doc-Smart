@@ -29,6 +29,27 @@ class Medico(models.Model):
     token_reset_expira = models.DateTimeField(null=True, blank=True)             # Expiración del token de reset
     ultimo_envio = models.DateTimeField(null=True, blank=True)   # Control de frecuencia de envío de correos
     direccion = models.CharField(max_length=255)
+    latitud = models.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(-90),
+            MaxValueValidator(90),
+        ],
+    )
+    
+    longitud = models.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(-180),
+            MaxValueValidator(180),
+        ],
+    )
     ciudad = models.ForeignKey(
         'catalogos.Ciudad',
         on_delete=models.PROTECT,

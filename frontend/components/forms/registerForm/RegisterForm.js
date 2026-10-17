@@ -63,7 +63,7 @@ export default function RegisterForm({role,setRole}) {
     const state=useRegister(role,setRole)
     const {form,feedback,step,loading,errors,especialidades,departamentos,ciudades,handleChange,
         handleSubmit,handleBack,handleReenviarOtp,otp,setOtp,documentoFrente,setDocumentoFrente,
-        documentoReverso,setDocumentoReverso,procesoId,documentoVerificado,correoConfigurado,correoVerificado,comparaciones}=state
+        documentoReverso,setDocumentoReverso,procesoId,documentoVerificado,handleUbicacion,correoConfigurado,correoVerificado,comparaciones}=state
     const reduced=useReducedMotion()
     const titleRef=useRef(null)
     const previousStep=useRef(step)
@@ -100,7 +100,6 @@ export default function RegisterForm({role,setRole}) {
                     {comparaciones&&<ul className={styles.comparisons} aria-label="Comparación de los datos del documento" aria-live="polite">{[['nombre','Nombre'],['apellido','Apellido'],['numero_documento','Número de documento'],['fecha_nacimiento','Fecha de nacimiento']].map(([key,label])=><li key={key}><span>{label}</span><span data-match={comparaciones[key]}>{comparaciones[key]?<Check size={16}/>:<X size={16}/>} {comparaciones[key]?'Coincide':'No coincide'}</span></li>)}</ul>}
                     {field('telefono','Teléfono celular',{type:'tel',autoComplete:'tel'})}
                     {medical?<>
-                        {field('direccion','Dirección',{autoComplete:'street-address'})}
                         {field('departamento_filtro','Departamento',{options:departamentos.map(d=>[String(d.id_departamento??d.id),d.nombre_departamento??d.nombre])})}
                         {field('id_ciudad','Ciudad',{options:ciudades.map(c=>[String(c.id_ciudad??c.id),c.nombre_ciudad??c.nombre]),locked:locked||!form.departamento_filtro})}
                         {field('id_especialidad','Especialidad',{options:especialidades.map(e=>[String(e.id),e.nombre])})}

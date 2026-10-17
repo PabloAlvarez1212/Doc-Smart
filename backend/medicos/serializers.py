@@ -331,6 +331,49 @@ class EditarMedicoSerializer(serializers.Serializer):
         required=False,
         error_messages=msg('dirección', 'La')
     )
+    
+    latitud = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        min_value=-90,
+        max_value=90,
+        required=False,
+        allow_null=True,
+    )
+
+    longitud = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        min_value=-180,
+        max_value=180,
+        required=False,
+        allow_null=True,
+    )
+
+    def validate(self, data):
+        tiene_latitud = "latitud" in data
+        tiene_longitud = "longitud" in data
+
+        if tiene_latitud != tiene_longitud:
+            raise serializers.ValidationError({
+                "ubicacion": (
+                    "Debes enviar latitud y longitud juntas."
+                )
+            })
+
+        if tiene_latitud:
+            latitud = data["latitud"]
+            longitud = data["longitud"]
+
+            if (latitud is None) != (longitud is None):
+                raise serializers.ValidationError({
+                    "ubicacion": (
+                        "Ambas coordenadas deben tener un valor "
+                        "o estar vacías."
+                    )
+                })
+
+        return data
 
 # ── SERIALIZERS DE AUTENTICACIÓN ─────────────────────────────────────────────
 
