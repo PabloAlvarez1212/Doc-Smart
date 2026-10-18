@@ -23,10 +23,9 @@ export default function AppointmentCard({
             ? CheckCircle2
             : statusKey === "cancelada"
                 ? CalendarX
-                : statusKey === "vencida"
+                : ["vencida", "inasistencia_paciente"].includes(statusKey)
                     ? AlertTriangle
                     : null;
-
     return (
         <article className={styles.item} role="listitem">
             <header className={styles.cardHeader}>
@@ -129,7 +128,7 @@ export default function AppointmentCard({
                         className={`${styles.resolutionInfo} ${
                             statusKey === "completada"
                                 ? styles.resolutionCompleted
-                                : statusKey === "vencida"
+                                : ["vencida", "inasistencia_paciente"].includes(statusKey)
                                     ? styles.resolutionExpired
                                     : styles.resolutionCancelled
                         }`}

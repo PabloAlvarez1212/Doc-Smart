@@ -40,6 +40,7 @@ from medicos.services import (
     eliminarExcepcionFechaService,
     obtenerEstadisticasMedicosService,
 )
+from medicos.dashboard_services import (obtenerEstadisticasMedicoService)
 from medicos.serializers import (
     EditarMedicoSerializer,
     RegistrarEspecialidadSerializer,
@@ -1311,3 +1312,23 @@ class EstadisticasMedicosView(APIView):
                 mensaje="Error interno del servidor",
                 status=500
             )
+
+class ObtenerEstadisticasMedicoView(APIView):
+
+    permission_classes = [IsAuthenticated,IsMedicoAprobado]
+
+    def get(self, request):
+
+        fecha_inicio = request.query_params.get("fecha_inicio")
+        fecha_fin = request.query_params.get("fecha_fin")
+
+        resultado, codigo = obtenerEstadisticasMedicoService(
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+            medico=request.user
+        )
+
+        if codigo != 200:
+            return respuesta_error(resultado,status=codigo)
+
+        return respuesta_ok(data=resultado,mensaje="Estadísticas obtenidas correctamente.",status=codigo)

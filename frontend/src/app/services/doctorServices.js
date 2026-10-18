@@ -250,3 +250,24 @@ export const obtenerHorariosDisponiblesMedicoService = async (
 
     return response.data;
 };
+
+// ==========================================
+// OBTENER ESTADÍSTICAS DEL DASHBOARD MÉDICO
+// ==========================================
+
+export const obtenerEstadisticasMedicoService = async function (
+    fecha_inicio = null,
+    fecha_fin = null
+) {
+    const response = await api.get(
+        "/medicos/dashboard/",
+        {
+            params: {
+                ...(fecha_inicio && { fecha_inicio }),
+                ...(fecha_fin && { fecha_fin })
+            }
+        }
+    );
+
+    return response.data;
+};

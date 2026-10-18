@@ -1,0 +1,23 @@
+.card {
+    display: grid;
+    min-width: 0;
+    min-height: 356px;
+    grid-template-rows: auto 1fr;
+    padding: 21px 22px 18px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+}
+
+.header { margin-bottom: 15px; }
+.header h2 { margin: 0; color: var(--color-text); font-size: .95rem; font-weight: 750; line-height: 1.35; }
+.header p { max-width: 54ch; margin: 5px 0 0; color: var(--text-secondary); font-size: .74rem; line-height: 1.5; }
+.chartScroll { min-width: 0; overflow-x: auto; overflow-y: hidden; }
+.chartArea { width: 100%; min-width: 500px; height: 270px; }
+.empty { display: grid; min-height: 270px; place-items: center; margin: 0; padding: 18px; border: 1px dashed var(--border); border-radius: 11px; color: var(--text-secondary); font-size: .78rem; line-height: 1.5; text-align: center; }
+
+@media (max-width: 520px) {
+    .card { min-height: 330px; padding: 18px 15px 15px; }
+    .chartArea { min-width: 460px; height: 245px; }
+    .empty { min-height: 245px; }
+}

@@ -7,7 +7,7 @@ class ConversationFlow:
     def iniciar(chat, accion):
 
         chat.estado_conversacion = accion
-        chat.contexto_temporal = {k: v for k, v in (chat.contexto_temporal or {}).items() if k.startswith('_')}
+        chat.contexto_temporal = {k: v for k, v in (chat.contexto_temporal or {}).items() if k.startswith('_') and k not in ('_cancelacion_autorizada', '_operacion_autorizada')}
 
         chat.save(
             update_fields=[
@@ -37,7 +37,7 @@ class ConversationFlow:
 
         chat.estado_conversacion = "normal"
 
-        chat.contexto_temporal = {k: v for k, v in (chat.contexto_temporal or {}).items() if k.startswith('_')}
+        chat.contexto_temporal = {k: v for k, v in (chat.contexto_temporal or {}).items() if k.startswith('_') and k not in ('_cancelacion_autorizada', '_operacion_autorizada')}
 
         chat.save(
             update_fields=[

@@ -392,7 +392,11 @@ class ConfirmacionTests(SimpleTestCase):
 
     @patch("chatbot.ai.flow_manager.ConversationFlow")
     def test_confirmacion_reconstruye_la_operacion(self, conversation_flow):
-        chat = SimpleNamespace(estado_conversacion="confirmar:cancelar_cita")
+        chat = SimpleNamespace(
+            estado_conversacion="confirmar:cancelar_cita",
+            contexto_temporal={},
+            save=MagicMock(),
+        )
         conversation_flow.obtener.return_value = {"id_cita": 15}
 
         decision = FlowManager.continuar(chat, "sí")

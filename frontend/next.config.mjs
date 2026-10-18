@@ -22,7 +22,8 @@ const nextConfig = {
       },
     ],
 
-    dangerouslyAllowLocalIP: true,
+    dangerouslyAllowLocalIP:
+      process.env.NODE_ENV === "development",
   },
 
   async rewrites() {

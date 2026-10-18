@@ -23,6 +23,7 @@ from .views import (
     CrearExcepcionDisponibilidadFechaView,
     ExcepcionDisponibilidadFechaView,
     EstadisticasMedicosView,
+    ObtenerEstadisticasMedicoView
 )
 from .registro import RegistroMedicoView
 
@@ -59,8 +60,10 @@ urlpatterns = [
     path("disponibilidad/excepciones/fecha/<str:fecha>/",ExcepcionDisponibilidadFechaView.as_view(),name="excepcion-disponibilidad-fecha"),
     path("disponibilidad/excepciones/", ExcepcionesDisponibilidadMedicoView.as_view(), name="excepciones-disponibilidad-medico"),
     path("disponibilidad/excepciones/<int:excepcion_id>/", ExcepcionDisponibilidadMedicoDetalleView.as_view(), name="detalle-excepcion-disponibilidad-medico"), 
-    #!Estadisticas dashboard medico
+    #!Estadisticas dashboard medico(panel del admin)
     path("admin/dashboard/",EstadisticasMedicosView.as_view()),
+    #!Estadisticas dashboard medico
+    path("dashboard/",ObtenerEstadisticasMedicoView.as_view(),name="dashboard-medico"),
 ]
 
 urlpatterns += [path(f"registro/{fase}/", RegistroMedicoView.as_view(fase=fase), name="registro-medico-"+fase.replace("/","-")) for fase in ("datos-profesionales","credenciales","subir-documento","documento/verificar","documento/extraer","verificar-correo","reenviar-codigo","completar")]

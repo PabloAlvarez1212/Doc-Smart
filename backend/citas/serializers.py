@@ -58,6 +58,9 @@ class CitaSerializer(serializers.ModelSerializer):
             'fecha_recordatorio_cierre_48h',
             'fecha_vencimiento',
             'fecha_cancelacion',
+            'fecha_inasistencia',
+            'motivo_cancelacion',
+            'cancelada_por',
             'estado',
             'paciente',
             'medico',
@@ -139,6 +142,14 @@ class EditarCitaSerializer(serializers.Serializer):
                            error_messages={
                                'invalid': 'La fecha programada no tiene un formato válido'
                            })
+
+class CancelarCitaSerializer (serializers.Serializer):
+    motivo_cancelacion = serializers.CharField(required=True, allow_blank=False, allow_null=False, max_length=500, trim_whitespace=True, error_messages={
+        "required": "El motico de cancelación es obligatorio.",
+        "blank": "Debes indicar el motivo de cancelación.",
+        "null": "El motivo de cancelación no puede ser nulo.",
+        "max_length": "El motivo no puede superar los 500 caracteres.",
+    })
 
 class FiltroEstadisticasCitasSerializer(serializers.Serializer):
     anio = serializers.IntegerField(

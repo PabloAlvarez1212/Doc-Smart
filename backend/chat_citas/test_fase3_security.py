@@ -4,7 +4,7 @@ from unittest.mock import patch
 from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
 from channels.layers import get_channel_layer
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from django.core.cache import cache
 from medicos.models import SolicitudValidacionMedico
 from . import test_fase3_websocket as wsfixtures
@@ -45,7 +45,19 @@ class DomainSecurityTests(Fase3Fixture):
         with self.assertRaises(ChatError):
             enviarMensajeConversacionService(self.conv.pk, self.patient, client_message_id=uuid4(), contenido='nuevo')
 
-
+@override_settings(
+    CHANNEL_LAYERS={
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer"
+        }
+    },
+    CACHES={
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "docsmart-websocket-tests",
+        }
+    }
+)
 class WebsocketSecurityTests(TransactionTestCase):
     setUp = wsfixtures.WebsocketTests.setUp
     socket = wsfixtures.WebsocketTests.socket

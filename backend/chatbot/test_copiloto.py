@@ -44,7 +44,16 @@ class CopilotoTests(TestCase):
 
     def operar(self, accion, cita=None):
         cita = cita or Cita.objects.filter(id_medico=self.medico).first()
-        return ConversationManager.procesar(self.chat, f"{accion} la cita número {cita.pk}")
+        selector = (
+            cita.codigo_cita
+            if accion in ("Cancela", "Reprograma")
+            else f"número {cita.pk}"
+        )
+
+        return ConversationManager.procesar(
+            self.chat,
+            f"{accion} la cita {selector}",
+        )
 
     def test_modal_clinico_cambia_contexto_sin_crear_mensajes(self):
         inicial = Mensaje.objects.filter(id_chat=self.chat).count()
@@ -84,7 +93,8 @@ class CopilotoTests(TestCase):
         self.assertEqual(respuesta.status_code, 400)
         self.assertIsNone(respuesta.data.get("data"))
 
-    def test_operaciones_exigen_confirmacion_y_notifican_una_vez(self):
+    @patch("notificaciones.email_citas_services.resend.Emails.send")
+    def test_operaciones_exigen_confirmacion_y_notifican_una_vez(self, enviar_correo):
         self.seleccionar(self.paciente)
         clinico = dict(self.chat.contexto_temporal["clinico"])
         for accion, estado in (("Confirma", "confirmada"), ("Cancela", "cancelada"), ("Completa", "completada")):
@@ -100,8 +110,20 @@ class CopilotoTests(TestCase):
                     archivo = Archivo.objects.create(medico=self.medico, nombre_original='seguimiento.pdf', storage_key='test/copiloto/seguimiento')
                     DocumentoSeguimientoCita.objects.create(cita=cita, archivo=archivo)
                 inicial = Notificacion.objects.count()
-                with patch("resend.Emails.send", return_value={"id":"local-test-only"}) as mail, self.captureOnCommitCallbacks(execute=True) as callbacks:
-                    self.assertTrue(self.operar(accion, cita)["requires_confirmation"])
+                correos_iniciales = enviar_correo.call_count
+                with self.captureOnCommitCallbacks(execute=True) as callbacks:
+                    respuesta_previa = self.operar(accion, cita)
+                    if accion == "Cancela":
+                        self.assertTrue(respuesta_previa.get("requires_input"),respuesta_previa,)
+
+                        respuesta_previa = ConversationManager.procesar(
+                            self.chat,
+                            "No podré atender esta consulta por motivos personales.",
+                        )
+                    self.assertTrue(
+                        respuesta_previa.get("requires_confirmation"),
+                        respuesta_previa,
+                    )
                     cita.refresh_from_db()
                     self.assertEqual(cita.id_estado.nombre, "pendiente")
                     resultado = ConversationManager.procesar(self.chat, "Sí confirmar")
@@ -113,7 +135,15 @@ class CopilotoTests(TestCase):
                 cita.refresh_from_db()
                 self.assertEqual(cita.id_estado.nombre, 'pendiente' if accion == 'Completa' else estado)
                 self.assertEqual(Notificacion.objects.count(), inicial + (0 if accion == 'Completa' else 2))
-                self.assertEqual(mail.call_count, 0 if accion == 'Completa' else 2)
+                # Dos avisos persistentes/WS (paciente y médico) y un callback
+                # de correo que envía a ambos destinatarios. Completar sin
+                # datos clínicos no ejecuta ninguno.
+                self.assertEqual(len(callbacks), 0 if accion == "Completa" else 3)
+                self.assertEqual(enviar_correo.call_count - correos_iniciales, 0 if accion == 'Completa' else 2)
+                if accion != 'Completa':
+                    avisos = list(Notificacion.objects.order_by('-pk')[:2])
+                    self.assertEqual({n.tipo for n in avisos}, {'cita_confirmada' if accion == 'Confirma' else 'cita_cancelada'})
+                    self.assertEqual({(n.id_usuario_id, n.id_medico_id) for n in avisos}, {(self.paciente.pk, None), (None, self.medico.pk)})
                 self.chat.refresh_from_db()
                 self.assertEqual(self.chat.contexto_temporal["clinico"], clinico)
                 self.assertNotIn("operacion_medica", self.chat.contexto_temporal)
@@ -131,7 +161,7 @@ class CopilotoTests(TestCase):
     def test_reprogramar_entrega_instancia_medico_al_servicio_oficial(self, editar):
         cita = Cita.objects.filter(id_medico=self.medico).first()
         fecha = (timezone.localtime() + timedelta(days=5)).strftime("%Y-%m-%d a las %H:%M")
-        self.assertTrue(ConversationManager.procesar(self.chat, f"Reprograma la cita almohadilla {cita.pk} para {fecha}")["requires_confirmation"])
+        self.assertTrue(ConversationManager.procesar(self.chat, f"Reprograma la cita {cita.codigo_cita} para {fecha}")["requires_confirmation"])
         self.assertTrue(ConversationManager.procesar(self.chat, "Hazlo")["success"])
         self.assertIsInstance(editar.call_args.args[2], Medico)
         self.assertEqual(editar.call_args.args[2].pk, self.medico.pk)
@@ -158,7 +188,13 @@ class CopilotoTests(TestCase):
         self.assertIn("ID exacto", respuesta["message"])
 
     def test_citas_ambiguas_no_eligen_y_operaciones_ajenas_rechazadas(self):
-        self.assertTrue(ConversationManager.procesar(self.chat, "Cancela la cita con Paciente")["requires_selection"])
+        previa = ConversationManager.procesar(self.chat, 'Cancela la cita con Paciente')
+        self.assertTrue(previa['requires_input'])
+        self.assertIn('código', previa['message'])
+        ConversationManager.procesar(self.chat, 'No')
+        respuesta = ConversationManager.procesar(self.chat,"Reprograma la cita con Paciente",)
+        self.assertTrue(respuesta.get("requires_input"),respuesta,)
+        self.assertIn("código",respuesta["message"].lower(),)
         ConversationManager.procesar(self.chat, "No")
         ajena = Cita.objects.filter(id_medico=self.otro).first()
         paciente_chat = Chat.objects.create(id_usuario=self.paciente)
@@ -179,13 +215,20 @@ class CopilotoTests(TestCase):
 
     def test_conflicto_surgido_entre_preview_y_confirmacion_impide_escritura(self):
         cita = Cita.objects.filter(id_medico=self.medico).first()
-        fecha = (timezone.localtime() + timedelta(days=5)).replace(second=0, microsecond=0)
-        ConversationManager.procesar(self.chat, f"Reprograma la cita #{cita.pk} para {fecha.strftime('%Y-%m-%d %H:%M')}")
-        self.cita(self.medico, self.segundo, fecha=fecha)
-        self.assertFalse(ConversationManager.procesar(self.chat, "Sí")["success"])
+        fecha = (timezone.localtime() + timedelta(days=5)).replace(second=0,microsecond=0,)
+        # 1. Crear una previsualización válida.
+        previa = ConversationManager.procesar(self.chat,(f"Reprograma la cita {cita.codigo_cita} "f"para {fecha.strftime('%Y-%m-%d %H:%M')}"),)
+        self.assertTrue(previa.get("requires_confirmation"),previa,)
+        # 2. Aparece otra cita que ocupa ese horario.
+        self.cita(self.medico,self.segundo,fecha=fecha,)
+        # 3. La confirmación debe rechazar el conflicto.
+        resultado = ConversationManager.procesar(self.chat,"Sí",)
+        self.assertFalse(resultado["success"],resultado,)
+        # 4. La cita original no debe modificarse.
         cita.refresh_from_db()
-        self.assertNotEqual(cita.fecha_programada, fecha)
-        self.assertEqual(Notificacion.objects.count(), 0)
+        self.assertNotEqual(cita.fecha_programada,fecha,)
+        # No deben generarse notificaciones de éxito.
+        self.assertEqual(Notificacion.objects.count(),0,)
 
     def diagnostico_request(self, actor, data=None, csrf=True, method="post"):
         factory = APIRequestFactory(enforce_csrf_checks=True)
@@ -348,6 +391,54 @@ class CopilotoWebSocketTests(TransactionTestCase):
     @classmethod
     def setUpTestData(cls):
         fixtures.BymaxMedicoTests.setUpTestData.__func__(cls)
+
+    def test_cancelacion_paciente_socket_corrige_codigo_y_verifica_persistencia(self):
+        from channels.db import database_sync_to_async
+        with patch('chatbot.ai.router.obtener_cliente') as cliente, patch('chatbot.ai.conversation_manager.extraer_y_guardar_memoria'), patch('chatbot.consumers.preguntar_openai_stream') as generador:
+            cliente.return_value.responses.create.return_value.output_text = '{"accion":"flujo","nombre":"cancelar_cita"}'
+            for scenario in ('si', 'no', 'error'):
+                with self.subTest(scenario=scenario):
+                    chat = Chat.objects.create(id_usuario=self.paciente)
+                    cita = self.cita(self.medico, self.paciente)
+                    motivo = 'No podré asistir por motivos personales.'
+                    def snapshot():
+                        cita.refresh_from_db(); chat.refresh_from_db()
+                        return cita.id_estado.nombre, cita.motivo_cancelacion, cita.cancelada_por, chat.estado_conversacion, dict(chat.contexto_temporal)
+                    async def conversar():
+                        async def application(scope, receive, send):
+                            scope.update(user=self.paciente, url_route={'kwargs': {'id_chat': chat.pk}})
+                            await BymaxConsumer.as_asgi()(scope, receive, send)
+                        socket = WebsocketCommunicator(application, f'/ws/chatbot/{chat.pk}/')
+                        self.assertTrue((await socket.connect())[0])
+                        await socket.receive_json_from()
+                        messages = ['Quiero cancelar una cita médica.', 'DOC-06O5VFRD', motivo, cita.codigo_cita, 'No.' if scenario == 'no' else 'Sí.']
+                        for index, message in enumerate(messages):
+                            await socket.send_json_to({'mensaje': message, 'request_id': str(uuid4())})
+                            while True:
+                                response = await socket.receive_json_from(timeout=5)
+                                if response['tipo'] == 'fin':
+                                    break
+                                self.assertNotEqual(response['tipo'], 'error', response)
+                            estado, razon, actor, pendiente, contexto = await database_sync_to_async(snapshot)()
+                            self.assertEqual(estado, 'cancelada' if scenario == 'si' and index == 4 else 'confirmada')
+                            if index == 2:
+                                self.assertEqual(contexto.get('motivo_cancelacion'), motivo)
+                            if index == 3:
+                                self.assertEqual(pendiente, 'confirmar:cancelar_cita')
+                                self.assertEqual(contexto['codigo_cita'], cita.codigo_cita)
+                            if index == 4 and scenario == 'si':
+                                self.assertTrue(response['resultado']['success'])
+                                self.assertEqual((razon, actor), (motivo, 'paciente'))
+                            if index == 4 and scenario == 'error':
+                                self.assertFalse(response['resultado']['success'])
+                                self.assertNotIn('cancelada correctamente', response['respuesta'])
+                        await socket.disconnect()
+                    if scenario == 'error':
+                        with patch('chatbot.tools.citas.CitaService.cancelar', return_value=('Fallo controlado', 400)):
+                            async_to_sync(conversar)()
+                    else:
+                        async_to_sync(conversar)()
+            generador.assert_not_called()
 
     @patch('chatbot.ai.conversation_manager.procesar_mensaje')
     def test_peticion_incompleta_pide_fecha_y_conserva_socket(self, router):

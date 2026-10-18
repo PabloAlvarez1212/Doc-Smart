@@ -103,7 +103,16 @@ def _extraer_fecha(texto):
 
 def _parametros_reprogramacion(mensaje):
     parametros = {}
+    # Extraer código público de la cita.
+    codigo = re.search(
+        r"(?<![A-Z0-9])DOC-[A-Z0-9]{8}(?![A-Z0-9])",
+        mensaje,
+        re.IGNORECASE,
+    )
+    if codigo:
+        parametros["codigo_cita"] = codigo.group(0).upper()
     fecha = _extraer_fecha(mensaje)
+
     if fecha is not None:
         parametros["fecha"] = fecha.isoformat()
 
@@ -138,7 +147,7 @@ def _guardar_operacion_medica(chat, estado, parametros):
             "accion": parametros.get("accion", "reprogramar_cita_medico"),
             "parametros": {
                 clave: valor for clave, valor in parametros.items()
-                if clave in {"id_cita", "paciente_id", "fecha", "estado_original", "fecha_original"}
+                if clave in {"id_cita", "paciente_id", "fecha", "estado_original", "fecha_original", "codigo_cita", "motivo_cancelacion", "esperando_motivo",}
             },
         }
         actual.contexto_temporal = contexto
@@ -179,6 +188,8 @@ def _iniciar_reprogramacion(chat, mensaje, parametros=None, accion="reprogramar_
         and "paciente_nombre" not in combinados
         and "paciente_id" not in combinados
         and paciente
+        and "codigo_cita" not in combinados
+        and accion != 'cancelar_cita_medico'
     ):
         combinados["paciente_id"] = paciente["id"]
     respuesta = ejecutar(
@@ -203,6 +214,12 @@ def _continuar_operacion_medica(chat, mensaje, normalizado):
         if normalizado not in RESPUESTAS_AFIRMATIVAS:
             return "Por seguridad, responde «sí» para confirmar o «no» para cancelar."
         # El bloqueo abarca ejecución y consumo: dos confirmaciones no compiten.
+        operacion['estado'] = 'autorizada'
+        contexto = dict(actual.contexto_temporal or {})
+        contexto['operacion_medica'] = operacion
+        actual.contexto_temporal = contexto
+        actual.save(update_fields=['contexto_temporal'])
+        chat.contexto_temporal = {**chat.contexto_temporal, 'operacion_medica': operacion}
         parametros["confirmado"] = True
         try:
             with transaction.atomic():
@@ -213,6 +230,14 @@ def _continuar_operacion_medica(chat, mensaje, normalizado):
         finally:
             _limpiar_operacion_medica(chat)
 
+    if (operacion.get("accion") == "cancelar_cita_medico"and parametros.get("esperando_motivo")):
+        # Ya estamos esperando específicamente el motivo.
+        parametros.pop("esperando_motivo", None)
+        parametros["motivo_cancelacion"] = mensaje.strip()
+        # No interpretamos el motivo como una nueva
+        # fecha, paciente o código de cita.
+        return _iniciar_reprogramacion(chat, "",parametros,accion=operacion["accion"],)
+
     seleccion = re.fullmatch(r"#?\s*(\d+)", normalizado)
     if seleccion:
         parametros["id_cita"] = int(seleccion.group(1))
@@ -220,7 +245,7 @@ def _continuar_operacion_medica(chat, mensaje, normalizado):
         extraidos = _parametros_reprogramacion(mensaje)
         sin_selector = not any(
             clave in parametros or clave in extraidos
-            for clave in ("id_cita", "paciente_id", "paciente_nombre")
+            for clave in ("id_cita", "codigo_cita", "paciente_id", "paciente_nombre")
         )
         if sin_selector and _extraer_fecha(mensaje) is None:
             parametros["paciente_nombre"] = mensaje.strip()
@@ -370,7 +395,7 @@ def procesar_medico(chat, mensaje, streaming=False, imagen=None):
         return "No puedo procesar instrucciones que amplíen tus permisos o cambien las reglas del asistente."
     normalizado = _normalizar(mensaje)
     if imagen is None:
-        continuacion = _continuar_operacion_medica(chat, normalizado, normalizado)
+        continuacion = _continuar_operacion_medica(chat, mensaje, normalizado)
         if continuacion is not None:
             return continuacion
         if normalizado in RESPUESTAS_AFIRMATIVAS | RESPUESTAS_NEGATIVAS:
