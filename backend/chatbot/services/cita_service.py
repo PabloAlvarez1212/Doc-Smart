@@ -218,6 +218,10 @@ class CitaService:
 
     @staticmethod
     def obtener_cita_usuario(id_cita, usuario):
+        if isinstance(id_cita, bool) or not re.fullmatch(r'[0-9]+', str(id_cita)):
+            return None
+        if not 0 < int(id_cita) <= 9223372036854775807:
+            return None
         return (
             Cita.objects
             .select_related(
@@ -225,7 +229,32 @@ class CitaService:
                 "id_medico__id_especialidad",
                 "id_estado",
             )
-            .filter(id=id_cita, id_usuario=usuario)
+            .filter(pk=int(id_cita), id_usuario=usuario)
+            .first()
+        )
+
+    @staticmethod
+    def obtener_cita_usuario_codigo(codigo, usuario):
+
+        if not isinstance(codigo, str):
+            return None
+
+        codigo = codigo.strip().upper()
+
+        if not re.fullmatch(r"DOC-[A-Z0-9]{8}", codigo):
+            return None
+
+        return (
+            Cita.objects
+            .select_related(
+                "id_medico",
+                "id_medico__id_especialidad",
+                "id_estado",
+            )
+            .filter(
+                codigo_cita__iexact=codigo,
+                id_usuario=usuario,
+            )
             .first()
         )
 
@@ -289,7 +318,7 @@ class CitaService:
 
     @staticmethod
     @transaction.atomic
-    def operar_medico(medico, id_cita, accion, fecha=None, esperado=None, datos_historial=None):
+    def operar_medico(medico, id_cita, accion, fecha=None, esperado=None, datos_historial=None, motivo_cancelacion=None):
         if not isinstance(medico, Medico):
             return "No fue posible modificar esta cita.", 403
         # Serializa también las reservas en fechas que todavía no tienen filas.
@@ -311,7 +340,15 @@ class CitaService:
                 return "Indica una fecha futura distinta de la actual.", 400
             return CitaService.reprogramar_medico(medico.pk, cita.pk, fecha)
         if accion == "cancelar":
-            return cancelarCitaService(cita.pk, medico)
+            from chatbot.ai.motivos_cancelacion import (normalizar_motivo_cancelacion,)
+            motivo = normalizar_motivo_cancelacion(motivo_cancelacion)
+            if motivo is None:
+                return ("Debes proporcionar un motivo de cancelación válido.",400,)
+            return cancelarCitaService(
+                cita.pk,
+                medico,
+                motivo_cancelacion=motivo,
+            )
         if accion == "confirmar":
             return confirmarCitaService(cita.pk, medico.pk)
         if accion == "completar":
@@ -371,9 +408,21 @@ class CitaService:
         )
 
     @staticmethod
-    def cancelar(usuario, cita):
-        # La pertenencia se valida antes de delegar al servicio general.
+    def cancelar(usuario, cita, motivo_cancelacion):
         if cita.id_usuario_id != usuario.id:
-            return "La cita no pertenece al usuario autenticado", 403
+            return ("La cita no pertenece al usuario autenticado",403,)
 
-        return cancelarCitaService(cita.id, usuario)
+        from chatbot.ai.motivos_cancelacion import (
+            normalizar_motivo_cancelacion,
+        )
+        motivo = normalizar_motivo_cancelacion(
+            motivo_cancelacion
+        )
+        if motivo is None:
+            return ("Debes proporcionar un motivo de cancelación válido.",400,)
+
+        return cancelarCitaService(
+            cita.id,
+            usuario,
+            motivo_cancelacion=motivo,
+        )

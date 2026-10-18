@@ -28,8 +28,9 @@ FLOWS = {
 
         "pasos": [
             {
-                "campo": "id_cita",
-                "pregunta": "¿Cuál es el número de la cita que deseas reprogramar?"
+                "campo": "codigo_cita",
+                "pregunta": "¿Cuál es el código de la cita que deseas reprogramar?"
+                "Por ejemplo, DOC-A7B2C9D4"
             },
             {
                 "campo": "fecha",
@@ -40,16 +41,22 @@ FLOWS = {
     },
 
     "cancelar_cita": {
-
         "tool": "cancelar_cita",
-
         "pasos": [
             {
-                "campo": "id_cita",
-                "pregunta": "¿Cuál es el número de la cita que deseas cancelar?"
+                "campo": "codigo_cita",
+                "pregunta": (
+                    "¿Cuál es el código de la cita que deseas cancelar?"
+                ),
+            },
+            {
+                "campo": "motivo_cancelacion",
+                "pregunta": (
+                    "¿Cuál es el motivo de la cancelación? "
+                    "Puedes escribir hasta 500 caracteres."
+                ),
             },
         ],
-
     },
 
 }

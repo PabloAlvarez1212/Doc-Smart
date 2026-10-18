@@ -138,6 +138,12 @@ export const useNotificaciones = () => {
                         return
                     }
 
+                    // Actualizacion de citas en tienpo real
+                    if (data.type === "appointment_update"){
+                        setEventoCita({tipo_evento: data.tipoEvento, cita: data.cita,});
+                        return;
+                    }
+
                     // Nueva notificación o actualización
                     if (data.type === "notification_update") {
                         setNoLeidas(data.count)

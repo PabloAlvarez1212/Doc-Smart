@@ -32,7 +32,7 @@ function TarjetasResultado({ resultado }) {
           </div>
           <div>
             <strong>{item.paciente?.nombre || item.nombre || item.medico || `Cita #${item.id_cita || item.id}`}</strong>
-            {item.paciente && <span>Paciente #{item.paciente.id}</span>}
+            {!esMedico && item.codigo_cita && <span>Código: {item.codigo_cita}</span>}
             {item.especialidad && <span>{item.especialidad}</span>}
             {item.ciudad && <span>{item.ciudad}</span>}
             {item.fecha && <span>{fechaCorta(item.fecha)}</span>}

@@ -1169,6 +1169,8 @@ def marcarInasistenciaPacienteService(id, solicitante):
     from chat_citas.event_services import registrarEventoConversacionService
     registrarEventoConversacionService(cita, clave=f'inasistencia:{ahora.isoformat()}',
         evento='inasistencia_paciente', instante=ahora, metadata={})
+    from citas.realtime import programarActualizacionCitaRealtime
+    programarActualizacionCitaRealtime(cita)
     return CitaSerializer(cita).data, 200
 
 

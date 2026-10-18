@@ -17,6 +17,9 @@ from chat_citas.tests import ChatFixture
 
 class CicloFixture(ChatFixture):
     def setUp(self):
+        correo = patch('notificaciones.email_citas_services.resend.Emails.send', return_value={'id': 'test-email'})
+        correo.start()
+        self.addCleanup(correo.stop)
         self.conv = Conversacion.objects.create(
             cita=self.cita, fecha_habilitacion_anticipada=self.now - timedelta(hours=1))
         self.original_pk = self.conv.pk
@@ -455,7 +458,11 @@ class VisibilidadEscrituraTests(CicloFixture):
 class BymaxPacienteCicloTests(CicloFixture):
     def test_cancelar_paciente_por_bymax_cierra_misma_conversacion(self):
         from chatbot.services.cita_service import CitaService
-        self.assertEqual(CitaService.cancelar(self.patients[0], self.cita)[1], 200)
+        motivo = 'No podré asistir a la consulta.'
+        self.assertEqual(CitaService.cancelar(self.patients[0], self.cita, motivo)[1], 200)
+        self.cita.refresh_from_db()
+        self.assertEqual(self.cita.motivo_cancelacion, motivo)
+        self.assertEqual(self.cita.id_estado.nombre, 'cancelada')
         self.assert_misma_conversacion()
         self.assertEqual(self.conv.fecha_cierre, self.now)
         self.assertEqual(self.estado(), 'cerrado')
@@ -471,7 +478,7 @@ class BymaxPacienteCicloTests(CicloFixture):
 
     def test_bymax_paciente_ajeno_no_cancela_ni_reprograma(self):
         from chatbot.services.cita_service import CitaService
-        self.assertEqual(CitaService.cancelar(self.patients[1], self.cita)[1], 403)
+        self.assertEqual(CitaService.cancelar(self.patients[1], self.cita, 'Solicito cancelar la consulta.')[1], 403)
         self.assertEqual(CitaService.reprogramar(
             self.patients[1], self.cita, self.now + timedelta(days=4))[1], 403)
         self.assert_sin_cambios()

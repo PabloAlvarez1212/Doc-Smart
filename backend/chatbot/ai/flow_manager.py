@@ -4,6 +4,9 @@ from chatbot.ai.flow_definition import FLOWS
 from chatbot.ai.conversation_flow import ConversationFlow
 from chatbot.ai.router_decision import RouterDecision
 from chatbot.ai.filters import normalizar_intencion, solicita_cancelar_flujo
+from chatbot.ai.motivos_cancelacion import normalizar_motivo_cancelacion
+from datetime import timedelta
+from django.utils import timezone
 
 class FlowManager:
 
@@ -49,12 +52,24 @@ class FlowManager:
         if paso is not None:
             return paso["pregunta"]
 
-        ConversationFlow.finalizar(chat)
         return RouterDecision(
             tool=True,
             tool_name=flujo["tool"],
             parametros=contexto,
         )
+
+    @staticmethod
+    def _extraer_codigo_cita(mensaje):
+        texto = str(mensaje or "")
+        coincidencia = re.search(
+            r"(?<![A-Z0-9])DOC-[A-Z0-9]{8}(?![A-Z0-9])",
+            texto,
+            re.IGNORECASE
+        )
+        if not coincidencia:
+            return None
+
+        return coincidencia.group(0).upper()
 
     @staticmethod
     def _extraer_id_cita(mensaje, permitir_numero=False):
@@ -84,7 +99,7 @@ class FlowManager:
                 numero = int(coincidencia.group(1))
                 return numero if numero > 0 else None
 
-        return None    
+        return None
 
     @staticmethod
     def continuar(chat, mensaje):
@@ -119,8 +134,8 @@ class FlowManager:
             contexto = ConversationFlow.obtener(chat)
             parametros = {}
 
-            if contexto.get("id_cita"):
-                parametros["id_cita"] = contexto["id_cita"]
+            if contexto.get("codigo_cita"):
+                parametros["codigo_cita"] = contexto["codigo_cita"]
 
             parametros.update(
                 FlowManager._extraer_seguimiento(
@@ -153,21 +168,28 @@ class FlowManager:
 
         contexto = ConversationFlow.obtener(chat)
 
+        if chat.estado_conversacion in {'cancelar_cita', 'reprogramar_cita'}:
+            codigo = FlowManager._extraer_codigo_cita(mensaje)
+            if codigo is not None:
+                ConversationFlow.guardar(chat, {'codigo_cita': codigo})
+                contexto = ConversationFlow.obtener(chat)
+
         paso = FlowManager._primer_paso_faltante(flujo, contexto)
 
-        if paso is not None:
+        respuesta = mensaje.strip().lower().rstrip('.!?')
+        if paso is not None or (FlowManager._extraer_codigo_cita(mensaje) is None
+                                and respuesta not in FlowManager.RESPUESTAS_AFIRMATIVAS):
             parametros = FlowManager._extraer_seguimiento(chat, mensaje, chat.estado_conversacion, contexto)
-            if not parametros:
+            if not parametros and paso is not None:
                 return paso['pregunta']
-            ConversationFlow.guardar(chat, parametros)
-            contexto = ConversationFlow.obtener(chat)
+            if parametros:
+                ConversationFlow.guardar(chat, parametros)
+                contexto = ConversationFlow.obtener(chat)
 
         paso = FlowManager._primer_paso_faltante(flujo, contexto)
 
         if paso is not None:
             return paso["pregunta"]
-
-        ConversationFlow.finalizar(chat)
 
         return RouterDecision(
             tool=True,
@@ -177,8 +199,27 @@ class FlowManager:
 
     @staticmethod
     def _primer_paso_faltante(flujo, contexto):
-
         for paso in flujo["pasos"]:
+
+            if paso["campo"] == "motivo_cancelacion":
+                motivo = normalizar_motivo_cancelacion(
+                    contexto.get("motivo_cancelacion")
+                )
+                if motivo is None:
+                    return paso
+
+            if paso["campo"] == "codigo_cita":
+                codigo = contexto.get("codigo_cita")
+                if(
+                    not isinstance(codigo, str)
+                    or not re.fullmatch(
+                        r"DOC-[A-Z0-98]{8}",
+                        codigo.strip(),
+                        re.IGNORECASE
+                    )
+                ):
+                    return paso
+
             alternativas = paso.get("alternativas", [paso["campo"]])
 
             if not any(
@@ -198,7 +239,27 @@ class FlowManager:
     @staticmethod
     def _extraer_seguimiento(chat, mensaje, accion, contexto):
 
+        if accion == "cancelar_cita":
+            codigo = contexto.get("codigo_cita")
+            motivo_actual = normalizar_motivo_cancelacion(
+                contexto.get("motivo_cancelacion")
+            )
+            if codigo and motivo_actual is None:
+                # Si el usuario todavía proporciona un código,
+                # dejamos que lo procese el extractor de códigos.
+                if FlowManager._extraer_codigo_cita(mensaje) is None:
+                    motivo = normalizar_motivo_cancelacion(mensaje)
+                    if motivo is not None:
+                        return {
+                            "motivo_cancelacion": motivo
+                        }
+                    return {}
+
         if accion in {"cancelar_cita", "reprogramar_cita"}:
+            codigo = FlowManager._extraer_codigo_cita(mensaje)
+            if codigo is not None:
+                return {"codigo_cita": codigo}
+
             id_cita = FlowManager._extraer_id_cita(
                 mensaje,
                 permitir_numero=not contexto.get("id_cita"),
@@ -206,7 +267,7 @@ class FlowManager:
 
             if id_cita is not None:
                 return {"id_cita": id_cita}
-            
+
         from chatbot.ai.router import procesar_mensaje
         from chatbot.ai.memory import construir_historial
         historial = construir_historial(chat) if getattr(chat, 'pk', None) else []
@@ -243,6 +304,29 @@ class FlowManager:
         parametros["confirmado"] = True
 
         ConversationFlow.finalizar(chat)
+        if tool_name == "cancelar_cita":
+            contexto = dict(chat.contexto_temporal or {})
+            contexto["_cancelacion_autorizada"] = {
+                "codigo_cita": parametros.get("codigo_cita"),
+                "motivo_cancelacion": parametros.get("motivo_cancelacion"),
+                "expira_en": (
+                    timezone.now() + timedelta(minutes=2)
+                ).timestamp(),
+            }
+            chat.contexto_temporal = contexto
+            chat.save(
+                update_fields=["contexto_temporal"]
+            )
+
+        elif tool_name in ('agendar_cita', 'reprogramar_cita'):
+            contexto = dict(chat.contexto_temporal or {})
+            contexto['_operacion_autorizada'] = {
+                'tool_name': tool_name,
+                'parametros': {k: v for k, v in parametros.items() if k != 'confirmado'},
+                'expira_en': (timezone.now() + timedelta(minutes=2)).timestamp(),
+            }
+            chat.contexto_temporal = contexto
+            chat.save(update_fields=['contexto_temporal'])
 
         return RouterDecision(
             tool=True,
