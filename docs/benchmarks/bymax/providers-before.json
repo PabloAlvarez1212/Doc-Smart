@@ -1,0 +1,19 @@
+{
+  "kind": "live_providers_from_local_host",
+  "environment": "local",
+  "synthetic_input": true,
+  "production_authenticated": false,
+  "metrics": {
+    "openai": {
+      "first_text_ms": 5086.74,
+      "complete_ms": 5459.37,
+      "fragments": 76
+    },
+    "elevenlabs": {
+      "complete_buffer_ms": 2977.96,
+      "bytes": 44764,
+      "first_audio_ms": null,
+      "note": "Existing API returns only after full audio; no browser playback in this probe."
+    }
+  }
+}

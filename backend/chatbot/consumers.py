@@ -1,5 +1,9 @@
 import asyncio
 import logging
+import time
+import uuid
+from contextvars import ContextVar
+from threading import Event
 from types import SimpleNamespace
 from chatbot.throttles import ActorScopedRateThrottle
 
@@ -19,6 +23,7 @@ from medicos.models import Medico
 
 
 logger = logging.getLogger(__name__)
+_respuesta_contexto = ContextVar("bymax_respuesta", default=None)
 
 
 def _normalizar_respuesta(respuesta):
@@ -47,6 +52,9 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.id_chat = int(self.scope["url_route"]["kwargs"]["id_chat"])
         self.tarea_respuesta = None
+        self.respuesta_actual = None
+        self.tareas_en_curso = set()
+        self.preparacion_lock = asyncio.Lock()
         usuario = self.scope.get("user")
 
         if not usuario or not usuario.is_authenticated:
@@ -73,11 +81,52 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
         # y persiste su resultado para recuperar el mismo turno al reconectar.
         self.desconectado = True
 
+    def _cancelar_respuesta(self, response_id=None, request_id=None):
+        estado = getattr(self, "respuesta_actual", None)
+        if estado is None:
+            return None
+        if response_id and response_id != estado["response_id"]:
+            return None
+        if request_id and request_id != estado["request_id"]:
+            return None
+        estado["cancel_event"].set()
+        cola = estado.get("cola")
+        if cola is not None:
+            cola.put_nowait(("cancelado", None))
+        return estado
+
+    def _retener_tarea(self, tarea):
+        if not hasattr(self, "tareas_en_curso"):
+            self.tareas_en_curso = set()
+        self.tareas_en_curso.add(tarea)
+        tarea.add_done_callback(self.tareas_en_curso.discard)
+
     async def send_json(self, content, close=False):
+        estado = _respuesta_contexto.get()
+        if estado is not None:
+            if estado["cancel_event"].is_set() and content.get("tipo") != "cancelado":
+                return
+            if content.get("tipo") == "texto" and "first_text_ms" not in estado:
+                estado["first_text_ms"] = round((time.perf_counter() - estado.get("started_at", time.perf_counter())) * 1000, 2)
+            content = {"response_id": estado["response_id"], "request_id": estado["request_id"], **content}
         if not getattr(self, "desconectado", False):
             await super().send_json(content, close=close)
 
     async def receive_json(self, content, **kwargs):
+        datos = content if isinstance(content, dict) else {}
+        estado = {
+            "response_id": str(uuid.uuid4()),
+            "request_id": datos.get("request_id") or str(uuid.uuid4()),
+            "cancel_event": Event(),
+            "cola": None,
+        }
+        token = _respuesta_contexto.set(estado)
+        try:
+            await self._recibir_json(content, estado, **kwargs)
+        finally:
+            _respuesta_contexto.reset(token)
+
+    async def _recibir_json(self, content, estado, **kwargs):
         if not isinstance(content, dict) or not isinstance(content.get("mensaje", ""), str):
             await self.send_json({"tipo": "error", "mensaje": "Envía un mensaje de texto válido."})
             return
@@ -91,7 +140,9 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
         tipo = content.get("tipo", "mensaje")
 
         if tipo == "cancelar":
-            await self.send_json({"tipo": "aviso", "mensaje": "La solicitud en curso conservará su resultado en el historial."})
+            anterior = self._cancelar_respuesta(content.get("response_id"), content.get("request_id"))
+            if anterior is not None:
+                await self.send_json({"tipo": "cancelado", "response_id": anterior["response_id"], "request_id": anterior["request_id"]})
             return
 
         mensaje = str(content.get("mensaje") or "").strip()
@@ -109,48 +160,89 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
             })
             return
 
-        if self.tarea_respuesta and not self.tarea_respuesta.done():
-            await self.send_json({
-                "tipo": "error",
-                "mensaje": "Bymax todavía está respondiendo.",
-            })
+        anterior = getattr(self, "respuesta_actual", None)
+        activa = getattr(self, "tarea_respuesta", None)
+        if anterior and activa and not activa.done() and anterior["request_id"] == estado["request_id"]:
+            if anterior.get("mensaje") != mensaje:
+                await self.send_json({"tipo": "error", "mensaje": "El identificador ya corresponde a otro mensaje."})
+            else:
+                await self.send_json({"tipo": "en_proceso", "response_id": anterior["response_id"], "request_id": anterior["request_id"]})
             return
-
+        estado["mensaje"] = mensaje
         permitido = await database_sync_to_async(ActorScopedRateThrottle().allow_request)(
             SimpleNamespace(user=self.scope["user"]), SimpleNamespace(throttle_scope="bymax_chat"))
         if not permitido:
             await self.send_json({"tipo": "error", "mensaje": "Has alcanzado el límite temporal. Espera antes de enviar otra solicitud."})
             return
-        self.tarea_respuesta = asyncio.create_task(self._responder(mensaje, content.get("request_id")))
+        self._cancelar_respuesta()
+        self.respuesta_actual = estado
+        self.tarea_respuesta = asyncio.create_task(self._responder(mensaje, estado["request_id"], estado))
+        self._retener_tarea(self.tarea_respuesta)
 
-    async def _responder(self, mensaje, request_id=None):
+    async def _responder(self, mensaje, request_id=None, estado=None):
+        if estado is None:
+            estado = {"response_id": str(uuid.uuid4()), "request_id": request_id,
+                      "cancel_event": Event(), "cola": None}
+        estado["started_at"] = time.perf_counter()
+        token = _respuesta_contexto.set(estado)
+        try:
+            await self._responder_turno(mensaje, request_id, estado)
+        finally:
+            try:
+                id_log = str(uuid.UUID(str(request_id)))
+            except (ValueError, TypeError, AttributeError):
+                id_log = "invalid"
+            logger.info(
+                "Bymax latency request_id=%s response_id=%s preparation_ms=%s first_text_ms=%s total_ms=%.2f cancelled=%s",
+                id_log, estado["response_id"], estado.get("preparation_ms"),
+                estado.get("first_text_ms"), (time.perf_counter() - estado["started_at"]) * 1000,
+                estado["cancel_event"].is_set(),
+            )
+            _respuesta_contexto.reset(token)
+
+    async def _responder_turno(self, mensaje, request_id, estado):
         respuesta_completa = ""
         turno = None
         try:
-            self.chat = await self._obtener_chat(self.scope["user"])
-            if self.chat is None:
-                await self.close(code=4404)
-                return
-            turno, nuevo = await database_sync_to_async(iniciar_turno)(self.chat, request_id, mensaje)
-            if not nuevo:
-                if turno.estado == "completado":
-                    await self.send_json({"tipo": "fin", **turno.respuesta})
-                else:
-                    await self.send_json({"tipo": "error", "mensaje": "Este mensaje ya está siendo procesado. Consulta el historial."})
-                return
-            await self._guardar_mensaje_usuario(mensaje)
-            await self.send_json({"tipo": "inicio"})
+            if not hasattr(self, "preparacion_lock"):
+                self.preparacion_lock = asyncio.Lock()
+            async with self.preparacion_lock:
+                self.chat = await self._obtener_chat(self.scope["user"])
+                if self.chat is None:
+                    await self.close(code=4404)
+                    return
+                turno, nuevo = await database_sync_to_async(iniciar_turno)(self.chat, request_id, mensaje)
+                if not nuevo:
+                    if turno.estado == "completado":
+                        await self.send_json({"tipo": "fin", **turno.respuesta})
+                    else:
+                        await self.send_json({"tipo": "error", "mensaje": "Este mensaje ya está siendo procesado. Consulta el historial."})
+                    return
+                await self._guardar_mensaje_usuario(mensaje)
+                estado["chat"] = self.chat
+                await self.send_json({"tipo": "inicio"})
 
-            resultado = await database_sync_to_async(
-                ConversationManager.procesar,
-                thread_sensitive=True,
-            )(self.chat, mensaje, streaming=True)
+                if estado["cancel_event"].is_set():
+                    await database_sync_to_async(completar_turno)(turno, {"respuesta": "", "resultado": None, "cancelado": True})
+                    return
 
+                resultado = await database_sync_to_async(
+                    ConversationManager.procesar,
+                    thread_sensitive=False,
+                )(self.chat, mensaje, streaming=True)
+
+            estado["preparation_ms"] = round((time.perf_counter() - estado["started_at"]) * 1000, 2)
             if isinstance(resultado, dict) and resultado.get("stream"):
                 respuesta_completa = await self._transmitir_openai(
-                    resultado.get("contents", [])
+                    resultado.get("contents", []), estado
                 )
                 resultado_estructurado = None
+                if estado["cancel_event"].is_set():
+                    if respuesta_completa:
+                        await self._guardar_mensaje_bymax(respuesta_completa, turno, {"cancelado": True})
+                    else:
+                        await database_sync_to_async(completar_turno)(turno, {"respuesta": "", "resultado": None, "cancelado": True})
+                    return
             else:
                 respuesta_completa, resultado_estructurado = (
                     _normalizar_respuesta(resultado)
@@ -180,37 +272,53 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
                 self.id_chat,
             )
             if turno is not None and turno.estado != "completado":
-                seguro = await database_sync_to_async(error_operativo)(self.chat, "responder")
+                seguro = await database_sync_to_async(error_operativo)(estado.get("chat", self.chat), "responder")
                 texto, resultado = _normalizar_respuesta(seguro)
                 await self._guardar_mensaje_bymax(texto, turno, resultado)
                 await self.send_json({"tipo": "fin", **turno.respuesta})
             else:
                 await self.send_json({"tipo": "error", "mensaje": "No fue posible procesar el mensaje."})
 
-    async def _transmitir_openai(self, contents):
+    async def _transmitir_openai(self, contents, estado=None):
+        estado = estado or _respuesta_contexto.get() or {
+            "cancel_event": Event(), "cola": None,
+        }
+        cancel_event = estado["cancel_event"]
         cola = asyncio.Queue()
         loop = asyncio.get_running_loop()
+        estado["cola"] = cola
+        es_medico = bool(estado.get("chat", self.chat).id_medico_id)
+
+        def encolar(tipo, valor):
+            if not loop.is_closed():
+                try:
+                    loop.call_soon_threadsafe(cola.put_nowait, (tipo, valor))
+                except RuntimeError:
+                    pass
 
         def producir():
             close_old_connections()
             try:
-                opciones = {"system_prompt": DOCTOR_SYSTEM_PROMPT} if self.chat.id_medico_id else {}
-                for fragmento in preguntar_openai_stream(contents, **opciones):
-                    loop.call_soon_threadsafe(
-                        cola.put_nowait, ("texto", fragmento)
-                    )
+                opciones = {"system_prompt": DOCTOR_SYSTEM_PROMPT} if es_medico else {}
+                for fragmento in preguntar_openai_stream(contents, cancel_event=cancel_event, **opciones):
+                    if cancel_event.is_set():
+                        break
+                    encolar("texto", fragmento)
             except Exception as error:
-                loop.call_soon_threadsafe(cola.put_nowait, ("error", error))
+                encolar("error", error)
             finally:
                 close_old_connections()
-                loop.call_soon_threadsafe(cola.put_nowait, ("fin", None))
+                encolar("fin", None)
 
         tarea_productora = asyncio.create_task(asyncio.to_thread(producir))
+        self._retener_tarea(tarea_productora)
         partes = []
 
         try:
-            while True:
+            while not cancel_event.is_set():
                 tipo, valor = await cola.get()
+                if cancel_event.is_set():
+                    break
                 if tipo == "texto":
                     partes.append(valor)
                     await self.send_json({"tipo": "texto", "contenido": valor})
@@ -219,13 +327,26 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
                 else:
                     break
         finally:
-            await tarea_productora
+            estado["cola"] = None
+            if not cancel_event.is_set():
+                await tarea_productora
 
         return "".join(partes).strip()
 
     @database_sync_to_async
     def _obtener_chat(self, usuario):
-        return ChatService.obtener_chat(self.id_chat, usuario)
+        chat = ChatService.obtener_chat(self.id_chat, usuario)
+        if chat is not None:
+            self._cachear_actor(chat, usuario)
+        return chat
+
+    @staticmethod
+    def _cachear_actor(chat, usuario):
+        # Ownership was checked by the query. Reuse the authenticated object
+        # for lazy FK access instead of issuing the same actor query again.
+        campo = "id_medico" if isinstance(usuario, Medico) else "id_usuario"
+        if getattr(chat, f"{campo}_id", None) == usuario.pk:
+            setattr(chat, campo, usuario)
 
     @database_sync_to_async
     def _medico_aprobado(self, medico):
@@ -236,6 +357,7 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
     def _guardar_mensaje_usuario(self, mensaje):
         self.chat = Chat.objects.select_for_update().get(
             pk=self.id_chat, estado="activo", **ChatService.filtro_propietario(self.scope["user"]))
+        self._cachear_actor(self.chat, self.scope["user"])
         Mensaje.objects.create(
             id_chat=self.chat,
             contexto_clinico=self.chat.contexto_clinico_id,
@@ -251,9 +373,10 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     @transaction.atomic
     def _guardar_mensaje_bymax(self, respuesta, turno=None, resultado=None):
+        chat = (_respuesta_contexto.get() or {}).get("chat", self.chat)
         Mensaje.objects.create(
-            id_chat=self.chat,
-            contexto_clinico=self.chat.contexto_clinico_id,
+            id_chat=chat,
+            contexto_clinico=chat.contexto_clinico_id,
             contenido=respuesta,
             resultado=resultado,
             es_bot=True,

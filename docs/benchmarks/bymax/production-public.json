@@ -1,0 +1,59 @@
+{
+  "scope": "public HTTP only; not authenticated Bymax latency; no deployment performed",
+  "rows": [
+    {
+      "url": "https://docsmart.site/",
+      "repeat": 0,
+      "status": 200,
+      "headers_ms": 1792.48,
+      "first_byte_ms": 1796.32,
+      "complete_ms": 1802.69,
+      "bytes": 41912
+    },
+    {
+      "url": "https://docsmart.site/",
+      "repeat": 1,
+      "status": 200,
+      "headers_ms": 1373.19,
+      "first_byte_ms": 1373.46,
+      "complete_ms": 1375.3,
+      "bytes": 41912
+    },
+    {
+      "url": "https://docsmart.site/login",
+      "repeat": 0,
+      "status": 200,
+      "headers_ms": 2640.85,
+      "first_byte_ms": 2641.08,
+      "complete_ms": 2641.67,
+      "bytes": 18351
+    },
+    {
+      "url": "https://docsmart.site/login",
+      "repeat": 1,
+      "status": 200,
+      "headers_ms": 2138.36,
+      "first_byte_ms": 2138.51,
+      "complete_ms": 2139.51,
+      "bytes": 18351
+    },
+    {
+      "url": "https://api.docsmart.site/",
+      "repeat": 0,
+      "status": 404,
+      "headers_ms": 1435.83,
+      "first_byte_ms": 1436.08,
+      "complete_ms": 1436.11,
+      "bytes": 179
+    },
+    {
+      "url": "https://api.docsmart.site/",
+      "repeat": 1,
+      "status": 404,
+      "headers_ms": 1631.56,
+      "first_byte_ms": 1631.68,
+      "complete_ms": 1631.69,
+      "bytes": 179
+    }
+  ]
+}

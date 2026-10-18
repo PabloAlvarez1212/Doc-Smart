@@ -1,0 +1,147 @@
+{
+  "kind": "controlled_application_replay",
+  "provider_simulated": true,
+  "configured_delays_ms": {
+    "router_or_extractor": 80,
+    "model_first_delta": 80,
+    "subsequent_delta": 60
+  },
+  "database": "temporary SQLite",
+  "records": [
+    {
+      "scenario": "conversation",
+      "repetition": 0,
+      "provider_calls": 1,
+      "preparation_ms": 8.12,
+      "preparation_queries": 6,
+      "first_text_ms": 100.92,
+      "complete_ms": 225.33
+    },
+    {
+      "scenario": "conversation",
+      "repetition": 1,
+      "provider_calls": 1,
+      "preparation_ms": 6.31,
+      "preparation_queries": 3,
+      "first_text_ms": 100.24,
+      "complete_ms": 224.54
+    },
+    {
+      "scenario": "conversation",
+      "repetition": 2,
+      "provider_calls": 1,
+      "preparation_ms": 6.79,
+      "preparation_queries": 3,
+      "first_text_ms": 98.35,
+      "complete_ms": 222.35
+    },
+    {
+      "scenario": "clinical",
+      "repetition": 0,
+      "provider_calls": 1,
+      "preparation_ms": 3.79,
+      "preparation_queries": 3,
+      "first_text_ms": 98.88,
+      "complete_ms": 225.67
+    },
+    {
+      "scenario": "clinical",
+      "repetition": 1,
+      "provider_calls": 1,
+      "preparation_ms": 2.16,
+      "preparation_queries": 3,
+      "first_text_ms": 92.82,
+      "complete_ms": 215.38
+    },
+    {
+      "scenario": "clinical",
+      "repetition": 2,
+      "provider_calls": 1,
+      "preparation_ms": 2.25,
+      "preparation_queries": 3,
+      "first_text_ms": 91.63,
+      "complete_ms": 215.04
+    },
+    {
+      "scenario": "memory",
+      "repetition": 0,
+      "provider_calls": 3,
+      "preparation_ms": 172.14,
+      "preparation_queries": 7,
+      "first_text_ms": 262.5,
+      "complete_ms": 385.86
+    },
+    {
+      "scenario": "memory",
+      "repetition": 1,
+      "provider_calls": 3,
+      "preparation_ms": 166.4,
+      "preparation_queries": 7,
+      "first_text_ms": 254.16,
+      "complete_ms": 377.44
+    },
+    {
+      "scenario": "memory",
+      "repetition": 2,
+      "provider_calls": 3,
+      "preparation_ms": 165.25,
+      "preparation_queries": 7,
+      "first_text_ms": 252.33,
+      "complete_ms": 375.76
+    },
+    {
+      "scenario": "data",
+      "repetition": 0,
+      "provider_calls": 0,
+      "preparation_ms": 1.71,
+      "preparation_queries": 1,
+      "first_text_ms": 12.78,
+      "complete_ms": 14.73
+    },
+    {
+      "scenario": "data",
+      "repetition": 1,
+      "provider_calls": 0,
+      "preparation_ms": 2.09,
+      "preparation_queries": 1,
+      "first_text_ms": 10.87,
+      "complete_ms": 12.72
+    },
+    {
+      "scenario": "data",
+      "repetition": 2,
+      "provider_calls": 0,
+      "preparation_ms": 1.02,
+      "preparation_queries": 1,
+      "first_text_ms": 8.1,
+      "complete_ms": 9.29
+    },
+    {
+      "scenario": "appointments",
+      "repetition": 0,
+      "provider_calls": 0,
+      "preparation_ms": 6.19,
+      "preparation_queries": 6,
+      "first_text_ms": 12.31,
+      "complete_ms": 13.46
+    },
+    {
+      "scenario": "appointments",
+      "repetition": 1,
+      "provider_calls": 0,
+      "preparation_ms": 4.13,
+      "preparation_queries": 6,
+      "first_text_ms": 11.02,
+      "complete_ms": 12.18
+    },
+    {
+      "scenario": "appointments",
+      "repetition": 2,
+      "provider_calls": 0,
+      "preparation_ms": 4.04,
+      "preparation_queries": 6,
+      "first_text_ms": 11.23,
+      "complete_ms": 12.43
+    }
+  ]
+}

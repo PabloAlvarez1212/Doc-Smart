@@ -39,12 +39,12 @@ function setup(overrides = {}) {
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
-test("preloads only next phrase while current audio plays and preserves order", async () => {
+test("preloads next phrase during preparation and preserves order", async () => {
   const requested = [];
   const e = setup({ generateVoice: text => { requested.push(text); return Promise.resolve({ size: 10, type: "audio/mpeg" }); } });
   e.controller.beginTurn();
   for (const phrase of ["Primera.", "Segunda.", "Tercera."]) e.controller.enqueue(phrase, "response");
-  await flush(); assert.deepEqual(requested, ["Primera."]);
+  await flush(); assert.deepEqual(requested, ["Primera.", "Segunda."]);
   e.audios[0].onplaying(); await flush();
   assert.deepEqual(requested, ["Primera.", "Segunda."]);
   assert.equal(e.audios[0].plays, 1);
@@ -252,4 +252,13 @@ test("neural and device voice unavailable still completes text and resumes conve
   r.onresult(result("Bymax mis citas"));e.timeout(1600);e.controller.enqueue("Respuesta", "a");await flush();
   assert.equal(e.controller.snapshot().playback,"error");e.controller.completeTurn();e.timeout(350);r.onstart();
   assert.equal(e.controller.snapshot().mic,"listening");assert.equal(e.audios.length,0);
+});
+
+test("playback error aborts current and prefetched requests without starting queued audio", async () => {
+ const signals=[];
+ const e=setup({generateVoice:(text, rate, signal)=>{signals.push(signal);return text==="Primera."?Promise.resolve({size:10,type:"audio/mpeg"}):new Promise(()=>{});}});
+ e.controller.enqueue("Primera.","response");e.controller.enqueue("Segunda.","response");await flush();
+ assert.equal(signals.length,2);e.audios[0].onerror();
+ assert.ok(signals.every(signal=>signal.aborted));assert.equal(e.controller.snapshot().playback,"error");assert.equal(e.audios[0].plays,1);
+ e.controller.enqueue("Tercera.","response");await flush();assert.equal(signals.length,2);e.controller.dispose();
 });

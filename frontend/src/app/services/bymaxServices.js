@@ -43,16 +43,16 @@ export const bymaxService = {
     try { await api.delete(`/chatbot/chats/${idChat}/`); return true; }
     catch (error) { throw new Error(detalleError(error, "No fue posible eliminar la conversación.")); }
   },
-  async enviarMensaje(idChat, mensaje, imagen = null, requestId = crypto.randomUUID()) {
+  async enviarMensaje(idChat, mensaje, imagen = null, requestId = crypto.randomUUID(), signal) {
     try {
       let payload = { mensaje, request_id: requestId };
-      let config;
+      let config = { signal };
       if (imagen) {
         payload = new FormData();
         payload.append("mensaje", mensaje);
         payload.append("request_id", requestId);
         payload.append("imagen", imagen);
-        config = { headers: { "Content-Type": "multipart/form-data" } };
+        config = { signal, headers: { "Content-Type": "multipart/form-data" } };
       }
       const value = datos(await api.post(`/chatbot/chats/${idChat}/responder/`, payload, config));
       return {
@@ -60,17 +60,20 @@ export const bymaxService = {
         resultado: value?.resultado ?? value?.data ?? null,
       };
     } catch (error) {
-      throw new Error(detalleError(error, "Ocurrió un error comunicándome con Bymax."));
+      const wrapped = new Error(detalleError(error, "Ocurrió un error comunicándome con Bymax."));
+      wrapped.status = error?.response?.status; wrapped.canceled = error?.code === "ERR_CANCELED" || signal?.aborted;
+      throw wrapped;
     }
   },
   async generarVoz(texto, velocidad = 0.96, signal) {
     try {
+      const progressive = typeof window !== "undefined" && window.MediaSource?.isTypeSupported?.("audio/mpeg");
       const response = await api.post(
         "/chatbot/voz/",
-        { texto, velocidad },
-        { responseType: "blob", signal },
+        { texto, velocidad, stream: Boolean(progressive) },
+        progressive ? { adapter: "fetch", responseType: "stream", signal } : { responseType: "blob", signal },
       );
-      return response.data;
+      return progressive ? { stream: response.data } : response.data;
     } catch (error) {
       throw new Error(detalleError(error, "No fue posible generar la voz neuronal de Bymax."));
     }

@@ -1,4 +1,7 @@
+import atexit
 import base64
+from functools import lru_cache
+from weakref import WeakSet
 import logging
 import time
 
@@ -29,6 +32,27 @@ ERRORES_TRANSITORIOS = (
 )
 
 
+_clientes_abiertos = WeakSet()
+
+
+def _cerrar_clientes():
+    for cliente in list(_clientes_abiertos):
+        try:
+            cliente.close()
+        except Exception:
+            pass
+
+
+atexit.register(_cerrar_clientes)
+
+
+@lru_cache(maxsize=2)
+def _cliente_compartido(api_key):
+    cliente = OpenAI(api_key=api_key, timeout=30.0, max_retries=0)
+    _clientes_abiertos.add(cliente)
+    return cliente
+
+
 def obtener_cliente():
     api_key = getattr(settings, "OPENAI_API_KEY", "")
 
@@ -37,7 +61,7 @@ def obtener_cliente():
 
     # Los reintentos se controlan aquí para evitar duplicar respuestas
     # cuando el servicio se usa mediante streaming.
-    return OpenAI(api_key=api_key, timeout=30.0, max_retries=0)
+    return _cliente_compartido(api_key)
 
 
 def convertir_historial(contents):
@@ -140,14 +164,20 @@ def preguntar_openai(contents, system_prompt=SYSTEM_PROMPT):
     return MENSAJE_ERROR
 
 
-def preguntar_openai_stream(contents, system_prompt=SYSTEM_PROMPT):
+def preguntar_openai_stream(contents, system_prompt=SYSTEM_PROMPT, cancel_event=None):
+    if cancel_event is not None and cancel_event.is_set():
+        return
+
     mensajes = convertir_historial(contents)
 
     if not mensajes:
         raise ValueError("contents are required")
 
     for intento in range(3):
+        if cancel_event is not None and cancel_event.is_set():
+            return
         emitio_texto = False
+        stream = None
 
         try:
             stream = obtener_cliente().responses.create(
@@ -159,7 +189,16 @@ def preguntar_openai_stream(contents, system_prompt=SYSTEM_PROMPT):
                 stream=True,
             )
 
-            for evento in stream:
+            eventos = iter(stream)
+            while True:
+                if cancel_event is not None and cancel_event.is_set():
+                    return
+                try:
+                    evento = next(eventos)
+                except StopIteration:
+                    break
+                if cancel_event is not None and cancel_event.is_set():
+                    return
                 if evento.type == "response.output_text.delta":
                     texto = evento.delta
                     if texto:
@@ -169,12 +208,17 @@ def preguntar_openai_stream(contents, system_prompt=SYSTEM_PROMPT):
                 elif evento.type == "response.failed":
                     raise RuntimeError("OpenAI no pudo completar la respuesta")
 
+            if cancel_event is not None and cancel_event.is_set():
+                return
+
             if emitio_texto:
                 return
 
             raise RuntimeError("OpenAI devolvió un stream vacío")
 
         except Exception as error:
+            if cancel_event is not None and cancel_event.is_set():
+                return
             logger.warning(
                 "Error en stream de OpenAI intento=%s tipo=%s",
                 intento + 1,
@@ -189,4 +233,17 @@ def preguntar_openai_stream(contents, system_prompt=SYSTEM_PROMPT):
             ):
                 raise
 
-            time.sleep(1.5 * (intento + 1))
+        finally:
+            close = getattr(stream, "close", None)
+            if callable(close):
+                try:
+                    close()
+                except Exception:
+                    logger.debug("No se pudo cerrar el stream de OpenAI")
+
+        demora = 1.5 * (intento + 1)
+        if cancel_event is not None:
+            if cancel_event.wait(demora):
+                return
+        else:
+            time.sleep(demora)

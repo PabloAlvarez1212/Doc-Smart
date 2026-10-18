@@ -1,0 +1,215 @@
+{
+  "kind": "SIMULATION_ONLY",
+  "measuredAt": "2026-10-17T04:36:15.832Z",
+  "nodeVersion": "v24.14.0",
+  "model": "Real segmentation/controller; synthetic delayed text deltas; TTS resolves complete Blob; mock Audio.onplaying and fixed playback duration. Node timer jitter applies. Not real network/model/TTS/browser/audio latency. Confirmation is a controlled fixture, not backend verification.",
+  "fixture": {
+    "deltaDelayMs": 35,
+    "ttsCompleteBlobMs": 80,
+    "audioStartMs": 8,
+    "playbackMs": 95,
+    "confirmationDelayMs": 110
+  },
+  "results": [
+    {
+      "scenario": "normal",
+      "firstTextMs": 70.26,
+      "firstAudioMs": 462.49,
+      "completeTextMs": 390.48,
+      "gapsMs": [
+        23.03
+      ],
+      "cancelled": false,
+      "abortedRequests": 0,
+      "exactFinalTextChecked": true,
+      "noRepetitionChecked": true,
+      "visibleText": "Puedo ayudarte con una explicación extensa, incluyendo los pasos necesarios para organizar tu consulta y encontrar una respuesta clara sin perder detalles. Ahora revisamos el siguiente paso.",
+      "events": [
+        {
+          "kind": "tts_request",
+          "atMs": 334.49,
+          "text": "Puedo ayudarte con una explicación extensa, incluyendo los pasos necesarios para organizar tu consulta y encontrar una respuesta clara sin perder detalles."
+        },
+        {
+          "kind": "playing",
+          "atMs": 462.71,
+          "text": "Puedo ayudarte con una explicación extensa, incluyendo los pasos necesarios para organizar tu consulta y encontrar una respuesta clara sin perder detalles."
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 490.74,
+          "text": "Ahora revisamos el siguiente paso."
+        },
+        {
+          "kind": "ended",
+          "atMs": 599.62
+        },
+        {
+          "kind": "playing",
+          "atMs": 622.65,
+          "text": "Ahora revisamos el siguiente paso."
+        },
+        {
+          "kind": "ended",
+          "atMs": 722.19
+        }
+      ]
+    },
+    {
+      "scenario": "datos",
+      "firstTextMs": 40.09,
+      "firstAudioMs": 209.41,
+      "completeTextMs": 292.57,
+      "gapsMs": [
+        11.19,
+        40.82
+      ],
+      "cancelled": false,
+      "abortedRequests": 0,
+      "exactFinalTextChecked": true,
+      "noRepetitionChecked": true,
+      "visibleText": "Tus datos se revisan con cuidado. La cifra es 12.5 y el Dr. Pérez puede revisarla. Estos son los datos finales.",
+      "events": [
+        {
+          "kind": "tts_request",
+          "atMs": 84.24,
+          "text": "Tus datos se revisan con cuidado."
+        },
+        {
+          "kind": "playing",
+          "atMs": 209.44,
+          "text": "Tus datos se revisan con cuidado."
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 231.61,
+          "text": "La cifra es 12.5 y el Dr. Pérez puede revisarla."
+        },
+        {
+          "kind": "ended",
+          "atMs": 310.04
+        },
+        {
+          "kind": "playing",
+          "atMs": 321.23,
+          "text": "La cifra es 12.5 y el Dr. Pérez puede revisarla."
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 321.51,
+          "text": "Estos son los datos finales."
+        },
+        {
+          "kind": "ended",
+          "atMs": 421.54
+        },
+        {
+          "kind": "playing",
+          "atMs": 462.36,
+          "text": "Estos son los datos finales."
+        },
+        {
+          "kind": "ended",
+          "atMs": 569.58
+        }
+      ]
+    },
+    {
+      "scenario": "cita_confirmada",
+      "firstTextMs": 45.82,
+      "firstAudioMs": 343.86,
+      "completeTextMs": 463.49,
+      "gapsMs": [
+        116.23
+      ],
+      "cancelled": false,
+      "abortedRequests": 0,
+      "exactFinalTextChecked": true,
+      "noRepetitionChecked": true,
+      "visibleText": "La solicitud está en proceso, espera la respuesta del sistema antes de confirmar. Tu cita quedó confirmada.",
+      "events": [
+        {
+          "kind": "tts_request",
+          "atMs": 234.59,
+          "text": "La solicitud está en proceso, espera la respuesta del sistema antes de confirmar."
+        },
+        {
+          "kind": "playing",
+          "atMs": 343.89,
+          "text": "La solicitud está en proceso, espera la respuesta del sistema antes de confirmar."
+        },
+        {
+          "kind": "controlled_confirmation",
+          "atMs": 463.22
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 463.35,
+          "text": "Tu cita quedó confirmada."
+        },
+        {
+          "kind": "ended",
+          "atMs": 463.53
+        },
+        {
+          "kind": "playing",
+          "atMs": 579.76,
+          "text": "Tu cita quedó confirmada."
+        },
+        {
+          "kind": "ended",
+          "atMs": 680.64
+        }
+      ]
+    },
+    {
+      "scenario": "cancelacion",
+      "firstTextMs": 37.56,
+      "firstAudioMs": 145.23,
+      "completeTextMs": null,
+      "gapsMs": [
+        15.43
+      ],
+      "cancelled": true,
+      "abortedRequests": 1,
+      "exactFinalTextChecked": false,
+      "noRepetitionChecked": false,
+      "visibleText": "Primera frase. Segunda frase. Tercera frase. Cuarta frase. Quinta frase. ",
+      "events": [
+        {
+          "kind": "tts_request",
+          "atMs": 37.79,
+          "text": "Primera frase."
+        },
+        {
+          "kind": "playing",
+          "atMs": 145.26,
+          "text": "Primera frase."
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 145.39,
+          "text": "Segunda frase."
+        },
+        {
+          "kind": "ended",
+          "atMs": 243.65
+        },
+        {
+          "kind": "playing",
+          "atMs": 259.08,
+          "text": "Segunda frase."
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 259.2,
+          "text": "Tercera frase."
+        },
+        {
+          "kind": "cancel",
+          "atMs": 259.6
+        }
+      ]
+    }
+  ]
+}

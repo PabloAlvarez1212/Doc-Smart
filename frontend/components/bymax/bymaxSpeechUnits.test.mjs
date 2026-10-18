@@ -18,3 +18,9 @@ test("streamed and full response preserve exactly the same text", () => {
   spoken.push(...takeSpeechUnits(buffer, true).units);
   assert.deepEqual(spoken, ["Hola Dr. Pérez.", "Revisa el caso."]);
 });
+
+test("a meaningful clause can start speech before the first sentence finishes", () => {
+ const text = "Puedo ayudarte con una explicación extensa, incluyendo los pasos necesarios";
+ assert.deepEqual(takeSpeechUnits(text), { units: ["Puedo ayudarte con una explicación extensa,"], remaining: " incluyendo los pasos necesarios" });
+ assert.deepEqual(takeSpeechUnits("Hola, revisa 12.5 y al Dr. Pérez"), { units: [], remaining: "Hola, revisa 12.5 y al Dr. Pérez" });
+});

@@ -1,12 +1,12 @@
+import asyncio
 import logging
 import re
-
+import threading
 import requests
 from django.conf import settings
 
-
 logger = logging.getLogger(__name__)
-
+_http = threading.local()
 
 class ElevenLabsError(Exception):
     def __init__(self, mensaje, status_code=503):
@@ -14,86 +14,74 @@ class ElevenLabsError(Exception):
         self.status_code = status_code
 
 
+def _http_session():
+    # requests.Session is reused within a worker, never concurrently across threads.
+    if not getattr(_http, 'session', None):
+        _http.session = requests.Session()
+    return _http.session
+
+
 def limpiar_texto_para_voz(texto):
-    texto = str(texto or "").strip()
-    texto = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", texto)
-    texto = re.sub(r"https?://\S+", "", texto)
-    texto = re.sub(r"[*_#>`~]", "", texto)
-    texto = re.sub(r"[ \t]+", " ", texto)
-    texto = re.sub(r"\n{3,}", "\n\n", texto)
-    return texto.strip()
+    texto = str(texto or '').strip()
+    texto = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', texto)
+    texto = re.sub(r'https?://\S+', '', texto)
+    texto = re.sub(r'[*_#>`~]', '', texto)
+    texto = re.sub(r'[ \t]+', ' ', texto)
+    return re.sub(r'\n{3,}', '\n\n', texto).strip()
 
 
-def generar_audio_bymax(texto, velocidad=0.96):
-    api_key = settings.ELEVENLABS_API_KEY
-    voice_id = settings.ELEVENLABS_VOICE_ID
-    model_id = settings.ELEVENLABS_MODEL_ID
-
-    if not api_key:
-        raise ElevenLabsError("La voz de Bymax no está configurada.")
-    if not voice_id:
-        raise ElevenLabsError("No se configuró la identidad de voz de Bymax.")
-
-    texto_limpio = limpiar_texto_para_voz(texto)
-    if not texto_limpio:
-        raise ElevenLabsError("No se recibió texto válido.", status_code=400)
-    texto_limpio = texto_limpio[:2500]
-
+def _solicitar_audio(texto, velocidad, streaming=False):
+    if not settings.ELEVENLABS_API_KEY or not settings.ELEVENLABS_VOICE_ID:
+        raise ElevenLabsError('La voz de Bymax no está configurada.')
+    texto = limpiar_texto_para_voz(texto)[:2500]
+    if not texto:
+        raise ElevenLabsError('No se recibió texto válido.', 400)
     try:
-        velocidad = max(0.7, min(1.2, float(velocidad)))
+        velocidad = max(.7, min(1.2, float(velocidad)))
     except (TypeError, ValueError):
-        velocidad = 0.96
-
-    response = None
+        velocidad = .96
+    suffix = '/stream' if streaming else ''
     try:
-        response = requests.post(
-            f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
-            params={"output_format": "mp3_44100_128"},
-            headers={
-                "xi-api-key": api_key,
-                "Content-Type": "application/json",
-                "Accept": "audio/mpeg",
-            },
-            json={
-                "text": texto_limpio,
-                "model_id": model_id,
-                "voice_settings": {
-                    "stability": 0.5,
-                    "similarity_boost": 0.75,
-                    "style": 0.0,
-                    "use_speaker_boost": True,
-                    "speed": velocidad,
-                },
-            },
-            timeout=(8, 60),
+        response = _http_session().post(
+            f'https://api.elevenlabs.io/v1/text-to-speech/{settings.ELEVENLABS_VOICE_ID}{suffix}',
+            params={'output_format':'mp3_44100_128'},
+            headers={'xi-api-key':settings.ELEVENLABS_API_KEY,'Content-Type':'application/json','Accept':'audio/mpeg'},
+            json={'text':texto,'model_id':settings.ELEVENLABS_MODEL_ID,'voice_settings':{'stability':.5,'similarity_boost':.75,'style':0.,'use_speaker_boost':True,'speed':velocidad}},
+            timeout=(8,60), stream=streaming,
         )
     except requests.Timeout as error:
-        raise ElevenLabsError(
-            "La voz de Bymax tardó demasiado en responder.", 504
-        ) from error
+        raise ElevenLabsError('La voz de Bymax tardó demasiado en responder.',504) from error
     except requests.RequestException as error:
-        logger.error(
-            "No fue posible conectar con ElevenLabs tipo=%s",
-            type(error).__name__,
-        )
-        raise ElevenLabsError(
-            "El servicio de voz de Bymax no está disponible.", 503
-        ) from error
+        raise ElevenLabsError('El servicio de voz de Bymax no está disponible.',503) from error
+    status = response.status_code
+    if not response.ok or 'audio' not in response.headers.get('Content-Type',''):
+        response.close()
+        raise ElevenLabsError('No fue posible generar la voz de Bymax.',429 if status==429 else 503)
+    return response
 
-    if response.status_code == 429:
-        raise ElevenLabsError(
-            "Se alcanzó temporalmente el límite del servicio de voz.", 429
-        )
-    if response.status_code in (401, 403):
-        logger.error("ElevenLabs rechazó las credenciales")
-        raise ElevenLabsError(
-            "La identidad de voz de Bymax no está configurada correctamente.",
-            503,
-        )
-    if not response.ok:
-        logger.error("ElevenLabs rechazó la solicitud estado=%s", response.status_code)
-        raise ElevenLabsError("No fue posible generar la voz de Bymax.", 503)
-    if "audio" not in response.headers.get("Content-Type", ""):
-        raise ElevenLabsError("El servicio de voz devolvió una respuesta inválida.", 503)
 
-    return response.content
+def generar_audio_bymax(texto, velocidad=.96):
+    response = _solicitar_audio(texto, velocidad)
+    try:
+        return response.content
+    finally:
+        response.close()
+
+
+def generar_audio_bymax_stream(texto, velocidad=.96):
+    # Open upstream in the sync view so authentication/validation/upstream errors
+    # still have a proper HTTP status before streaming response headers are sent.
+    response = _solicitar_audio(texto, velocidad, streaming=True)
+    async def chunks():
+        iterator = response.iter_content(chunk_size=2048)
+        sentinel = object()
+        try:
+            while True:
+                chunk = await asyncio.to_thread(next, iterator, sentinel)
+                if chunk is sentinel:
+                    break
+                if chunk:
+                    yield chunk
+        finally:
+            await asyncio.to_thread(response.close)
+    return chunks()

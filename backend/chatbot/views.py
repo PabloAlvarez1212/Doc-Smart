@@ -29,12 +29,13 @@ from chatbot.services.imagen_medica_service import (
     validar_imagen_medica,
 )
 
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from chatbot.throttles import ActorScopedRateThrottle as ScopedRateThrottle
 
 from chatbot.ai.elevenlabs_service import (
     ElevenLabsError,
     generar_audio_bymax,
+    generar_audio_bymax_stream,
 )
 
 logger = logging.getLogger(__name__)
@@ -628,21 +629,22 @@ class BymaxVoiceView(APIView):
             )
 
         try:
-            audio = generar_audio_bymax(
-                texto=texto,
-                velocidad=velocidad,
-            )
-
-            response = HttpResponse(
-                audio,
-                content_type="audio/mpeg",
-                status=200,
-            )
+            if request.data.get("stream") is True:
+                response = StreamingHttpResponse(
+                    generar_audio_bymax_stream(texto=texto, velocidad=velocidad),
+                    content_type="audio/mpeg", status=200,
+                )
+                response["X-Accel-Buffering"] = "no"
+            else:
+                response = HttpResponse(
+                    generar_audio_bymax(texto=texto, velocidad=velocidad),
+                    content_type="audio/mpeg", status=200,
+                )
 
             response["Content-Disposition"] = (
                 'inline; filename="bymax-respuesta.mp3"'
             )
-            response["Cache-Control"] = "private, no-store"
+            response["Cache-Control"] = "private, no-store, no-transform"
             response["X-Content-Type-Options"] = "nosniff"
 
             return response
