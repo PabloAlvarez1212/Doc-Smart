@@ -17,7 +17,7 @@ class EventTests(Fase3Fixture):
         Estado.objects.get_or_create(nombre='reprogramada')
         cases = [
             ('anticipada', self.now + timedelta(days=3), lambda: habilitarConversacionAnticipadamenteService(self.conv.pk, self.doctor)),
-            ('reprogramada', self.now, lambda: editarCitaService(self.cita.pk, {'fecha_programada': self.now + timedelta(days=4)}, self.patient)),
+            ('reprogramada', self.now + timedelta(hours=1), lambda: editarCitaService(self.cita.pk, {'fecha_programada': self.now + timedelta(days=4)}, self.patient)),
             ('completada', self.now, lambda: completarCitaService(self.cita.pk, self.doctor.pk, self.datos_historial)),
             ('inasistencia', self.now, lambda: marcarInasistenciaPacienteService(self.cita.pk, self.doctor)),
         ]

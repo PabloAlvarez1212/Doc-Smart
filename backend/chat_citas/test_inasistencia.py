@@ -5,7 +5,7 @@ from unittest.mock import patch, PropertyMock
 from zoneinfo import ZoneInfo
 
 from django.contrib.auth.models import AnonymousUser
-from django.db import connection
+from django.db import connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 from django.utils import timezone
@@ -38,6 +38,23 @@ class MigracionInasistenciaTests(TransactionTestCase):
     target = ('citas', '0007_cita_fecha_inasistencia')
 
     def comprobar_migracion(self, existing):
+        if connection.vendor != 'sqlite':
+            return self._comprobar_migracion_aislada(existing)
+        # Aislar la migración histórica: revertir las ramas fusionadas actuales
+        # reconstruye tablas SQLite con campos de otra rama todavía aplicada.
+        # Esta conexión efímera no altera el esquema del resto de la suite.
+        original = connections['default']
+        temporal = original.copy()
+        temporal.settings_dict = {**original.settings_dict, 'NAME': ':memory:'}
+        connections['default'] = temporal
+        try:
+            self._comprobar_migracion_aislada(existing)
+        finally:
+            if temporal.connection is not None:
+                temporal.connection.close()
+            connections['default'] = original
+
+    def _comprobar_migracion_aislada(self, existing):
         executor = MigrationExecutor(connection)
         self.assertIn(self.target, executor.loader.graph.nodes,
                       'Falta migración nueva para fecha_inasistencia y catálogo')
@@ -122,14 +139,93 @@ class TransicionInasistenciaTests(InasistenciaFixture):
         self.assertEqual(self.estado(), 'cerrado')
         self.assertFalse(Notificacion.objects.exists())
         # Fase 3 añade historial + actualización WS, sin notificación persistente.
-        self.assertEqual(len(callbacks), 2)
+        self.assertEqual(len(callbacks), 3)
 
     def test_propietario_aprobado_marca_confirmada_iniciada(self):
         self.comprobar_exito()
 
-    def test_permite_reprogramada(self):
-        Cita.objects.filter(pk=self.cita.pk).update(id_estado=self.reprogramada)
-        self.comprobar_exito()
+    def test_inasistencia_envia_actualizacion_realtime(self):
+        with self.captureOnCommitCallbacks(execute=False) as callbacks:
+            resultado, codigo = self.marcar(self.doctors[1])
+        self.assertEqual(codigo, 200)
+        self.assertEqual(len(callbacks), 3)
+        # Simulamos el Channel Layer sin utilizar Redis.
+        with patch("citas.realtime.get_channel_layer") as mock_layer:
+            with patch(
+                "citas.realtime.async_to_sync",
+                side_effect=lambda funcion: funcion
+            ):
+                callbacks[-1]()
+        envios = mock_layer.return_value.group_send.call_args_list
+        # Debe notificarse al médico y al paciente.
+        self.assertEqual(len(envios), 2)
+        grupos = {llamada.args[0]for llamada in envios}
+        self.assertEqual(
+            grupos,
+            {
+                f"medico_{self.cita.id_medico_id}",
+                f"user_{self.cita.id_usuario_id}",
+            }
+        )
+        for llamada in envios:
+            evento = llamada.args[1]
+            self.assertEqual(
+                evento["type"],
+                "send_appointment_update"
+            )
+            self.assertEqual(
+                evento["tipo_evento"],
+                "ACTUALIZACION_CITA"
+            )
+            self.assertEqual(
+                evento["cita"]["id"],
+                self.cita.pk
+            )
+        # No deben crearse notificaciones persistentes.
+        self.assertFalse(Notificacion.objects.exists())
+
+    def test_no_permite_inasistencia_en_cita_reprogramada(self):
+
+        Cita.objects.filter(
+            pk=self.cita.pk
+        ).update(
+            id_estado=self.reprogramada
+        )
+
+        with self.captureOnCommitCallbacks(execute=False) as callbacks:
+
+            _, codigo = self.marcar(
+                self.doctors[1]
+            )
+
+        self.assertEqual(codigo, 400)
+
+        self.cita.refresh_from_db()
+
+        # La cita debe conservar su estado.
+        self.assertEqual(
+            self.cita.id_estado,
+            self.reprogramada
+        )
+
+        # No debe registrar una inasistencia.
+        self.assertIsNone(
+            self.cita.fecha_inasistencia
+        )
+
+        # No debe cerrar la conversación.
+        self.conv.refresh_from_db()
+
+        self.assertIsNone(
+            self.conv.fecha_cierre
+        )
+
+        # No debe generar efectos secundarios.
+        self.assertFalse(
+            Notificacion.objects.exists()
+        )
+
+        self.assertEqual(callbacks, [])
 
     def test_inicio_exacto_sin_periodo_de_gracia(self):
         Cita.objects.filter(pk=self.cita.pk).update(fecha_programada=self.now)
@@ -309,7 +405,7 @@ class InasistenciaTerminalTests(InasistenciaFixture):
 
     def test_bymax_paciente_no_cancela_inasistencia(self):
         from chatbot.services.cita_service import CitaService
-        self.comprobar_rechazo(lambda: CitaService.cancelar(self.patients[0], self.cita))
+        self.comprobar_rechazo(lambda: CitaService.cancelar(self.patients[0],self.cita,"No podré asistir a la consulta."))
 
     def test_bymax_paciente_no_reprograma_inasistencia(self):
         from chatbot.services.cita_service import CitaService

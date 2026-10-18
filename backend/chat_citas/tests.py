@@ -275,7 +275,7 @@ class ConfirmacionTests(ChatFixture):
         self.assertEqual(Notificacion.objects.count(), 2)
         self.assertEqual(set(Notificacion.objects.values_list('id_usuario_id', 'id_medico_id')),
                          {(self.patients[0].pk, None), (None, self.doctors[1].pk)})
-        self.assertEqual(len(callbacks), 2)
+        self.assertEqual(len(callbacks), 3)
         with self.captureOnCommitCallbacks(execute=False) as second_callbacks:
             self.assertEqual(self.confirm()[1], 400)
         self.assertEqual(second_callbacks, [])

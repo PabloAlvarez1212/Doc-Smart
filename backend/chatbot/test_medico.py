@@ -29,7 +29,9 @@ from notificaciones.consumers import NotificacionConsumer
 from storage_app.views import ArchivoListaCrearView, ArchivoUrlView
 from storage_app.models import Archivo
 from users.models import Usuario
-
+from chatbot.ai.conversation_flow import ConversationFlow
+from chatbot.ai.flow_manager import FlowManager
+from chatbot.tools.citas import CancelarCitaTool
 
 TEST_CACHES = {
     "default": {
@@ -81,6 +83,9 @@ class BymaxMedicoTests(TestCase):
                        ("pendiente", "confirmada", "reprogramada", "completada", "cancelada")}
 
     def setUp(self):
+        correo = patch('notificaciones.email_citas_services.resend.Emails.send', return_value={'id': 'test-email'})
+        correo.start()
+        self.addCleanup(correo.stop)
         self.medico, self.otro = self.medicos
         self.paciente, self.segundo, self.ajeno = self.pacientes
         self.chat = Chat.objects.create(id_medico=self.medico)
@@ -96,6 +101,99 @@ class BymaxMedicoTests(TestCase):
     def tool(self, nombre, parametros=None):
         return ejecutar_tool(nombre, self.chat, "Solicitud", parametros or {})
 
+    def test_busqueda_paciente_conserva_id_y_codigo_normalizado(self):
+        from chatbot.services.cita_service import CitaService
+        cita = Cita.objects.filter(id_usuario=self.paciente).first()
+        self.assertEqual(CitaService.obtener_cita_usuario(cita.pk, self.paciente).pk, cita.pk)
+        self.assertEqual(CitaService.obtener_cita_usuario(str(cita.pk), self.paciente).pk, cita.pk)
+        self.assertEqual(CitaService.obtener_cita_usuario_codigo(f' {cita.codigo_cita.lower()} ', self.paciente).pk, cita.pk)
+        self.assertIsNone(CitaService.obtener_cita_usuario(cita.pk, self.ajeno))
+        self.assertIsNone(CitaService.obtener_cita_usuario_codigo(cita.codigo_cita, self.ajeno))
+
+    def test_paciente_agendar_reprogramar_exigen_autorizacion_de_un_uso(self):
+        from chatbot.tools.citas import AgendarCitaTool, ReprogramarCitaTool
+        cita = Cita.objects.filter(id_usuario=self.paciente).first()
+        fecha = (timezone.now() + timedelta(days=4)).isoformat()
+        for tool, params, target, success_status in (
+            (AgendarCitaTool(), {'id_medico': self.medico.pk, 'fecha': fecha}, 'agendar', 201),
+            (ReprogramarCitaTool(), {'codigo_cita': cita.codigo_cita, 'fecha': fecha}, 'reprogramar', 200),
+        ):
+            with self.subTest(tool=tool.name), patch('chatbot.tools.citas.CitaService.horario_disponible', return_value=True), patch(f'chatbot.tools.citas.CitaService.{target}', return_value=({}, success_status)) as service:
+                chat = Chat.objects.create(id_usuario=self.paciente)
+                self.assertFalse(tool.execute(chat, 'Solicitud directa', {**params, 'confirmado': True})['success'])
+                service.assert_not_called()
+                previa = tool.execute(chat, 'Solicitud', params)
+                self.assertTrue(previa['requires_confirmation'])
+                ConversationFlow.iniciar(chat, f'confirmar:{tool.name}')
+                ConversationFlow.guardar(chat, previa['data'])
+                decision = FlowManager.continuar(chat, 'Sí')
+                self.assertTrue(tool.execute(chat, 'Sí', decision.parametros)['success'])
+                self.assertFalse(tool.execute(chat, 'Sí', decision.parametros)['success'])
+                service.assert_called_once()
+
+    def test_autorizacion_paciente_rechaza_cambios_expiracion_y_no(self):
+        from chatbot.tools.citas import AgendarCitaTool
+        params = {'id_medico': self.medico.pk, 'fecha': (timezone.now() + timedelta(days=4)).isoformat()}
+        for scenario in ('alterada', 'expirada', 'rechazada'):
+            with self.subTest(scenario=scenario), patch('chatbot.tools.citas.CitaService.horario_disponible', return_value=True), patch('chatbot.tools.citas.CitaService.agendar') as service:
+                chat = Chat.objects.create(id_usuario=self.paciente)
+                tool = AgendarCitaTool()
+                previa = tool.execute(chat, 'Agendar', params)
+                ConversationFlow.iniciar(chat, 'confirmar:agendar_cita')
+                ConversationFlow.guardar(chat, previa['data'])
+                if scenario == 'rechazada':
+                    FlowManager.continuar(chat, 'No')
+                    confirmed = {**previa['data'], 'confirmado': True}
+                else:
+                    confirmed = FlowManager.continuar(chat, 'Sí').parametros
+                    if scenario == 'alterada':
+                        confirmed = {**confirmed, 'fecha': (timezone.now() + timedelta(days=5)).isoformat()}
+                    else:
+                        chat.contexto_temporal['_operacion_autorizada']['expira_en'] = timezone.now().timestamp() - 1
+                        chat.save(update_fields=['contexto_temporal'])
+                self.assertFalse(tool.execute(chat, 'Sí', confirmed)['success'])
+                service.assert_not_called()
+
+    def test_medico_cancelacion_exige_codigo_incluso_con_una_cita_y_contexto(self):
+        self.seleccionar(self.paciente)
+        contexto_clinico = dict(self.chat.contexto_temporal['clinico'])
+        Cita.objects.filter(id_medico=self.medico).exclude(id_usuario=self.paciente).delete()
+        cita = Cita.objects.get(id_medico=self.medico)
+        ConversationManager.procesar(self.chat, 'Mis próximas citas')
+        response = ConversationManager.procesar(self.chat, 'Quiero cancelar esa cita')
+        self.assertTrue(response.get('requires_input'), response)
+        self.assertIn('código', response['message'])
+        self.assertNotIn('motivo', response['message'])
+        cita.refresh_from_db()
+        self.assertEqual(cita.id_estado.nombre, 'confirmada')
+        response = ConversationManager.procesar(self.chat, f'{cita.codigo_cita}.')
+        self.assertTrue(response.get('requires_input'), response)
+        self.assertIn('motivo', response['message'])
+        response = ConversationManager.procesar(self.chat, 'No podré atender por motivos personales.')
+        self.assertTrue(response.get('requires_confirmation'), response)
+        self.assertIn(cita.codigo_cita, response['message'])
+        cita.refresh_from_db()
+        self.assertEqual(cita.id_estado.nombre, 'confirmada')
+        self.assertTrue(ConversationManager.procesar(self.chat, 'Sí.')['success'])
+        cita.refresh_from_db()
+        self.assertEqual(cita.id_estado.nombre, 'cancelada')
+        self.assertEqual(cita.cancelada_por, 'medico')
+        self.assertEqual(cita.motivo_cancelacion, 'No podré atender por motivos personales.')
+        self.chat.refresh_from_db()
+        self.assertEqual(self.chat.contexto_temporal['clinico'], contexto_clinico)
+        self.assertNotIn('operacion_medica', self.chat.contexto_temporal)
+        self.assertIn('No hay', ConversationManager.procesar(self.chat, 'Sí.'))
+
+    def test_medico_previsualizacion_no_es_autorizacion_para_cancelar(self):
+        cita = Cita.objects.filter(id_medico=self.medico, id_usuario=self.paciente).first()
+        previa = ConversationManager.procesar(self.chat, f'Cancela la cita {cita.codigo_cita}')
+        self.assertTrue(previa.get('requires_input'), previa)
+        previa = ConversationManager.procesar(self.chat, 'No puedo atender por una emergencia familiar.')
+        self.assertTrue(previa.get('requires_confirmation'), previa)
+        self.assertFalse(self.tool('cancelar_cita_medico', {**previa['data'], 'confirmado': True})['success'])
+        cita.refresh_from_db()
+        self.assertEqual(cita.id_estado.nombre, 'confirmada')
+
     def seleccionar(self, paciente):
         return self.tool("seleccionar_paciente", {"paciente_id": paciente.id})
 
@@ -103,6 +201,174 @@ class BymaxMedicoTests(TestCase):
         request = getattr(self.factory, method)("/api/chatbot/", data or {}, format="json")
         force_authenticate(request, user=user)
         return view.as_view()(request, **kwargs)
+
+    def preparar_cancelacion_http(self):
+        from django.core.cache import cache
+        from rest_framework.test import APIClient
+        cache.clear()
+        self.chat_paciente = Chat.objects.create(id_usuario=self.paciente)
+        self.cita_paciente = Cita.objects.filter(id_usuario=self.paciente, id_medico=self.medico).first()
+        self.cita_paciente.codigo_cita = 'DOC-06O5VFRK'
+        self.cita_paciente.save(update_fields=['codigo_cita'])
+        self.motivo_paciente = 'No podré asistir por motivos personales.'
+        self.cliente_paciente = APIClient()
+        self.cliente_paciente.force_authenticate(self.paciente)
+        memoria = patch('chatbot.ai.conversation_manager.extraer_y_guardar_memoria')
+        memoria.start(); self.addCleanup(memoria.stop)
+        router = patch('chatbot.ai.router.obtener_cliente')
+        cliente = router.start(); self.addCleanup(router.stop)
+        cliente.return_value.responses.create.return_value.output_text = '{"accion":"flujo","nombre":"cancelar_cita"}'
+        generador = patch('chatbot.ai.router.preguntar_openai', return_value='La cita fue cancelada correctamente.')
+        self.generador_paciente = generador.start(); self.addCleanup(generador.stop)
+        return cliente
+
+    def mensaje_paciente_http(self, mensaje):
+        response = self.cliente_paciente.post(f'/api/chatbot/chats/{self.chat_paciente.pk}/responder/', {'mensaje': mensaje}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.chat_paciente.refresh_from_db()
+        self.cita_paciente.refresh_from_db()
+        return response.data['data']
+
+    def confirmar_cancelacion_http(self):
+        self.mensaje_paciente_http('Quiero cancelar una cita médica.')
+        self.mensaje_paciente_http(self.cita_paciente.codigo_cita)
+        return self.mensaje_paciente_http(self.motivo_paciente)
+
+    def test_http_codigo_incorrecto_corregido_conserva_motivo_y_cancela_realmente(self):
+        cliente = self.preparar_cancelacion_http()
+        from types import SimpleNamespace
+        cliente.return_value.responses.create.side_effect = [
+            SimpleNamespace(output_text='{"accion":"flujo","nombre":"cancelar_cita"}'),
+            SimpleNamespace(output_text='{"accion":"openai"}'),
+            SimpleNamespace(output_text='{"accion":"openai"}'),
+        ]
+        self.generador_paciente.side_effect = ['¿Confirmas la cancelación de la cita DOC-06O5VFRK?', 'La cita DOC-06O5VFRK fue cancelada correctamente.']
+        mensajes = ['Quiero cancelar una cita médica.', 'DOC-06O5VFRD', self.motivo_paciente, 'DOC-06O5VFRK', 'si', 'cancelar la cita']
+        snapshots = []
+        for mensaje in mensajes:
+            result = self.mensaje_paciente_http(mensaje)
+            snapshots.append((self.chat_paciente.estado_conversacion, dict(self.chat_paciente.contexto_temporal), self.cita_paciente.id_estado.nombre, result))
+        self.assertTrue(all(item[2] == 'confirmada' for item in snapshots[:4]))
+        self.assertEqual(snapshots[2][1].get('motivo_cancelacion'), self.motivo_paciente)
+        self.assertEqual(snapshots[3][0], 'confirmar:cancelar_cita')
+        self.assertEqual(snapshots[3][1]['codigo_cita'], 'DOC-06O5VFRK')
+        self.assertEqual(snapshots[4][2], 'cancelada')
+        self.assertTrue(snapshots[4][3]['resultado']['success'])
+        self.assertEqual(self.cita_paciente.motivo_cancelacion, self.motivo_paciente)
+        self.assertEqual(self.cita_paciente.cancelada_por, 'paciente')
+        self.assertIsNotNone(self.cita_paciente.fecha_cancelacion)
+        self.generador_paciente.assert_not_called()
+
+    def test_http_cancelar_no_puede_responder_exito_generado_sin_operacion(self):
+        cliente = self.preparar_cancelacion_http()
+        cliente.return_value.responses.create.return_value.output_text = '{"accion":"openai"}'
+        response = self.mensaje_paciente_http('cancelar la cita')
+        self.assertEqual(self.cita_paciente.id_estado.nombre, 'confirmada')
+        self.assertNotIn('cancelada correctamente', response['respuesta'])
+        self.assertEqual(self.chat_paciente.estado_conversacion, 'cancelar_cita')
+        self.generador_paciente.assert_not_called()
+
+    def test_http_no_descarta_y_si_sin_pendiente_no_cancela(self):
+        self.preparar_cancelacion_http()
+        self.confirmar_cancelacion_http()
+        self.assertEqual(self.chat_paciente.estado_conversacion, 'confirmar:cancelar_cita')
+        self.mensaje_paciente_http('No.')
+        self.assertEqual(self.chat_paciente.estado_conversacion, 'normal')
+        self.assertNotIn('_cancelacion_autorizada', self.chat_paciente.contexto_temporal)
+        self.mensaje_paciente_http('Sí.')
+        self.assertEqual(self.cita_paciente.id_estado.nombre, 'confirmada')
+        self.assertIsNone(self.cita_paciente.motivo_cancelacion)
+
+    def test_http_fallo_cancelacion_no_publica_exito_y_no_reutiliza_autorizacion(self):
+        self.preparar_cancelacion_http()
+        self.confirmar_cancelacion_http()
+        with patch('chatbot.tools.citas.CitaService.cancelar', return_value=('No se pudo cancelar', 400)) as cancelar:
+            response = self.mensaje_paciente_http('Sí.')
+            self.assertFalse(response['resultado']['success'])
+            self.assertNotIn('cancelada correctamente', response['respuesta'])
+            self.assertEqual(self.cita_paciente.id_estado.nombre, 'confirmada')
+            self.mensaje_paciente_http('Sí.')
+            cancelar.assert_called_once()
+
+    def test_http_servicio_200_sin_persistencia_no_es_cancelacion_exitosa(self):
+        self.preparar_cancelacion_http()
+        self.confirmar_cancelacion_http()
+        with patch('chatbot.tools.citas.CitaService.cancelar', return_value=('Cancelada correctamente', 200)):
+            response = self.mensaje_paciente_http('confirmo')
+        self.assertEqual(self.cita_paciente.id_estado.nombre, 'confirmada')
+        self.assertFalse(response['resultado']['success'])
+        self.assertNotIn('cancelada correctamente', response['respuesta'].lower())
+
+    def test_http_cancelacion_confirmada_no_se_repite_y_reporta_estado_cancelado(self):
+        from chatbot.services.cita_service import CitaService
+        self.preparar_cancelacion_http()
+        self.confirmar_cancelacion_http()
+        with patch('chatbot.tools.citas.CitaService.cancelar', wraps=CitaService.cancelar) as cancelar:
+            self.assertTrue(self.mensaje_paciente_http('Sí.')['resultado']['success'])
+            timestamp = self.cita_paciente.fecha_cancelacion
+            response = self.mensaje_paciente_http('si')
+            self.assertIn('No hay una operación pendiente', response['respuesta'])
+            cancelar.assert_called_once()
+        self.assertEqual(self.cita_paciente.fecha_cancelacion, timestamp)
+        response = self.confirmar_cancelacion_http()
+        self.assertFalse(response['resultado']['success'])
+        self.assertIn('ya está cancelada', response['respuesta'])
+
+    def test_http_no_cancela_cita_ajena_ni_por_bandera_directa(self):
+        self.preparar_cancelacion_http()
+        ajena = Cita.objects.filter(id_usuario=self.segundo, id_medico=self.medico).first()
+        self.mensaje_paciente_http('Quiero cancelar una cita médica.')
+        self.mensaje_paciente_http(ajena.codigo_cita)
+        response = self.mensaje_paciente_http(self.motivo_paciente)
+        self.assertFalse(response['resultado']['success'])
+        self.mensaje_paciente_http('Sí.')
+        ajena.refresh_from_db()
+        self.assertEqual(ajena.id_estado.nombre, 'confirmada')
+        self.assertIsNone(ajena.motivo_cancelacion)
+        response = self.cliente_paciente.post(f'/api/chatbot/chats/{self.chat_paciente.pk}/responder/', {
+            'mensaje': 'cancelar la cita', 'confirmado': True, 'codigo_cita': self.cita_paciente.codigo_cita,
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.cita_paciente.refresh_from_db()
+        self.assertEqual(self.cita_paciente.id_estado.nombre, 'confirmada')
+
+    def test_http_autorizacion_cancelacion_alterada_o_expirada_es_rechazada(self):
+        original = FlowManager._continuar_confirmacion
+        for scenario in ('codigo', 'motivo', 'expirada'):
+            with self.subTest(scenario=scenario):
+                self.preparar_cancelacion_http()
+                self.confirmar_cancelacion_http()
+                otra = self.cita(self.medico, self.paciente)
+                def alterar(chat, mensaje):
+                    decision = original(chat, mensaje)
+                    if scenario == 'expirada':
+                        chat.contexto_temporal['_cancelacion_autorizada']['expira_en'] = timezone.now().timestamp() - 1
+                        chat.save(update_fields=['contexto_temporal'])
+                    else:
+                        key = 'codigo_cita' if scenario == 'codigo' else 'motivo_cancelacion'
+                        decision.parametros[key] = otra.codigo_cita if scenario == 'codigo' else 'Otro motivo no confirmado.'
+                    return decision
+                with patch('chatbot.ai.flow_manager.FlowManager._continuar_confirmacion', side_effect=alterar):
+                    response = self.mensaje_paciente_http('Sí.')
+                self.assertFalse(response['resultado']['success'])
+                self.assertEqual(self.cita_paciente.id_estado.nombre, 'confirmada')
+                self.assertNotIn('_cancelacion_autorizada', self.chat_paciente.contexto_temporal)
+                otra.refresh_from_db()
+                self.assertEqual(otra.id_estado.nombre, 'confirmada')
+
+    def test_http_excepcion_servicio_revierte_escritura_y_consume_autorizacion(self):
+        self.preparar_cancelacion_http()
+        self.confirmar_cancelacion_http()
+        def fallar(*args, **kwargs):
+            Cita.objects.filter(pk=self.cita_paciente.pk).update(id_estado=self.estados['cancelada'])
+            raise RuntimeError('fallo simulado después de escribir')
+        with patch('chatbot.tools.citas.CitaService.cancelar', side_effect=fallar) as cancelar:
+            response = self.mensaje_paciente_http('Sí.')
+            self.assertFalse(response['resultado']['success'])
+            self.assertEqual(self.cita_paciente.id_estado.nombre, 'confirmada')
+            self.assertNotIn('_cancelacion_autorizada', self.chat_paciente.contexto_temporal)
+            self.mensaje_paciente_http('si')
+            cancelar.assert_called_once()
 
     def test_proximas_filtra_actor_fecha_estado_orden_sin_n_mas_uno(self):
         ahora = timezone.now()
@@ -119,7 +385,11 @@ class BymaxMedicoTests(TestCase):
             resultado = BuscarProximosPacientesTool().execute(self.chat, "Mis citas", {"id_medico": self.otro.id})
         citas = resultado["data"]["citas"]
         self.assertEqual([item["id_cita"] for item in citas], [primera.id, segunda.id, tercera.id])
-        self.assertEqual(set(citas[0]), {"id_cita", "fecha_programada", "estado", "atrasada", "paciente"})
+        self.assertEqual(set(citas[0]), {"id_cita", "codigo_cita", "fecha_programada", "estado", "atrasada", "paciente"})
+        self.assertEqual([item['codigo_cita'] for item in citas], [primera.codigo_cita, segunda.codigo_cita, tercera.codigo_cita])
+        self.assertIn(f'Código de cita: {primera.codigo_cita}', resultado['message'])
+        self.assertNotIn('Cita: #', resultado['message'])
+        self.assertNotIn('(paciente #', resultado['message'])
         self.assertEqual(set(citas[0]["paciente"]), {"id", "nombre"})
         self.assertTrue(citas[0]["fecha_programada"].endswith("-05:00"))
 
@@ -405,7 +675,7 @@ class BymaxMedicoTests(TestCase):
             with self.assertNumQueries(2):
                 respuesta = self.tool("buscar_proximos_pacientes", {"alcance": "pendientes"})
             for cita in respuesta["data"]["citas"]:
-                self.assertEqual(set(cita), {"id_cita", "fecha_programada", "estado", "atrasada", "paciente"})
+                self.assertEqual(set(cita), {"id_cita", "codigo_cita", "fecha_programada", "estado", "atrasada", "paciente"})
                 self.assertEqual(set(cita["paciente"]), {"id", "nombre"})
 
     @patch("chatbot.ai.conversation_manager.extraer_y_guardar_memoria")
@@ -435,7 +705,7 @@ class BymaxMedicoTests(TestCase):
         ).first()
         nueva_fecha = timezone.localtime() + timedelta(days=5)
         mensaje = (
-            f"Reprograma la cita #{cita.id} para el "
+            f"Reprograma la cita #{cita.codigo_cita} para el "
             f"{nueva_fecha.strftime('%Y-%m-%d %H:%M')}"
         )
 
@@ -459,7 +729,7 @@ class BymaxMedicoTests(TestCase):
         nueva_fecha = timezone.localtime() + timedelta(days=5)
         ConversationManager.procesar(
             self.chat,
-            f"Reprograma la cita #{cita.id} para el "
+            f"Reprograma la cita #{cita.codigo_cita} para el "
             f"{nueva_fecha.strftime('%Y-%m-%d %H:%M')}",
         )
 
@@ -475,20 +745,57 @@ class BymaxMedicoTests(TestCase):
         reprogramar.assert_called_once()
 
     def test_medico_no_reprograma_cita_ajena(self):
-        cita_ajena = Cita.objects.filter(id_medico=self.otro).first()
+
+        # Obtener una cita perteneciente a otro médico.
+        cita_ajena = Cita.objects.filter(
+            id_medico=self.otro
+        ).first()
+
+        self.assertIsNotNone(cita_ajena)
+
+        fecha_original = cita_ajena.fecha_programada
+
+        self.assertNotEqual(
+            cita_ajena.id_medico_id,
+            self.medico.id,
+        )
+
         nueva_fecha = timezone.localtime() + timedelta(days=5)
 
+        # Intentar reprogramar utilizando el código público
+        # de una cita perteneciente a otro médico.
         respuesta = self.tool(
             "reprogramar_cita_medico",
             {
-                "id_cita": cita_ajena.id,
+                "codigo_cita": cita_ajena.codigo_cita,
                 "fecha": nueva_fecha.isoformat(),
             },
         )
 
-        self.assertFalse(respuesta["success"])
+        # No debe solicitar más datos ni permitir confirmar.
+        self.assertFalse(
+            respuesta.get("requires_input", False),
+            respuesta,
+        )
+
+        self.assertFalse(
+            respuesta.get("requires_confirmation", False),
+            respuesta,
+        )
+
+        # La operación debe rechazarse.
+        self.assertFalse(
+            respuesta["success"],
+            respuesta,
+        )
+
+        # La cita ajena debe permanecer intacta.
         cita_ajena.refresh_from_db()
-        self.assertNotEqual(cita_ajena.fecha_programada, nueva_fecha)
+
+        self.assertEqual(
+            cita_ajena.fecha_programada,
+            fecha_original,
+        )
 
     def test_paciente_no_ejecuta_reprogramacion_medica(self):
         chat_paciente = Chat.objects.create(id_usuario=self.paciente)
@@ -503,6 +810,497 @@ class BymaxMedicoTests(TestCase):
         )
         self.assertFalse(respuesta["success"])
 
+    def test_cancelacion_medica_codigo_motivo_y_confirmacion(self):
+        cita = Cita.objects.filter(
+            id_medico=self.medico,
+            id_usuario=self.paciente,
+        ).first()
+        codigo = cita.codigo_cita
+        motivo = "No podré atender esta consulta por motivos personales."
+        # 1. El médico solicita cancelar mediante código.
+        respuesta = ConversationManager.procesar(
+            self.chat,
+            f"Cancela la cita {codigo}",
+        )
+        self.assertIsInstance(respuesta, dict)
+        self.assertTrue(respuesta.get("requires_input"), respuesta)
+        self.assertIn("motivo", respuesta["message"].lower())
+        cita.refresh_from_db()
+        self.assertEqual(cita.id_estado.nombre.lower(), "confirmada")
+        # 2. El médico proporciona el motivo.
+        respuesta = ConversationManager.procesar(
+            self.chat,
+            motivo,
+        )
+        self.assertIsInstance(respuesta, dict)
+        self.assertTrue(respuesta.get("requires_confirmation"), respuesta)
+        self.assertIn(codigo, respuesta["message"])
+        self.assertIn(motivo, respuesta["message"])
+
+        # El motivo debe conservarse en la operación pendiente.
+        self.chat.refresh_from_db()
+        operacion = self.chat.contexto_temporal["operacion_medica"]
+        self.assertEqual(
+            operacion["parametros"]["motivo_cancelacion"],
+            motivo,
+        )
+
+        # 3. Todavía no se debe haber cancelado.
+        cita.refresh_from_db()
+        self.assertEqual(cita.id_estado.nombre.lower(), "confirmada")
+        # 4. El médico confirma.
+        respuesta = ConversationManager.procesar(
+            self.chat,
+            "Sí",
+        )
+        self.assertIsInstance(respuesta, dict)
+        self.assertTrue(respuesta.get("success"), respuesta)
+        # 5. Verificar la base de datos.
+        cita.refresh_from_db()
+        self.assertEqual(cita.id_estado.nombre.lower(), "cancelada")
+        self.assertEqual(cita.cancelada_por, "medico")
+        self.assertEqual(cita.motivo_cancelacion, motivo)
+        # La operación pendiente debe desaparecer.
+        self.chat.refresh_from_db()
+        self.assertNotIn(
+            "operacion_medica",
+            self.chat.contexto_temporal,
+        )
+
+    def test_cancelacion_medica_rechazada_no_modifica_cita(self):
+        cita = Cita.objects.filter(
+            id_medico=self.medico,
+            id_usuario=self.paciente,
+        ).first()
+        ConversationManager.procesar(
+            self.chat,
+            f"Cancela la cita {cita.codigo_cita}",
+        )
+        ConversationManager.procesar(
+            self.chat,
+            "Tengo un inconveniente con mi horario.",
+        )
+        # El médico rechaza la operación.
+        ConversationManager.procesar(self.chat, "No")
+        cita.refresh_from_db()
+        self.assertEqual(
+            cita.id_estado.nombre.lower(),
+            "confirmada",
+        )
+
+        self.assertIsNone(cita.motivo_cancelacion)
+        self.chat.refresh_from_db()
+        self.assertNotIn(
+            "operacion_medica",
+            self.chat.contexto_temporal,
+        )
+
+    def test_cancelacion_medica_rechaza_codigo_ajeno(self):
+        cita_ajena = Cita.objects.filter(
+            id_medico=self.otro,
+            id_usuario=self.ajeno,
+        ).first()
+        respuesta = self.tool(
+            "cancelar_cita_medico",
+            {
+                "codigo_cita": cita_ajena.codigo_cita,
+                "motivo_cancelacion": "No podré atender la consulta.",
+            },
+        )
+
+        self.assertFalse(respuesta["success"])
+        cita_ajena.refresh_from_db()
+        self.assertEqual(
+            cita_ajena.id_estado.nombre.lower(),
+            "confirmada",
+        )
+
+    def test_cancelacion_medica_no_permite_confirmacion_directa(self):
+        cita = Cita.objects.filter(
+            id_medico=self.medico,
+            id_usuario=self.paciente,
+        ).first()
+        # Intento de saltarse la confirmación conversacional.
+        respuesta = self.tool(
+            "cancelar_cita_medico",
+            {
+                "codigo_cita": cita.codigo_cita,
+                "motivo_cancelacion": "No podré atender la consulta.",
+                "confirmado": True,
+            },
+        )
+        self.assertFalse(respuesta["success"])
+        cita.refresh_from_db()
+        self.assertEqual(
+            cita.id_estado.nombre.lower(),
+            "confirmada",
+        )
+
+    def test_bymax_paciente_cancela_codigo_con_motivo(self):
+        cita = Cita.objects.filter(
+            id_usuario=self.paciente,
+            id_medico=self.medico,
+        ).first()
+
+        chat = Chat.objects.create(id_usuario=self.paciente)
+        herramienta = CancelarCitaTool()
+
+        motivo = "No podré asistir por motivos laborales."
+
+        parametros = {
+            "codigo_cita": cita.codigo_cita,
+            "motivo_cancelacion": motivo,
+        }
+
+        # Solicitar confirmación sin cancelar todavía.
+        previa = herramienta.execute(chat, "Cancelar", parametros)
+
+        self.assertTrue(previa["requires_confirmation"])
+        self.assertIn(cita.codigo_cita, previa["message"])
+        self.assertIn(motivo, previa["message"])
+
+        cita.refresh_from_db()
+        self.assertEqual(cita.id_estado.nombre.lower(), "confirmada")
+
+        # Simular el contexto de confirmación de ByMax.
+        ConversationFlow.iniciar(chat, "confirmar:cancelar_cita")
+        ConversationFlow.guardar(chat, previa["data"])
+
+        decision = FlowManager.continuar(chat, "Sí")
+
+        self.assertEqual(decision.tool_name, "cancelar_cita")
+
+        respuesta = herramienta.execute(
+            chat,
+            "Sí",
+            decision.parametros,
+        )
+
+        self.assertTrue(respuesta["success"], respuesta)
+
+        cita.refresh_from_db()
+
+        self.assertEqual(cita.id_estado.nombre.lower(), "cancelada")
+        self.assertEqual(cita.cancelada_por, "paciente")
+        self.assertEqual(cita.motivo_cancelacion, motivo)
+
+
+    def test_bymax_paciente_rechaza_cancelacion(self):
+        cita = Cita.objects.filter(
+            id_usuario=self.paciente,
+            id_medico=self.medico,
+        ).first()
+
+        chat = Chat.objects.create(id_usuario=self.paciente)
+        herramienta = CancelarCitaTool()
+
+        previa = herramienta.execute(
+            chat,
+            "Cancelar",
+            {
+                "codigo_cita": cita.codigo_cita,
+                "motivo_cancelacion": "Tengo un inconveniente personal.",
+            },
+        )
+
+        self.assertTrue(previa["requires_confirmation"])
+
+        ConversationFlow.iniciar(chat, "confirmar:cancelar_cita")
+        ConversationFlow.guardar(chat, previa["data"])
+
+        respuesta = FlowManager.continuar(chat, "No")
+
+        self.assertIsInstance(respuesta, str)
+
+        cita.refresh_from_db()
+
+        self.assertEqual(cita.id_estado.nombre.lower(), "confirmada")
+        self.assertIsNone(cita.motivo_cancelacion)
+        self.assertEqual(chat.estado_conversacion, "normal")
+
+
+    def test_bymax_paciente_no_cancela_cita_ajena(self):
+        cita_ajena = Cita.objects.filter(
+            id_usuario=self.segundo,
+            id_medico=self.medico,
+        ).first()
+
+        chat = Chat.objects.create(id_usuario=self.paciente)
+
+        respuesta = CancelarCitaTool().execute(
+            chat,
+            "Cancelar",
+            {
+                "codigo_cita": cita_ajena.codigo_cita,
+                "motivo_cancelacion": "No podré asistir.",
+            },
+        )
+
+        self.assertFalse(respuesta["success"])
+
+        cita_ajena.refresh_from_db()
+
+        self.assertEqual(
+            cita_ajena.id_estado.nombre.lower(),
+            "confirmada",
+        )
+
+    def test_bymax_paciente_no_permite_confirmacion_directa(self):
+        cita = Cita.objects.filter(
+            id_usuario=self.paciente,
+            id_medico=self.medico,
+        ).first()
+
+        estado_original = cita.id_estado.nombre
+        motivo_original = cita.motivo_cancelacion
+        chat = Chat.objects.create(
+            id_usuario=self.paciente
+        )
+
+        # Intentamos cancelar sin haber iniciado
+        # ninguna confirmación conversacional.
+        respuesta = CancelarCitaTool().execute(
+            chat,
+            "Sí",
+            {
+                "codigo_cita": cita.codigo_cita,
+                "motivo_cancelacion": "No podré asistir.",
+                "confirmado": True,
+            },
+        )
+
+        # La operación debe rechazarse.
+        self.assertFalse(
+            respuesta["success"],
+            respuesta,
+        )
+        cita.refresh_from_db()
+        # La cita debe conservar sus datos originales.
+        self.assertEqual(
+            cita.id_estado.nombre,
+            estado_original,
+        )
+        self.assertEqual(
+            cita.motivo_cancelacion,
+            motivo_original,
+        )
+
+    def test_bymax_paciente_rechaza_motivo_modificado(self):
+
+        cita = Cita.objects.filter(
+            id_usuario=self.paciente,
+            id_medico=self.medico,
+        ).first()
+
+        chat = Chat.objects.create(id_usuario=self.paciente)
+        herramienta = CancelarCitaTool()
+
+        motivo = "No podré asistir por motivos laborales."
+
+        previa = herramienta.execute(chat, "Cancelar", {
+            "codigo_cita": cita.codigo_cita,
+            "motivo_cancelacion": motivo,
+        })
+
+        self.assertTrue(previa["requires_confirmation"])
+
+        ConversationFlow.iniciar(chat, "confirmar:cancelar_cita")
+        ConversationFlow.guardar(chat, previa["data"])
+
+        decision = FlowManager.continuar(chat, "Sí")
+
+        # Modificar los parámetros después de la confirmación.
+        parametros_alterados = {
+            **decision.parametros,
+            "motivo_cancelacion": "Un motivo diferente",
+        }
+
+        respuesta = herramienta.execute(
+            chat, "Sí", parametros_alterados,
+        )
+
+        self.assertFalse(respuesta["success"], respuesta)
+
+        cita.refresh_from_db()
+        self.assertEqual(cita.id_estado.nombre.lower(), "confirmada")
+        self.assertIsNone(cita.motivo_cancelacion)
+
+    def test_bymax_paciente_no_reutiliza_confirmacion(self):
+
+        cita = Cita.objects.filter(
+            id_usuario=self.paciente,
+            id_medico=self.medico,
+        ).first()
+
+        chat = Chat.objects.create(id_usuario=self.paciente)
+        herramienta = CancelarCitaTool()
+
+        previa = herramienta.execute(chat, "Cancelar", {
+            "codigo_cita": cita.codigo_cita,
+            "motivo_cancelacion": "No podré asistir.",
+        })
+
+        self.assertTrue(previa["requires_confirmation"])
+
+        ConversationFlow.iniciar(chat, "confirmar:cancelar_cita")
+        ConversationFlow.guardar(chat, previa["data"])
+
+        decision = FlowManager.continuar(chat, "Sí")
+
+        # Primera ejecución autorizada.
+        primera = herramienta.execute(
+            chat, "Sí", decision.parametros,
+        )
+
+        self.assertTrue(primera["success"], primera)
+
+        # La autorización debe haberse consumido.
+        chat.refresh_from_db()
+
+        self.assertNotIn(
+            "_cancelacion_autorizada",
+            chat.contexto_temporal,
+        )
+
+        # Intentar usar exactamente la misma confirmación.
+        segunda = herramienta.execute(
+            chat, "Sí", decision.parametros,
+        )
+
+        self.assertFalse(segunda["success"], segunda)
+
+        cita.refresh_from_db()
+        self.assertEqual(cita.id_estado.nombre.lower(), "cancelada")
+
+    def test_medico_nueva_conversacion_solicita_codigo_antes_del_motivo(self):
+
+        respuesta = ConversationManager.procesar(
+            self.chat,
+            "bymax, quiero cancelar una cita",
+        )
+
+        self.assertIsInstance(respuesta, dict)
+
+        self.assertTrue(
+            respuesta.get("requires_input"),
+            respuesta,
+        )
+
+        self.assertIn(
+            "código",
+            respuesta["message"].lower(),
+        )
+
+        self.assertNotIn(
+            "motivo",
+            respuesta["message"].lower(),
+        )
+
+        self.chat.refresh_from_db()
+
+        operacion = self.chat.contexto_temporal.get(
+            "operacion_medica",
+            {},
+        )
+
+        self.assertEqual(
+            operacion.get("estado"),
+            "datos",
+        )
+
+        self.assertEqual(
+            operacion.get("accion"),
+            "cancelar_cita_medico",
+        )
+    def test_medico_reprogramacion_exige_codigo(self):
+
+        cita = Cita.objects.filter(
+            id_medico=self.medico,
+            id_usuario=self.paciente,
+        ).first()
+
+        fecha_original = cita.fecha_programada
+
+        # 1. El médico inicia sin proporcionar código.
+        respuesta = ConversationManager.procesar(
+            self.chat,
+            "Bymax, quiero reprogramar una cita",
+        )
+
+        self.assertTrue(
+            respuesta.get("requires_input"),
+            respuesta,
+        )
+
+        self.assertIn(
+            "código",
+            respuesta["message"].lower(),
+        )
+
+        # 2. Proporciona el código solicitado.
+        respuesta = ConversationManager.procesar(
+            self.chat,
+            cita.codigo_cita,
+        )
+
+        self.assertTrue(
+            respuesta.get("requires_input"),
+            respuesta,
+        )
+
+        self.assertIn(
+            "fecha",
+            respuesta["message"].lower(),
+        )
+
+        # 3. Proporciona la nueva fecha.
+        nueva_fecha = (
+            timezone.localtime() + timedelta(days=5)
+        ).replace(
+            hour=10,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+
+        respuesta = ConversationManager.procesar(
+            self.chat,
+            nueva_fecha.strftime("%Y-%m-%d %H:%M"),
+        )
+
+        # Ahora debe solicitar confirmación.
+        self.assertTrue(
+            respuesta.get("requires_confirmation"),
+            respuesta,
+        )
+
+        self.assertIn(
+            cita.codigo_cita,
+            respuesta["message"],
+        )
+
+        # Comprobar que el código quedó guardado.
+        self.chat.refresh_from_db()
+
+        operacion = self.chat.contexto_temporal[
+            "operacion_medica"
+        ]
+
+        self.assertEqual(
+            operacion["parametros"]["codigo_cita"],
+            cita.codigo_cita,
+        )
+
+        # 4. Rechazamos la reprogramación.
+        ConversationManager.procesar(self.chat, "No")
+
+        cita.refresh_from_db()
+
+        # La fecha original debe permanecer intacta.
+        self.assertEqual(
+            cita.fecha_programada,
+            fecha_original,
+        )
 
 @override_settings(CACHES=TEST_CACHES, CHANNEL_LAYERS=TEST_CHANNEL_LAYERS)
 class BymaxApprovalConsumerTests(TransactionTestCase):

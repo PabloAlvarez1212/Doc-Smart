@@ -326,6 +326,16 @@ class ConversationManager:
 
             state.respuesta = state.tool_result
 
+            # Un error de operación no pierde los datos que el paciente acaba
+            # de aportar. Se reintentará la previsualización, nunca el consumo
+            # automático de una confirmación anterior.
+            if state.decision.tool_name in {'agendar_cita', 'reprogramar_cita', 'cancelar_cita'} and isinstance(state.tool_result, dict):
+                if not state.tool_result.get('success', False):
+                    ConversationFlow.iniciar(chat, state.decision.tool_name)
+                    ConversationFlow.guardar(chat, {k: v for k, v in (state.decision.parametros or {}).items() if k != 'confirmado'})
+                elif not state.tool_result.get('requires_confirmation') and not state.tool_result.get('requires_selection'):
+                    ConversationFlow.finalizar(chat)
+
         else:
 
             state.respuesta = state.decision.respuesta

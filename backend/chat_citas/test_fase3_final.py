@@ -8,7 +8,7 @@ from channels.db import database_sync_to_async
 from channels.testing import WebsocketCommunicator
 from django.conf import settings
 from django.db import transaction
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
@@ -26,7 +26,19 @@ from .services import habilitarConversacionAnticipadamenteService, obtenerEstado
 from .exceptions import ChatError
 from .test_support import Fase3Fixture
 
-
+@override_settings(
+    CHANNEL_LAYERS={
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer"
+        }
+    },
+    CACHES={
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "docsmart-websocket-tests",
+        }
+    }
+)
 class FinalTransportTests(TransactionTestCase):
     setUp = fixtures.WebsocketTests.setUp
 

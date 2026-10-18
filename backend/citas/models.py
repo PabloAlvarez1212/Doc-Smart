@@ -5,6 +5,11 @@ from catalogos.models import Estado
 from .utils import generarCodigoCita
 
 class Cita(models.Model):
+    class ResponsableCancelacion (models.TextChoices):
+        PACIENTE = "paciente", "Paciente"
+        MEDICO = "medico", "Médico"
+        ADMINISTRADOR = "administrador", "Administrador"
+        SISTEMA = "sistema", "Sistema"
     fecha_programada = models.DateTimeField()
     fecha_final = models.DateTimeField(null=True, blank=True)
     fecha_completada = models.DateTimeField(null=True, blank=True)
@@ -12,6 +17,8 @@ class Cita(models.Model):
     id_usuario = models.ForeignKey(Usuario,  on_delete=models.PROTECT)
     id_medico = models.ForeignKey(Medico,   on_delete=models.PROTECT) 
     fecha_cancelacion = models.DateTimeField(null=True,blank=True)
+    motivo_cancelacion = models.CharField(max_length=500, null = True, blank = True)
+    cancelada_por = models.CharField(max_length=20, choices=ResponsableCancelacion.choices, null=True, blank=True)
     fecha_inasistencia = models.DateTimeField(null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     codigo_cita = models.CharField(max_length=12,unique=True,editable=False,default=generarCodigoCita)

@@ -55,23 +55,37 @@ export default function useAppointments() {
 
         const resultado = await Swal.fire({
             title: "¿Cancelar cita?",
-            text: "Esta acción cancelará tu cita médica.",
+            text: "Indica el motivo por el cual deseas cancelar tu cita médica.",
             icon: "warning",
+            input: "textarea",
+            inputPlaceholder: "Escribe el motivo de su cancelación",
+            inputAttributes: {
+                maxlength: "500",
+                "aria-label": "Motivo de cancelación",
+            },
             showCancelButton: true,
-            confirmButtonText: "Sí, cancelar",
-            cancelButtonText: "No, volver",
+            confirmButtonText: "Confirmar Cancelación",
+            cancelButtonText: "volver",
+            inputValidator: (value) => {
+                const motivo = value?.trim();
+                if (!motivo){
+                    return "Debes indicar el motivo de cancelación"
+                }
+                if (motivo.length > 500){
+                    return "El motivo no debe superar los 500 caracteres."
+                }
+            }
         });
 
         if (!resultado.isConfirmed) {
             return;
         }
-
         try {
-
-            await cancelarCitaService(id_cita);
-
+            await cancelarCitaService(
+                id_cita,
+                resultado.value.trim()
+            );
             await cargarCitas();
-
             Swal.fire({
                 title: "Cita cancelada",
                 text: "La cita fue cancelada correctamente.",

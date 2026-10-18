@@ -164,10 +164,11 @@
     white-space: nowrap;
 }
 
-/* Citas pendientes, reprogramadas o vencidas */
+/* Citas pendientes, reprogramadas, vencidas o inasistencia del paciente  */
 .pendiente,
 .reprogramada,
-.vencida {
+.vencida,
+.inasistencia_paciente {
     color: #81510d;
     background: #fbedca;
 }

@@ -47,12 +47,10 @@ export const resumenCitasMedicoService  = async () => {
 // ACCIONES SOBRE CITAS
 // ==========================================
 
-export const cancelarCitaService = async (id_cita) => {
-
-    const response = await api.put(
-        `/citas/${id_cita}/cancelar/`
+export const cancelarCitaService = async (id_cita, motivo_cancelacion) => {
+    const response = await api.put(`/citas/${id_cita}/cancelar/`,
+        {motivo_cancelacion}
     );
-
     return response.data;
 };
 

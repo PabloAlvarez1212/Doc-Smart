@@ -33,6 +33,36 @@ export default function AppointmentDetailsModal({
     const statusKey = data.status.toLowerCase();
     const PersonIcon = counterpart === "paciente" ? UserRound : Stethoscope;
 
+    // ==========================================
+    // INFORMACIÓN DE CANCELACIÓN
+    // ==========================================
+
+    const esCancelada = statusKey === "cancelada";
+
+    const responsables = {
+        paciente: "Paciente",
+        medico: "Médico",
+        administrador: "Administrador",
+        sistema: "Sistema",
+    };
+
+    const responsableCancelacion =
+        responsables[
+            String(cita?.cancelada_por || "")
+                .trim()
+                .toLowerCase()
+        ] || "No registrado";
+
+    const motivoCancelacion =
+        String(cita?.motivo_cancelacion || "").trim()
+        || "No registrado";
+
+    const fechaCancelacion =
+        cita?.fecha_cancelacion
+            ? formatearFecha(cita.fecha_cancelacion)
+            : null;
+
+
     return (
         <Modal
             abierto={abierto}
@@ -87,6 +117,43 @@ export default function AppointmentDetailsModal({
                         </div>
                     </div>
                 </section>
+
+                {/* ==========================================
+                    INFORMACIÓN DE CANCELACIÓN
+                ========================================== */}
+                {esCancelada && (
+                    <section
+                        className={styles.section}
+                        aria-labelledby="appointment-cancellation-title"
+                    >
+                        <SectionTitle
+                            id="appointment-cancellation-title"
+                            icon={MessageSquareText}
+                            title="Información de cancelación"
+                        />
+                        <div className={styles.dataGrid}>
+                            <DetailItem
+                                label="Cancelada por"
+                                value={responsableCancelacion}
+                            />
+                            <DetailItem
+                                icon={CalendarDays}
+                                label="Fecha de cancelación"
+                                value={
+                                    fechaCancelacion
+                                        ? `${fechaCancelacion.fecha} · ${fechaCancelacion.hora}`
+                                        : "No registrada"
+                                }
+                            />
+                            <DetailItem
+                                className={styles.fullWidth}
+                                label="Motivo de cancelación"
+                                value={motivoCancelacion}
+                            />
+                        </div>
+                    </section>
+
+                )}
 
                 <section className={styles.section} aria-labelledby="appointment-location-title">
                     <SectionTitle id="appointment-location-title" icon={MapPin} title="Ubicación" />

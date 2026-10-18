@@ -118,7 +118,8 @@ def listarCitasMedicoService(
     paciente=None,
     fecha=None,
     page=None,
-    page_size=10
+    page_size=10,
+    seccion=None
 ):
     """
     Lista las citas pertenecientes al médico autenticado.
@@ -143,6 +144,40 @@ def listarCitasMedicoService(
             "id_medico__id_especialidad",
         )
     )
+
+    #FILTRAR AGENDA O HISTORIAL
+    estados_por_seccion = {
+        "agenda": (
+            "pendiente",
+            "confirmada",
+            "reprogramada",
+        ),
+        "historial": (
+            "completada",
+            "cancelada",
+            "vencida",
+            "inasistencia_paciente",
+        ),
+    }
+
+    if seccion is not None:
+
+        if not isinstance(seccion, str):
+            return "La sección solicitada no es válida", 400
+
+        seccion = seccion.strip().lower()
+
+        if seccion not in estados_por_seccion:
+            return "La sección debe ser agenda o historial", 400
+
+        filtro_estados = Q()
+
+        for nombre_estado in estados_por_seccion[seccion]:
+            filtro_estados |= Q(
+                id_estado__nombre__iexact=nombre_estado
+            )
+
+        citas = citas.filter(filtro_estados)
 
 
     # ==========================================
@@ -377,6 +412,13 @@ def resumenCitasMedicoService(medico_id):
                 id_estado__nombre__iexact="cancelada"
             )
         ),
+
+        inasistencias = Count(
+            "id",
+            filter = Q(
+                id_estado__nombre__iexact = "inasistencia_paciente"
+            )
+        ),
     )
 
 
@@ -460,8 +502,9 @@ def resumenCitasMedicoService(medico_id):
 
         "canceladas": resumen["canceladas"],
 
-        "proxima_cita": proxima_data,
+        "inasistencias": resumen["inasistencias"],
 
+        "proxima_cita": proxima_data,
     }, 200
 
 
@@ -691,6 +734,48 @@ def editarCitaService(id, datos, solicitante):
             'completada o vencida',
             400
         )
+    # ==========================================
+    # VALIDAR CICLO DE VIDA DE LA CITA
+    # ==========================================
+
+    estado_actual = cita.id_estado.nombre.strip().lower()
+    ahora = timezone.now()
+
+    # Impedir reprogramar solicitudes cuyo
+    # plazo de confirmación ya expiró.
+    if estado_actual in ('pendiente', 'reprogramada'):
+
+        limite_confirmacion = cita.fecha_limite_confirmacion
+
+        # Compatibilidad con citas antiguas
+        # que no tengan fecha límite registrada.
+        if limite_confirmacion is None:
+            limite_confirmacion = min(
+                cita.fecha_creacion + timedelta(hours=24),
+                cita.fecha_programada
+            )
+
+        if (
+            ahora >= limite_confirmacion
+            or ahora >= cita.fecha_programada
+        ):
+            return (
+                'El plazo de confirmación de esta cita '
+                'ha vencido. No se puede reprogramar.',
+                400
+            )
+
+    # Una consulta confirmada que ya comenzó
+    # no debe reprogramarse como una nueva solicitud.
+    if (
+        estado_actual == 'confirmada'
+        and ahora >= cita.fecha_programada
+    ):
+        return (
+            'No se puede reprogramar una cita '
+            'confirmada que ya ha comenzado.',
+            400
+        )
     fecha_antigua = cita.fecha_programada
     nueva_fecha = datos.get('fecha_programada')
 
@@ -811,7 +896,7 @@ def editarCitaService(id, datos, solicitante):
     return CitaSerializer(cita).data, 200
 
 @serializar_agenda
-def cancelarCitaService(id, solicitante):
+def cancelarCitaService(id, solicitante, motivo_cancelacion=None):
     cita = Cita.objects.select_for_update().filter(
         id=id
     ).first()
@@ -842,27 +927,54 @@ def cancelarCitaService(id, solicitante):
         else "paciente"
     )
 
-    if cita.id_estado.nombre.lower() == 'inasistencia_paciente':
-        return 'No se puede cancelar una cita con inasistencia del paciente', 400
+    if motivo_cancelacion is not None:
+        if not isinstance(motivo_cancelacion, str):
+            return("El motivo de cancelación debe ser un texto", 400)
+        motivo_cancelacion = motivo_cancelacion.strip()
+        if not motivo_cancelacion:
+            return("El motivo de cancelación no puede estar vacío", 400)
+        if len(motivo_cancelacion) > 500:
+            return("El motivo de cancelación no puede superar los 500 caracteres", 400)
 
-    if cita.id_estado.nombre == 'cancelada':
-        return 'La cita ya está cancelada', 400
+    estado_actual = cita.id_estado.nombre.strip().lower()
 
-    if cita.id_estado.nombre == 'completada':
-        return 'No se puede cancelar una cita completada', 400
-    if cita.id_estado.nombre.lower() == 'vencida':
-        return 'No se puede cancelar una cita vencida', 400
+    if estado_actual == 'inasistenccia_paciente':
+        return(
+            'No se puede cancelar una cita con inasistencia del paciente', 400
+        )
 
+    if estado_actual == 'cancelada':
+        return(
+            'La cita ya está cancelada', 400
+        )
+
+    if estado_actual == 'completada':
+        return(
+            'No se puede cancelar una cita completada', 400
+        )
+
+    if estado_actual == 'vencida':
+        return (
+        'No se puede cancelar una cita vencida', 400
+        )
+    # SOLO LOS ESTADOS ACTIVOS ADMITEN CANCELACIÓN
+    if estado_actual not in ('pendiente', 'confirmada', 'reprogramada'):
+        return('El estado actual de la cita no permite cancelarla', 400)
     estado_cancelada = Estado.objects.filter(
-        nombre='cancelada'
+        nombre__iexact='cancelada'
     ).first()
-
     if not estado_cancelada:
         return "Estado 'cancelada' no configurado", 500
 
     cita.id_estado = estado_cancelada
     cita.fecha_cancelacion = timezone.now()
-    cita.save()
+    cita.motivo_cancelacion = motivo_cancelacion
+    cita.cancelada_por = cancelada_por
+    cita.save(
+        update_fields=[
+            "id_estado", "fecha_cancelacion", "motivo_cancelacion", "cancelada_por"
+        ]
+    )
 
     from chat_citas.services import cerrarConversacionPorCancelacionService
 
@@ -927,15 +1039,14 @@ def completarCitaService(id, medico_id, datos_historial):
     if not cita:
         return 'Cita no encontrada o no te pertenece', 404
 
-    if cita.id_estado.nombre.lower() == 'inasistencia_paciente':
-        return 'No se puede completar una cita con inasistencia del paciente', 400
+    estado_actual = cita.id_estado.nombre.strip().lower()
+    if estado_actual == 'inasistencia_paciente':
+        return ('No se puede completar una cita con inasistencia del paciente', 400)
 
-    if cita.id_estado.nombre == 'completada':
-        return 'La cita ya está completada', 400
+    # SOLAMENTE SE PUEDE COMPLETAR CONSULTAS PREVIAMENTE CONFIRMADAS.
+    if estado_actual != 'confirmada':
+        return ('Solo se puede completar citas previamente confirmadas', 400)
     
-    if cita.id_estado.nombre == 'cancelada':
-        return 'No se puede completar una cita cancelada', 400
-
     from .cierre_services import validarVentanaCierre
     if not cita.id_medico.esta_aprobado or cita.id_medico.id_rol.nombre.lower() == 'admin':
         return 'Se requiere aprobación médica vigente', 403
@@ -946,7 +1057,7 @@ def completarCitaService(id, medico_id, datos_historial):
     if not cita.documentos_seguimiento.filter(archivo__activo=True).exists():
         return 'Debes registrar al menos un documento de seguimiento antes de completar la cita', 400
 
-    estado_completada = Estado.objects.filter(nombre='completada').first()
+    estado_completada = Estado.objects.filter(nombre__iexact='completada').first()
     if not estado_completada:
         return "Estado 'completada' no configurado", 500
     from historial_medico.serializers import CrearHistorialSerializer
@@ -1033,9 +1144,10 @@ def marcarInasistenciaPacienteService(id, solicitante):
             or not medico.esta_aprobado):
         return 'Solo el médico propietario aprobado puede marcar inasistencia del paciente', 403
 
-    if (cita.id_estado.nombre.lower() not in ('confirmada', 'reprogramada')
-            or cita.fecha_inasistencia is not None):
-        return 'La cita no admite registrar inasistencia del paciente', 400
+    estado_actual = cita.id_estado.nombre.strip().lower()
+
+    if (estado_actual != 'confirmada' or cita.fecha_inasistencia is not None):
+        return('Solo se puede registrar inasistencia en citas previamente confirmadas', 400)
 
     ahora = timezone.now()
     if timezone.is_naive(ahora) or timezone.is_naive(cita.fecha_programada):
@@ -1057,6 +1169,8 @@ def marcarInasistenciaPacienteService(id, solicitante):
     from chat_citas.event_services import registrarEventoConversacionService
     registrarEventoConversacionService(cita, clave=f'inasistencia:{ahora.isoformat()}',
         evento='inasistencia_paciente', instante=ahora, metadata={})
+    from citas.realtime import programarActualizacionCitaRealtime
+    programarActualizacionCitaRealtime(cita)
     return CitaSerializer(cita).data, 200
 
 
@@ -1423,15 +1537,35 @@ def obtenerInfoPacienteCitaService(medico, cita_id):
     return paciente, registros
 
 def obtenerCitasPendientesVencidasService():
+
     ahora = timezone.now()
+
+    estados_pendientes = (
+        Q(id_estado__nombre__iexact="pendiente")
+        | Q(id_estado__nombre__iexact="reprogramada")
+    )
+
+    # Solicitudes con fecha límite registrada y vencida.
+    limite_vencido = Q(
+        fecha_limite_confirmacion__lte=ahora
+    )
+
+    # Compatibilidad con solicitudes pendientes antiguas
+    # que no tienen fecha límite registrada.
+    pendientes_antiguas = (
+        Q(id_estado__nombre__iexact="pendiente")
+        & Q(fecha_limite_confirmacion__isnull=True)
+        & (
+            Q(fecha_creacion__lte=ahora - timedelta(hours=24))
+            | Q(fecha_programada__lte=ahora)
+        )
+    )
 
     return (
         Cita.objects
         .filter(
-            Q(id_estado__nombre__iexact="pendiente") |
-            Q(id_estado__nombre__iexact="reprogramada"),
-            fecha_limite_confirmacion__isnull=False,
-            fecha_limite_confirmacion__lte=ahora,
+            estados_pendientes
+            & (limite_vencido | pendientes_antiguas)
         )
         .order_by("fecha_limite_confirmacion", "id")
     )
@@ -1469,11 +1603,25 @@ def vencerCitaPorFaltaConfirmacionService(id):
 
     ahora = timezone.now()
 
+    limite_recuperado = False
+
     if cita.fecha_limite_confirmacion is None:
-        return (
-            "La cita no tiene fecha límite de confirmación configurada",
-            400
+
+        # Solamente podemos reconstruir con seguridad
+        # el límite de una solicitud pendiente original.
+        if estado_actual != "pendiente":
+            return (
+                "No se puede determinar el plazo de "
+                "confirmación de esta cita reprogramada",
+                400
+            )
+
+        cita.fecha_limite_confirmacion = min(
+            cita.fecha_creacion + timedelta(hours=24),
+            cita.fecha_programada
         )
+
+        limite_recuperado = True
 
     if ahora < cita.fecha_limite_confirmacion:
         return (
@@ -1497,11 +1645,18 @@ def vencerCitaPorFaltaConfirmacionService(id):
     cita.id_estado = estado_vencida
     cita.fecha_vencimiento = ahora
 
+    campos_actualizar = [
+        "id_estado",
+        "fecha_vencimiento",
+    ]
+
+    if limite_recuperado:
+        campos_actualizar.append(
+            "fecha_limite_confirmacion"
+        )
+
     cita.save(
-        update_fields=[
-            "id_estado",
-            "fecha_vencimiento",
-        ]
+        update_fields=campos_actualizar
     )
 
     fecha_fmt = (

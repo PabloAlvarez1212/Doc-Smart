@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, CalendarDays, Clock3 } from "lucide-react";
 import { m, useReducedMotion } from "motion/react";
 import DoctorAppointmentList from "../../../../components/doctor/MyAppointments/AppointmentList/DoctorAppointmentList";
 import FilterAppointments from "../../../../components/doctor/MyAppointments/FilterAppointments/FilterAppointments";
@@ -17,6 +17,7 @@ import {
 } from "../../../../components/ui/AppointmentCard/appointmentViewState";
 import CompleteAppointmentModal from "../../../../components/ui/CompleteAppointmentModal/CompleteAppointmentModal";
 import styles from "./myAppointments.module.css";
+import Button from "../../../../components/ui/Button/Button";
 
 export default function MyAppointments() {
     const reduceMotion = useReducedMotion();
@@ -26,6 +27,8 @@ export default function MyAppointments() {
         citas,
         resumen,
         estado,
+        seccion,
+        cambiarSeccion,
         paciente,
         fecha,
         cambiarEstado,
@@ -47,7 +50,7 @@ export default function MyAppointments() {
     } = useAppointments();
 
     const hasActiveFilters = hasActiveAppointmentFilters(estado, { paciente, fecha });
-    const resultKey = getAppointmentsResultKey(citas, totalRegistros);
+    const resultKey = `${seccion}-${getAppointmentsResultKey(citas,totalRegistros)}`;
     const resultMotion = getAppointmentsResultMotion(reduceMotion);
 
     const abrirReprogramacion = (cita) => {
@@ -75,8 +78,42 @@ export default function MyAppointments() {
         <main className={styles.page}>
             <Hero resumen={resumen} loading={loadingResumen} />
 
+            <nav className={styles.sectionTabs}aria-label="Secciones de citas médicas">
+                {/* AGENDA */}
+                <button
+                    type="button"
+                    className={`
+                        ${styles.sectionTab}
+                        ${seccion === "agenda"
+                            ? styles.sectionTabActive
+                            : ""}
+                    `}
+                    onClick={() => cambiarSeccion("agenda")}
+                    aria-pressed={seccion === "agenda"}
+                >
+                    <CalendarDays size={21} strokeWidth={2} aria-hidden="true"/>
+                    <span>Agenda</span>
+                </button>
+
+                {/* HISTORIAL */}
+                <button
+                    type="button"
+                    className={`
+                        ${styles.sectionTab}
+                        ${seccion === "historial"
+                            ? styles.sectionTabActive
+                            : ""}
+                    `}
+                    onClick={() => cambiarSeccion("historial")}
+                    aria-pressed={seccion === "historial"}
+                >
+                    <Clock3 size={21} strokeWidth={2} aria-hidden="true"/>
+                    <span>Historial de citas</span>
+                </button>
+            </nav>
+
             <section className={styles.workspace} aria-label="Gestión de agenda médica">
-                <HeaderAppointments estado={estado} cambiarEstado={cambiarEstado} resumen={resumen} />
+                <HeaderAppointments estado={estado} cambiarEstado={cambiarEstado} resumen={resumen} seccion={seccion} />
                 <FilterAppointments
                     paciente={paciente}
                     fecha={fecha}
@@ -89,7 +126,7 @@ export default function MyAppointments() {
             <section className={styles.results} aria-labelledby="doctor-appointments-results-title" aria-busy={loading}>
                 <div className={styles.resultsHeader}>
                     <div>
-                        <h2 id="doctor-appointments-results-title">Agenda de consultas</h2>
+                        <h2 id="doctor-appointments-results-title">{seccion === "agenda"? "Agenda de consultas": "Historial de citas"} </h2>
                         <p aria-live="polite">
                             {loading && !citas.length
                                 ? "Consultando tu agenda"
@@ -103,7 +140,7 @@ export default function MyAppointments() {
                     <div className={styles.errorState} role="alert">
                         <span aria-hidden="true"><AlertCircle size={24} /></span>
                         <div>
-                            <h3>No pudimos cargar tu agenda</h3>
+                            <h3>{seccion === "agenda"? "No pudimos cargar tu agenda": "No pudimos cargar tu historial"}</h3>
                             <p>Revisa tu conexión e inténtalo nuevamente.</p>
                         </div>
                         <button type="button" onClick={recargarCitas}>
@@ -115,7 +152,9 @@ export default function MyAppointments() {
                 ) : (
                     <m.div key={resultKey} {...resultMotion}>
                         <DoctorAppointmentList
+                            key={seccion}
                             citas={citas}
+                            seccion={seccion}
                             hasActiveFilters={hasActiveFilters}
                             cancelarCita={cancelarCita}
                             confirmarCita={confirmarCita}

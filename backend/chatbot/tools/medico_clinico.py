@@ -15,6 +15,8 @@ from citas.models import Cita
 from historial_medico.models import HistorialClinico
 from medicos.models import Medico
 from users.models import Usuario
+import re
+from chatbot.ai.motivos_cancelacion import (normalizar_motivo_cancelacion,)
 
 
 ESTADOS_PROXIMOS = ("pendiente", "confirmada", "reprogramada")
@@ -91,7 +93,7 @@ class BuscarProximosPacientesTool(BaseTool):
             .annotate(estado_normalizado=Lower(Trim("id_estado__nombre")))
             .filter(estado_normalizado__in=ESTADOS_PROXIMOS)
             .select_related("id_usuario", "id_estado")
-            .only("id", "fecha_programada", "id_medico_id", "id_usuario__id",
+            .only("id", "codigo_cita", "fecha_programada", "id_medico_id", "id_usuario__id",
                   "id_usuario__nombre", "id_usuario__apellido", "id_estado__nombre")
             .order_by("fecha_programada", "id")
         )
@@ -110,6 +112,7 @@ class BuscarProximosPacientesTool(BaseTool):
             citas = citas[:1]
         datos = [{
             "id_cita": cita.id,
+            "codigo_cita": cita.codigo_cita,
             "fecha_programada": timezone.localtime(cita.fecha_programada, zona).isoformat(),
             "estado": cita.estado_normalizado,
             "atrasada": cita.fecha_programada < ahora,
@@ -125,8 +128,8 @@ class BuscarProximosPacientesTool(BaseTool):
         for indice, cita in enumerate(datos, 1):
             fecha = datetime.fromisoformat(cita["fecha_programada"]).strftime("%d/%m/%Y, %H:%M")
             lineas.append(
-                f"\n{indice}. {cita['paciente']['nombre']} (paciente #{cita['paciente']['id']})\n"
-                f"Cita: #{cita['id_cita']}\n"
+                f"\n{indice}. {cita['paciente']['nombre']}\n"
+                f"Código de cita: {cita['codigo_cita']}\n"
                 f"Fecha: {fecha}\nEstado: {cita['estado']}\n"
                 f"Situación: {'atrasada' if cita['atrasada'] else 'programada'}"
             )
@@ -142,8 +145,10 @@ class ReprogramarCitaMedicoTool(BaseTool):
 
     def _opciones(self, citas):
         zona = timezone.get_default_timezone()
+
         return [{
             "id_cita": cita.id,
+            "codigo_cita": cita.codigo_cita,
             "fecha_programada": timezone.localtime(
                 cita.fecha_programada, zona
             ).isoformat(),
@@ -154,6 +159,7 @@ class ReprogramarCitaMedicoTool(BaseTool):
             },
         } for cita in citas]
 
+    @transaction.atomic
     def execute(self, chat, mensaje, parametros):
         if not isinstance(chat, Chat) or not chat.pk or not chat.id_medico_id or chat.id_usuario_id:
             return resultado("Esta herramienta requiere una cuenta médica.", success=False)
@@ -171,16 +177,74 @@ class ReprogramarCitaMedicoTool(BaseTool):
         fecha = CitaService.normalizar_fecha(
             parametros.get("fecha") or parametros.get("fecha_programada")
         )
+        codigo_cita = parametros.get("codigo_cita")
+
+        if self.accion in {"cancelar", "reprogramar"} and not codigo_cita:
+            if parametros.get("confirmado"):
+                return resultado(
+                    "Debes indicar el código de la cita "
+                    "e iniciar una nueva confirmación.",
+                    success=False,
+                )
+            datos = {
+                "accion": self.name,
+            }
+
+            # Conservar el motivo si ya fue proporcionado.
+            if self.accion == "cancelar":
+
+                motivo = normalizar_motivo_cancelacion(
+                    parametros.get("motivo_cancelacion")
+                )
+
+                if motivo:
+                    datos["motivo_cancelacion"] = motivo
+
+            # Conservar la fecha si el médico la indicó
+            # antes de proporcionar el código.
+            if self.accion == "reprogramar" and fecha is not None:
+                datos["fecha"] = fecha.isoformat()
+
+            return {
+                "success": True,
+                "requires_input": True,
+                "message": (
+                    f"¿Cuál es el código de la cita que deseas "
+                    f"{self.accion}?"
+                ),
+                "data": datos,
+            }
         id_cita = parametros.get("id_cita")
         paciente_id = parametros.get("paciente_id")
         paciente_nombre = _normalizar_nombre(parametros.get("paciente_nombre"))
 
         citas = CitaService.obtener_citas_medico_modificables(medico.id)
-        if id_cita:
+        if codigo_cita is not None:
+            if (
+                not isinstance(codigo_cita, str)
+                or not re.fullmatch(
+                    r"DOC-[A-Z0-9]{8}",
+                    codigo_cita.strip(),
+                    re.IGNORECASE,
+                )
+            ):
+                return resultado(
+                    "El código de la cita no es válido.",
+                    success=False,
+                )
+            citas = citas.filter(
+                codigo_cita__iexact=codigo_cita.strip()
+            )
+        # Compatibilidad con operaciones internas existentes.
+        elif id_cita:
             try:
                 citas = citas.filter(id=int(id_cita))
             except (TypeError, ValueError):
-                return resultado("El número de la cita no es válido.", success=False)
+                return resultado(
+                    "El número de la cita no es válido.",
+                    success=False,
+                )
+
         elif paciente_id:
             try:
                 citas = citas.filter(id_usuario_id=int(paciente_id))
@@ -204,7 +268,7 @@ class ReprogramarCitaMedicoTool(BaseTool):
                     return {
                         "success": True,
                         "requires_input": True,
-                        "message": f"Indícame el nombre del paciente o el número de la cita que deseas {self.accion}.",
+                        "message": f"Indícame el código de la cita o el nombre del paciente que deseas {self.accion}.",
                         "data": {
                             "accion": self.name,
                             **({"fecha": fecha.isoformat()} if fecha else {}),
@@ -223,7 +287,7 @@ class ReprogramarCitaMedicoTool(BaseTool):
                     opcion["fecha_programada"]
                 ).strftime("%d/%m/%Y a las %H:%M")
                 lineas.append(
-                    f"{opcion['id_cita']}. {opcion['paciente']['nombre']} — {fecha_actual}"
+                    f"{opcion['codigo_cita']}. {opcion['paciente']['nombre']} — {fecha_actual}"
                 )
             return {
                 "success": True,
@@ -244,11 +308,12 @@ class ReprogramarCitaMedicoTool(BaseTool):
                 "requires_input": True,
                 "message": (
                     f"¿Para qué nueva fecha y hora deseas reprogramar la cita "
-                    f"#{cita.id} con {cita.id_usuario}?"
+                    f"{cita.codigo_cita} con {cita.id_usuario}?"
                 ),
                 "data": {
                     "accion": self.name,
                     "id_cita": cita.id,
+                    "codigo_cita": cita.codigo_cita,
                 },
             }
 
@@ -259,6 +324,27 @@ class ReprogramarCitaMedicoTool(BaseTool):
             medico.id, fecha, excluir_cita_id=cita.id,
         ):
             return resultado("Ya tienes otra cita programada en esa fecha y hora.", success=False)
+
+        motivo = None
+        if self.accion == "cancelar":
+
+            motivo = normalizar_motivo_cancelacion(parametros.get("motivo_cancelacion"))
+            if motivo is None:
+                return {
+                    "success": True,
+                    "requires_input": True,
+                    "message": (
+                        f"¿Cuál es el motivo para cancelar "
+                        f"la cita {cita.codigo_cita}? "
+                        "Puedes escribir hasta 500 caracteres."
+                    ),
+                    "data": {
+                        "accion": self.name,
+                        "id_cita": cita.id,
+                        "codigo_cita": cita.codigo_cita,
+                        "esperando_motivo": True,
+                    },
+                }
 
         if not parametros.get("confirmado", False):
             fecha_actual = timezone.localtime(cita.fecha_programada).strftime(
@@ -271,34 +357,74 @@ class ReprogramarCitaMedicoTool(BaseTool):
                 "success": True,
                 "requires_confirmation": True,
                 "message": (
-                    f"Encontré la cita #{cita.id} con {cita.id_usuario}.\n"
+                    f"Encontré la cita {cita.codigo_cita} "
+                    f"con {cita.id_usuario}.\n"
                     f"Fecha actual: {fecha_actual}.\n"
-                    + (f"Nueva fecha: {fecha_nueva}.\n" if fecha_nueva else "")
+                    + (
+                        f"Nueva fecha: {fecha_nueva}.\n"
+                        if fecha_nueva else ""
+                    )
+                    + (
+                        f"Motivo de cancelación: {motivo}\n"
+                        if self.accion == "cancelar" else ""
+                    )
                     + f"¿Confirmas que deseas {self.accion} esta cita?"
                 ),
                 "data": {
                     "accion": self.name,
                     "id_cita": cita.id,
-                    **({"fecha": fecha.isoformat()} if fecha else {}),
+                    "codigo_cita": cita.codigo_cita,
+                    **(
+                        {"fecha": fecha.isoformat()}
+                        if fecha else {}
+                    ),
+                    **(
+                        {"motivo_cancelacion": motivo}
+                        if self.accion == "cancelar"
+                        else {}
+                    ),
                     "estado_original": cita.id_estado.nombre.strip().casefold(),
                     "fecha_original": cita.fecha_programada.isoformat(),
                 },
             }
 
-        operacion = chat.contexto_temporal.get("operacion_medica", {})
+        actual = Chat.objects.select_for_update().get(pk=chat.pk, id_medico_id=medico.pk, estado='activo')
+        operacion = (actual.contexto_temporal or {}).get("operacion_medica", {})
         autorizados = operacion.get("parametros", {})
-        if (operacion.get("estado") != "confirmacion" or operacion.get("accion") != self.name
+        if (operacion.get("estado") != "autorizada" or operacion.get("accion") != self.name
                 or autorizados.get("id_cita") != cita.id
                 or autorizados.get("fecha") != parametros.get("fecha")):
             return resultado("Debes iniciar la operación y confirmar explícitamente.", success=False)
+
+        if self.accion == "cancelar":
+            if (
+                autorizados.get("codigo_cita") != cita.codigo_cita
+                or autorizados.get("motivo_cancelacion") != motivo
+            ):
+                return resultado(
+                    "Los datos de la cancelación no coinciden "
+                    "con la operación confirmada.",
+                    success=False,
+                )
+
+        contexto = dict(actual.contexto_temporal or {})
+        contexto.pop('operacion_medica', None)
+        actual.contexto_temporal = contexto
+        actual.save(update_fields=['contexto_temporal'])
+        chat.contexto_temporal = contexto
         respuesta, status = CitaService.operar_medico(
-            medico, cita.id, self.accion, fecha, esperado=autorizados,
+            medico,
+            cita.id,
+            self.accion,
+            fecha,
+            esperado=autorizados,
+            motivo_cancelacion=motivo,
         )
         if status != 200:
             from chatbot.services.diagnostics import error_operativo
             return error_operativo(chat, self.accion, status)
         return resultado(
-            f"Operación completada: {self.accion} la cita #{cita.id}. Se generaron las notificaciones.",
+            f"Operación completada: {self.accion} " f"la cita {cita.codigo_cita}. Se generaron las notificaciones.",
             {"id_cita": cita.id, **({"fecha": fecha.isoformat()} if fecha else {})},
         )
 
