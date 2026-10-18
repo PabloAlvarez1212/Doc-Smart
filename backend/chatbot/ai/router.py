@@ -249,6 +249,14 @@ def procesar_mensaje(historial, mensaje, streaming=False):
             ),
         )
 
+    # Exact help questions need the same conversational answer, without a
+    # second model call for classification. Appointment details never match.
+    if normalizar_intencion(mensaje_actual).strip("¿?¡! .") in {
+        "que puedes hacer en docsmart", "como funciona docsmart",
+        "que es docsmart", "como me puedes ayudar en docsmart",
+    }:
+        return _respuesta_openai(contents, streaming=streaming)
+
     es_consulta_medica = bool(
         PATRON_CONSULTA_MEDICA.search(mensaje_actual)
     )

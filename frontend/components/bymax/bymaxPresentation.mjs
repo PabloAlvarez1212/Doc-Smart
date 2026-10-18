@@ -1,9 +1,9 @@
 // Presentation follows observed events, never presumed microphone/audio activity.
-export function assistantState({ voice, sending, loading, error, lastMessage, connection }) {
+export function assistantState({ voice, sending, generating, loading, error, lastMessage, connection }) {
   if (error || voice.error || lastMessage?.error) return { status: "error", label: "Necesito tu atención" };
   if (voice.playback === "speaking") return { status: "speaking", label: "Hablando…" };
   if (sending || loading || ["preparing", "starting"].includes(voice.playback)) {
-    return { status: "processing", label: loading ? "Cargando conversación…" : voice.playback === "starting" ? "Iniciando audio…" : "Preparando respuesta…" };
+    return { status: "processing", label: loading ? "Cargando conversación…" : generating ? "Generando respuesta…" : voice.playback === "starting" ? "Iniciando audio…" : "Preparando respuesta…" };
   }
   if (voice.mic === "listening") return { status: "listening", label: "Escuchando solicitud…" };
   if (["starting", "recovering"].includes(voice.mic)) return { status: "recovering", label: "Preparando escucha…" };

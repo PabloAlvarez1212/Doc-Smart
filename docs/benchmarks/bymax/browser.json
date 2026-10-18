@@ -1,0 +1,204 @@
+{
+  "baseline": false,
+  "segmentModel": "Two ordered fragments sharing the same response ID; segmentIndex follows playback sequence. Same delayed local MP3 transfer for before/after. Baseline replays Git HEAD after implementation.",
+  "kind": "REAL_BROWSER_LOCAL_SYNTHETIC_AUDIO",
+  "measuredAt": "2026-10-17T05:01:48.093Z",
+  "model": "Real Edge Audio.onplaying, real controller and MediaSource, locally served valid synthetic MP3 with delayed chunks. No production auth, live provider/network latency, microphone, or user experience claim. Host under concurrent build/test load; timings not an SLA.",
+  "fixture": {
+    "bytes": 183109,
+    "chunkBytes": 4096,
+    "chunkDelayMs": 120
+  },
+  "results": [
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "mpegSupported": true,
+      "firstPlayingMs": 534.1,
+      "firstFetchCompleteMs": 5798.9,
+      "gapMs": 25.8,
+      "orderVerified": true,
+      "noOverlapVerified": true,
+      "cancellationVerified": true,
+      "normal": [
+        {
+          "kind": "fetchStart",
+          "atMs": 3.7,
+          "id": 1,
+          "text": "Primera frase sintética."
+        },
+        {
+          "kind": "fetchStart",
+          "atMs": 5.4,
+          "id": 2,
+          "text": "Segunda frase sintética."
+        },
+        {
+          "kind": "playing",
+          "atMs": 534.1,
+          "id": "response",
+          "segmentIndex": 0
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 5798.9,
+          "id": 1
+        },
+        {
+          "kind": "ended",
+          "atMs": 12494.9,
+          "id": "response",
+          "segmentIndex": 0
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 12497.3,
+          "id": 2
+        },
+        {
+          "kind": "playing",
+          "atMs": 12520.7,
+          "id": "response",
+          "segmentIndex": 1
+        },
+        {
+          "kind": "ended",
+          "atMs": 23974.5,
+          "id": "response",
+          "segmentIndex": 1
+        }
+      ],
+      "cancellation": [
+        {
+          "kind": "fetchStart",
+          "atMs": 23982.1,
+          "id": 3,
+          "text": "Cancelar esta prueba."
+        },
+        {
+          "kind": "fetchStart",
+          "atMs": 23982.7,
+          "id": 4,
+          "text": "No debe escucharse."
+        },
+        {
+          "kind": "playing",
+          "atMs": 24252.1,
+          "id": "cancel"
+        },
+        {
+          "kind": "cancel",
+          "atMs": 24255.4
+        },
+        {
+          "kind": "fetchCancel",
+          "atMs": 24255.8,
+          "id": 3
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 24257,
+          "id": 3
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "mpegSupported": true,
+      "firstPlayingMs": 263.2,
+      "firstFetchCompleteMs": 5774.4,
+      "gapMs": 32.7,
+      "orderVerified": true,
+      "noOverlapVerified": true,
+      "cancellationVerified": true,
+      "normal": [
+        {
+          "kind": "fetchStart",
+          "atMs": 4,
+          "id": 1,
+          "text": "Primera frase sintética."
+        },
+        {
+          "kind": "fetchStart",
+          "atMs": 5.7,
+          "id": 2,
+          "text": "Segunda frase sintética."
+        },
+        {
+          "kind": "playing",
+          "atMs": 263.2,
+          "id": "response",
+          "segmentIndex": 0
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 5774.4,
+          "id": 1
+        },
+        {
+          "kind": "ended",
+          "atMs": 11742.9,
+          "id": "response",
+          "segmentIndex": 0
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 11746.2,
+          "id": 2
+        },
+        {
+          "kind": "playing",
+          "atMs": 11775.6,
+          "id": "response",
+          "segmentIndex": 1
+        },
+        {
+          "kind": "ended",
+          "atMs": 23231.5,
+          "id": "response",
+          "segmentIndex": 1
+        }
+      ],
+      "cancellation": [
+        {
+          "kind": "fetchStart",
+          "atMs": 23240.9,
+          "id": 3,
+          "text": "Cancelar esta prueba."
+        },
+        {
+          "kind": "fetchStart",
+          "atMs": 23241.2,
+          "id": 4,
+          "text": "No debe escucharse."
+        },
+        {
+          "kind": "playing",
+          "atMs": 23495.6,
+          "id": "cancel"
+        },
+        {
+          "kind": "cancel",
+          "atMs": 23514.4
+        },
+        {
+          "kind": "fetchCancel",
+          "atMs": 23514.6,
+          "id": 3
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 23515.2,
+          "id": 3
+        }
+      ]
+    }
+  ]
+}

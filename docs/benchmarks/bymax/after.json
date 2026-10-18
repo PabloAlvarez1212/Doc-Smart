@@ -1,0 +1,223 @@
+{
+  "kind": "SIMULATION_ONLY",
+  "measuredAt": "2026-10-17T04:44:46.847Z",
+  "nodeVersion": "v24.14.0",
+  "model": "Real segmentation/controller; synthetic delayed text deltas; TTS resolves complete Blob; mock Audio.onplaying and fixed playback duration. Node timer jitter applies. Not real network/model/TTS/browser/audio latency. Confirmation is a controlled fixture, not backend verification.",
+  "fixture": {
+    "deltaDelayMs": 35,
+    "ttsCompleteBlobMs": 80,
+    "audioStartMs": 8,
+    "playbackMs": 95,
+    "confirmationDelayMs": 110
+  },
+  "results": [
+    {
+      "scenario": "normal",
+      "firstTextMs": 92.37,
+      "firstAudioMs": 190.73,
+      "completeTextMs": 331.34,
+      "gapsMs": [
+        89.89,
+        18.25
+      ],
+      "cancelled": false,
+      "abortedRequests": 0,
+      "exactFinalTextChecked": true,
+      "noRepetitionChecked": true,
+      "visibleText": "Puedo ayudarte con una explicación extensa, incluyendo los pasos necesarios para organizar tu consulta y encontrar una respuesta clara sin perder detalles. Ahora revisamos el siguiente paso.",
+      "events": [
+        {
+          "kind": "tts_request",
+          "atMs": 94.39,
+          "text": "Puedo ayudarte con una explicación extensa,"
+        },
+        {
+          "kind": "playing",
+          "atMs": 190.76,
+          "text": "Puedo ayudarte con una explicación extensa,"
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 284.49,
+          "text": "incluyendo los pasos necesarios para organizar tu consulta y encontrar una respuesta clara sin perder detalles."
+        },
+        {
+          "kind": "ended",
+          "atMs": 300.47
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 331.22,
+          "text": "Ahora revisamos el siguiente paso."
+        },
+        {
+          "kind": "playing",
+          "atMs": 390.36,
+          "text": "incluyendo los pasos necesarios para organizar tu consulta y encontrar una respuesta clara sin perder detalles."
+        },
+        {
+          "kind": "ended",
+          "atMs": 485.72
+        },
+        {
+          "kind": "playing",
+          "atMs": 503.97,
+          "text": "Ahora revisamos el siguiente paso."
+        },
+        {
+          "kind": "ended",
+          "atMs": 628.59
+        }
+      ]
+    },
+    {
+      "scenario": "datos",
+      "firstTextMs": 50.43,
+      "firstAudioMs": 218.68,
+      "completeTextMs": 307.29,
+      "gapsMs": [
+        42.72,
+        60.98
+      ],
+      "cancelled": false,
+      "abortedRequests": 0,
+      "exactFinalTextChecked": true,
+      "noRepetitionChecked": true,
+      "visibleText": "Tus datos se revisan con cuidado. La cifra es 12.5 y el Dr. Pérez puede revisarla. Estos son los datos finales.",
+      "events": [
+        {
+          "kind": "tts_request",
+          "atMs": 98.32,
+          "text": "Tus datos se revisan con cuidado."
+        },
+        {
+          "kind": "playing",
+          "atMs": 218.72,
+          "text": "Tus datos se revisan con cuidado."
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 255.81,
+          "text": "La cifra es 12.5 y el Dr. Pérez puede revisarla."
+        },
+        {
+          "kind": "ended",
+          "atMs": 338.47
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 338.63,
+          "text": "Estos son los datos finales."
+        },
+        {
+          "kind": "playing",
+          "atMs": 381.19,
+          "text": "La cifra es 12.5 y el Dr. Pérez puede revisarla."
+        },
+        {
+          "kind": "ended",
+          "atMs": 504.74
+        },
+        {
+          "kind": "playing",
+          "atMs": 565.72,
+          "text": "Estos son los datos finales."
+        },
+        {
+          "kind": "ended",
+          "atMs": 682.48
+        }
+      ]
+    },
+    {
+      "scenario": "cita_confirmada",
+      "firstTextMs": 45.69,
+      "firstAudioMs": 357.55,
+      "completeTextMs": 422.7,
+      "gapsMs": [
+        75.12
+      ],
+      "cancelled": false,
+      "abortedRequests": 0,
+      "exactFinalTextChecked": true,
+      "noRepetitionChecked": true,
+      "visibleText": "La solicitud está en proceso, espera la respuesta del sistema antes de confirmar. Tu cita quedó confirmada.",
+      "events": [
+        {
+          "kind": "tts_request",
+          "atMs": 252.97,
+          "text": "La solicitud está en proceso, espera la respuesta del sistema antes de confirmar."
+        },
+        {
+          "kind": "playing",
+          "atMs": 357.59,
+          "text": "La solicitud está en proceso, espera la respuesta del sistema antes de confirmar."
+        },
+        {
+          "kind": "controlled_confirmation",
+          "atMs": 422.45
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 422.57,
+          "text": "Tu cita quedó confirmada."
+        },
+        {
+          "kind": "ended",
+          "atMs": 474.77
+        },
+        {
+          "kind": "playing",
+          "atMs": 549.89,
+          "text": "Tu cita quedó confirmada."
+        },
+        {
+          "kind": "ended",
+          "atMs": 669.06
+        }
+      ]
+    },
+    {
+      "scenario": "cancelacion",
+      "firstTextMs": 40.98,
+      "firstAudioMs": 156.89,
+      "completeTextMs": 255.52,
+      "gapsMs": [],
+      "cancelled": true,
+      "abortedRequests": 1,
+      "exactFinalTextChecked": false,
+      "noRepetitionChecked": false,
+      "visibleText": "Primera frase. Segunda frase. Tercera frase. Cuarta frase. Quinta frase. Sexta frase.",
+      "events": [
+        {
+          "kind": "tts_request",
+          "atMs": 41.16,
+          "text": "Primera frase."
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 82.28,
+          "text": "Segunda frase."
+        },
+        {
+          "kind": "playing",
+          "atMs": 156.92,
+          "text": "Primera frase."
+        },
+        {
+          "kind": "ended",
+          "atMs": 255.6
+        },
+        {
+          "kind": "tts_request",
+          "atMs": 255.72,
+          "text": "Tercera frase."
+        },
+        {
+          "kind": "cancel",
+          "atMs": 256.46
+        }
+      ]
+    }
+  ]
+}

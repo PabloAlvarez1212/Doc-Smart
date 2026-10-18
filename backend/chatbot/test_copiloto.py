@@ -100,7 +100,7 @@ class CopilotoTests(TestCase):
                     archivo = Archivo.objects.create(medico=self.medico, nombre_original='seguimiento.pdf', storage_key='test/copiloto/seguimiento')
                     DocumentoSeguimientoCita.objects.create(cita=cita, archivo=archivo)
                 inicial = Notificacion.objects.count()
-                with self.captureOnCommitCallbacks(execute=True) as callbacks:
+                with patch("resend.Emails.send", return_value={"id":"local-test-only"}) as mail, self.captureOnCommitCallbacks(execute=True) as callbacks:
                     self.assertTrue(self.operar(accion, cita)["requires_confirmation"])
                     cita.refresh_from_db()
                     self.assertEqual(cita.id_estado.nombre, "pendiente")
@@ -113,7 +113,7 @@ class CopilotoTests(TestCase):
                 cita.refresh_from_db()
                 self.assertEqual(cita.id_estado.nombre, 'pendiente' if accion == 'Completa' else estado)
                 self.assertEqual(Notificacion.objects.count(), inicial + (0 if accion == 'Completa' else 2))
-                self.assertEqual(len(callbacks), 0 if accion == 'Completa' else 2)
+                self.assertEqual(mail.call_count, 0 if accion == 'Completa' else 2)
                 self.chat.refresh_from_db()
                 self.assertEqual(self.chat.contexto_temporal["clinico"], clinico)
                 self.assertNotIn("operacion_medica", self.chat.contexto_temporal)

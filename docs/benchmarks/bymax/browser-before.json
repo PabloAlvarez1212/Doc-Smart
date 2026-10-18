@@ -1,0 +1,182 @@
+{
+  "baseline": true,
+  "segmentModel": "Two ordered fragments sharing the same response ID; segmentIndex follows playback sequence. Same delayed local MP3 transfer for before/after. Baseline replays Git HEAD after implementation.",
+  "kind": "REAL_BROWSER_LOCAL_SYNTHETIC_AUDIO",
+  "measuredAt": "2026-10-17T05:00:53.961Z",
+  "model": "Real Edge Audio.onplaying, real controller and MediaSource, locally served valid synthetic MP3 with delayed chunks. No production auth, live provider/network latency, microphone, or user experience claim. Host under concurrent build/test load; timings not an SLA.",
+  "fixture": {
+    "bytes": 183109,
+    "chunkBytes": 4096,
+    "chunkDelayMs": 120
+  },
+  "results": [
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "mpegSupported": true,
+      "firstPlayingMs": 6392,
+      "firstFetchCompleteMs": 5892.9,
+      "gapMs": 63.8,
+      "orderVerified": true,
+      "noOverlapVerified": true,
+      "cancellationVerified": true,
+      "normal": [
+        {
+          "kind": "fetchStart",
+          "atMs": 3.8,
+          "id": 1,
+          "text": "Primera frase sintética."
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 5892.9,
+          "id": 1
+        },
+        {
+          "kind": "fetchStart",
+          "atMs": 6391.3,
+          "id": 2,
+          "text": "Segunda frase sintética."
+        },
+        {
+          "kind": "playing",
+          "atMs": 6392,
+          "id": "response",
+          "segmentIndex": 0
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 12139.5,
+          "id": 2
+        },
+        {
+          "kind": "ended",
+          "atMs": 18235.2,
+          "id": "response",
+          "segmentIndex": 0
+        },
+        {
+          "kind": "playing",
+          "atMs": 18299,
+          "id": "response",
+          "segmentIndex": 1
+        },
+        {
+          "kind": "ended",
+          "atMs": 29773.7,
+          "id": "response",
+          "segmentIndex": 1
+        }
+      ],
+      "cancellation": [
+        {
+          "kind": "fetchStart",
+          "atMs": 29783,
+          "id": 3,
+          "text": "Cancelar esta prueba."
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 38072.6,
+          "id": 3
+        },
+        {
+          "kind": "playing",
+          "atMs": 38262.9,
+          "id": "cancel"
+        },
+        {
+          "kind": "cancel",
+          "atMs": 38268
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "mpegSupported": true,
+      "firstPlayingMs": 6788.9,
+      "firstFetchCompleteMs": 6669.6,
+      "gapMs": 66,
+      "orderVerified": true,
+      "noOverlapVerified": true,
+      "cancellationVerified": true,
+      "normal": [
+        {
+          "kind": "fetchStart",
+          "atMs": 3.5,
+          "id": 1,
+          "text": "Primera frase sintética."
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 6669.6,
+          "id": 1
+        },
+        {
+          "kind": "fetchStart",
+          "atMs": 6788.3,
+          "id": 2,
+          "text": "Segunda frase sintética."
+        },
+        {
+          "kind": "playing",
+          "atMs": 6788.9,
+          "id": "response",
+          "segmentIndex": 0
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 13127.5,
+          "id": 2
+        },
+        {
+          "kind": "ended",
+          "atMs": 18545.5,
+          "id": "response",
+          "segmentIndex": 0
+        },
+        {
+          "kind": "playing",
+          "atMs": 18611.5,
+          "id": "response",
+          "segmentIndex": 1
+        },
+        {
+          "kind": "ended",
+          "atMs": 30131.1,
+          "id": "response",
+          "segmentIndex": 1
+        }
+      ],
+      "cancellation": [
+        {
+          "kind": "fetchStart",
+          "atMs": 30139.3,
+          "id": 3,
+          "text": "Cancelar esta prueba."
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 36063.1,
+          "id": 3
+        },
+        {
+          "kind": "playing",
+          "atMs": 36101,
+          "id": "cancel"
+        },
+        {
+          "kind": "cancel",
+          "atMs": 36109.1
+        }
+      ]
+    }
+  ]
+}

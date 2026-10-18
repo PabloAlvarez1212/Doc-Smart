@@ -1,0 +1,40 @@
+{
+  "kind": "live_providers_from_local_host",
+  "synthetic_input": true,
+  "production_authenticated": false,
+  "browser_playback_measured": false,
+  "openai": [
+    {
+      "first_text_ms": 3466.67,
+      "complete_ms": 3859.74,
+      "fragments": 78
+    },
+    {
+      "first_text_ms": 2863.63,
+      "complete_ms": 3260.49,
+      "fragments": 70
+    },
+    {
+      "first_text_ms": 1945.73,
+      "complete_ms": 2334.0,
+      "fragments": 70
+    }
+  ],
+  "elevenlabs": [
+    {
+      "first_audio_byte_ms": 2237.24,
+      "complete_ms": 2336.21,
+      "bytes": 43093
+    },
+    {
+      "first_audio_byte_ms": 1170.97,
+      "complete_ms": 1205.51,
+      "bytes": 45183
+    },
+    {
+      "first_audio_byte_ms": 1150.84,
+      "complete_ms": 1220.38,
+      "bytes": 47273
+    }
+  ]
+}

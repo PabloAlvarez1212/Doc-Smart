@@ -1,3 +1,4 @@
+import { attachProgressiveAudio } from "./bymaxProgressiveAudio.mjs";
 import { createVoiceSession } from "./bymaxVoiceSession.mjs";
 // Browser voice lifecycle. Dependencies are injected to test without microphone access.
 export const DEFAULT_VOICE = { motor: "neural", voiceURI: "", rate: 0.96, pitch: 1.02, volume: 1 };
@@ -22,6 +23,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
   let current = null;
   let audio = null;
   let objectUrl = null;
+  let closeProgressive = null;
   let utterance = null;
 
   let playbackTimer = null;
@@ -61,6 +63,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
 
   function releaseAudio() {
     browser.clearTimeout(playbackTimer);
+    closeProgressive?.(); closeProgressive = null;
     if (audio) {
       audio.onended = audio.onerror = audio.onplaying = null;
       audio.pause();
@@ -105,10 +108,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
 
       update({ playback: "ready", notice: "El navegador requiere un toque. Pulsa Reproducir para escuchar la respuesta." });
     } else {
-      releaseAudio();
-      if (current) mutedIds.add(current.id);
-      queue = [];
-      current = null;
+      stopPlayback(false);
       update({ playback: "error", messageId: null, error: message });
     }
     session.resume();
@@ -124,6 +124,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
       if (disposed || generation !== voiceGeneration) return;
 
       engines.set(item.id, item.engine);
+      browser.dispatchEvent?.(new browser.CustomEvent("bymax:audio-timing", { detail: { response_id: item.id, event: "playing", at: browser.performance?.now() } }));
       update({ playback: "speaking", notice: "Reproduciendo respuesta…" });
       preloadNext();
       browser.clearTimeout(playbackTimer);
@@ -150,7 +151,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
       } else {
         audio.volume = Number(config.volume);
         audio.onplaying = started;
-        audio.onended = () => finishPlayback(generation);
+        audio.onended = () => { if (disposed || generation !== voiceGeneration) return; browser.dispatchEvent?.(new browser.CustomEvent("bymax:audio-timing", { detail: { response_id: item.id, event: "ended", at: browser.performance?.now() } })); finishPlayback(generation); };
         audio.onerror = () => playbackError(generation, "No fue posible reproducir el audio recibido. Inténtalo de nuevo.");
         const promise = audio.play();
         promise?.catch(error => playbackError(generation, "No fue posible reproducir el audio recibido.", error.name === "NotAllowedError"));
@@ -176,7 +177,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
 
   function preloadNext() {
     const next = queue[0];
-    if (!current || !next || disposed || engines.get(next.id) !== "neural") return;
+    if (!current || !next || disposed || (engines.get(next.id) || config.motor) !== "neural") return;
     requestAudio(next);
   }
 
@@ -185,6 +186,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
     current = item;
     current.engine = engines.get(item.id) || config.motor;
     update({ playback: "preparing", messageId: item.id, error: "", notice: "Preparando respuesta por voz…" });
+    preloadNext();
     if (current.engine === "neural") {
       try {
         const prepared = await requestAudio(item);
@@ -192,15 +194,23 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
         const blob = prepared.blob;
         if (disposed || generation !== voiceGeneration) return;
         browser.clearTimeout(fetchTimer);
-        if (!blob || !blob.size || (blob.type && !/^(audio\/|application\/octet-stream)/i.test(blob.type))) throw new Error("invalid-audio");
         if (!audio) audio = new browser.Audio();
-        objectUrl = browser.URL.createObjectURL(blob);
-        audio.src = objectUrl;
+        if (blob?.stream?.getReader) {
+          const attached = attachProgressiveAudio({ browser, audio, stream: blob.stream, signal: item.abort?.signal, onError: () => playbackError(generation, "No fue posible reproducir el audio recibido.") });
+          closeProgressive = attached.close;
+          await attached.ready;
+          if (disposed || generation !== voiceGeneration) return;
+        } else {
+          if (!blob || !blob.size || (blob.type && !/^(audio\/|application\/octet-stream)/i.test(blob.type))) throw new Error("invalid-audio");
+          objectUrl = browser.URL.createObjectURL(blob);
+          audio.src = objectUrl;
+        }
       } catch {
         if (disposed || generation !== voiceGeneration) return;
         browser.clearTimeout(fetchTimer);
         // Never switch engines in the middle of an already spoken response.
         if (!engines.has(item.id) && browser.speechSynthesis && browser.SpeechSynthesisUtterance) {
+          releaseAudio();
           current.engine = "browser";
           update({ notice: "La voz neuronal no está disponible. Pulsa Reproducir para usar la voz del dispositivo." });
           beginPlayback();

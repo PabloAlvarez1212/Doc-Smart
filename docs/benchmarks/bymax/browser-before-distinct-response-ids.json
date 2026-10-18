@@ -1,0 +1,175 @@
+{
+  "baseline": true,
+  "kind": "REAL_BROWSER_LOCAL_SYNTHETIC_AUDIO",
+  "measuredAt": "2026-10-17T04:58:38.050Z",
+  "model": "Real Edge Audio.onplaying, real controller and MediaSource, locally served valid synthetic MP3 with delayed chunks. No production auth, live provider/network latency, microphone, or user experience claim. Host under concurrent build/test load; timings not an SLA.",
+  "fixture": {
+    "bytes": 183109,
+    "chunkBytes": 4096,
+    "chunkDelayMs": 120
+  },
+  "results": [
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "mpegSupported": true,
+      "firstPlayingMs": 6293.1,
+      "firstFetchCompleteMs": 6137.5,
+      "gapMs": 5797.3,
+      "orderVerified": true,
+      "noOverlapVerified": true,
+      "cancellationVerified": true,
+      "normal": [
+        {
+          "kind": "fetchStart",
+          "atMs": 3.5,
+          "id": 1,
+          "text": "Primera frase sintética."
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 6137.5,
+          "id": 1
+        },
+        {
+          "kind": "playing",
+          "atMs": 6293.1,
+          "id": "first"
+        },
+        {
+          "kind": "fetchStart",
+          "atMs": 17883.5,
+          "id": 2,
+          "text": "Segunda frase sintética."
+        },
+        {
+          "kind": "ended",
+          "atMs": 17884.1,
+          "id": "second"
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 23665.1,
+          "id": 2
+        },
+        {
+          "kind": "playing",
+          "atMs": 23681.4,
+          "id": "second"
+        },
+        {
+          "kind": "ended",
+          "atMs": 35134.8,
+          "id": "second"
+        }
+      ],
+      "cancellation": [
+        {
+          "kind": "fetchStart",
+          "atMs": 35143.7,
+          "id": 3,
+          "text": "Cancelar esta prueba."
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 41013.8,
+          "id": 3
+        },
+        {
+          "kind": "playing",
+          "atMs": 41071.4,
+          "id": "cancel"
+        },
+        {
+          "kind": "cancel",
+          "atMs": 41090.8
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "mpegSupported": true,
+      "firstPlayingMs": 5958.6,
+      "firstFetchCompleteMs": 5920.8,
+      "gapMs": 6001.6,
+      "orderVerified": true,
+      "noOverlapVerified": true,
+      "cancellationVerified": true,
+      "normal": [
+        {
+          "kind": "fetchStart",
+          "atMs": 4.6,
+          "id": 1,
+          "text": "Primera frase sintética."
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 5920.8,
+          "id": 1
+        },
+        {
+          "kind": "playing",
+          "atMs": 5958.6,
+          "id": "first"
+        },
+        {
+          "kind": "fetchStart",
+          "atMs": 17449.7,
+          "id": 2,
+          "text": "Segunda frase sintética."
+        },
+        {
+          "kind": "ended",
+          "atMs": 17450.3,
+          "id": "second"
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 23410.2,
+          "id": 2
+        },
+        {
+          "kind": "playing",
+          "atMs": 23451.9,
+          "id": "second"
+        },
+        {
+          "kind": "ended",
+          "atMs": 35025,
+          "id": "second"
+        }
+      ],
+      "cancellation": [
+        {
+          "kind": "fetchStart",
+          "atMs": 35046.9,
+          "id": 3,
+          "text": "Cancelar esta prueba."
+        },
+        {
+          "kind": "fetchComplete",
+          "atMs": 40874.2,
+          "id": 3
+        },
+        {
+          "kind": "playing",
+          "atMs": 40910.2,
+          "id": "cancel"
+        },
+        {
+          "kind": "cancel",
+          "atMs": 40922.1
+        }
+      ]
+    }
+  ],
+  "segmentModel": "Two separately identified messages (first and second), not same-response fragments. HEAD prefetch policy does not prefetch a new message ID. Gap comparisons do not establish same-response fragment gap improvement.",
+  "baselineEventIdCaveat": "The baseline run captured ended IDs from mutable active state; use event sequence/timestamps, not ended.id, for this saved run. Harness now captures ID at play time."
+}
