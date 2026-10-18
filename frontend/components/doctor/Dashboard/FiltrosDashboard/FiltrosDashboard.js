@@ -77,9 +77,7 @@ export default function FiltrosDashboard({
                             aria-invalid={Boolean(errores.anio)}
                             disabled={updating}
                         >
-                            {availableYears.map((year) => (
-                                <option key={year} value={year}>{year}</option>
-                            ))}
+                            <option key={currentYear} value={currentYear}>{currentYear}</option>
                         </select>
                     </div>
                 )}
