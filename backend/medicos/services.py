@@ -1591,7 +1591,8 @@ def eliminarExcepcionFechaService(
     return None, 204
 
 def obtenerEstadisticasMedicosService(anio=None, mes=None):
-
+    if anio is None:
+        anio = timezone.localdate().year
     if mes is not None:
         inicioPeriodo = timezone.localtime().replace(
             year=anio,

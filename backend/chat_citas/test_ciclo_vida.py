@@ -17,6 +17,9 @@ from chat_citas.tests import ChatFixture
 
 class CicloFixture(ChatFixture):
     def setUp(self):
+        correo = patch('notificaciones.email_citas_services.resend.Emails.send', return_value={'id': 'test-email'})
+        correo.start()
+        self.addCleanup(correo.stop)
         self.conv = Conversacion.objects.create(
             cita=self.cita, fecha_habilitacion_anticipada=self.now - timedelta(hours=1))
         self.original_pk = self.conv.pk
@@ -61,7 +64,7 @@ class CancelacionChatTests(CicloFixture):
         self.assertEqual(self.conv.fecha_cierre, self.cita.fecha_cancelacion)
         self.assertEqual(self.estado(), 'cerrado')
         self.assertEqual(Notificacion.objects.count(), 2)
-        self.assertEqual(len(callbacks), 4)  # Dos avisos clínicos y dos eventos de chat.
+        self.assertEqual(len(callbacks), 5)  # Dos avisos clínicos y dos eventos de chat.
 
     def test_cancelacion_por_paciente_cierra_en_instante_real(self):
         self.comprobar_cancelacion(self.patients[0])
@@ -148,7 +151,7 @@ class ReprogramacionChatTests(CicloFixture):
         self.assertIsNone(self.conv.fecha_habilitacion_anticipada)
         self.assertEqual(self.estado(), expected)
         self.assertEqual(Notificacion.objects.count(), 2)
-        self.assertEqual(len(callbacks), 4)  # Dos avisos clínicos y dos eventos de chat.
+        self.assertEqual(len(callbacks), 5)  # Dos avisos clínicos y dos eventos de chat.
 
     def test_fecha_mayor_24h_programada_con_misma_identidad(self):
         self.comprobar_reprogramacion(timedelta(hours=24, microseconds=1), 'programado')
@@ -161,13 +164,13 @@ class ReprogramacionChatTests(CicloFixture):
                                      'activo', self.doctors[1])
 
     def test_fecha_igual_no_limpia_anticipacion(self):
-        self.assertEqual(self.reprogramar(self.original_date)[1], 200)
+        self.assertEqual(self.reprogramar(self.original_date)[1], 400)
         self.conv.refresh_from_db()
         self.assertEqual(self.conv.fecha_habilitacion_anticipada, self.now - timedelta(hours=1))
         self.assertFalse(Notificacion.objects.exists())
 
     def test_sin_fecha_no_altera_conversacion(self):
-        self.assertEqual(editarCitaService(self.cita.pk, {}, self.patients[0])[1], 200)
+        self.assertEqual(editarCitaService(self.cita.pk, {}, self.patients[0])[1], 400)
         self.assert_sin_cambios()
 
     def test_fecha_pasada_rechazada_conserva_marca(self):
@@ -266,7 +269,7 @@ class CompletadaChatTests(CicloFixture):
         self.assertEqual(self.estado(), 'activo')
         result = obtenerEstadoConversacionService(self.conv)
         self.assertEqual(result['fecha_cierre_automatico'], self.now + timedelta(hours=24))
-        self.assertEqual(len(callbacks), 4)  # Dos avisos clínicos y dos eventos de chat.
+        self.assertEqual(len(callbacks), 5)  # Dos avisos clínicos y dos eventos de chat.
         self.assertEqual(Notificacion.objects.count(), 2)
 
     def test_ventana_postconsulta_limite_inclusivo_sin_escrituras(self):
@@ -455,7 +458,11 @@ class VisibilidadEscrituraTests(CicloFixture):
 class BymaxPacienteCicloTests(CicloFixture):
     def test_cancelar_paciente_por_bymax_cierra_misma_conversacion(self):
         from chatbot.services.cita_service import CitaService
-        self.assertEqual(CitaService.cancelar(self.patients[0], self.cita)[1], 200)
+        motivo = 'No podré asistir a la consulta.'
+        self.assertEqual(CitaService.cancelar(self.patients[0], self.cita, motivo)[1], 200)
+        self.cita.refresh_from_db()
+        self.assertEqual(self.cita.motivo_cancelacion, motivo)
+        self.assertEqual(self.cita.id_estado.nombre, 'cancelada')
         self.assert_misma_conversacion()
         self.assertEqual(self.conv.fecha_cierre, self.now)
         self.assertEqual(self.estado(), 'cerrado')
@@ -471,7 +478,7 @@ class BymaxPacienteCicloTests(CicloFixture):
 
     def test_bymax_paciente_ajeno_no_cancela_ni_reprograma(self):
         from chatbot.services.cita_service import CitaService
-        self.assertEqual(CitaService.cancelar(self.patients[1], self.cita)[1], 403)
+        self.assertEqual(CitaService.cancelar(self.patients[1], self.cita, 'Solicito cancelar la consulta.')[1], 403)
         self.assertEqual(CitaService.reprogramar(
             self.patients[1], self.cita, self.now + timedelta(days=4))[1], 403)
         self.assert_sin_cambios()

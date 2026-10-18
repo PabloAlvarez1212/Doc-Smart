@@ -2,48 +2,76 @@ import styles from "./HeaderAppointments.module.css";
 
 
 export default function HeaderAppointment({
+    seccion = "agenda",
     estado,
     cambiarEstado,
     resumen
 }) {
 
-    const estados = [
+    const pendientes = resumen?.pendientes ?? 0;
+    const confirmadas = resumen?.confirmadas ?? 0;
+    const reprogramadas = resumen?.reprogramadas ?? 0;
+
+    const completadas = resumen?.completadas ?? 0;
+    const canceladas = resumen?.canceladas ?? 0;
+    const vencidas = resumen?.vencidas ?? 0;
+    const inasistencias = resumen?.inasistencias ?? 0;
+
+    const estadosAgenda = [
         {
             value: "todas",
             label: "Todas",
-            count: resumen?.total ?? 0,
+            count: pendientes + confirmadas + reprogramadas,
         },
         {
             value: "pendiente",
             label: "Pendientes",
-            count: resumen?.pendientes ?? 0,
+            count: pendientes,
         },
         {
             value: "confirmada",
             label: "Confirmadas",
-            count: resumen?.confirmadas ?? 0,
+            count: confirmadas,
         },
         {
             value: "reprogramada",
             label: "Reprogramadas",
-            count: resumen?.reprogramadas ?? 0,
+            count: reprogramadas,
+        },
+    ];
+
+    const estadosHistorial = [
+        {
+            value: "todas",
+            label: "Todas",
+            count: completadas + canceladas + vencidas + inasistencias,
         },
         {
             value: "completada",
             label: "Completadas",
-            count: resumen?.completadas ?? 0,
+            count: completadas,
         },
         {
             value: "cancelada",
             label: "Canceladas",
-            count: resumen?.canceladas ?? 0,
+            count: canceladas,
         },
         {
             value: "vencida",
             label: "Vencidas",
-            count: resumen?.vencidas ?? 0,
+            count: vencidas,
+        },
+        {
+            value: "inasistencia_paciente",
+            label: "Inasistencias",
+            count: inasistencias,
         },
     ];
+
+    const estados =
+        seccion === "agenda"
+            ? estadosAgenda
+            : estadosHistorial;
 
 
     return (

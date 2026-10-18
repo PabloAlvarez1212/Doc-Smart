@@ -118,9 +118,39 @@ def obtenerCitasBloqueantes(
             ))
         )
         .exclude(pk=excluir_cita_id)
+
+        # Excluir citas que ya finalizaron.
         .exclude(
-            id_estado__nombre__iexact="cancelada"
+            Q(id_estado__nombre__iexact="cancelada")
+            | Q(id_estado__nombre__iexact="completada")
+            | Q(id_estado__nombre__iexact="vencida")
+            | Q(id_estado__nombre__iexact="inasistencia_paciente")
         )
+
+        # Excluir solicitudes cuyo plazo de
+        # confirmación ya expiró.
+        .exclude(
+            Q(id_estado__nombre__iexact="pendiente")
+            | Q(id_estado__nombre__iexact="reprogramada"),
+            fecha_limite_confirmacion__lte=timezone.now(),
+        )
+        # ==========================================
+        # SOLICITUDES ANTIGUAS SIN FECHA LÍMITE
+        # ==========================================
+
+        .exclude(
+            Q(id_estado__nombre__iexact="pendiente")
+            & Q(fecha_limite_confirmacion__isnull=True)
+            & (
+                Q(
+                    fecha_creacion__lte=(
+                        timezone.now() - timedelta(hours=24)
+                    )
+                )
+                | Q(fecha_programada__lte=timezone.now())
+            )
+        )
+
         .select_related("id_estado")
         .order_by("fecha_programada")
     )

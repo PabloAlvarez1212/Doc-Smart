@@ -1,11 +1,10 @@
 from datetime import timedelta
-
 from django.utils import timezone
-
 from chatbot.tools.base_tool import BaseTool
-
 from chatbot.services.cita_service import CitaService
 from chatbot.services.medico_service import MedicoService
+from chatbot.ai.motivos_cancelacion import normalizar_motivo_cancelacion
+from django.db import transaction
 
 
 class ConsultarDisponibilidadTool(BaseTool):
@@ -42,38 +41,26 @@ class ConsultarDisponibilidadTool(BaseTool):
         for cita in citas:
 
             respuesta.append({
-
                 "id": cita.id,
-
+                "codigo_cita": cita.codigo_cita,
                 "fecha": cita.fecha_programada,
-
                 "medico": (
                     f"{cita.id_medico.nombre} "
                     f"{cita.id_medico.apellido}"
                 ),
-
                 "especialidad": (
                     cita.id_medico.id_especialidad.nombre
                 ),
-
                 "estado": cita.id_estado.nombre,
-
             })
 
         return {
-
             "success": True,
-
             "message": "Próximas citas encontradas.",
-
             "data": {
-
                 "citas": respuesta
-
             }
-
         }
-
 
 class AgendarCitaTool(BaseTool):
     name = "agendar_cita"
@@ -275,6 +262,12 @@ class AgendarCitaTool(BaseTool):
                 },
             }
 
+        if not self.consumir_confirmacion(chat, {
+            'tool_name': self.name,
+            'parametros': {'id_medico': medico.pk, 'fecha': fecha_normalizada.isoformat()},
+        }):
+            return {'success': False, 'message': 'Solicita nuevamente la operación y confirma explícitamente.', 'data': {}}
+
         resultado, status = CitaService.agendar(
             usuario=chat.id_usuario,
             medico=medico,
@@ -317,13 +310,14 @@ class ReprogramarCitaTool(BaseTool):
 
     def execute(self, chat, mensaje, parametros):
 
+        codigo_cita = parametros.get("codigo_cita")
         id_cita = parametros.get("id_cita")
         fecha = CitaService.normalizar_fecha(parametros.get("fecha"))
 
-        if not id_cita or fecha is None:
+        if (not codigo_cita and not id_cita) or fecha is None:
             return {
                 "success": False,
-                "message": "Necesito el número de la cita y la nueva fecha y hora.",
+                "message": "Necesito el codigo de la cita y la nueva fecha y hora.",
                 "data": {},
             }
 
@@ -334,7 +328,17 @@ class ReprogramarCitaTool(BaseTool):
                 "data": {},
             }
 
-        cita = CitaService.obtener_cita_usuario(id_cita, chat.id_usuario)
+        if codigo_cita:
+            cita = CitaService.obtener_cita_usuario_codigo(
+                codigo_cita,
+                chat.id_usuario,
+            )
+        else:
+            # Compatibilidad con operaciones internas anteriores.
+            cita = CitaService.obtener_cita_usuario(
+                id_cita,
+                chat.id_usuario,
+            )
 
         if cita is None:
             return {
@@ -366,14 +370,20 @@ class ReprogramarCitaTool(BaseTool):
                 "success": True,
                 "requires_confirmation": True,
                 "message": (
-                    f"¿Confirmas reprogramar la cita {cita.id} para el "
+                    f"¿Confirmas reprogramar la cita {cita.codigo_cita} para el "
                     f"{timezone.localtime(fecha).strftime('%d/%m/%Y a las %H:%M')}?"
                 ),
                 "data": {
-                    "id_cita": cita.id,
+                    "codigo_cita": cita.codigo_cita,
                     "fecha": fecha.isoformat(),
                 },
             }
+
+        if not self.consumir_confirmacion(chat, {
+            'tool_name': self.name,
+            'parametros': {'codigo_cita': cita.codigo_cita, 'fecha': fecha.isoformat()},
+        }):
+            return {'success': False, 'message': 'Solicita nuevamente la operación y confirma explícitamente.', 'data': {}}
 
         resultado, status = CitaService.reprogramar(
             chat.id_usuario,
@@ -401,16 +411,27 @@ class CancelarCitaTool(BaseTool):
 
     def execute(self, chat, mensaje, parametros):
 
+        codigo_cita = parametros.get("codigo_cita")
         id_cita = parametros.get("id_cita")
 
-        if not id_cita:
+        if not codigo_cita and not id_cita:
             return {
                 "success": False,
-                "message": "Necesito el número de la cita que deseas cancelar.",
+                "message": "Necesito el código de la cita que deseas cancelar.",
                 "data": {},
             }
 
-        cita = CitaService.obtener_cita_usuario(id_cita, chat.id_usuario)
+        if codigo_cita:
+            cita = CitaService.obtener_cita_usuario_codigo(
+                codigo_cita,
+                chat.id_usuario,
+            )
+        else:
+            # Compatibilidad con operaciones internas anteriores.
+            cita = CitaService.obtener_cita_usuario(
+                id_cita,
+                chat.id_usuario,
+            )
 
         if cita is None:
             return {
@@ -435,21 +456,76 @@ class CancelarCitaTool(BaseTool):
                 "data": {},
             }
 
+        motivo = normalizar_motivo_cancelacion(
+            parametros.get("motivo_cancelacion")
+        )
+        if motivo is None:
+            return {
+                "success": False,
+                "message": (
+                    "Necesito un motivo de cancelación válido "
+                    "de máximo 500 caracteres."
+                ),
+                "data": {},
+            }
+
         if not parametros.get("confirmado", False):
+            fecha = timezone.localtime(
+                cita.fecha_programada
+            ).strftime("%d/%m/%Y a las %H:%M")
+
             return {
                 "success": True,
                 "requires_confirmation": True,
                 "message": (
-                    f"¿Confirmas que deseas cancelar la cita {cita.id} del "
-                    f"{timezone.localtime(cita.fecha_programada).strftime('%d/%m/%Y a las %H:%M')}?"
+                    f"¿Confirmas que deseas cancelar la cita "
+                    f"{cita.codigo_cita} del {fecha}?\n\n"
+                    f"Motivo: {motivo}\n\n"
+                    "Responde «Sí» para confirmar "
+                    "o «No» para mantener la cita."
                 ),
-                "data": {"id_cita": cita.id},
+                "data": {
+                    "codigo_cita": cita.codigo_cita,
+                    "motivo_cancelacion": motivo,
+                },
             }
 
-        resultado, status = CitaService.cancelar(chat.id_usuario, cita)
+        with transaction.atomic():
+            autorizada = self.consumir_confirmacion(chat, {
+                'codigo_cita': cita.codigo_cita,
+                'motivo_cancelacion': motivo,
+            }, clave='_cancelacion_autorizada')
+            if not autorizada:
+                return {
+                    "success": False,
+                    "message": (
+                        "Esta cancelación no tiene una confirmación "
+                        "válida. Solicita nuevamente la operación."
+                    ),
+                    "data": {},
+                }
+            # Solo se llega aquí si hubo una confirmación válida.
+            try:
+                with transaction.atomic():
+                    resultado, status = CitaService.cancelar(chat.id_usuario, cita, motivo)
+                    if status == 200:
+                        cita.refresh_from_db()
+                        if (cita.id_estado.nombre.strip().lower() != 'cancelada'
+                                or cita.motivo_cancelacion != motivo
+                                or cita.cancelada_por != 'paciente'
+                                or cita.fecha_cancelacion is None):
+                            resultado, status = 'No se pudo verificar la cancelación guardada. Solicita nuevamente la operación.', 409
+                        else:
+                            resultado = f'La cita {cita.codigo_cita} fue cancelada correctamente.'
+                    if status != 200:
+                        transaction.set_rollback(True)
+            except Exception as error:
+                import logging
+                logging.getLogger(__name__).error('Error cancelando cita desde ByMax tipo=%s', type(error).__name__)
+                resultado, status = 'No fue posible cancelar la cita. Solicita nuevamente la operación.', 500
 
         return {
             "success": status == 200,
             "message": str(resultado) if status == 200 else f"No se canceló la cita. {resultado}",
-            "data": {"id_cita": cita.id} if status == 200 else {},
+            "data": {"codigo_cita": cita.codigo_cita} if status == 200 else {},
         }

@@ -98,6 +98,15 @@ class NotificacionConsumer(AsyncWebsocketConsumer):
             text_data=json.dumps(payload)
         )
 
+    async def send_appointment_update(self, event):
+        await self.send(
+            text_data=json.dumps({
+                "type": "appointment_update",
+                "tipo_evento": event["tipo_evento"],
+                "cita": event["cita"],
+            })
+        )
+
     @database_sync_to_async
     def get_unread_count(self):
         if self.tipo_usuario == "paciente":

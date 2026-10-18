@@ -25,7 +25,7 @@ from citas.services import (
     obtenerEstadisticasCitas,
     obtenerInfoPacienteCitaService,
 )
-from citas.serializers import CrearCitaSerializer, EditarCitaSerializer
+from citas.serializers import CrearCitaSerializer, EditarCitaSerializer, CancelarCitaSerializer
 
 
 logger = logging.getLogger(__name__)
@@ -136,6 +136,7 @@ class CitaMedicoView(APIView):
             estado = request.query_params.get("estado")
             paciente = request.query_params.get("paciente")
             fecha = request.query_params.get("fecha_programada")
+            seccion = request.query_params.get("seccion")
 
             # ==================================
             # PAGINACIÓN
@@ -151,7 +152,8 @@ class CitaMedicoView(APIView):
                     paciente=paciente,
                     fecha=fecha,
                     page=page,
-                    page_size=page_size
+                    page_size=page_size,
+                    seccion=seccion,
                 )
             )
 
@@ -266,16 +268,21 @@ class CitaCancelarView(APIView):
     permission_classes = [IsAuthenticated,IsPacienteOrMedicoAprobado]
     #! Paciente o medico cancelan su cita
     def put(self, request, pk):
+        serializer = CancelarCitaSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
         try:
-            usuario_id = request.user
-            resultado, status_code = cancelarCitaService(pk, usuario_id)
-            if status_code != 200:
-                return respuesta_error(resultado, status=status_code)
-            return respuesta_ok(mensaje=resultado)
-        except Exception as e:
-            print(e)
-            return respuesta_error('Error interno del servidor', status=500)
+            solicitante = request.user
+            motivo = serializer.validated_data["motivo_cancelacion"]
+            resultado, status_code = cancelarCitaService(pk,solicitante,motivo_cancelacion=motivo)
 
+            if status_code != 200:
+                return respuesta_error(resultado,status=status_code)
+            return respuesta_ok(mensaje=resultado)
+        except Exception:
+            logger.exception("Error cancelando cita %s", pk)
+
+            return respuesta_error("Error interno del servidor",status=500)
 
 class CitaCompletarView(APIView):
     permission_classes = [
