@@ -3,7 +3,8 @@ import calendar
 import logging
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
-from datetime import timedelta
+from datetime import timedelta, date, datetime, time
+from django.db.models.functions import TruncWeek
 from citas.models import Cita
 from notificaciones.models import Notificacion
 from medicos.models import Medico, Especialidad,SolicitudValidacionMedico, DisponibilidadMedico, ExcepcionDisponibilidadMedico

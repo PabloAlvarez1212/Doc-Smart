@@ -1,0 +1,58 @@
+.card {
+    display: grid;
+    min-width: 0;
+    min-height: 356px;
+    grid-template-rows: auto 1fr;
+    padding: 21px 22px 18px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+}
+
+.header { margin-bottom: 13px; }
+.header h2 { margin: 0; color: var(--color-text); font-size: .95rem; font-weight: 750; line-height: 1.35; }
+.header p { max-width: 54ch; margin: 5px 0 0; color: var(--text-secondary); font-size: .74rem; line-height: 1.5; }
+
+.content {
+    display: grid;
+    grid-template-columns: minmax(165px, .82fr) minmax(190px, 1.18fr);
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.chartArea { width: 100%; min-width: 0; height: 235px; }
+.total { fill: var(--color-text); font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.totalLabel { fill: var(--text-secondary); font-size: .61rem; font-weight: 650; }
+
+.legend { display: grid; gap: 5px; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.legend li {
+    display: grid;
+    grid-template-columns: 9px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px 9px;
+    border-radius: 9px;
+    background: var(--surface-muted);
+    color: var(--text-secondary);
+    font-size: .69rem;
+}
+.legend strong { color: var(--color-text); font-variant-numeric: tabular-nums; }
+.legend li > span:last-child { min-width: 39px; font-variant-numeric: tabular-nums; text-align: right; }
+.stateName { overflow: hidden; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.swatch { width: 9px; height: 9px; border-radius: 50%; }
+.color0 { background: #13796f; }.color1 { background: #2563eb; }.color2 { background: #b42335 }
+.color3 { background: #a8640b;; }.color4 { background: #7257b5; }.color5 { background: #4e789b; }.color6 { background: #64748b; }
+
+.tooltip { display: grid; gap: 3px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text-secondary); font-size: .7rem; }
+.tooltip strong { color: var(--color-text); font-size: .76rem; }
+
+.empty { display: grid; min-height: 270px; place-items: center; margin: 0; border: 1px dashed var(--border); border-radius: 11px; color: var(--text-secondary); font-size: .78rem; text-align: center; }
+
+@media (max-width: 560px) {
+    .card { min-height: 330px; padding: 18px 15px 15px; }
+    .content { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .chartArea { height: 190px; }
+    .empty { min-height: 245px; }
+}
