@@ -9,7 +9,6 @@ import {
     ClipboardCheck,
     SearchX,
 } from "lucide-react";
-
 import formatearFecha, {
     formatearFechaResolucion,
 } from "@/app/utils/fechaFormaterUtils";
@@ -356,6 +355,7 @@ export default function DoctorAppointmentList({
                 }
                 cita={detailsAppointment}
                 counterpart="paciente"
+                mostrarHistorialClinico={seccion === "historial"}
             />
 
             {/* Modal de información médica del paciente */}

@@ -202,3 +202,51 @@
         grid-column: 1;
     }
 }
+
+
+/* ==========================================
+   CARGA DEL HISTORIAL CLÍNICO
+========================================== */
+
+.clinicalLoading {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+
+    min-height: 160px;
+    padding: 20px 0;
+}
+
+.skeletonLine {
+    width: 100%;
+    height: 15px;
+
+    border-radius: 8px;
+    background: #e8edf4;
+
+    animation: clinicalPulse 1.4s ease-in-out infinite;
+}
+
+.skeletonLine:nth-child(2) {
+    width: 85%;
+}
+
+.skeletonLine:nth-child(3) {
+    width: 65%;
+}
+
+@keyframes clinicalPulse {
+    0%, 100% {
+        opacity: 0.45;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeletonLine {
+        animation: none;
+    }
+}

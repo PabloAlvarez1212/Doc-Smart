@@ -6,7 +6,7 @@ from medicos.models import Medico
 from users.models import Usuario,InfoUser
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Count, Value, Q
+from django.db.models import Count, Value, Q, Prefetch
 from django.db.models.functions import (Concat,TruncMonth,ExtractWeekDay,ExtractHour,TruncDay,)
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta, timezone as dt_timezone
@@ -14,6 +14,7 @@ from functools import wraps
 from notificaciones.services import enviarNotificacion
 from medicos.services_disponibilidad import esHorarioDisponible
 from notificaciones.email_citas_services import enviarCorreosCitaProgramada,enviarCorreosCitaConfirmada, enviarCorreosCitaReprogramada,enviarCorreosCitaCancelada,enviarCorreosCitaVencida, enviarCorreosCitaCompletada
+from historial_medico.models import HistorialClinico
 import logging
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,19 @@ def listarCitasService():
     return serializer.data, 200
 
 def listarCitasPacienteService(usuario_id,busqueda=None,estado=None,ciudad=None,departamento=None,especialidad=None,fecha=None,page=None, page_size=10):
-    citas = Cita.objects.filter(id_usuario=usuario_id)
+    citas = (Cita.objects
+        .filter(id_usuario=usuario_id)
+        .prefetch_related(
+            Prefetch(
+                "historialclinico_set",
+                queryset=HistorialClinico.objects.only(
+                    "id",
+                    "cita_id",
+                ),
+                to_attr="historiales_vinculados",
+            )
+        )
+    )
     
     #estado
     if estado:
@@ -142,6 +155,16 @@ def listarCitasMedicoService(
             "id_medico__ciudad",
             "id_medico__ciudad__departamento",
             "id_medico__id_especialidad",
+        )
+    )
+    citas = citas.prefetch_related(
+        Prefetch(
+            "historialclinico_set",
+            queryset=HistorialClinico.objects.only(
+                "id",
+                "cita_id",
+            ),
+            to_attr="historiales_vinculados",
         )
     )
 

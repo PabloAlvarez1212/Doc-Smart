@@ -27,6 +27,7 @@ class CitaSerializer(serializers.ModelSerializer):
     ciudad    = serializers.CharField(source='id_medico.ciudad.nombre', allow_null=True, read_only=True)
     departamento = serializers.CharField(source='id_medico.ciudad.departamento.nombre', allow_null=True, read_only=True)
     direccion = serializers.CharField(source='id_medico.direccion')
+    historial_id = serializers.SerializerMethodField()
     latitud = serializers.DecimalField(
         source="id_medico.latitud",
         max_digits=10,
@@ -75,6 +76,7 @@ class CitaSerializer(serializers.ModelSerializer):
             'id_medico',
             'codigo_cita',
             'motivo_consulta',
+            'historial_id',
         ]
 
     def get_medico(self, obj):
@@ -94,6 +96,20 @@ class CitaSerializer(serializers.ModelSerializer):
             return obj.id_medico.foto_perfil.url
 
         return None
+
+    def get_historial_id(self, obj):
+        estado = str(obj.id_estado.nombre).strip().casefold()
+        if estado != "completada":
+            return None
+
+        historiales = getattr(obj, "historiales_vinculados", None,)
+
+        if historiales is not None:
+            return historiales[0].id if historiales else None
+
+        return(
+            obj.historialclinico_set.values_list("id", flat=True).first()
+        )
 
 
 class RecordatorioSerializer(serializers.ModelSerializer):

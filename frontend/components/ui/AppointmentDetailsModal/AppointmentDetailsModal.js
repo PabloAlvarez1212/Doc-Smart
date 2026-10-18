@@ -1,20 +1,15 @@
 "use client";
 
-import {
-    CalendarDays,
-    Clock3,
-    MapPin,
-    MessageSquareText,
-    Stethoscope,
-    TicketCheck,
-    UserRound,
-} from "lucide-react";
+import {CalendarDays,Clock3,MapPin,MessageSquareText,Stethoscope,TicketCheck,UserRound,ClipboardList,} from "lucide-react";
 import Image from "next/image";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
 import AppointmentCode from "../AppointmentCode/AppointmentCode";
 import Modal from "../Modal/Modal";
 import { getAppointmentDetailsData } from "./appointmentDetailsModalData";
 import styles from "./AppointmentDetailsModal.module.css";
+import { useEffect, useState } from "react";
+import {obtenerHistorialClinicoService} from "@/app/services/medicalHistoryServices";
+import DocumentosSeguimientoList from"../DocumentosSeguimientoList/DocumentosSeguimientoList";
 
 function capitalize(value) {
     const text = String(value || "").trim();
@@ -27,16 +22,25 @@ export default function AppointmentDetailsModal({
     onExitComplete,
     cita,
     counterpart = "medico",
+    mostrarHistorialClinico = false,
 }) {
     const data = getAppointmentDetailsData(cita, counterpart);
     const scheduled = data.scheduledAt ? formatearFecha(data.scheduledAt) : null;
     const statusKey = data.status.toLowerCase();
+    const [historialClinico, setHistorialClinico] = useState(null)
+    const [cargandoHistorial, setCargandoHistorial] = useState(false);
+    const [errorHistorial, setErrorHistorial] = useState("");
+    const debeMostrarHistorial = mostrarHistorialClinico && statusKey === "completada";
+    const historialId = cita?.historial_id;
+    const citaId = cita?.id;
+    const historialDeEstaCita = historialClinico && String(historialClinico.cita_id) === String(citaId)
+        ? historialClinico
+        : null;
     const PersonIcon = counterpart === "paciente" ? UserRound : Stethoscope;
 
     // ==========================================
     // INFORMACIÓN DE CANCELACIÓN
     // ==========================================
-
     const esCancelada = statusKey === "cancelada";
 
     const responsables = {
@@ -62,6 +66,68 @@ export default function AppointmentDetailsModal({
             ? formatearFecha(cita.fecha_cancelacion)
             : null;
 
+    useEffect(() => {
+        if (!abierto || !debeMostrarHistorial) {
+            setHistorialClinico(null);
+            setErrorHistorial("");
+            setCargandoHistorial(false);
+            return;
+        }
+        if (!historialId) {
+            setHistorialClinico(null);
+            setErrorHistorial(
+                "Esta cita no tiene un historial clínico asociado."
+            );
+            setCargandoHistorial(false);
+            return;
+        }
+        const controller = new AbortController();
+        const cargarHistorial = async () => {setCargandoHistorial(true);setErrorHistorial("");setHistorialClinico(null);
+            try {
+                const resultado =
+                    await obtenerHistorialClinicoService(
+                        historialId,{signal: controller.signal}
+                    );
+
+                if (controller.signal.aborted) {return;}
+                // Comprobar que el registro corresponda
+                // exactamente a la cita seleccionada.
+                if (String(resultado?.cita_id) !== String(citaId)
+                ) {
+                    throw new Error(
+                        "El historial no corresponde a esta cita."
+                    );
+                }
+                setHistorialClinico(resultado);
+
+            } catch (error) {
+                if (controller.signal.aborted) {
+                    return;
+                }
+                setErrorHistorial(
+                    error.response?.status === 403
+                        ? "No tienes permiso para consultar este historial."
+                        : error.response?.status === 404
+                            ? "No se encontró el historial clínico de esta cita."
+                            : error.message ===
+                            "El historial no corresponde a esta cita."
+                                ? error.message
+                                : "No fue posible cargar la información clínica."
+                );
+
+            } finally {
+                if (!controller.signal.aborted) {
+                    setCargandoHistorial(false);
+                }
+            }
+        };
+
+        cargarHistorial();
+        return () => {
+            controller.abort();
+        };
+
+    }, [abierto, debeMostrarHistorial, historialId, citaId]);
 
     return (
         <Modal
@@ -168,16 +234,113 @@ export default function AppointmentDetailsModal({
                     </div>
                 </section>
 
-                <section className={styles.section} aria-labelledby="appointment-reason-title">
-                    <SectionTitle
-                        id="appointment-reason-title"
-                        icon={MessageSquareText}
-                        title="Motivo de consulta"
-                    />
-                    <p className={`${styles.reason} ${!data.reason ? styles.emptyValue : ""}`}>
-                        {data.reason || "Sin motivo de consulta registrado"}
-                    </p>
-                </section>
+                {!debeMostrarHistorial && (
+                    <section
+                        className={styles.section}
+                        aria-labelledby="appointment-reason-title"
+                    >
+                        <SectionTitle
+                            id="appointment-reason-title"
+                            icon={MessageSquareText}
+                            title="Motivo de consulta"
+                        />
+
+                        <p className={`${styles.reason} ${!data.reason ? styles.emptyValue : ""}`}>
+                            {data.reason || "Sin motivo de consulta registrado"}
+                        </p>
+                    </section>
+                )}
+
+                {debeMostrarHistorial && (
+                    <>
+                        {!historialDeEstaCita && !errorHistorial && (
+                            <section
+                                className={styles.section}
+                                aria-busy="true"
+                            >
+                                <SectionTitle
+                                    id="appointment-clinical-loading"
+                                    icon={ClipboardList}
+                                    title="Información clínica de la atención"
+                                />
+
+                                <div className={styles.clinicalLoading}>
+                                    <div className={styles.skeletonLine} />
+                                    <div className={styles.skeletonLine} />
+                                    <div className={styles.skeletonLine} />
+                                </div>
+
+                                <p role="status">
+                                    Cargando información clínica...
+                                </p>
+                            </section>
+                        )}
+
+                        {errorHistorial && (
+                            <section className={styles.section}>
+                                <p role="alert">
+                                    {errorHistorial}
+                                </p>
+                            </section>
+                        )}
+
+                        {historialDeEstaCita  && (
+
+                            <>
+                                <section
+                                    className={styles.section}
+                                    aria-labelledby="appointment-clinical-title"
+                                >
+
+                                    <SectionTitle
+                                        id="appointment-clinical-title"
+                                        icon={ClipboardList}
+                                        title="Información clínica de la atención"
+                                    />
+
+                                    <div className={styles.dataGrid}>
+
+                                        <DetailItem
+                                            className={styles.fullWidth}
+                                            label="Motivo de consulta"
+                                            value={
+                                                historialClinico.motivo_consulta ||
+                                                "Sin motivo registrado"
+                                            }
+                                        />
+
+                                        <DetailItem
+                                            className={styles.fullWidth}
+                                            label="Diagnóstico general"
+                                            value={
+                                                historialClinico.diagnostico_general ||
+                                                "Sin diagnóstico registrado"
+                                            }
+                                        />
+
+                                        <DetailItem
+                                            className={styles.fullWidth}
+                                            label="Observaciones"
+                                            value={
+                                                historialClinico.observaciones ||
+                                                "Sin observaciones adicionales"
+                                            }
+                                        />
+
+                                    </div>
+
+                                </section>
+
+                                <DocumentosSeguimientoList
+                                    citaId={historialClinico.cita_id}
+                                    documentos={
+                                        historialClinico.documentos || []
+                                    }
+                                />
+                            </>
+                        )}
+                    </>
+                )}
             </div>
         </Modal>
     );
