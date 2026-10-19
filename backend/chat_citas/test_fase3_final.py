@@ -1,3 +1,4 @@
+from .test_transport import next_chat_event, no_chat_event
 """Cierre 3C: transporte real y ordenamientos conceptuales, sin locks MySQL."""
 from datetime import timedelta
 from uuid import uuid4
@@ -85,10 +86,10 @@ class FinalTransportTests(TransactionTestCase):
             ws = self.socket(self.patient)
             await ws.connect()
             await ws.send_to(text_data='[' * 30000 + '0' + ']' * 30000)
-            self.assertEqual((await ws.receive_json_from())['data']['status'], 400)
+            self.assertEqual((await next_chat_event(ws))['data']['status'], 400)
             await ws.send_json_to({'event': 'chat.message.send', 'data': {
                 'client_message_id': str(uuid4()), 'contenido': 'válido'}})
-            events = [await ws.receive_json_from(), await ws.receive_json_from()]
+            events = [await next_chat_event(ws), await next_chat_event(ws)]
             self.assertEqual({e['event'] for e in events}, {'chat.message.ack', 'chat.message.created'})
             await ws.disconnect()
         async_to_sync(run)()
@@ -120,19 +121,19 @@ class FinalTransportTests(TransactionTestCase):
                     ws = self.socket(self.patient)
                     await ws.connect()
                     await ws.send_json_to({'event': 'chat.message.send', 'data': payload})
-                    ack = await ws.receive_json_from()
+                    ack = await next_chat_event(ws)
                     self.assertEqual(ack['data']['id'], original.data['data']['id'])
                     self.assertFalse(ack['data']['created'])
-                    self.assertTrue(await ws.receive_nothing(timeout=0.05))
+                    self.assertTrue(await no_chat_event(ws, timeout=0.05))
                     await ws.send_json_to({'event': 'chat.message.send', 'data': dict(payload, contenido='diferente')})
-                    self.assertEqual((await ws.receive_json_from())['data']['status'], 409)
+                    self.assertEqual((await next_chat_event(ws))['data']['status'], 409)
                     await ws.send_json_to({'event': 'chat.message.send', 'data': {
                         'client_message_id': str(uuid4()), 'contenido': 'nuevo'}})
                     if writable:
-                        events = [await ws.receive_json_from(), await ws.receive_json_from()]
+                        events = [await next_chat_event(ws), await next_chat_event(ws)]
                         self.assertEqual({e['event'] for e in events}, {'chat.message.ack', 'chat.message.created'})
                     else:
-                        self.assertEqual((await ws.receive_json_from())['data']['status'], 403)
+                        self.assertEqual((await next_chat_event(ws))['data']['status'], 403)
                     await ws.disconnect()
                 async_to_sync(run)()
                 self.assertEqual(Mensaje.objects.count(), counts[0] + int(writable))
@@ -152,7 +153,7 @@ class FinalTransportTests(TransactionTestCase):
             ws = self.socket(self.patient)
             await ws.connect()
             await ws.send_json_to({'event': 'chat.message.send', 'data': payload})
-            events = [await ws.receive_json_from(), await ws.receive_json_from()]
+            events = [await next_chat_event(ws), await next_chat_event(ws)]
             dto = next(e['data'] for e in events if e['event'] == 'chat.message.created')
             self.assertEqual(dto['tipo'], 'nota_previa')
             self.assertEqual(dto['emisor'], {'tipo': 'paciente', 'id': self.patient.pk})
@@ -180,7 +181,7 @@ class FinalTransportTests(TransactionTestCase):
                 await ws.connect()
                 await database_sync_to_async(SolicitudValidacionMedico.objects.filter(medico=self.doctor).update)(estado='rechazado')
                 await ws.send_json_to({'event': event, 'data': data})
-                self.assertEqual((await ws.receive_json_from())['data']['status'], 403)
+                self.assertEqual((await next_chat_event(ws))['data']['status'], 403)
                 self.assertEqual((await ws.receive_output())['code'], 4403)
                 await ws.disconnect()
             async_to_sync(run)()
@@ -196,13 +197,13 @@ class FinalTransportTests(TransactionTestCase):
             await reader.connect()
             await recipient.connect()
             await reader.send_json_to({'event': 'chat.message.read', 'data': {'ultimo_mensaje_id': msgs[1].pk}})
-            event = await recipient.receive_json_from()
+            event = await next_chat_event(recipient)
             self.assertEqual(event['event'], 'chat.message.read')
             self.assertEqual(event['data']['actor'], {'tipo': 'medico', 'id': self.doctor.pk})
             for pk in (msgs[1].pk, msgs[0].pk):
                 await reader.send_json_to({'event': 'chat.message.read', 'data': {'ultimo_mensaje_id': pk}})
-                self.assertTrue(await recipient.receive_nothing(timeout=0.1))
-            self.assertTrue(await reader.receive_nothing(timeout=0.1))
+                self.assertTrue(await no_chat_event(recipient, timeout=0.1))
+            self.assertTrue(await no_chat_event(reader, timeout=0.1))
             await reader.disconnect()
             await recipient.disconnect()
         async_to_sync(run)()
@@ -223,10 +224,10 @@ class FinalTransportTests(TransactionTestCase):
             await ws.connect()
             with patch('chat_citas.realtime.programarEventoChat', side_effect=RuntimeError('rollback')):
                 await ws.send_json_to({'event': 'chat.message.send', 'data': {'client_message_id': str(uuid4()), 'contenido': 'no confirmado'}})
-                event = await ws.receive_json_from()
+                event = await next_chat_event(ws)
             self.assertEqual(event['event'], 'chat.error')
             self.assertEqual(event['data']['status'], 500)
-            self.assertTrue(await ws.receive_nothing(timeout=0.1))
+            self.assertTrue(await no_chat_event(ws, timeout=0.1))
             await ws.disconnect()
         async_to_sync(run)()
         self.assertEqual(Mensaje.objects.count(), 1)
@@ -244,7 +245,7 @@ class FinalTransportTests(TransactionTestCase):
             await ws.connect()
             with patch.object(ChatCitasConsumer, 'send_json', lose_ack):
                 await ws.send_json_to({'event': 'chat.message.send', 'data': payload})
-                events = [await ws.receive_json_from(), await ws.receive_json_from()]
+                events = [await next_chat_event(ws), await next_chat_event(ws)]
                 self.assertEqual({e['event'] for e in events}, {'chat.error', 'chat.message.created'})
             await ws.disconnect()
         async_to_sync(run)()
@@ -264,16 +265,16 @@ class FinalTransportTests(TransactionTestCase):
             await ws.connect()
             for value in (1, 'true', None):
                 await ws.send_json_to({'event': 'chat.typing', 'data': {'escribiendo': value}})
-                self.assertEqual((await ws.receive_json_from())['data']['status'], 400)
+                self.assertEqual((await next_chat_event(ws))['data']['status'], 400)
             await database_sync_to_async(Cita.objects.filter(pk=self.cita.pk).update)(fecha_programada=self.now + timedelta(days=3))
             await ws.send_json_to({'event': 'chat.typing', 'data': {'escribiendo': True}})
-            self.assertEqual((await ws.receive_json_from())['data']['status'], 403)
+            self.assertEqual((await next_chat_event(ws))['data']['status'], 403)
             await database_sync_to_async(Cita.objects.filter(pk=self.cita.pk).update)(fecha_programada=self.now + timedelta(hours=1))
             with patch('chat_citas.consumers.cache.add', side_effect=RuntimeError('offline')):
                 await ws.send_json_to({'event': 'chat.typing', 'data': {'escribiendo': True}})
-                self.assertTrue(await ws.receive_nothing(timeout=0.1))
+                self.assertTrue(await no_chat_event(ws, timeout=0.1))
                 await ws.send_json_to({'event': 'chat.message.send', 'data': {'client_message_id': str(uuid4()), 'contenido': 'hola'}})
-                self.assertEqual({(await ws.receive_json_from())['event'], (await ws.receive_json_from())['event']},
+                self.assertEqual({(await next_chat_event(ws))['event'], (await next_chat_event(ws))['event']},
                     {'chat.message.ack', 'chat.message.created'})
             await ws.disconnect()
         async_to_sync(run)()

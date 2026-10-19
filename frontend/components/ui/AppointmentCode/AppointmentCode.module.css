@@ -4,11 +4,11 @@
     min-width: 0;
     padding: 13px 14px;
     border-radius: 12px;
-    background: #f3f7fc;
+    background: var(--surface-muted);
 }
 
 .label {
-    color: #66758a;
+    color: var(--text-secondary);
     font-size: .75rem;
     font-weight: 700;
     line-height: 1.35;
@@ -24,7 +24,7 @@
 
 .codeRow code {
     min-width: 0;
-    color: #1f4f98;
+    color: var(--color-dark);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     font-size: .98rem;
     font-weight: 760;
@@ -34,7 +34,7 @@
 }
 
 .codeRow .emptyCode {
-    color: #718095;
+    color: var(--text-secondary);
     font-family: inherit;
     font-size: .88rem;
     font-weight: 560;
@@ -48,10 +48,10 @@
     gap: 6px;
     min-height: 36px;
     padding: 7px 10px;
-    border: 1px solid #bfd0e6;
+    border: 1px solid var(--border);
     border-radius: 9px;
-    color: #24599d;
-    background: #fff;
+    color: var(--color-dark);
+    background: var(--surface);
     cursor: pointer;
     font: inherit;
     font-size: .76rem;
@@ -66,15 +66,15 @@
 }
 
 .copyButton[data-state="copied"] {
-    color: #17664e;
-    border-color: #b8d9cc;
-    background: #eff8f4;
+    color: var(--ink-green);
+    border-color: var(--border);
+    background: var(--tone-green);
 }
 
 .copyButton[data-state="error"] {
-    color: #91394a;
-    border-color: #dfc1c8;
-    background: #fff8f9;
+    color: var(--ink-red);
+    border-color: var(--border);
+    background: var(--tone-red);
 }
 
 .copyButton:active {
@@ -82,14 +82,14 @@
 }
 
 .copyButton:focus-visible {
-    outline: 3px solid rgba(36, 86, 166, .22);
+    outline: 3px solid var(--focus);
     outline-offset: 2px;
 }
 
 .compact {
     padding: 11px 12px;
-    border: 1px solid #e0e9f4;
-    background: #f7faff;
+    border: 1px solid var(--border);
+    background: var(--surface-muted);
 }
 
 .compact .codeRow code {
@@ -114,9 +114,9 @@
 
 @media (hover: hover) and (pointer: fine) {
     .copyButton:hover {
-        color: #1c4b89;
-        border-color: #8facd0;
-        background: #eaf2fc;
+        color: var(--color-dark);
+        border-color: var(--border);
+        background: var(--tone-blue);
         transform: translateY(-1px);
     }
 }
@@ -142,3 +142,5 @@
         transform: none;
     }
 }
+
+button:focus-visible{outline:2px solid var(--focus);outline-offset:3px}

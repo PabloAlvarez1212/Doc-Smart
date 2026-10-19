@@ -34,7 +34,7 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    color: var(--text-primary);
+    color: var(--color-text);
 }
 
 .address {
@@ -70,7 +70,7 @@
 }
 
 .directions:focus-visible {
-    outline: 2px solid var(--text-primary);
+    outline: 2px solid var(--color-text);
     outline-offset: 4px;
 }
 

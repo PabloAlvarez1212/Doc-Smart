@@ -6,3 +6,5 @@
 :root[data-theme="dark"]{--blue-card:#172e56;--blue-card-surface:#233f69;--blue-card-secondary:#dce8ff;--blue-card-border:#6382af}
 
 :root{--control-border:#7b8390}:root[data-theme="dark"]{--control-border:#777f8e}
+
+:root{--action-primary-bg:#2456a6;--action-primary-hover:#1d4b91;--action-success-bg:#17664e;--action-success-hover:#125a44;--action-on:#fff}

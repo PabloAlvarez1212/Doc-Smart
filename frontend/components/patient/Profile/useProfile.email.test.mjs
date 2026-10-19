@@ -9,7 +9,7 @@ const { transformSync } = require("next/dist/build/swc");
 function load(filename, overrides) {
     const compiled = new Module(filename);
     compiled.paths = Module._nodeModulePaths(path.dirname(filename));
-    compiled.require = name => Object.hasOwn(overrides, name) ? overrides[name] : require(name);
+    compiled.require = name => name === "../../hooks/useEmailChange" ? load(path.resolve("components/hooks/useEmailChange.js"), overrides) : Object.hasOwn(overrides, name) ? overrides[name] : require(name);
     const source = transformSync(fs.readFileSync(filename, "utf8"), {
         filename, jsc: { parser: { syntax: "ecmascript" }, transform: { react: { runtime: "automatic" } } }, module: { type: "commonjs" },
     }).code;

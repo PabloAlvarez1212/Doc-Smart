@@ -131,7 +131,12 @@ class CambioCorreoUsuario(models.Model):
     usuario = models.ForeignKey(
         Usuario,
         on_delete=models.CASCADE,
-        related_name="cambios_correo"
+        related_name="cambios_correo", null=True, blank=True
+    )
+
+    medico = models.ForeignKey(
+        "medicos.Medico", null=True, blank=True,
+        on_delete=models.CASCADE, related_name="cambios_correo"
     )
 
     nuevo_correo = models.EmailField()
@@ -166,6 +171,10 @@ class CambioCorreoUsuario(models.Model):
     )
 
     class Meta:
+        constraints = [models.CheckConstraint(
+            condition=(models.Q(usuario__isnull=False, medico__isnull=True) | models.Q(usuario__isnull=True, medico__isnull=False)),
+            name="cambio_correo_un_solo_titular",
+        )]
         indexes = [
             models.Index(
                 fields=["usuario", "estado"]

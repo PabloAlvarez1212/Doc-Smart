@@ -31,15 +31,19 @@ function jsx(file) {
   }).code, filename);
   return compiled.exports;
 }
-const { ChatListView, ChatComposer, ChatMessage, ClinicalActions, ChatConnection } = jsx('components/chat/ChatUI.js');
+const { ChatListView, ChatComposer, ChatMessage, ClinicalActions, ChatConnection, ChatPresence } = jsx('components/chat/ChatUI.js');
 const conv = estado => ({ id: 7, estado, no_leidos: 3, tiene_nota_previa: false,
   cita: { id: 9, estado: 'confirmada', fecha_programada: '2026-01-01T15:00Z' },
   otro_participante: { nombre: 'Ana', apellido: 'Pérez', tipo: 'medico', id: 102 } });
 const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
 test('estados WS comprensibles y lectura solo para mensaje propio confirmado por cursor', () => {
-  for (const [state, label] of [['connecting', 'Conectando'], ['connected', 'Conectado'], ['reconnecting', 'Reconectando'], ['offline', 'Sin conexión'], ['disconnected', 'Tiempo real no disponible']]) {
+  for (const [state, label] of [['connecting', 'Conectando'], ['reconnecting', 'Reconectando'], ['offline', 'Sin conexión'], ['disconnected', 'Tiempo real no disponible']]) {
     assert.match(render(ChatConnection, { connection: state }), new RegExp(label));
   }
+  assert.equal(render(ChatConnection, { connection: 'connected' }), '');
+  assert.match(render(ChatPresence,{presence:'online'}), /En línea/);
+  assert.match(render(ChatPresence,{presence:'offline'}), /Desconectado/);
+  assert.match(render(ChatPresence,{presence:null}), /Presencia no disponible/);
   const message = { id: 8, emisor: { tipo: 'paciente' }, tipo: 'mensaje', contenido: 'Hola' };
   assert.match(render(ChatMessage, { message, role: 'paciente', readCursor: 8 }), /Leído/);
   assert.doesNotMatch(render(ChatMessage, { message, role: 'paciente', readCursor: 7 }), /Leído/);
@@ -87,7 +91,7 @@ test('contenido escapa HTML, nota/sistema se distinguen y adjunto solo muestra m
   const html = render(ChatMessage, { role: 'paciente', message: { id: 1, tipo: 'nota_previa', contenido: '<img src=x onerror=alert(1)>',
     emisor: { tipo: 'paciente' }, adjuntos: [{ id: 3, nombre: 'x.pdf', content_type: 'application/pdf', storage_key: 'hidden' }] } });
   assert.match(html, /&lt;img/); assert.doesNotMatch(html, /<img src=x/); assert.match(html, /Nota previa/);
-  assert.match(html, /x.pdf/); assert.doesNotMatch(html, /hidden/);
+  assert.match(html, /x.pdf/); assert.doesNotMatch(html, /(?:^|\s)hidden(?:=|\s|>)/);
   assert.match(render(ChatMessage, { message: { tipo: 'sistema', metadata: { evento: 'cita_cancelada' } } }), /cancelada/);
 });
 test('REST service usa endpoints, cursores, payload intacto, upload sin Content-Type manual y URL temporal', async () => {

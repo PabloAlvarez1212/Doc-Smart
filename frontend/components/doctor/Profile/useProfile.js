@@ -1,10 +1,12 @@
 "use client";
 
 import { obtenerPrimerError } from "@/app/utils/errrorUtils";
+import useEmailChange from "../../hooks/useEmailChange";
 import Swal from "sweetalert2";
 import { useEffect, useState } from "react";
 
 import {
+    solicitarCambioCorreoService, confirmarCambioCorreoService,
     obtenerPerfilMedicoService,
     actualizarPerfilMedicoService,
     actualizarFotoPerfilMedicoService,
@@ -16,6 +18,8 @@ export default function useProfile() {
     const [loading, setLoading] = useState(true);
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState(null);
+
+    const correo = useEmailChange({guardando, setPerfil, solicitarCambioCorreoService, confirmarCambioCorreoService});
 
     useEffect(() => {
         cargarPerfilMedico();
@@ -94,11 +98,12 @@ export default function useProfile() {
             setGuardando(true);
             setError(null);
 
-            await actualizarFotoPerfilMedicoService(
-                archivo
-            );
-
-            await cargarPerfilMedico();
+            const response = await actualizarFotoPerfilMedicoService(archivo);
+            const photo = response?.data?.foto_perfil ?? response?.foto_perfil;
+            if (typeof photo !== "string" || !photo.trim()) {
+                throw new Error("La respuesta no contiene la foto guardada.");
+            }
+            setPerfil(current => current ? { ...current, foto_perfil: photo } : current);
 
             await Swal.fire({
                 icon: "success",
@@ -147,8 +152,7 @@ export default function useProfile() {
             setGuardando(true);
 
             await eliminarFotoPerfilMedicoService();
-
-            await cargarPerfilMedico();
+            setPerfil(current => current ? { ...current, foto_perfil: null } : current);
 
             await Swal.fire({
                 icon: "success",
@@ -175,6 +179,7 @@ export default function useProfile() {
     };
 
     return {
+        ...correo,
         perfil,
         loading,
         guardando,

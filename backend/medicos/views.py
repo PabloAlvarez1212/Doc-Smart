@@ -1332,3 +1332,13 @@ class ObtenerEstadisticasMedicoView(APIView):
             return respuesta_error(resultado,status=codigo)
 
         return respuesta_ok(data=resultado,mensaje="Estadísticas obtenidas correctamente.",status=codigo)
+
+
+# Same OTP contract as patient profiles, with doctor-only authentication.
+from users.views import SolicitarCambioCorreoView, ConfirmarCambioCorreoView
+
+class SolicitarCambioCorreoMedicoView(SolicitarCambioCorreoView):
+    permission_classes = [IsAuthenticated, IsMedico]
+
+class ConfirmarCambioCorreoMedicoView(ConfirmarCambioCorreoView):
+    permission_classes = [IsAuthenticated, IsMedico]

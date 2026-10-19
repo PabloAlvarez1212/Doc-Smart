@@ -28,8 +28,8 @@ test("en pantallas muy estrechas las tres acciones vuelven a una columna", () =>
 
 test("confirmar y completar conservan variantes e iconos visualmente distintos", () => {
     assert.doesNotMatch(styles, /\.primary\s*,\s*\.success\s*\{/);
-    assert.match(styles, /\.primary\s*\{[^}]*background:\s*#2456a6/s);
-    assert.match(styles, /\.success\s*\{[^}]*background:\s*#17664e/s);
+    assert.match(styles, /\.primary\s*\{[^}]*background:\s*var\(--action-primary-bg\)/s);
+    assert.match(styles, /\.success\s*\{[^}]*background:\s*var\(--action-success-bg\)/s);
     assert.match(doctorList, /confirmar:\s*\{[\s\S]*?icon:\s*CircleCheck,[\s\S]*?tone:\s*"primary"/);
     assert.match(doctorList, /completar:\s*\{[\s\S]*?icon:\s*ClipboardCheck,[\s\S]*?tone:\s*"success"/);
 });

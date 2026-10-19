@@ -67,3 +67,9 @@ urlpatterns = [
 ]
 
 urlpatterns += [path(f"registro/{fase}/", RegistroMedicoView.as_view(fase=fase), name="registro-medico-"+fase.replace("/","-")) for fase in ("datos-profesionales","credenciales","subir-documento","documento/verificar","documento/extraer","verificar-correo","reenviar-codigo","completar")]
+
+from .views import SolicitarCambioCorreoMedicoView, ConfirmarCambioCorreoMedicoView
+urlpatterns += [
+    path("perfil/correo/solicitar-cambio/", SolicitarCambioCorreoMedicoView.as_view()),
+    path("perfil/correo/confirmar-cambio/", ConfirmarCambioCorreoMedicoView.as_view()),
+]

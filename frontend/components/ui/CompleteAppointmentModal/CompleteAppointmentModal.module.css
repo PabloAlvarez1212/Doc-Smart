@@ -6,8 +6,8 @@
     height: 42px;
     flex: 0 0 42px;
     border-radius: 12px;
-    color: #17664e;
-    background: #e4f3ed;
+    color: var(--ink-green);
+    background: var(--tone-green);
 }
 
 .form {
@@ -22,16 +22,16 @@
     justify-content: space-between;
     gap: 16px;
     padding: 15px 17px;
-    border: 1px solid #dce8e4;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #f6fbf9;
+    background: var(--surface-muted);
 }
 
 .appointment > div {
     display: flex;
     align-items: center;
     gap: 10px;
-    color: #17664e;
+    color: var(--ink-green);
 }
 
 .appointment span {
@@ -40,19 +40,19 @@
 }
 
 .appointment small {
-    color: #74837d;
+    color: var(--text-secondary);
     font-size: .7rem;
     font-weight: 700;
     text-transform: uppercase;
 }
 
 .appointment strong {
-    color: #263a33;
+    color: var(--color-text);
     font-size: .92rem;
 }
 
 .date {
-    color: #52675f;
+    color: var(--text-secondary);
     font-size: .85rem;
     font-weight: 700;
 }
@@ -64,13 +64,13 @@
 
 .sectionHeading h3 {
     margin: 0 0 4px;
-    color: #24372f;
+    color: var(--color-text);
     font-size: .96rem;
 }
 
 .sectionHeading p {
     margin: 0;
-    color: #687b73;
+    color: var(--text-secondary);
     font-size: .84rem;
     line-height: 1.5;
 }
@@ -81,10 +81,10 @@
     gap: 6px;
     min-height: 135px;
     padding: 20px;
-    border: 1.5px dashed #9fcbbb;
+    border: 1.5px dashed var(--border);
     border-radius: 14px;
     cursor: pointer;
-    color: #17664e;
+    color: var(--ink-green);
     background: #f7fcfa;
     transition:
         border-color 160ms ease,
@@ -92,12 +92,12 @@
 }
 
 .dropzone:hover {
-    border-color: #17664e;
-    background: #eff9f5;
+    border-color: var(--ink-green);
+    background: var(--tone-green);
 }
 
 .dropzone span {
-    color: #71827b;
+    color: var(--text-secondary);
     font-size: .78rem;
 }
 
@@ -109,8 +109,8 @@
     margin: 0;
     padding: 10px 12px;
     border-radius: 10px;
-    color: #28624f;
-    background: #edf8f4;
+    color: var(--ink-green);
+    background: var(--tone-green);
     font-size: .83rem;
 }
 
@@ -130,13 +130,13 @@
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    border: 1px solid #dce7e3;
+    border: 1px solid var(--border);
     border-radius: 11px;
-    background: #fff;
+    background: var(--surface);
 }
 
 .file > svg {
-    color: #24745b;
+    color: var(--ink-green);
 }
 
 .file span {
@@ -147,14 +147,14 @@
 
 .file strong {
     overflow: hidden;
-    color: #2d3b36;
+    color: var(--color-text);
     font-size: .82rem;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .file small {
-    color: #819089;
+    color: var(--text-secondary);
     font-size: .72rem;
 }
 
@@ -166,12 +166,12 @@
     border: 0;
     border-radius: 8px;
     cursor: pointer;
-    color: #9a4050;
+    color: var(--ink-red);
     background: transparent;
 }
 
 .file button:hover {
-    background: #fff0f2;
+    background: var(--tone-red);
 }
 
 .feedback {
@@ -180,7 +180,7 @@
 
 .feedback p {
     margin: 0;
-    color: #a23535;
+    color: var(--ink-red);
     font-size: .84rem;
 }
 
@@ -206,23 +206,23 @@
 }
 
 .cancelButton {
-    border: 1px solid #ccd8d3;
-    color: #3b4c45;
-    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--color-text);
+    background: var(--surface);
 }
 
 .submitButton {
-    border: 1px solid #17614b;
-    color: #fff;
-    background: #17664e;
+    border: 1px solid var(--border);
+    color: var(--action-on);
+    background: var(--action-success-bg);
 }
 
 .submitButton:hover:not(:disabled) {
-    background: #125a44;
+    background: var(--action-success-hover);
 }
 
 .cancelButton:hover:not(:disabled) {
-    background: #f5f8f7;
+    background: var(--surface-muted);
 }
 
 .submitButton:disabled,
@@ -252,7 +252,13 @@
         width: 100%;
     }
 }
-.clinicalFields { display: grid; gap: 10px; color: #263a33; }
+.clinicalFields { display: grid; gap: 10px; color: var(--color-text); }
 .clinicalFields label { font-size: .9rem; font-weight: 600; }
-.clinicalFields textarea { width: 100%; min-height: 86px; resize: vertical; padding: 12px; border: 1px solid #dce8e4; border-radius: 10px; font: inherit; color: inherit; background: white; }
-.clinicalFields textarea:focus { outline: 2px solid #17664e; outline-offset: 2px; }
+.clinicalFields textarea { width: 100%; min-height: 86px; resize: vertical; padding: 12px; border: 1px solid var(--border); border-radius: 10px; font: inherit; color: inherit; background: var(--surface); }
+.clinicalFields textarea:focus { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+@media(prefers-reduced-motion:reduce){.spinner,.loading svg{animation:none}.dropzone,.cancelButton,.submitButton{transition:none}}
+
+.form{color:var(--color-text)}
+
+.form :is(button,input,textarea):focus-visible{outline:2px solid var(--focus);outline-offset:3px}

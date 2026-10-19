@@ -1,3 +1,4 @@
+from .test_transport import next_chat_event, no_chat_event
 from uuid import uuid4
 from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
@@ -16,13 +17,13 @@ class RealtimeTests(WebsocketTests):
             for ws in (patient, own_other, doctor):
                 self.assertTrue((await ws.connect())[0])
             await patient.send_json_to({'event': 'chat.typing', 'data': {'escribiendo': True}})
-            event = await doctor.receive_json_from()
+            event = await next_chat_event(doctor)
             self.assertEqual(event['event'], 'chat.typing')
             self.assertTrue(event['data']['escribiendo'])
-            self.assertTrue(await patient.receive_nothing(timeout=0.1))
-            self.assertTrue(await own_other.receive_nothing(timeout=0.1))
+            self.assertTrue(await no_chat_event(patient, timeout=0.1))
+            self.assertTrue(await no_chat_event(own_other, timeout=0.1))
             await doctor.send_json_to({'event': 'chat.message.read', 'data': {'ultimo_mensaje_id': msg.pk}})
-            event = await patient.receive_json_from()
+            event = await next_chat_event(patient)
             self.assertEqual(event['event'], 'chat.message.read')
             self.assertEqual(event['data']['ultimo_mensaje_id'], msg.pk)
             for ws in (patient, own_other, doctor):
@@ -39,6 +40,6 @@ class RealtimeTests(WebsocketTests):
             ws = self.socket()
             self.assertTrue((await ws.connect())[0])
             await ws.send_json_to({'event': 'chat.typing', 'data': {'escribiendo': True}})
-            self.assertEqual((await ws.receive_json_from())['data']['status'], 403)
+            self.assertEqual((await next_chat_event(ws))['data']['status'], 403)
             await ws.disconnect()
         async_to_sync(run)()

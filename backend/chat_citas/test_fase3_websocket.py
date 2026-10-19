@@ -1,3 +1,4 @@
+from .test_transport import next_chat_event, no_chat_event
 from uuid import uuid4
 from asgiref.sync import async_to_sync
 from channels.testing import WebsocketCommunicator
@@ -61,17 +62,17 @@ class WebsocketTests(TransactionTestCase):
             self.assertTrue((await ws.connect())[0])
             data = {'client_message_id': str(uuid4()), 'contenido': 'hola'}
             await ws.send_json_to({'event': 'chat.message.send', 'data': data})
-            events = [await ws.receive_json_from(), await ws.receive_json_from()]
+            events = [await next_chat_event(ws), await next_chat_event(ws)]
             ack = next(e for e in events if e['event'] == 'chat.message.ack')
             self.assertTrue(ack['data']['created'])
             await database_sync_to_async(Conversacion.objects.filter(pk=self.conv.pk).update)(fecha_cierre=self.now)
             await ws.send_json_to({'event': 'chat.message.send', 'data': data})
-            retry = await ws.receive_json_from()
+            retry = await next_chat_event(ws)
             self.assertEqual(retry['event'], 'chat.message.ack')
             self.assertFalse(retry['data']['created'])
             self.assertEqual(retry['data']['id'], ack['data']['id'])
             await ws.send_json_to({'event': 'chat.message.send', 'data': dict(data, contenido='otro')})
-            self.assertEqual((await ws.receive_json_from())['data']['status'], 409)
+            self.assertEqual((await next_chat_event(ws))['data']['status'], 409)
             await ws.disconnect()
         async_to_sync(run)()
         self.assertEqual(Mensaje.objects.count(), 1)

@@ -19,7 +19,7 @@ export default function useChatConversation(id, role) {
       realtime = createChatRealtime({
         url: chatSocketUrl({ wsUrl: process.env.NEXT_PUBLIC_WS_URL, apiUrl: process.env.NEXT_PUBLIC_API_URL, id, origin: window.location.origin }),
         reconcile: async () => { await current.refresh(); return !current.getSnapshot().denied; }, sendRest: payload => api.enviar(id, payload),
-        onEvent: current.receive, onStatus: current.connection, isOwn: message => message.emisor?.tipo === role,
+        onEvent: current.receive, onStatus: current.connection, onHeartbeat: current.confirmPresence, isOwn: message => message.emisor?.tipo === role,
         isOnline: () => navigator.onLine,
       });
       current.attachRealtime(realtime);

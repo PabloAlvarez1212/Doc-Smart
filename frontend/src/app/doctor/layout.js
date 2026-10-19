@@ -16,9 +16,11 @@ export default function DoctorLayout({ children }) {
 
     // Al salir de validación, comprobar un perfil nuevo antes de abrir el panel.
     return (
+        <div data-doctor-home-shell={pathname === "/doctor/home" ? "true" : undefined}>
         <DoctorAccess key={esPaginaValidacion ? "validacion" : "panel"} esPaginaValidacion={esPaginaValidacion}>
             {children}
         </DoctorAccess>
+        </div>
     );
 }
 

@@ -9,7 +9,7 @@ export function chatSocketUrl({ wsUrl, apiUrl, id, origin }) {
   return url.href;
 }
 
-export function createChatRealtime({ url, Socket = WebSocket, reconcile, sendRest, onEvent, onStatus, isOwn,
+export function createChatRealtime({ url, Socket = WebSocket, reconcile, sendRest, onEvent, onStatus, isOwn, onHeartbeat = () => {},
   isOnline = () => true, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout }) {
   let socket = null, disposed = false, blocked = false, attempts = 0, authRetries = 0;
   let reconnectTimer = null, handshakeTimer = null, typingTimer = null, lastTyping = -Infinity, typingActive = false;
@@ -73,6 +73,7 @@ export function createChatRealtime({ url, Socket = WebSocket, reconcile, sendRes
       try { packet = JSON.parse(event.data); } catch { return; }
       if (!packet || typeof packet.event !== 'string' || !packet.data || typeof packet.data !== 'object') return;
       const { event: kind, data } = packet;
+      if (kind === 'chat.presence.ping') { onHeartbeat(); frame('chat.presence.heartbeat', {}); return; }
       const entry = pending.get(data.client_message_id);
       if (kind === 'chat.message.created' && entry && isOwn(data) && Number.isSafeInteger(data.id) && data.id > 0 &&
           data.conversacion_id === Number(url.match(/chat-citas\/(\d+)/)?.[1])) {

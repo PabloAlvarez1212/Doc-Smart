@@ -61,3 +61,10 @@ html[data-theme="dark"] img[src="/icons/cara_bymax.png"],html[data-theme="dark"]
 @media(prefers-reduced-motion:reduce){[class*="mainLogin"]>[class*="container"],[class*="mainRegister"]>[class*="container"]{transform:none!important}}
 
 .swal2-popup{border:1px solid var(--border)!important;border-radius:24px!important;box-shadow:var(--shadow)!important}.swal2-confirm{min-height:44px;background:var(--brand-solid)!important;color:var(--on-accent)!important;border-radius:10px!important;font-weight:600!important}.swal2-confirm:hover{background:#2445b4!important}.swal2-cancel{min-height:44px;background:var(--surface-muted)!important;color:var(--text-primary)!important;border:1px solid var(--control-border)!important;border-radius:10px!important}
+
+/* Appointment confirmations inherit the same theme as their shared cards. */
+body:has([data-appointments-page]) :is(.swal2-textarea,.swal2-input){background:var(--surface)!important;color:var(--color-text)!important;border-color:var(--border)!important}
+body:has([data-appointments-page]) .swal2-textarea::placeholder{color:var(--text-secondary);opacity:1}
+body:has([data-appointments-page]) :is(.swal2-textarea,.swal2-input,.swal2-confirm,.swal2-cancel):focus-visible{outline:2px solid var(--focus)!important;outline-offset:3px}
+body:has([data-appointments-page]) .swal2-validation-message{background:var(--tone-red)!important;color:var(--ink-red)!important}
+@media(prefers-reduced-motion:reduce){body:has([data-appointments-page]) .swal2-popup{animation:none!important;transition:none!important}}
