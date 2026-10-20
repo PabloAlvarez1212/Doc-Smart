@@ -1,3 +1,4 @@
+from .test_transport import next_chat_event, no_chat_event, next_chat_output
 from datetime import timedelta
 from uuid import uuid4
 from unittest.mock import patch
@@ -69,7 +70,7 @@ class WebsocketSecurityTests(TransactionTestCase):
             await database_sync_to_async(SolicitudValidacionMedico.objects.filter(medico=self.doctor).update)(estado='rechazado')
             await get_channel_layer().group_send(f'chat_citas_{self.conv.pk}', {
                 'type': 'chat_event', 'event': 'chat.typing', 'data': {'escribiendo': True}})
-            response = await ws.receive_output()
+            response = await next_chat_output(ws)
             self.assertEqual(response['type'], 'websocket.close')
             self.assertEqual(response['code'], 4403)
             await ws.disconnect()
@@ -80,10 +81,10 @@ class WebsocketSecurityTests(TransactionTestCase):
             ws = self.socket()
             self.assertTrue((await ws.connect())[0])
             await ws.send_to(text_data='{')
-            self.assertEqual((await ws.receive_json_from())['data']['status'], 400)
+            self.assertEqual((await next_chat_event(ws))['data']['status'], 400)
             await ws.send_json_to({'event': 'chat.message.send', 'data': {
                 'client_message_id': str(uuid4()), 'contenido': 'hola', 'tipo': 'sistema'}})
-            self.assertEqual((await ws.receive_json_from())['data']['status'], 400)
+            self.assertEqual((await next_chat_event(ws))['data']['status'], 400)
             await ws.disconnect()
         async_to_sync(run)()
         self.assertFalse(Mensaje.objects.exists())
@@ -96,14 +97,14 @@ class WebsocketSecurityTests(TransactionTestCase):
             await doctor.connect()
             payload = {'event': 'chat.typing', 'data': {'escribiendo': True}}
             await patient.send_json_to(payload)
-            self.assertTrue((await doctor.receive_json_from())['data']['escribiendo'])
+            self.assertTrue((await next_chat_event(doctor))['data']['escribiendo'])
             await patient.send_json_to(payload)
-            self.assertTrue(await doctor.receive_nothing(timeout=0.1))
+            self.assertTrue(await no_chat_event(doctor, timeout=0.1))
             await patient.send_json_to({'event': 'chat.typing', 'data': {'escribiendo': False}})
-            self.assertFalse((await doctor.receive_json_from())['data']['escribiendo'])
+            self.assertFalse((await next_chat_event(doctor))['data']['escribiendo'])
             with patch('chat_citas.consumers.cache.add', side_effect=RuntimeError('offline')):
                 await patient.send_json_to(payload)
-                self.assertTrue(await doctor.receive_nothing(timeout=0.1))
+                self.assertTrue(await no_chat_event(doctor, timeout=0.1))
             await patient.disconnect()
             await doctor.disconnect()
         async_to_sync(run)()
@@ -117,9 +118,9 @@ class WebsocketSecurityTests(TransactionTestCase):
             ws = self.socket()
             await ws.connect()
             await ws.send_json_to({'event': 'chat.message.send', 'data': {'client_message_id': str(uid), 'contenido': 'hola'}})
-            ack = await ws.receive_json_from()
+            ack = await next_chat_event(ws)
             self.assertFalse(ack['data']['created'])
             self.assertEqual(ack['data']['id'], persisted.mensaje.pk)
-            self.assertTrue(await ws.receive_nothing(timeout=0.1))
+            self.assertTrue(await no_chat_event(ws, timeout=0.1))
             await ws.disconnect()
         async_to_sync(run)()

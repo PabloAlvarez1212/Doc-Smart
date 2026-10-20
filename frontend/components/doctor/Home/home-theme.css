@@ -1,0 +1,91 @@
+/* Home-only doctor accents. Neutral surfaces follow the saved application theme. */
+body:has([data-doctor-home-shell="true"]) {
+ --doctor-primary:#10813d;
+ --doctor-feature:#108341;
+ --doctor-feature-text:#fff;
+ --doctor-feature-muted:#effff4;
+ --doctor-feature-surface:#066731;
+ --doctor-feature-button:#52f58b;
+ --doctor-feature-button-ink:#06351a;
+ --doctor-button:#10813d;
+ --doctor-button-hover:#06672c;
+ --doctor-on-primary:#fff;
+ --doctor-next:#edf8ef;
+ --doctor-next-border:#b9d9c1;
+ --doctor-positive-bg:#dcfce7;
+ --doctor-positive-ink:#10813d;
+ --doctor-pending-bg:#fff2db;
+ --doctor-pending-ink:#805000;
+ --doctor-hover-border:#78a98a;
+ --color-dark:var(--doctor-primary);
+ --focus:var(--doctor-primary);
+ --color-primary:var(--doctor-positive-bg);
+}
+html[data-theme="dark"] body:has([data-doctor-home-shell="true"]) {
+ --doctor-primary:#43dc6b;
+ --doctor-feature:#108341;
+ --doctor-feature-text:#fff;
+ --doctor-feature-muted:#effff4;
+ --doctor-feature-surface:#065e2d;
+ --doctor-feature-button:#30e568;
+ --doctor-feature-button-ink:#07190b;
+ --doctor-button:#43dc6b;
+ --doctor-button-hover:#53df76;
+ --doctor-on-primary:#07190b;
+ --doctor-next:#15271c;
+ --doctor-next-border:#315a3c;
+ --doctor-positive-bg:#183321;
+ --doctor-positive-ink:#6ce68a;
+ --doctor-pending-bg:#392b18;
+ --doctor-pending-ink:#ffc46a;
+ --doctor-hover-border:#377c48;
+}
+body:has([data-doctor-home-shell="true"]) [role="dialog"] {
+ --modal-ink:var(--color-text);--modal-muted:var(--text-secondary);--modal-accent:var(--doctor-primary);--modal-line:var(--border);color:var(--color-text);
+}
+body:has([data-doctor-home-shell="true"]) [role="dialog"]>div:first-child{background:var(--surface);color:var(--color-text)}
+body:has([data-doctor-home-shell="true"]) [role="dialog"] h2,
+body:has([data-doctor-home-shell="true"]) [role="dialog"] button[aria-label="Cerrar ventana"]{color:var(--color-text)}
+body:has([data-doctor-home-shell="true"]) :focus-visible{outline:3px solid var(--doctor-primary);outline-offset:3px}
+
+/* Stable controls: feedback belongs to color, focus and inner icons. */
+body:has([data-doctor-home-shell="true"]) :is(
+  [data-doctor-home] :is(button,a:not([data-patient-detail-motion])),
+  [data-doctor-home-shell] header :is(button,a:not([data-patient-detail-motion])),
+  [role="dialog"] :is(button,a:not([data-patient-detail-motion]))
+) {
+  transform:none;
+  translate:none;
+  scale:none;
+  transition:background-color 200ms cubic-bezier(.16,1,.3,1),
+    color 200ms cubic-bezier(.16,1,.3,1),border-color 200ms cubic-bezier(.16,1,.3,1);
+}
+body:has([data-doctor-home-shell="true"]) :is(
+  [data-doctor-home] :is(button,a:not([data-patient-detail-motion])),
+  [data-doctor-home-shell] header :is(button,a:not([data-patient-detail-motion])),
+  [role="dialog"] :is(button,a:not([data-patient-detail-motion]))
+):is(:hover,:active) {
+  transform:none;
+  translate:none;
+  scale:none;
+  box-shadow:none;
+}
+body:has([data-doctor-home-shell="true"]) [data-doctor-home] a:not([data-patient-detail-motion])>svg:last-child {
+  transition:transform 200ms cubic-bezier(.16,1,.3,1);
+}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
+  body:has([data-doctor-home-shell="true"]) [data-doctor-home] a:not([data-patient-detail-motion]):not([aria-disabled="true"]):hover>svg:last-child {
+    transform:translateX(2px);
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  body:has([data-doctor-home-shell="true"]) :is(
+    [data-doctor-home] :is(button,a:not([data-patient-detail-motion])),
+    [data-doctor-home-shell] header :is(button,a:not([data-patient-detail-motion])),
+    [role="dialog"] :is(button,a:not([data-patient-detail-motion]))
+  ) {transition:none}
+  body:has([data-doctor-home-shell="true"]) [data-doctor-home] a:not([data-patient-detail-motion]):is(:hover,:active)>svg:last-child {
+    transform:none;
+    transition:none;
+  }
+}

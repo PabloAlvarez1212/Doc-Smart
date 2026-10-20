@@ -977,27 +977,9 @@ def editarPerfilMedicoService(id_medico, data):
             if campo in data_validada and data_validada[campo]!=getattr(medico,campo)}
         if errores_identidad:return errores_identidad,400
 
-    # Validar correo
-    if 'correo' in data_validada:
-
-        correo = data_validada['correo']
-
-        correo_medico_existe = Medico.objects.filter(
-            correo=correo
-        ).exclude(
-            id=id_medico
-        ).exists()
-
-        correo_usuario_existe = Usuario.objects.filter(
-            correo=correo
-        ).exists()
-
-        if correo_medico_existe or correo_usuario_existe:
-            return {
-                'correo': [
-                    'El correo ya está registrado'
-                ]
-            }, 400
+    if "correo" in data_validada and data_validada["correo"].lower() != medico.correo.lower():
+        return {"correo": ["Verifica el nuevo correo mediante el código OTP"]}, 400
+    data_validada.pop("correo", None)
 
     # Validar especialidad
     if 'id_especialidad' in data_validada:

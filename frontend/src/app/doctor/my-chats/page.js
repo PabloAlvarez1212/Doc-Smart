@@ -1,2 +1,2 @@
-import ChatList from '../../../../components/chat/ChatList';
-export default function MyChats() { return <ChatList role="medico" />; }
+import { ChatWelcome } from '../../../../components/chat/ChatList';
+export default function MyChats() { return <ChatWelcome role="medico" />; }

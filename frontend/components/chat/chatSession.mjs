@@ -6,7 +6,7 @@ export function createChatSession({ api, id, role, uuid = () => crypto.randomUUI
   let state = { conversation: null, messages: [], cursor: null, hasMore: false, loading: true,
     loadingOlder: false, sending: false, uploading: false, acting: false, denied: false,
     error: '', readError: '', historyNotice: '', text: '', attachments: [], pending: null, readCursor: 0,
-    connection: 'disconnected', remoteTyping: false, remoteReadCursor: 0 };
+    connection: 'disconnected', remotePresence: null, remoteTyping: false, remoteReadCursor: 0 };
   let disposed = false;
   let revision = 0;
   let historyStarted = false;
@@ -14,6 +14,18 @@ export function createChatSession({ api, id, role, uuid = () => crypto.randomUUI
   let realtime = null, readTimer = null, remoteTypingTimer = null, refreshTimer = null;
   let reading = null;
   let boundaryTimer = null;
+  let presenceTimer = null;
+  let confirmedPresence = null;
+  function confirmPresence() {
+    // The server rechecks the peer snapshot before every ping. A fresh ping can
+    // confirm an unchanged snapshot after a temporary silence, never after disconnect.
+    if (state.remotePresence === null && confirmedPresence !== null) update({remotePresence: confirmedPresence});
+    clearTimer(presenceTimer); presenceTimer = null;
+    if (state.remotePresence !== null) presenceTimer = setTimer(() => {
+      presenceTimer = null; update({ remotePresence: null });
+    }, 65000);
+  }
+
   const listeners = new Set();
   const update = patch => {
     if (disposed) return;
@@ -25,7 +37,7 @@ export function createChatSession({ api, id, role, uuid = () => crypto.randomUUI
     const invalidate = info.status === 401 || (query && info.denied);
     if (invalidate) { revision++; historyStarted = false; historyTop = null; realtime?.stop(); }
     update({ error: info.message, ...(invalidate ? {
-      denied: true, conversation: null, messages: [], attachments: [], pending: null, text: '', loading: false, loadingOlder: false, remoteTyping: false,
+      denied: true, remotePresence: null, conversation: null, messages: [], attachments: [], pending: null, text: '', loading: false, loadingOlder: false, remoteTyping: false,
     } : {}) });
     return info;
   }
@@ -188,7 +200,12 @@ export function createChatSession({ api, id, role, uuid = () => crypto.randomUUI
     if (disposed || state.denied || !state.conversation) return;
     const other = data.actor && data.actor.tipo !== role &&
       (!state.conversation.otro_participante || (data.actor.tipo === state.conversation.otro_participante.tipo && data.actor.id === state.conversation.otro_participante.id));
-    if (event === 'chat.message.created') {
+    const participant = state.conversation.otro_participante;
+    if (event === 'chat.presence' && participant && data.actor?.tipo === participant.tipo && data.actor?.id === participant.id && typeof data.online === 'boolean') {
+      confirmedPresence = data.online ? 'online' : 'offline';
+      update({ remotePresence: confirmedPresence });
+      confirmPresence();
+    } else if (event === 'chat.message.created') {
       if (data.conversacion_id !== id || !Number.isSafeInteger(data.id) || data.id < 1) return;
       const unseen = !state.messages.some(message => message.id === data.id || (data.client_message_id &&
         message.client_message_id === data.client_message_id && message.emisor?.tipo === data.emisor?.tipo && message.emisor?.id === data.emisor?.id));
@@ -216,13 +233,17 @@ export function createChatSession({ api, id, role, uuid = () => crypto.randomUUI
     refresh, loadOlder, send, upload, action, attachmentUrl, receive,
     attachRealtime: transport => { realtime = transport; },
     retryRealtime: () => { if (!state.denied && state.conversation) realtime?.retry(); },
-    connection: value => update({ connection: value, ...(value !== 'connected' ? { remoteTyping: false } : {}) }),
+    confirmPresence,
+    connection: value => {
+      if (value !== 'connected') { clearTimer(presenceTimer); presenceTimer = null; confirmedPresence = null; }
+      update({ connection: value, ...(value !== 'connected' ? { remoteTyping: false, remotePresence: null } : {}) });
+    },
     setText: text => { if (!state.pending && !state.sending) {
       update({ text }); realtime?.typing(!!text.trim() && presentation(state.conversation, role).canWrite);
     } },
     removeAttachment: fileId => { if (!state.pending && !state.sending && !state.uploading) update({ attachments: state.attachments.filter(file => file.id !== fileId) }); },
     dispose: () => { realtime?.typing(false); disposed = true; revision++; listeners.clear();
-      [readTimer, refreshTimer, remoteTypingTimer, boundaryTimer].forEach(clearTimer);
+      [readTimer, refreshTimer, remoteTypingTimer, boundaryTimer, presenceTimer].forEach(clearTimer);
       state = { ...state, messages: [], conversation: null, text: '', attachments: [], pending: null }; },
   };
 }

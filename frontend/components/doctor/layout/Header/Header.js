@@ -4,11 +4,15 @@ import ResetPasswordFormComponent from "../../../ui/ResetPasswordComponent/Reset
 import DocSmartNav from "../../../ui/DocSmartNav/DocSmartNav";
 import { KeyRound } from "lucide-react";
 import { useState } from "react";
+
 import useLogout from "../../../hooks/useLogout";
 import Modal from "../../../ui/Modal/Modal";
 import SettingsComponent from "../../../ui/SettingsComponent/SettingsComponent";
 import useDoctor from "../../useDoctor";
+import { useNotificationsContext } from "../../../contex/NotificationsContext";
 export default function Header() {
+
+  const { noLeidas } = useNotificationsContext();
   const [modal, setModal] = useState(false);
   const [modalCambiarContrasena, setModalCambiarContrasena] = useState(false);
   const {
@@ -18,7 +22,7 @@ export default function Header() {
     logoutUser
   } = useLogout();
   return <div>
-            <DocSmartNav home="/doctor/home" onSettings={() => setModal(true)} links={[{
+            <DocSmartNav variant="doctor-home" home="/doctor/home" onSettings={() => setModal(true)} links={[{
       href: "/doctor/home",
       label: "Inicio"
     }, {
@@ -38,7 +42,7 @@ export default function Header() {
       label: "Perfil"
     }, {
       href: "/doctor/notifications",
-      label: "Notificaciones"
+      label: `Notificaciones (${noLeidas ?? 0})`
     }]} />
             <Modal titulo="Acciones" abierto={modal} headerVariant="white" onCerrar={() => setModal(false)}>
                 <SettingsComponent cerrarSesion={logoutUser} eliminarCuenta={eliminarCuentaMedico} abrirCambiarContrasena={() => {

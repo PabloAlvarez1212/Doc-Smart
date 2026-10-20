@@ -65,7 +65,7 @@ export default function MyAppointments() {
     };
 
     return (
-        <div className={styles.page}>
+        <div className={styles.page} data-appointments-page="true">
             <Hero />
 
             <section className={styles.workspace} aria-label="Gestión de citas">

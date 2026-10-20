@@ -9,6 +9,7 @@ import { Settings } from "lucide-react";
 import styles from "./DocSmartNav.module.css";
 
 export default function DocSmartNav({
+    variant,
     links = [],
     home = "/",
     onSettings,
@@ -144,9 +145,10 @@ export default function DocSmartNav({
     };
 
     return (
-        <header className={styles.reserve}>
+        <header data-docsmart-nav="true" className={`${styles.reserve} ${variant === "doctor-home" ? styles.doctorHome : ""}`}>
             <div
                 ref={rootRef}
+                data-docsmart-bar="true"
                 className={`${styles.bar} ${
                     compact ? styles.compact : ""
                 }`}

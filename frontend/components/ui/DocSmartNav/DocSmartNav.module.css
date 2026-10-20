@@ -7,3 +7,8 @@
 .navigation nav ul{margin:0;padding:4px 0;flex-wrap:nowrap}.reserve{flex-shrink:0}.bar{max-height:calc(100dvh - 24px)}
 @media(max-width:1100px){.navigation nav ul{padding-top:12px}}
 @media(prefers-reduced-motion:reduce){.bar,.navigation,.toggle i{transition:none}}
+
+.doctorHome .bar{background:var(--glass);border-color:var(--border)}.doctorHome .link:hover{background:var(--doctor-positive-bg);color:var(--color-text)}.doctorHome .active{color:var(--doctor-primary)}.doctorHome .indicator{background:var(--doctor-positive-bg)}.doctorHome .logo strong{color:var(--doctor-primary)}
+
+.doctorHome{--doctor-primary:#10813d;--doctor-positive-bg:#dcfce7}
+:global(html[data-theme="dark"]) .doctorHome{--doctor-primary:#43dc6b;--doctor-positive-bg:#183321}

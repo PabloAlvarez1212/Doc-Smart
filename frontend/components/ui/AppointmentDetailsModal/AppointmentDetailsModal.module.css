@@ -6,8 +6,8 @@
     height: 42px;
     flex: 0 0 42px;
     border-radius: 12px;
-    color: #1f5aab;
-    background: #eaf2fd;
+    color: var(--color-dark);
+    background: var(--tone-blue);
 }
 
 .content {
@@ -31,7 +31,7 @@
 
 .summaryLabel,
 .detailItem span {
-    color: #66758a;
+    color: var(--text-secondary);
     font-size: .75rem;
     font-weight: 700;
     line-height: 1.35;
@@ -39,7 +39,7 @@
 
 .summary p {
     margin: 0;
-    color: #758298;
+    color: var(--text-secondary);
     font-size: .78rem;
 }
 
@@ -48,8 +48,8 @@
     width: fit-content;
     padding: 5px 9px;
     border-radius: 999px;
-    color: #244f91;
-    background: #e3edfb;
+    color: var(--color-dark);
+    background: var(--tone-blue);
     font-size: .72rem;
     font-weight: 760;
     line-height: 1.3;
@@ -57,18 +57,18 @@
 
 .pendiente,
 .reprogramada {
-    color: #81510d;
-    background: #fbedca;
+    color: var(--ink-orange);
+    background: var(--tone-orange);
 }
 
 .completada {
-    color: #17664e;
-    background: #dff0e9;
+    color: var(--ink-green);
+    background: var(--tone-green);
 }
 
 .cancelada {
-    color: #923444;
-    background: #f8e0e4;
+    color: var(--ink-red);
+    background: var(--tone-red);
 }
 
 .section {
@@ -76,7 +76,7 @@
     gap: 14px;
     min-width: 0;
     padding: 20px 0;
-    border-top: 1px solid #e2e9f1;
+    border-top: 1px solid var(--border);
 }
 
 .section:last-child {
@@ -88,7 +88,7 @@
     align-items: center;
     gap: 8px;
     margin: 0;
-    color: #1f2f45;
+    color: var(--color-text);
     font-size: .94rem;
     font-weight: 760;
     line-height: 1.35;
@@ -96,7 +96,7 @@
 
 .sectionTitle svg {
     flex: 0 0 auto;
-    color: #2b67b3;
+    color: var(--color-dark);
 }
 
 .dataGrid {
@@ -118,13 +118,13 @@
 }
 
 .detailItem span svg {
-    color: #4973ad;
+    color: var(--color-dark);
 }
 
 .detailItem strong {
     min-width: 0;
     overflow-wrap: anywhere;
-    color: #26354a;
+    color: var(--color-text);
     font-size: .88rem;
     font-weight: 650;
     line-height: 1.5;
@@ -147,7 +147,7 @@
     flex: 0 0 52px;
     border-radius: 14px;
     object-fit: cover;
-    box-shadow: 0 0 0 1px #d9e2ec;
+    box-shadow: 0 0 0 1px var(--border);
 }
 
 .person > div {
@@ -162,13 +162,13 @@
 }
 
 .person strong {
-    color: #202f44;
+    color: var(--color-text);
     font-size: .95rem;
     line-height: 1.4;
 }
 
 .person span {
-    color: #657489;
+    color: var(--text-secondary);
     font-size: .82rem;
     line-height: 1.4;
 }
@@ -176,14 +176,14 @@
 .reason {
     margin: 0;
     overflow-wrap: anywhere;
-    color: #344359;
+    color: var(--color-text);
     font-size: .88rem;
     line-height: 1.65;
     white-space: pre-wrap;
 }
 
 .emptyValue {
-    color: #718095;
+    color: var(--text-secondary);
 }
 
 @media (max-width: 560px) {
@@ -222,7 +222,7 @@
     height: 15px;
 
     border-radius: 8px;
-    background: #e8edf4;
+    background: var(--surface-muted);
 
     animation: clinicalPulse 1.4s ease-in-out infinite;
 }
@@ -250,3 +250,6 @@
         animation: none;
     }
 }
+@media(prefers-reduced-motion:reduce){.spinner,.loading svg{animation:none}.dropzone,.cancelButton,.submitButton{transition:none}}
+
+.content{color:var(--color-text)}

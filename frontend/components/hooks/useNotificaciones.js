@@ -23,6 +23,8 @@ export const useNotificaciones = () => {
     const [totalRegistros, setTotalRegistros] = useState(0);
 
     const ws = useRef(null)
+    const lecturasPendientes = useRef(new Set())
+    const countVersion = useRef(0)
     const notificacionesRef = useRef([])
 
     useEffect(() => {
@@ -39,7 +41,12 @@ export const useNotificaciones = () => {
                 page_size: 6
             }
 
+            const version = countVersion.current
             const response = await obtenerNotificacionesService(params)
+            const unread = response?.data?.no_leidas
+            if (version === countVersion.current && Number.isInteger(unread) && unread >= 0) {
+                setNoLeidas(unread)
+            }
 
             const data = response?.data?.data ?? []
             const paginacion = response?.data?.paginacion ?? null
@@ -134,6 +141,7 @@ export const useNotificaciones = () => {
 
                     // Cantidad inicial
                     if (data.type === "count_initial") {
+                        countVersion.current += 1
                         setNoLeidas(data.count)
                         return
                     }
@@ -146,6 +154,7 @@ export const useNotificaciones = () => {
 
                     // Nueva notificación o actualización
                     if (data.type === "notification_update") {
+                        countVersion.current += 1
                         setNoLeidas(data.count)
 
                         if (data.notificacion) {
@@ -260,9 +269,10 @@ export const useNotificaciones = () => {
             n => n.id === idNotificacion
         )
 
-        if (!notificacion || notificacion.leida) {
-            return
+        if (!notificacion || notificacion.leida || lecturasPendientes.current.has(idNotificacion)) {
+            return false
         }
+        lecturasPendientes.current.add(idNotificacion)
 
         try {
 
@@ -281,9 +291,11 @@ export const useNotificaciones = () => {
                 )
             )
 
+            countVersion.current += 1
             setNoLeidas(prev =>
                 Math.max(0, prev - 1)
             )
+            return true
 
         } catch (error) {
             console.error("Error al marcar la notificación como leída", error)
@@ -295,6 +307,9 @@ export const useNotificaciones = () => {
                     mensajeBackend ||
                     "Ocurrió un error al actualizar la notificación."
             })
+            return false
+        } finally {
+            lecturasPendientes.current.delete(idNotificacion)
         }
     }
 

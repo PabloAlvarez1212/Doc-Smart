@@ -437,26 +437,26 @@ def solicitarCambioCorreoService(usuario,nuevo_correo):
         Usuario.objects.filter(
             correo__iexact=nuevo_correo
         ).exclude(
-            id=usuario.id
+            id=usuario.id if isinstance(usuario, Usuario) else None
         ).exists()
         or
         Medico.objects.filter(
             correo__iexact=nuevo_correo
-        ).exists()
+        ).exclude(id=usuario.id if isinstance(usuario, Medico) else None).exists()
     )
 
     if ocupado:
         return {"correo": ["El correo ya se encuentra registrado"]}, 400
 
     CambioCorreoUsuario.objects.filter(
-        usuario=usuario,
+        **({"medico": usuario} if isinstance(usuario, Medico) else {"usuario": usuario}),
         estado=(CambioCorreoUsuario.Estado.PENDIENTE)
     ).update(estado=(CambioCorreoUsuario.Estado.EXPIRADO))
 
     codigo = generarCodigoOTP()
     ahora = timezone.now()
     cambio = CambioCorreoUsuario.objects.create(
-        usuario=usuario,
+        **({"medico": usuario} if isinstance(usuario, Medico) else {"usuario": usuario}),
         nuevo_correo=nuevo_correo,
         otp_hash=make_password(codigo),
         otp_expira_en=(
@@ -510,7 +510,7 @@ def confirmarCambioCorreoService(usuario,cambio_id,codigo):
         .select_for_update()
         .filter(
             id=cambio_id,
-            usuario=usuario
+            **({"medico": usuario} if isinstance(usuario, Medico) else {"usuario": usuario})
         )
         .first()
     )
@@ -564,12 +564,12 @@ def confirmarCambioCorreoService(usuario,cambio_id,codigo):
         Usuario.objects.filter(
             correo__iexact=cambio.nuevo_correo
         ).exclude(
-            id=usuario.id
+            id=usuario.id if isinstance(usuario, Usuario) else None
         ).exists()
         or
         Medico.objects.filter(
             correo__iexact=cambio.nuevo_correo
-        ).exists()
+        ).exclude(id=usuario.id if isinstance(usuario, Medico) else None).exists()
     )
 
     if ocupado:
@@ -580,7 +580,11 @@ def confirmarCambioCorreoService(usuario,cambio_id,codigo):
         }, 400
 
     usuario.correo = cambio.nuevo_correo
-    usuario.save(update_fields=["correo"])
+    campos_correo = ["correo"]
+    if isinstance(usuario, Medico):
+        usuario.correo_verificado_en = ahora
+        campos_correo.append("correo_verificado_en")
+    usuario.save(update_fields=campos_correo)
 
     cambio.estado = (CambioCorreoUsuario.Estado.COMPLETADO)
     cambio.completado_en = ahora
