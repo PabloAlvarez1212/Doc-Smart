@@ -7,6 +7,7 @@ class Calificacion(models.Model):
     id_cita = models.OneToOneField("citas.Cita",on_delete=models.PROTECT,related_name="calificacion")
     puntuacion = models.PositiveSmallIntegerField(validators=[MinValueValidator(1),MaxValueValidator(5)])
     comentario = models.TextField(blank=True,default="")
+    es_publica = models.BooleanField(default=False)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 

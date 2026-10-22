@@ -1709,9 +1709,9 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
         Cita.objects
         .filter(
             id_estado__nombre__iexact="completada",
-            fecha_final__isnull=False,
-            fecha_final__gte=inicioPeriodo,
-            fecha_final__lt=finPeriodo
+            fecha_completada__isnull=False,
+            fecha_completada__gte=inicioPeriodo,
+            fecha_completada__lt=finPeriodo
         )
         .values(
             "id_medico",
@@ -1761,7 +1761,7 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
     aniosCitas = Cita.objects.filter(
         id_estado__nombre__iexact="completada"
     ).dates(
-        "fecha_final",
+        "fecha_completada",
         "year",
         order="DESC"
     )

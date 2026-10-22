@@ -42,9 +42,9 @@ def obtenerEvolucionCitasService(citas, inicio, fin):
     # Consultar citas completadas
     citasCompletadas = citas.filter(
         id_estado__nombre__iexact="completada",
-        fecha_final__isnull=False,
-        fecha_final__gte=inicio,
-        fecha_final__lt=fin
+        fecha_completada__isnull=False,
+        fecha_completada__gte=inicio,
+        fecha_completada__lt=fin
     )
 
     # Consultar citas canceladas
