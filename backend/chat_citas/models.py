@@ -1,6 +1,17 @@
 from django.db import models
 
 
+class ConexionPresencia(models.Model):
+    """A short lease per authenticated socket, shared by all ASGI workers."""
+    canal = models.CharField(max_length=255, primary_key=True)
+    tipo = models.CharField(max_length=8, choices=[('medico', 'medico'), ('paciente', 'paciente')])
+    actor_id = models.PositiveBigIntegerField()
+    vence = models.DateTimeField()
+
+    class Meta:
+        indexes = [models.Index(fields=['tipo', 'actor_id', 'vence'], name='chat_presencia_actor_idx')]
+
+
 class Conversacion(models.Model):
     cita = models.OneToOneField('citas.Cita', on_delete=models.PROTECT,
                                related_name='conversacion')

@@ -2,7 +2,7 @@
 
 import { ArrowRight, CalendarDays, Clock3, MapPin, Stethoscope } from "lucide-react";
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
-import Image from "next/image";
+import ProfilePhoto from "../../../ui/ProfilePhoto/ProfilePhoto";
 import Link from "next/link";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
 import { getNextAppointment } from "../patientHomeData";
@@ -62,7 +62,7 @@ function AppointmentCard({ appointment }) {
 
             <div className={styles.details}>
                 <div className={styles.doctor}>
-                    <Image
+                    <ProfilePhoto
                         src={appointment.foto_medico || "/images/foto_default.png"}
                         alt={`Foto de ${appointment.medico || "médico"}`}
                         width={64}

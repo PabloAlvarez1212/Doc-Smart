@@ -134,7 +134,7 @@
 
 .field input:focus-visible,
 .field select:focus-visible {
-    border-color: #2766b1;
+    border-color: var(--color-dark);
     box-shadow: 0 0 0 3px rgba(39, 102, 177, 0.14);
 }
 
@@ -203,8 +203,8 @@
 
 .submitButton {
     gap: 8px;
-    color: #fff;
-    background: #245da8;
+    color: var(--action-on);
+    background: var(--action-primary-bg);
 }
 
 .submitButton:not(:disabled):hover,
@@ -213,7 +213,7 @@
 }
 
 .submitButton:not(:disabled):hover {
-    background: #1d4f91;
+    background: var(--action-primary-hover);
 }
 
 .cancelButton:not(:disabled):hover {
@@ -223,7 +223,7 @@
 
 .submitButton:focus-visible,
 .cancelButton:focus-visible {
-    outline: 3px solid rgba(39, 102, 177, 0.22);
+    outline: 3px solid var(--focus);
     outline-offset: 2px;
 }
 
@@ -290,3 +290,7 @@
         transform: rotate(360deg);
     }
 }
+
+@media(prefers-reduced-motion:reduce){.spinner,.loading svg{animation:none}.dropzone,.cancelButton,.submitButton{transition:none}}
+
+.form{color:var(--color-text)}

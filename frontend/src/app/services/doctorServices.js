@@ -271,3 +271,7 @@ export const obtenerEstadisticasMedicoService = async function (
 
     return response.data;
 };
+export const solicitarCambioCorreoService = async (correo) =>
+    (await api.post("/medicos/perfil/correo/solicitar-cambio/", { correo })).data;
+export const confirmarCambioCorreoService = async (cambio_id, codigo) =>
+    (await api.post("/medicos/perfil/correo/confirmar-cambio/", { cambio_id, codigo })).data;

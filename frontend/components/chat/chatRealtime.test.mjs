@@ -91,3 +91,11 @@ test('desmontar antes de iniciar fallback cancela nueva escritura REST', async (
   f.sockets[0].drop(); f.transport.dispose(); await assert.rejects(sending);
   await new Promise(resolve => setImmediate(resolve)); assert.equal(f.rest.length, 0); assert.equal(f.timers.size, 0);
 });
+
+test('heartbeat de presencia responde al servidor sin inferir estado del interlocutor', () => {
+  const f = fixture();f.transport.start();f.sockets[0].open();
+  f.sockets[0].receive('chat.presence.ping',{});
+  assert.deepEqual(f.sockets[0].frames.at(-1),{event:'chat.presence.heartbeat',data:{}});
+  assert.equal(f.events.some(([kind])=>kind==='chat.presence.ping'),false);
+  f.transport.dispose();
+});

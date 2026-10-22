@@ -109,6 +109,7 @@ def listarNotificacionesService(usuario,page=None, page_size=10):
     
     return {
         "data":serializer.data,
+        "no_leidas": notificaciones.filter(leida=False).count(),
         "paginacion": {
             "count": paginator.count,
             "total_pages": paginator.num_pages,
@@ -126,17 +127,13 @@ def marcarNotificacionLeidaService(id_notificacion, usuario):
     if not notificacion:
         return "Notificación no encontrada", 404
 
-    es_destinatario = False
-
-    if notificacion.id_usuario:
-        es_destinatario = (
-            notificacion.id_usuario.id == usuario.id
-        )
-
-    if notificacion.id_medico:
-        es_destinatario = (
-            notificacion.id_medico.id == usuario.id
-        )
+    es_destinatario = (
+        isinstance(usuario, Usuario)
+        and notificacion.id_usuario_id == usuario.id
+    ) or (
+        isinstance(usuario, Medico)
+        and notificacion.id_medico_id == usuario.id
+    )
 
     if not es_destinatario:
         return "No tienes permiso para modificar esta notificación", 403

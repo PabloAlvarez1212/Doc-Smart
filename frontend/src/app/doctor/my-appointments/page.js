@@ -75,7 +75,7 @@ export default function MyAppointments() {
     };
 
     return (
-        <main className={styles.page}>
+        <main className={styles.page} data-appointments-page="true">
             <Hero resumen={resumen} loading={loadingResumen} />
 
             <nav className={styles.sectionTabs}aria-label="Secciones de citas médicas">

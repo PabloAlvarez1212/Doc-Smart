@@ -1,24 +1,18 @@
-import styles from "./Hero.module.css";
-import Image from "next/image";
+import ProfilePhoto from '../../../ui/ProfilePhoto/ProfilePhoto';
+import { CalendarDays } from 'lucide-react';
+import styles from '../Home.module.css';
 
-export default function Hero({ nombre, especialidad, foto_perfil }) {
-
-    const fotoPerfil = foto_perfil || "/images/foto_default.png"
-
-    return (
-        <div className={styles.containerMain}>
-            <div className={styles.saludo}>
-                <div className={styles.containerText}>
-                    <p>Bienvenido de vuelta</p>
-                    <h2>Dr. {nombre}</h2>
-                    <p>{especialidad}</p>
-                </div>
-
-                <div className={styles.img}>
-                    <Image src={fotoPerfil} alt="Foto de perfil" width={150} height={150} loading="eager"/>
-                </div>
-
-            </div>
+export default function Hero({ nombre, especialidad, foto_perfil, date }) {
+  return (
+    <header className={styles.hero}>
+      <div className={styles.identity}>
+        <ProfilePhoto className={styles.avatar} src={foto_perfil || '/images/foto_default.png'} alt="Tu foto de perfil" width={56} height={56} priority />
+        <div>
+          <h1>Bienvenido{nombre ? `, ${nombre}` : ''}</h1>
+          <p>Tu jornada de un vistazo.{especialidad && <span className={styles.specialty}> {especialidad}</span>}</p>
         </div>
-    );
+      </div>
+      <p className={styles.date}><CalendarDays size={17} aria-hidden="true" />{date || 'Tu agenda médica'}</p>
+    </header>
+  );
 }

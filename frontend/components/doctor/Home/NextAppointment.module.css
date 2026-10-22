@@ -1,0 +1,18 @@
+.doctor {
+  --blue-card:var(--doctor-feature);
+  --blue-card-text:var(--doctor-feature-text);
+  --blue-card-secondary:var(--doctor-feature-muted);
+  --blue-card-surface:var(--doctor-feature-surface);
+  --blue-card-border:var(--doctor-feature-muted);
+}
+.doctor .footer a:hover { background:var(--doctor-feature-surface);color:var(--doctor-feature-muted); }
+.contact { display:grid;gap:10px;align-content:center;color:var(--doctor-feature-muted);font-size:.82rem; }
+.contact>p { font-size:.77rem; }
+.contact>div { display:flex;align-items:flex-start;gap:8px;min-width:0; }
+.contact svg { flex-shrink:0;margin-top:2px; }
+.contact span { overflow-wrap:anywhere; }
+
+/* Patient footer motion is inherited; reduced motion keeps its container still. */
+@media(prefers-reduced-motion:reduce){
+  .doctor .footer a[data-patient-detail-motion]:hover{transform:none;transition:none}
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { Mail, LockKeyhole, UserRound, BriefcaseMedical, Save, LoaderCircle } from "lucide-react";
 import Swal from "sweetalert2";
 import { useEffect, useState } from "react";
 import Button from "../../../ui/Button/Button";
@@ -8,6 +9,7 @@ import ConsultorioMap from "../../../ui/ConsultorioMap/ConsultorioMap";
 import styles from "./PersonalInfo.module.css";
 
 export default function PersonalInfo({
+    onCambiarCorreo, ocupadoCorreo = false,
     perfil,
     actualizarPerfilMedico,
     guardando,
@@ -16,7 +18,7 @@ export default function PersonalInfo({
     const [apellido, setApellido] = useState("");
     const [fechaNacimiento, setFechaNacimiento] = useState("");
     const [telefono, setTelefono] = useState("");
-    const [correo, setCorreo] = useState("");
+
 
     const [direccion, setDireccion] = useState("");
     const [latitud, setLatitud] = useState("");
@@ -32,7 +34,7 @@ export default function PersonalInfo({
         setApellido(perfil.apellido ?? "");
         setFechaNacimiento(perfil.fecha_nacimiento ?? "");
         setTelefono(perfil.telefono ?? "");
-        setCorreo(perfil.correo ?? "");
+
 
         setDireccion(perfil.direccion ?? "");
         setLatitud(perfil.latitud ?? "");
@@ -40,7 +42,7 @@ export default function PersonalInfo({
         setCiudad(perfil.ciudad ?? "");
         setEspecialidad(perfil.especialidad ?? "");
         setErrorUbicacion("");
-    }, [perfil]);
+    }, [perfil?.id, perfil?.nombre, perfil?.apellido, perfil?.fecha_nacimiento, perfil?.telefono, perfil?.direccion, perfil?.latitud, perfil?.longitud, perfil?.ciudad, perfil?.especialidad]);
 
     const handleUbicacion = (ubicacion) => {
         if (guardando) return;
@@ -98,7 +100,7 @@ export default function PersonalInfo({
             apellido,
             fecha_nacimiento: fechaNacimiento,
             telefono,
-            correo,
+
         };
 
         if (ubicacionValida) {
@@ -130,57 +132,53 @@ export default function PersonalInfo({
         >
             <div className={styles.infoSection}>
                 <div className={styles.title}>
-                    <h2>Información Personal</h2>
-                    <p>Consulta y actualiza tus datos personales.</p>
+                    <span aria-hidden="true"><UserRound size={21} /></span>
+                    <div><h2>Información personal</h2><p>Consulta y actualiza tus datos personales.</p></div>
                 </div>
 
                 <div className={`${styles.inputs} ${styles.professionalGrid}`}>
                     <div className={styles.itemInput}>
-                        <label htmlFor="nombre">Nombre</label>
+                        <div className={styles.labelRow}><label htmlFor="nombre">Nombre</label>{perfil.documento_verificado_en && <span><LockKeyhole size={12} aria-hidden="true" /> Verificado</span>}</div>
                         <Input
                             id="nombre"
+                            aria-label="Nombre"
                             name="nombre"
                             value={nombre}
-                            onChange={(event) =>
-                                setNombre(event.target.value)
-                            }
+                            readOnly
                             disabled={guardando}
                         />
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label htmlFor="apellido">Apellido</label>
+                        <div className={styles.labelRow}><label htmlFor="apellido">Apellido</label>{perfil.documento_verificado_en && <span><LockKeyhole size={12} aria-hidden="true" /> Verificado</span>}</div>
                         <Input
                             id="apellido"
+                            aria-label="Apellido"
                             name="apellido"
                             value={apellido}
-                            onChange={(event) =>
-                                setApellido(event.target.value)
-                            }
+                            readOnly
                             disabled={guardando}
                         />
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label htmlFor="fechaNacimiento">
-                            Fecha de nacimiento
-                        </label>
+                        <div className={styles.labelRow}><label htmlFor="fechaNacimiento">Fecha de nacimiento</label>{perfil.documento_verificado_en && <span><LockKeyhole size={12} aria-hidden="true" /> Verificado</span>}</div>
                         <Input
                             id="fechaNacimiento"
+                            aria-label="Fecha de nacimiento"
                             name="fechaNacimiento"
                             type="date"
                             value={fechaNacimiento}
-                            onChange={(event) =>
-                                setFechaNacimiento(event.target.value)
-                            }
+                            readOnly
                             disabled={guardando}
                         />
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label htmlFor="cedula">Cédula</label>
+                        <div className={styles.labelRow}><label htmlFor="cedula">Cédula</label>{perfil.documento_verificado_en && <span><LockKeyhole size={12} aria-hidden="true" /> Verificado</span>}</div>
                         <Input
                             id="cedula"
+                            aria-label="Cédula"
                             name="cedula"
                             value={perfil?.cedula ?? ""}
                             readOnly
@@ -191,6 +189,7 @@ export default function PersonalInfo({
                         <label htmlFor="telefono">Teléfono</label>
                         <Input
                             id="telefono"
+                            aria-label="Teléfono"
                             name="telefono"
                             type="tel"
                             value={telefono}
@@ -201,29 +200,14 @@ export default function PersonalInfo({
                         />
                     </div>
 
-                    <div className={styles.itemInput}>
-                        <label htmlFor="correo">Correo</label>
-                        <Input
-                            id="correo"
-                            name="correo"
-                            type="email"
-                            value={correo}
-                            onChange={(event) =>
-                                setCorreo(event.target.value)
-                            }
-                            disabled={guardando}
-                        />
-                    </div>
+
                 </div>
             </div>
 
             <div className={styles.infoSection}>
                 <div className={styles.title}>
-                    <h2>Información Profesional</h2>
-                    <p>
-                        Configura dónde atiendes para que los pacientes
-                        puedan encontrar tu consultorio.
-                    </p>
+                    <span aria-hidden="true"><BriefcaseMedical size={21} /></span>
+                    <div><h2>Información profesional</h2><p>Configura dónde atiendes para que los pacientes puedan encontrar tu consultorio.</p></div>
                 </div>
 
                 <div className={styles.inputs}>
@@ -233,6 +217,7 @@ export default function PersonalInfo({
                         </label>
                         <Input
                             id="especialidad"
+                            aria-label="Especialidad"
                             name="especialidad"
                             value={especialidad}
                             readOnly
@@ -243,6 +228,7 @@ export default function PersonalInfo({
                         <label htmlFor="ciudad">Ciudad</label>
                         <Input
                             id="ciudad"
+                            aria-label="Ciudad"
                             name="ciudad"
                             value={ciudad}
                             readOnly
@@ -254,6 +240,7 @@ export default function PersonalInfo({
 
                         <Input
                             id="direccion"
+                            aria-label="Dirección del consultorio"
                             name="direccion"
                             value={direccion}
                             placeholder="Selecciona la dirección en el mapa"
@@ -275,13 +262,15 @@ export default function PersonalInfo({
             </div>
 
             <div className={styles.btn}>
+                <div><strong>Actualizar perfil</strong><p>Guarda los cambios de tu información.</p></div>
+                <div className={styles.actionButtons}><Button type="button" variant="secondary" className={styles.emailButton} disabled={guardando || ocupadoCorreo} onClick={onCambiarCorreo}><Mail size={17} aria-hidden="true" />Cambiar correo</Button>
                 <Button
                     className={styles.btnGreen}
                     type="submit"
-                    disabled={guardando}
+                    disabled={guardando || ocupadoCorreo}
                 >
-                    {guardando ? "Guardando..." : "Guardar cambios"}
-                </Button>
+                    {guardando ? <><LoaderCircle size={17} className={styles.spinner} aria-hidden="true" />Guardando...</> : <><Save size={17} aria-hidden="true" />Guardar cambios</>}
+                </Button></div>
             </div>
         </form>
     );

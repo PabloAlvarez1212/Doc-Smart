@@ -5,7 +5,7 @@
   list-style:none;
   padding:0;
   margin:0 0 26px;
-  color:#69798d;
+  color:var(--text-secondary);
   font-size:.78rem;
 }
 
@@ -25,7 +25,7 @@
   border:1px solid #c7d2df;
   border-radius:50%;
   background:var(--surface);
-  color:#69798d;
+  color:var(--text-secondary);
   font-size:.75rem;
   font-weight:650;
   font-variant-numeric:tabular-nums;
@@ -33,7 +33,7 @@
 }
 
 .steps li[aria-current]{
-  color:#2456a6;
+  color:var(--color-dark);
   font-weight:700;
 }
 
@@ -57,7 +57,7 @@
 
 .reference span,
 .help{
-  color:#65758a;
+  color:var(--text-secondary);
 }
 
 .reference strong{
@@ -93,7 +93,7 @@
   padding:0 2px;
   border:0;
   background:transparent;
-  color:#2456a6;
+  color:var(--color-dark);
   font:inherit;
   font-size:.875rem;
   font-weight:600;
@@ -102,7 +102,7 @@
 }
 
 .restart:hover:not(:disabled){
-  color:#1d4789;
+  color:var(--color-dark);
 }
 
 .restart:focus-visible{
@@ -148,3 +148,4 @@
 @media (prefers-reduced-motion:reduce){
   .spinner{animation:none}
 }
+@media(prefers-reduced-motion:reduce){.steps li>span,.restart{transition:none}}

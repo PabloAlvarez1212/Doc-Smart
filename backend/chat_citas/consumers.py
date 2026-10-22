@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from channels.db import database_sync_to_async
@@ -13,6 +14,7 @@ from .serializers import LecturaSerializer
 from .read_services import marcarLecturaConversacionService
 from .services import puedeEscribirConversacionService
 from django.core.cache import cache
+from . import presence
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +44,71 @@ class ChatCitasConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4401 if exc.status == 401 else 4404 if exc.status == 404 else 4403)
             return
         await self.channel_layer.group_add(self.group, self.channel_name)
+        self.presence_identity, self.counterpart = await database_sync_to_async(presence.renovar)(
+            self.channel_name, self.conversacion_id, self.actor)
+        self.presence_group = presence.grupo(self.counterpart)
+        self.last_presence = None
+        await self.channel_layer.group_add(self.presence_group, self.channel_name)
         await self.accept()
+        await self._snapshot_presence()
+        await self._signal_presence()
+        self.presence_task = asyncio.create_task(self._poll_presence())
 
     async def disconnect(self, code):
+        task = getattr(self, 'presence_task', None)
+        if task:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        if hasattr(self, 'presence_identity'):
+            await database_sync_to_async(presence.retirar)(self.channel_name)
+            await self.channel_layer.group_discard(self.presence_group, self.channel_name)
+            await self._signal_presence()
         if hasattr(self, 'group'):
             await self.channel_layer.group_discard(self.group, self.channel_name)
+
+    async def _signal_presence(self):
+        await self.channel_layer.group_send(presence.grupo(self.presence_identity), {'type': 'presence_changed'})
+
+    async def _snapshot_presence(self):
+        current = await database_sync_to_async(presence.online)(self.counterpart)
+        if current != self.last_presence:
+            self.last_presence = current
+            await self.send_json({'event': 'chat.presence', 'data': {
+                'actor': {'tipo': self.counterpart[0], 'id': self.counterpart[1]}, 'online': current}})
+
+    async def presence_changed(self, event):
+        try:
+            await self._autorizar()
+            await self._snapshot_presence()
+        except ChatError:
+            await database_sync_to_async(presence.retirar)(self.channel_name)
+            await self._signal_presence()
+            await self.close(code=4403)
+
+    async def _poll_presence(self):
+        try:
+            while True:
+                await asyncio.sleep(presence.POLL_SECONDS)
+                await self._autorizar()
+                if not await database_sync_to_async(presence.vigente)(self.channel_name):
+                    await database_sync_to_async(presence.retirar)(self.channel_name)
+                    await self._signal_presence()
+                    await self.close(code=4408)
+                    return
+                await self._snapshot_presence()
+                await self.send_json({'event': 'chat.presence.ping', 'data': {}})
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning('Presencia interrumpida; se cierra el socket', exc_info=True)
+            try:
+                await database_sync_to_async(presence.retirar)(self.channel_name)
+                await self._signal_presence()
+            finally:
+                await self.close(code=4403)
 
     async def receive(self, text_data=None, bytes_data=None, **kwargs):
         if text_data is None or len(text_data) > 65536:
@@ -64,6 +126,15 @@ class ChatCitasConsumer(AsyncJsonWebsocketConsumer):
             await self._autorizar()
             if not isinstance(content, dict) or set(content) != {'event', 'data'}:
                 raise ChatError(400, 'invalid_payload', 'Se requieren event y data')
+            if content['event'] == 'chat.presence.heartbeat':
+                if content['data'] != {}:
+                    raise ChatError(400, 'invalid_payload', 'Heartbeat inválido')
+                if not await database_sync_to_async(presence.vigente)(self.channel_name):
+                    await self.close(code=4408)
+                    return
+                await database_sync_to_async(presence.renovar)(self.channel_name, self.conversacion_id, self.actor)
+                await self._signal_presence()
+                return
             if content['event'] == 'chat.typing':
                 data = await self._typing(content['data'])
                 if data is not None:
