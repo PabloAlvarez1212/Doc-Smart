@@ -16,12 +16,15 @@ import {
 import useAppointments from "../../../../components/patient/MyAppointments/useAppointments";
 import Pagination from "../../../../components/ui/Pagination/Pagination";
 import ReprogramAppointmentModal from "../../../../components/ui/ReprogramAppointmentModal/ReprogramAppointmentModal";
+import CalificarMedicoModal from "../../../../components/patient/Calificaciones/CalificarMedicoModal/CalificarMedicoModal";
 import styles from "./myAppointments.module.css";
 
 export default function MyAppointments() {
     const reduceMotion = useReducedMotion();
     const [citaSeleccionada, setCitaSeleccionada] = useState(null);
     const [modalReprogramar, setModalReprogramar] = useState(false);
+    const [citaCalificacion, setCitaCalificacion] = useState(null);
+    const [modalCalificacion, setModalCalificacion] = useState(false);
     const {
         citas,
         especialidades,
@@ -62,6 +65,26 @@ export default function MyAppointments() {
             icon: "success",
         });
         return response;
+    };
+
+    const abrirCalificacion = (cita) => {
+        setCitaCalificacion(cita);
+        setModalCalificacion(true);
+    };
+
+    const cerrarCalificacion = () => {
+        setModalCalificacion(false);
+    };
+
+    const confirmarCalificacion = async (mode) => {
+        cerrarCalificacion();
+        await Swal.fire({
+            title: mode === "create" ? "Calificación enviada" : "Calificación actualizada",
+            text: mode === "create"
+                ? "Gracias por compartir tu experiencia con la atención recibida."
+                : "Los cambios de tu calificación fueron guardados correctamente.",
+            icon: "success",
+        });
     };
 
     return (
@@ -113,6 +136,7 @@ export default function MyAppointments() {
                             citas={citas}
                             cancelarCita={cancelarCita}
                             reprogramarCita={abrirReprogramacion}
+                            onCalificar={abrirCalificacion}
                             hasActiveFilters={hasActiveFilters}
                         />
                     </m.div>
@@ -137,6 +161,15 @@ export default function MyAppointments() {
                 cita={citaSeleccionada}
                 reprogramarCita={confirmarReprogramacion}
                 counterpart="medico"
+            />
+
+            <CalificarMedicoModal
+                abierto={modalCalificacion}
+                onCerrar={cerrarCalificacion}
+                onExitComplete={() => setCitaCalificacion(null)}
+                cita={citaCalificacion}
+                onRefresh={recargarCitas}
+                onSuccess={confirmarCalificacion}
             />
         </div>
     );

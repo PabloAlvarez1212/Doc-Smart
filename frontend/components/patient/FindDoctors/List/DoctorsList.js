@@ -9,6 +9,7 @@ export default function DoctorsList({
     error = null,
     onRetry,
     onSchedule,
+    onViewProfile,
 }) {
     const countLabel = loading
         ? "Consultando directorio"
@@ -48,6 +49,7 @@ export default function DoctorsList({
                             key={doctor.id}
                             doctor={doctor}
                             onSchedule={onSchedule}
+                            onViewProfile={onViewProfile}
                         />
                     ))}
                 </div>

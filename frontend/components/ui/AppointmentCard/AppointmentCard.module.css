@@ -351,6 +351,18 @@
     border-color: var(--border);
     background: var(--surface);
 }
+
+.rating {
+    color: #1f4f9b;
+    border-color: #cbdaf0;
+    background: #f5f8fd;
+}
+
+.rating svg {
+    color: #b96e00;
+    fill: #fff1c2;
+}
+.ratingIndicator{display:inline-flex;align-items:center;gap:6px;width:fit-content;padding:5px 8px;border-radius:999px;background:#fff4ce;color:#8a5100;font-size:.74rem;font-weight:760;line-height:1.3}.ratingIndicator svg{flex:0 0 auto;color:#d98700}
 .actions small { 
     max-width: 28ch; 
     color: var(--text-secondary); 
@@ -454,6 +466,13 @@
         border-color: var(--border);
         background: var(--surface-muted);
         box-shadow: 0 4px 10px rgba(145, 57, 74, .09);
+    }
+
+    .rating:not(:disabled):hover {
+        color: #173f7d;
+        border-color: #aebfdd;
+        background: #eaf1fb;
+        box-shadow: 0 4px 10px rgb(36 86 166 / 12%);
     }
 
     .detailsButton:hover {

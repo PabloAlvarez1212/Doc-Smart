@@ -6,6 +6,7 @@ import FindDoctorsHero from "../../../../components/patient/FindDoctors/Hero/Fin
 import DoctorsFilters from "../../../../components/patient/FindDoctors/Filters/DoctorsFilters";
 import DoctorsList from "../../../../components/patient/FindDoctors/List/DoctorsList";
 import ScheduleAppointmentModal from "../../../../components/patient/FindDoctors/Appointment/ScheduleAppointmentModal";
+import DoctorProfileModal from "../../../../components/patient/FindDoctors/Profile/DoctorProfileModal";
 import useFindDoctors from "../../../../components/patient/FindDoctors/useFindDoctors";
 
 import styles from "./findDoctors.module.css";
@@ -13,6 +14,7 @@ import styles from "./findDoctors.module.css";
 export default function FindDoctorsPage() {
 
     const [doctorSeleccionado, setDoctorSeleccionado] = useState(null);
+    const [perfilSeleccionado, setPerfilSeleccionado] = useState(null);
 
     const {
         doctores,
@@ -61,12 +63,15 @@ export default function FindDoctorsPage() {
                 error={error}
                 onRetry={retry}
                 onSchedule={setDoctorSeleccionado}
+                onViewProfile={setPerfilSeleccionado}
             />
 
             <ScheduleAppointmentModal
                 doctor={doctorSeleccionado}
                 onClose={() => setDoctorSeleccionado(null)}
             />
+
+            <DoctorProfileModal doctor={perfilSeleccionado} onClose={() => setPerfilSeleccionado(null)} />
 
         </div>
     );
