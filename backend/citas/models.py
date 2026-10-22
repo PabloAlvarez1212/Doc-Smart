@@ -97,6 +97,23 @@ class RecordatorioCita(models.Model):
         default=0
     )
 
+    fecha_inicio_procesamiento = models.DateTimeField(
+        null = True,
+        blank = True
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "id_cita",
+                    "tipo_recordatorio",
+                    "fecha_programada",
+                ],
+                name="uniq_rec_cita_tipo_fecha",
+            )
+        ]
+
     def __str__(self):
         return (
             f"Recordatorio {self.id} - "
