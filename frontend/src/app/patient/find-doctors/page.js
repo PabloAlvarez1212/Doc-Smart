@@ -27,11 +27,13 @@ export default function FindDoctorsPage() {
         cambiarEspecialidad,
         cambiarDepartamento,
         cambiarCiudad,
+        cambiarCalificacionMinima,
         cambiarBusqueda,
         limpiarFiltros,
         loading,
         error,
-        retry
+        retry,
+        hasActiveFilters,
     } = useFindDoctors();
 
     return (
@@ -53,6 +55,7 @@ export default function FindDoctorsPage() {
                 cambiarEspecialidad={cambiarEspecialidad}
                 cambiarDepartamento={cambiarDepartamento}
                 cambiarCiudad={cambiarCiudad}
+                cambiarCalificacionMinima={cambiarCalificacionMinima}
                 limpiarFiltros={limpiarFiltros}
                 cambiarBusqueda={cambiarBusqueda}
             />
@@ -64,6 +67,8 @@ export default function FindDoctorsPage() {
                 onRetry={retry}
                 onSchedule={setDoctorSeleccionado}
                 onViewProfile={setPerfilSeleccionado}
+                hasActiveFilters={hasActiveFilters}
+                onClearFilters={limpiarFiltros}
             />
 
             <ScheduleAppointmentModal

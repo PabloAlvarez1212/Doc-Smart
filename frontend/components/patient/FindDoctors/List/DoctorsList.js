@@ -10,6 +10,8 @@ export default function DoctorsList({
     onRetry,
     onSchedule,
     onViewProfile,
+    hasActiveFilters = false,
+    onClearFilters,
 }) {
     const countLabel = loading
         ? "Consultando directorio"
@@ -56,8 +58,15 @@ export default function DoctorsList({
             ) : (
                 <div className={styles.empty} role="status">
                     <span><SearchX size={31} aria-hidden="true" /></span>
-                    <h3>Aún no hay médicos en el directorio</h3>
-                    <p>Cuando haya profesionales disponibles en DocSmart, aparecerán aquí.</p>
+                    <h3>{hasActiveFilters ? "No encontramos médicos" : "Aún no hay médicos en el directorio"}</h3>
+                    <p>{hasActiveFilters
+                        ? "No hay profesionales que cumplan con los filtros seleccionados."
+                        : "Cuando haya profesionales disponibles en DocSmart, aparecerán aquí."}</p>
+                    {hasActiveFilters && onClearFilters && (
+                        <Button variant="secundary" type="button" onClick={onClearFilters}>
+                            Limpiar filtros
+                        </Button>
+                    )}
                 </div>
             )}
         </section>
