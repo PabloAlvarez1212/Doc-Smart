@@ -116,8 +116,9 @@ class ApiCommandTests(Fase3Fixture):
         path = f'/api/chat-citas/conversaciones/{self.conv.pk}/habilitar/'
         self.assertEqual(client.post(path).status_code, 200)
         self.assertEqual(client.post(path).status_code, 409)
-        self.cita.fecha_programada = self.now
-        self.cita.save()
+        self.cita.fecha_programada = self.now - timedelta(minutes=31)
+        self.cita.fecha_final = self.now - timedelta(minutes=1)
+        self.cita.save(update_fields=['fecha_programada', 'fecha_final'])
         response = client.put(f'/api/citas/{self.cita.pk}/inasistencia/')
         self.assertEqual(response.status_code, 200)
         self.cita.refresh_from_db()

@@ -1173,10 +1173,16 @@ def marcarInasistenciaPacienteService(id, solicitante):
         return('Solo se puede registrar inasistencia en citas previamente confirmadas', 400)
 
     ahora = timezone.now()
-    if timezone.is_naive(ahora) or timezone.is_naive(cita.fecha_programada):
-        return 'La transición requiere fechas con zona horaria', 400
-    if ahora.astimezone(dt_timezone.utc) < cita.fecha_programada.astimezone(dt_timezone.utc):
-        return 'No se puede marcar inasistencia antes del inicio programado', 400
+    if cita.fecha_final is None:
+        return ('La cita no tiene una hora de finalización programada',400)
+    if timezone.is_naive(ahora) or timezone.is_naive(cita.fecha_final):
+        return ('La transición requiere fechas con zona horaria',400)
+    if (ahora.astimezone(dt_timezone.utc)< cita.fecha_final.astimezone(dt_timezone.utc)):
+        return (
+            'Solo puedes registrar la inasistencia cuando haya terminado '
+            'el tiempo programado de la consulta',
+            400
+        )
 
     estado = Estado.objects.filter(nombre__iexact='inasistencia_paciente').first()
     if estado is None:

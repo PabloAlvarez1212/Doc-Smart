@@ -110,8 +110,9 @@ class InasistenciaFixture(CicloFixture):
         super().setUp()
         self.ausencia, _ = Estado.objects.get_or_create(nombre='inasistencia_paciente')
         self.reprogramada, _ = Estado.objects.get_or_create(nombre='reprogramada')
-        self.cita.fecha_programada = self.now - timedelta(minutes=1)
-        self.cita.save(update_fields=['fecha_programada'])
+        self.cita.fecha_programada = self.now - timedelta(minutes=31)
+        self.cita.fecha_final = self.now - timedelta(minutes=1)
+        self.cita.save(update_fields=['fecha_programada', 'fecha_final'])
 
     def marcar(self, actor, pk=None):
         module = import_module('citas.services')
@@ -231,11 +232,10 @@ class TransicionInasistenciaTests(InasistenciaFixture):
         Cita.objects.filter(pk=self.cita.pk).update(fecha_programada=self.now)
         self.comprobar_exito()
 
-    def test_un_microsegundo_antes_del_inicio_se_rechaza(self):
-        Cita.objects.filter(pk=self.cita.pk).update(fecha_programada=self.now + timedelta(microseconds=1))
-        self.assertEqual(self.marcar(self.doctors[1])[1], 400)
+    def test_un_microsegundo_antes_del_fin_se_rechaza(self):
+        Cita.objects.filter(pk=self.cita.pk).update(fecha_final=self.now + timedelta(microseconds=1))
+        self.assertEqual(self.marcar(self.doctors[1])[1],400)
         self.assert_evidencia_intacta()
-
     def test_bogota_y_utc_deciden_por_el_mismo_instante(self):
         Cita.objects.filter(pk=self.cita.pk).update(fecha_programada=self.now.astimezone(ZoneInfo('America/Bogota')))
         self.comprobar_exito()
