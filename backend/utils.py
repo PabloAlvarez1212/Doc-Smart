@@ -12,7 +12,7 @@ import os
 import resend
 from rest_framework import serializers
 from django.utils import timezone
-
+from rest_framework.response import Response
 from django.template.loader import render_to_string
 
 def validarContraseña(contraseña):
@@ -287,3 +287,16 @@ class FiltroPeriodoSerializer(serializers.Serializer):
             data["anio"] = timezone.localdate().year
 
         return data
+    
+def respuesta_ok(data=None, mensaje=None, status=200):
+    return Response({'ok': True, 'mensaje': mensaje, 'data': data}, status=status)
+
+def respuesta_error(mensaje, errores=None, status=400):
+    return Response({
+        'ok': False,
+        'mensaje': 'Error',
+        'errores': errores or {'detalle': mensaje}
+    }, status=status)
+
+def respuesta_serializer_invalido(errors):
+    return respuesta_error('Datos inválidos', errores=errors, status=400)

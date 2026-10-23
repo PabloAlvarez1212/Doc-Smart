@@ -7,6 +7,8 @@ import PersonalInfo from "../../../../components/doctor/Profile/PersonalInfo/Per
 import useProfile from "../../../../components/doctor/Profile/useProfile";
 import EmailChangeModal from "../../../../components/patient/Profile/EmailChangeModal/EmailChangeModal";
 import styles from "./MyProfile.module.css";
+import useCalificacionesMedico from "../../../../components/hooks/useCalificacionesMedico";
+import RatingsPanel from "../../../../components/ui/MedicalRatings/RatingsPanel/RatingsPanel";
 
 export default function MyProfile() {
     const reduced = useReducedMotion();
@@ -22,6 +24,12 @@ export default function MyProfile() {
         actualizarFotoPerfil,
         eliminarFotoPerfil,
     } = useProfile();
+
+    const ratings = useCalificacionesMedico(perfil?.id, {
+        incluirResenas: true,
+        resenasPrivadas: true,
+        activo: Boolean(perfil?.id),
+    });
 
     if (loading) {
         return <div className={styles.page} role="status" aria-label="Cargando perfil">
@@ -47,6 +55,13 @@ export default function MyProfile() {
                 </motion.div>
                 <motion.div className={styles.formColumn} {...entrance}>
                     <PersonalInfo onCambiarCorreo={abrirCambioCorreo} ocupadoCorreo={ocupadoCorreo} perfil={perfil} actualizarPerfilMedico={actualizarPerfilMedico} guardando={guardando} />
+                    <RatingsPanel
+                        resumen={ratings.resumen}
+                        calificaciones={ratings.calificaciones}
+                        loading={ratings.loading}
+                        error={ratings.error}
+                        onRetry={ratings.retry}
+                    />
                 </motion.div>
             </div>
         </div>

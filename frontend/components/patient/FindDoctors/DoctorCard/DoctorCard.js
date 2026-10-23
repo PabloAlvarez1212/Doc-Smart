@@ -9,7 +9,8 @@ import {
     CalendarPlus,
     MapPin,
     Navigation,
-    Stethoscope
+    Stethoscope,
+    UserRound,
 } from "lucide-react";
 
 import Button from "../../../ui/Button/Button";
@@ -25,7 +26,7 @@ function formatearFecha(fecha) {
     }).format(new Date(`${fecha}T00:00:00`));
 }
 
-export default function DoctorCard({ doctor, onSchedule }) {
+export default function DoctorCard({ doctor, onSchedule, onViewProfile }) {
 
     const [mapaAbierto, setMapaAbierto] = useState(false);
 
@@ -181,6 +182,10 @@ export default function DoctorCard({ doctor, onSchedule }) {
             </div>
 
             <div className={styles.actions}>
+                <button type="button" className={styles.profileAction} onClick={() => onViewProfile?.(doctor)}>
+                    <UserRound size={17} aria-hidden="true" />
+                    Ver perfil y valoración
+                </button>
                 <Button
                     className={styles.primaryAction}
                     disabled={!tieneDisponibilidad}

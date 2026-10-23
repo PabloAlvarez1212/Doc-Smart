@@ -129,12 +129,17 @@
     font-size: .88rem !important;
 }
 
+.profileAction{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:40px;padding:8px 11px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--color-dark);font:inherit;font-size:.79rem;font-weight:750;cursor:pointer;transition:background-color 160ms ease,border-color 160ms ease,transform 140ms cubic-bezier(.23,1,.32,1)}
+.profileAction:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+@media(hover:hover) and (pointer:fine){.profileAction:hover{background:var(--surface-muted);transform:translateY(-1px)}}
+
 .primaryAction:disabled { cursor: not-allowed; opacity: .48; transform: none; }
 
 @media (max-width: 1050px) {
     .card { grid-template-columns: minmax(300px, 1fr) minmax(280px, 1fr); }
     .actions { grid-column: 1 / -1; align-items: center; flex-direction: row; justify-content: flex-end; }
     .primaryAction { width: auto; min-width: 190px; }
+    .profileAction { width: auto; min-width: 190px; }
 }
 
 @media (max-width: 720px) {
@@ -150,7 +155,10 @@
     .profile h2 { font-size: 1.13rem; }
     .actions { flex-direction: column; }
     .primaryAction { width: 100%; min-width: 0; }
+    .profileAction { width: 100%; min-width: 0; }
 }
+
+@media(prefers-reduced-motion:reduce){.profileAction{transition:none}.profileAction:hover{transform:none}}
 
 
 .addressLink {

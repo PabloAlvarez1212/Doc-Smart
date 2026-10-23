@@ -12,9 +12,12 @@ import { useDashboardMedico } from '../../../../components/doctor/Home/useDashbo
 import { nextAppointment } from '../../../../components/doctor/Home/homeData.mjs';
 import { useNotificationsContext } from '../../../../components/contex/NotificationsContext';
 import styles from '../../../../components/doctor/Home/Home.module.css';
+import useCalificacionesMedico from '../../../../components/hooks/useCalificacionesMedico';
+import RatingSummary from '../../../../components/ui/MedicalRatings/RatingSummary/RatingSummary';
 
 export default function Home() {
   const { dashboard, loading, error, retry } = useDashboardMedico();
+  const ratings = useCalificacionesMedico(dashboard?.id, { activo: Boolean(dashboard?.id) });
   const [date, setDate] = useState('');
   const notifications = useNotificationsContext();
 
@@ -43,7 +46,10 @@ export default function Home() {
           <Hero nombre={dashboard?.usuario} especialidad={dashboard?.especialidad} foto_perfil={dashboard?.foto_perfil} date={date} />
           <HomeReveal className={styles.primaryGrid}>
             <NextAppointment appointment={nextAppointment(dashboard?.proximas_citas)} />
-            <QuickActions />
+            <div className={styles.homeSidebar}>
+              <QuickActions />
+              <RatingSummary compact resumen={ratings.resumen} loading={ratings.loading} error={ratings.error} onRetry={ratings.retry} />
+            </div>
           </HomeReveal>
           <HomeReveal className={styles.secondaryGrid} delay={0.06}>
             <TodaySchedule appointments={dashboard?.citas_hoy} />

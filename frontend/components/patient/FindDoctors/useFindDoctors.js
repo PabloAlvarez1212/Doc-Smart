@@ -1,16 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import {
-    listarMedicosDisponiblesServices,
     getEspecialidadesService,
+    listarMedicosDisponiblesServices,
 } from "@/app/services/doctorServices";
-
 import {
-    getDepartamentosService,
     getCiudadesPorDepartamentoService,
+    getDepartamentosService,
 } from "@/app/services/catalogs";
+import { buildFindDoctorsParams, hasFindDoctorsFilters } from "./findDoctorsFilters";
+
+const INITIAL_FILTERS = {
+    search: "",
+    especialidad: "",
+    departamento: "",
+    ciudad: "",
+    calificacionMinima: "",
+};
 
 export default function useFindDoctors() {
     const [doctores, setDoctores] = useState([]);
@@ -19,246 +26,122 @@ export default function useFindDoctors() {
     const [ciudades, setCiudades] = useState([]);
     const [departamentoSeleccionado, setDepartamentoSeleccionado] = useState("");
     const [ciudadSeleccionada, setCiudadSeleccionada] = useState("");
-    const [searchDebounced, setSearchDebounced] = useState("")
-
-    const [filtros, setFiltros] = useState({
-        search: "",
-        especialidad: "",
-        departamento: "",
-        ciudad: "",
-    });
-
+    const [searchDebounced, setSearchDebounced] = useState("");
+    const [filtros, setFiltros] = useState(INITIAL_FILTERS);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [requestVersion, setRequestVersion] = useState(0);
 
     useEffect(() => {
-        const timeout = setTimeout(() => {
-            setSearchDebounced(filtros.search)
-        }, 400)
-
-        return () => {
-            clearTimeout(timeout)
-        }
-
-    }, [filtros.search])
-
+        const timeout = setTimeout(() => setSearchDebounced(filtros.search), 400);
+        return () => clearTimeout(timeout);
+    }, [filtros.search]);
 
     useEffect(() => {
+        let active = true;
 
-        let active = true
+        const cargarCatalogos = async () => {
+            const [especialidadesResult, departamentosResult] = await Promise.allSettled([
+                getEspecialidadesService(),
+                getDepartamentosService(),
+            ]);
+
+            if (!active) return;
+
+            setEspecialidades(
+                especialidadesResult.status === "fulfilled" && Array.isArray(especialidadesResult.value?.data)
+                    ? especialidadesResult.value.data
+                    : [],
+            );
+            setDepartamentos(
+                departamentosResult.status === "fulfilled" && Array.isArray(departamentosResult.value?.data)
+                    ? departamentosResult.value.data
+                    : [],
+            );
+        };
+
+        cargarCatalogos();
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        let active = true;
 
         const cargarDoctoresDisponibles = async () => {
+            setLoading(true);
+            setError(null);
+
             try {
-                setLoading(true)
-                setError(null)
-
-                const params = {}
-
-                if (searchDebounced) {
-                    params.search = searchDebounced
-                }
-
-                if (filtros.especialidad) {
-                    params.especialidad = filtros.especialidad
-                }
-
-                if (filtros.departamento) {
-                    params.departamento = filtros.departamento
-                }
-
-                if (filtros.ciudad) {
-                    params.ciudad = filtros.ciudad
-                }
-
-                const response =
-                    await listarMedicosDisponiblesServices(
-                        params
-                    )
-
-                const doctors = response?.data
+                const params = buildFindDoctorsParams({
+                    ...filtros,
+                    search: searchDebounced,
+                });
+                const response = await listarMedicosDisponiblesServices(params);
+                const doctors = response?.data;
 
                 if (!Array.isArray(doctors)) {
-                    throw new Error(
-                        "Formato de respuesta inesperado"
-                    )
+                    throw new Error("Formato de respuesta inesperado");
                 }
 
+                if (active) setDoctores(doctors);
+            } catch {
                 if (active) {
-                    setDoctores(doctors)
+                    setDoctores([]);
+                    setError("No se pudieron cargar los médicos.");
                 }
-
-            } catch (error) {
-
-                console.error(
-                    "Error al cargar médicos",
-                    error
-                )
-
-                if (active) {
-                    setDoctores([])
-
-                    setError(
-                        "No se pudieron cargar los médicos."
-                    )
-                }
-
             } finally {
-
-                if (active) {
-                    setLoading(false)
-                }
+                if (active) setLoading(false);
             }
-        }
+        };
 
-
-        const cargarEspecialidades = async () => {
-            try {
-                const response =
-                    await getEspecialidadesService()
-
-                if (!Array.isArray(response?.data)) {
-                    throw new Error(
-                        "Formato inválido"
-                    )
-                }
-
-                if (active) {
-                    setEspecialidades(
-                        response.data
-                    )
-                }
-
-            } catch (error) {
-
-                console.error(
-                    "Error al cargar especialidades",
-                    error
-                )
-
-                if (active) {
-                    setEspecialidades([])
-                }
-            }
-        }
-
-
-        const cargarDepartamentos = async () => {
-            try {
-                const response =
-                    await getDepartamentosService()
-
-                if (!Array.isArray(response?.data)) {
-                    throw new Error(
-                        "Formato inválido"
-                    )
-                }
-
-                if (active) {
-                    setDepartamentos(
-                        response.data
-                    )
-                }
-
-            } catch (error) {
-
-                console.error(
-                    "Error al cargar departamentos",
-                    error
-                )
-
-                if (active) {
-                    setDepartamentos([])
-                }
-            }
-        }
-
-
-        cargarDoctoresDisponibles()
-        cargarEspecialidades()
-        cargarDepartamentos()
-
-
+        cargarDoctoresDisponibles();
         return () => {
-            active = false
-        }
-
+            active = false;
+        };
     }, [
         requestVersion,
         filtros.especialidad,
         filtros.departamento,
         filtros.ciudad,
+        filtros.calificacionMinima,
         searchDebounced,
-    ])
+    ]);
 
     useEffect(() => {
-
         let active = true;
 
         const cargarCiudades = async () => {
-
             if (!departamentoSeleccionado) {
-
                 setCiudades([]);
                 setCiudadSeleccionada("");
-
                 return;
             }
 
             try {
-
-                const response =
-                    await getCiudadesPorDepartamentoService(
-                        departamentoSeleccionado
-                    );
-
-                if (!Array.isArray(response)) {
-                    throw new Error(
-                        "Formato inválido"
-                    );
-                }
-                if (active) {
-                    setCiudades(response);
-                }
-            } catch (error) {
-
-                console.error(
-                    "Error al cargar ciudades",
-                    error
-                );
-
-                if (active) {
-                    setCiudades([]);
-                }
+                const response = await getCiudadesPorDepartamentoService(departamentoSeleccionado);
+                if (!Array.isArray(response)) throw new Error("Formato inválido");
+                if (active) setCiudades(response);
+            } catch {
+                if (active) setCiudades([]);
             }
         };
 
         cargarCiudades();
-
         return () => {
             active = false;
         };
-
     }, [departamentoSeleccionado]);
 
-    const cambiarEspecialidad = (idEspecialidad) => {
-
-        setFiltros((prev) => ({
-            ...prev,
-            especialidad: idEspecialidad,
-        }));
+    const cambiarFiltro = (nombre, valor) => {
+        setFiltros((prev) => ({ ...prev, [nombre]: valor }));
     };
 
     const cambiarDepartamento = (idDepartamento) => {
-
-        setDepartamentoSeleccionado(
-            idDepartamento
-        );
-
+        setDepartamentoSeleccionado(idDepartamento);
         setCiudadSeleccionada("");
-
         setCiudades([]);
-
         setFiltros((prev) => ({
             ...prev,
             departamento: idDepartamento,
@@ -267,64 +150,34 @@ export default function useFindDoctors() {
     };
 
     const cambiarCiudad = (idCiudad) => {
-
         setCiudadSeleccionada(idCiudad);
-
-        setFiltros((prev) => ({
-            ...prev,
-            ciudad: idCiudad,
-        }));
+        cambiarFiltro("ciudad", idCiudad);
     };
 
     const limpiarFiltros = () => {
-
-        setFiltros({
-            search: "",
-            especialidad: "",
-            departamento: "",
-            ciudad: "",
-        });
-
+        setFiltros(INITIAL_FILTERS);
         setDepartamentoSeleccionado("");
-
         setCiudadSeleccionada("");
-
         setCiudades([]);
     };
 
-    const retry = () =>
-        setRequestVersion(
-            (current) => current + 1
-        );
-
-    const cambiarBusqueda = (valor) => {
-        setFiltros((prev) => ({
-            ...prev,
-            search: valor
-        }))
-    }
-
     return {
         doctores,
-
         especialidades,
         departamentos,
         ciudades,
-
         filtros,
-
+        hasActiveFilters: hasFindDoctorsFilters(filtros),
         departamentoSeleccionado,
         ciudadSeleccionada,
-
-        cambiarEspecialidad,
+        cambiarEspecialidad: (value) => cambiarFiltro("especialidad", value),
         cambiarDepartamento,
         cambiarCiudad,
-        cambiarBusqueda,
-
+        cambiarCalificacionMinima: (value) => cambiarFiltro("calificacionMinima", value),
+        cambiarBusqueda: (value) => cambiarFiltro("search", value),
         limpiarFiltros,
-
         loading,
         error,
-        retry,
+        retry: () => setRequestVersion((current) => current + 1),
     };
 }

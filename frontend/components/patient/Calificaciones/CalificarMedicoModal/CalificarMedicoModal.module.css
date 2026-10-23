@@ -1,0 +1,492 @@
+.headerIcon,
+.professionalIcon {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 12px;
+    color: #2456a6;
+    background: #eaf1fb;
+}
+
+.headerIcon {
+    width: 42px;
+    height: 42px;
+}
+
+.content {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 24px;
+    outline: none;
+}
+
+.professional {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 15px 16px;
+    border: 1px solid #dbe5f0;
+    border-radius: 14px;
+    background: #f7faff;
+}
+
+.professionalIcon {
+    width: 42px;
+    height: 42px;
+}
+
+.professional > div {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+}
+
+.professional span,
+.professional small {
+    color: var(--text-secondary);
+    font-size: .82rem;
+    line-height: 1.35;
+}
+
+.professional strong {
+    overflow-wrap: anywhere;
+    color: var(--color-text);
+    font-size: 1rem;
+    line-height: 1.35;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.ratingField,
+.commentField {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.fieldHeading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.fieldHeading label,
+.readOnlyRating > span,
+.commentReview > span {
+    color: var(--color-text);
+    font-size: .92rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.fieldHeading > span {
+    flex: 0 0 auto;
+    color: var(--text-secondary);
+    font-size: .76rem;
+    font-weight: 600;
+}
+
+.commentField textarea {
+    width: 100%;
+    min-height: 118px;
+    padding: 12px 14px;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    outline: none;
+    background: var(--surface);
+    color: var(--color-text);
+    font: inherit;
+    font-size: .9rem;
+    line-height: 1.5;
+    transition: border-color 160ms ease-out, box-shadow 160ms ease-out;
+}
+
+.commentField textarea::placeholder {
+    color: #7c899a;
+}
+
+.commentField textarea:hover:not(:disabled) {
+    border-color: #aebdcd;
+}
+
+.commentField textarea:focus-visible {
+    border-color: #2456a6;
+    box-shadow: 0 0 0 3px rgb(36 86 166 / 14%);
+}
+
+.commentField textarea[aria-invalid="true"] {
+    border-color: #bd3545;
+}
+
+.commentField textarea:disabled {
+    cursor: not-allowed;
+    background: var(--surface-muted);
+    opacity: .7;
+}
+
+.commentMeta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text-secondary);
+    font-size: .76rem;
+    line-height: 1.4;
+}
+
+.counter {
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+}
+
+.fieldError {
+    margin: 0;
+    color: #a52c3b;
+    font-size: .82rem;
+    line-height: 1.4;
+}
+
+.feedback {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 12px 13px;
+    border: 1px solid #efc7cb;
+    border-radius: 11px;
+    background: #fff6f7;
+    color: #972b39;
+    font-size: .84rem;
+    line-height: 1.45;
+}
+
+.feedback svg {
+    flex: 0 0 auto;
+    margin-top: 1px;
+}
+
+.primaryButton,
+.secondaryButton {
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 17px;
+    border-radius: 10px;
+    font: inherit;
+    font-size: .88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        background-color 150ms ease-out,
+        border-color 150ms ease-out,
+        box-shadow 150ms ease-out,
+        transform 150ms cubic-bezier(.23, 1, .32, 1);
+}
+
+.primaryButton {
+    border: 1px solid #2456a6;
+    background: #2456a6;
+    color: #fff;
+    box-shadow: 0 3px 10px rgb(36 86 166 / 16%);
+}
+
+.primaryButton:hover:not(:disabled) {
+    border-color: #1d4789;
+    background: #1d4789;
+}
+
+.secondaryButton {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--color-text);
+}
+
+.secondaryButton:hover:not(:disabled) {
+    background: var(--surface-muted);
+}
+
+.primaryButton:focus-visible,
+.secondaryButton:focus-visible {
+    outline: 3px solid rgb(36 86 166 / 20%);
+    outline-offset: 2px;
+}
+
+.primaryButton:active:not(:disabled),
+.secondaryButton:active:not(:disabled) {
+    transform: scale(.98);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+    cursor: not-allowed;
+    opacity: .58;
+}
+
+.spinner {
+    animation: spin 800ms linear infinite;
+}
+
+.readOnlyPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.readOnlyRating,
+.commentReview {
+    display: grid;
+    gap: 9px;
+}
+
+.commentReview p {
+    margin: 0;
+    color: var(--color-text);
+    font-size: .9rem;
+    line-height: 1.58;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.registrationDate {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: .82rem;
+    line-height: 1.4;
+}
+
+.registrationDate svg {
+    flex: 0 0 auto;
+    color: #2456a6;
+}
+
+.closedNotice {
+    margin: 0;
+    padding: 11px 13px;
+    border-radius: 10px;
+    background: #f2f5f8;
+    color: #56677d;
+    font-size: .82rem;
+    line-height: 1.45;
+}
+
+.visibilityPanel {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 12px;
+    padding: 15px;
+    border: 1px solid #dbe5f0;
+    border-radius: 14px;
+    background: #f7faff;
+}
+
+.visibilityIcon {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border-radius: 10px;
+    background: #e7effb;
+    color: #2456a6;
+}
+
+.visibilityCopy {
+    display: grid;
+    min-width: 0;
+    gap: 8px;
+}
+
+.visibilityCopy > strong {
+    color: var(--color-text);
+    font-size: .9rem;
+    line-height: 1.35;
+}
+
+.visibilityCopy > p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: .78rem;
+    line-height: 1.5;
+}
+
+.visibilityChoice {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    width: fit-content;
+    max-width: 100%;
+    color: var(--color-text);
+    cursor: pointer;
+    font-size: .82rem;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.visibilityChoice input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.visibilityChoice > span[aria-hidden="true"] {
+    position: relative;
+    width: 36px;
+    height: 22px;
+    border: 1px solid #aebdcd;
+    border-radius: 999px;
+    background: #fff;
+    transition: background-color 160ms ease-out, border-color 160ms ease-out;
+}
+
+.visibilityChoice > span[aria-hidden="true"]::after {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #7a899b;
+    content: "";
+    transition: transform 180ms cubic-bezier(.23, 1, .32, 1), background-color 160ms ease-out;
+}
+
+.visibilityChoice input:checked + span {
+    border-color: #2456a6;
+    background: #2456a6;
+}
+
+.visibilityChoice input:checked + span::after {
+    background: #fff;
+    transform: translateX(14px);
+}
+
+.visibilityChoice input:focus-visible + span {
+    outline: 3px solid rgb(36 86 166 / 20%);
+    outline-offset: 2px;
+}
+
+.visibilityChoice input:disabled ~ span {
+    cursor: not-allowed;
+    opacity: .6;
+}
+
+.visibilityButton {
+    justify-self: start;
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 7px 12px;
+    border: 1px solid #b9cae2;
+    border-radius: 9px;
+    background: #fff;
+    color: #1f4d91;
+    font: inherit;
+    font-size: .79rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.visibilityButton:hover:not(:disabled) {
+    border-color: #8aa9d2;
+    background: #edf4fd;
+}
+
+.visibilityButton:focus-visible {
+    outline: 3px solid rgb(36 86 166 / 20%);
+    outline-offset: 2px;
+}
+
+.visibilityButton:disabled {
+    cursor: not-allowed;
+    opacity: .58;
+}
+
+.visibilityCopy .visibilitySuccess,
+.visibilityCopy .visibilityError,
+.visibilityCopy .visibilityPending {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    font-weight: 650;
+}
+
+.visibilityCopy > .visibilitySuccess { color: #257047; }
+.visibilityCopy > .visibilityError { color: #972b39; }
+.visibilityCopy > .visibilityPending { color: #73520b; }
+.visibilitySuccess svg,
+.visibilityError svg { flex: 0 0 auto; margin-top: 1px; }
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+    .content {
+        gap: 20px;
+    }
+
+    .professional {
+        padding: 13px;
+    }
+
+    .commentMeta {
+        display: grid;
+        gap: 4px;
+    }
+
+    .counter {
+        justify-self: end;
+    }
+
+    .primaryButton,
+    .secondaryButton {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .visibilityPanel {
+        grid-template-columns: 1fr;
+        padding: 13px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .primaryButton,
+    .secondaryButton,
+    .commentField textarea {
+        transition: none;
+    }
+
+    .visibilityChoice > span[aria-hidden="true"],
+    .visibilityChoice > span[aria-hidden="true"]::after,
+    .visibilityButton {
+        transition: none;
+    }
+
+    .spinner {
+        animation: none;
+    }
+
+    .primaryButton:active:not(:disabled),
+    .secondaryButton:active:not(:disabled) {
+        transform: none;
+    }
+}

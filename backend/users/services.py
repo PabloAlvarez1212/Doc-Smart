@@ -1,3 +1,4 @@
+import re
 import hashlib,uuid
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -1166,8 +1167,8 @@ def verificarDocumentoRegistroService(proceso_id,tipo_registro="paciente"):
         logger.exception("Error verificando documento")
         return {"general":["No fue posible verificar el documento"]},500
 
-    numero=str(datos.get("numero_documento") or "")
-    numero_esperado=str(proceso.numero_documento_declarado or "")
+    numero = re.sub(r"\D", "",str(datos.get("numero_documento") or ""))
+    numero_esperado = re.sub(r"\D", "",str(proceso.numero_documento_declarado or ""))
     fecha=datos.get("fecha_nacimiento")
 
     errores={}

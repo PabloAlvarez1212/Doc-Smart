@@ -1,12 +1,13 @@
 "use client";
 
-import { CalendarClock, CircleX, SearchX } from "lucide-react";
+import { CalendarClock, CircleX, SearchX, Star } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import formatearFecha, { formatearFechaResolucion } from "@/app/utils/fechaFormaterUtils";
 import AppointmentCard from "../../../ui/AppointmentCard/AppointmentCard";
 import AppointmentDetailsModal from "../../../ui/AppointmentDetailsModal/AppointmentDetailsModal";
 import { getPatientAppointmentActionKeys } from "../../../ui/AppointmentCard/appointmentViewState";
+import { buildCalificacionAction } from "../../Calificaciones/calificacionPresentation";
 import styles from "./Appointment.module.css";
 
 function capitalize(value) {
@@ -18,6 +19,7 @@ export default function AppointmentList({
     citas = [],
     cancelarCita,
     reprogramarCita,
+    onCalificar,
     hasActiveFilters = false,
 }) {
     const [detailsAppointment, setDetailsAppointment] = useState(null);
@@ -63,6 +65,8 @@ export default function AppointmentList({
                             tone: "danger",
                             onClick: () => cancelarCita?.(cita.id),
                         });
+                    const calificacionAction = buildCalificacionAction(cita, onCalificar, Star);
+                    if (calificacionAction) actions.push(calificacionAction);
 
                     return (
                         <AppointmentCard
