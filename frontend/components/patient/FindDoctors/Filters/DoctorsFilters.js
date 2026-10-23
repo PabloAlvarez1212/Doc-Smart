@@ -21,6 +21,15 @@ const toSelectOptions = (items) =>
             item.nombre_ciudad
     }));
 
+const ratingOptions = [
+    { value: "5", label: "5 estrellas" },
+    { value: "4.5", label: "4.5 o más" },
+    { value: "4", label: "4 o más" },
+    { value: "3", label: "3 o más" },
+    { value: "2", label: "2 o más" },
+    { value: "1", label: "1 o más" },
+];
+
 
 export default function DoctorsFilters({
 
@@ -35,6 +44,7 @@ export default function DoctorsFilters({
     cambiarEspecialidad,
     cambiarDepartamento,
     cambiarCiudad,
+    cambiarCalificacionMinima,
 
     limpiarFiltros,
     cambiarBusqueda,
@@ -81,8 +91,8 @@ export default function DoctorsFilters({
                 </div>
 
                 <p className={styles.supportingText}>
-                    Busca por profesional y prepara tu selección
-                    por especialidad o ubicación.
+                    Busca por profesional y afina tu selección
+                    por especialidad, ubicación o valoración.
                 </p>
 
             </div>
@@ -131,12 +141,13 @@ export default function DoctorsFilters({
                     </label>
 
                     <SelectSearch
+                        className={styles.filterSelect}
                         inputId="doctor-specialty-filter"
                         ariaLabel="Seleccionar especialidad"
                         opciones={specialtyOptions}
                         value={filtros.especialidad}
                         onChange={cambiarEspecialidad}
-                        placeholder="Todas las especialidades"
+                        placeholder="Todas"
                     />
 
                 </div>
@@ -148,12 +159,13 @@ export default function DoctorsFilters({
                     </label>
 
                     <SelectSearch
+                        className={styles.filterSelect}
                         inputId="doctor-department-filter"
                         ariaLabel="Seleccionar departamento"
                         opciones={departmentOptions}
                         value={filtros.departamento}
                         onChange={cambiarDepartamento}
-                        placeholder="Todos los departamentos"
+                        placeholder="Todos"
                     />
 
                 </div>
@@ -166,6 +178,7 @@ export default function DoctorsFilters({
                     </label>
 
                     <SelectSearch
+                        className={styles.filterSelect}
                         inputId="doctor-city-filter"
                         ariaLabel="Seleccionar ciudad"
                         opciones={cityOptions}
@@ -173,14 +186,31 @@ export default function DoctorsFilters({
                         onChange={cambiarCiudad}
                         placeholder={
                             departamentoSeleccionado
-                                ? "Todas las ciudades"
-                                : "Seleccione departamento"
+                                ? "Todas"
+                                : "Elige departamento"
                         }
                         disabled={
                             !departamentoSeleccionado
                         }
                     />
 
+                </div>
+
+                <div className={styles.field}>
+                    <label htmlFor="doctor-rating-filter">
+                        Calificación mínima
+                    </label>
+
+                    <SelectSearch
+                        className={styles.filterSelect}
+                        inputId="doctor-rating-filter"
+                        ariaLabel="Seleccionar calificación mínima"
+                        opciones={ratingOptions}
+                        value={filtros.calificacionMinima}
+                        onChange={cambiarCalificacionMinima}
+                        placeholder="Cualquiera"
+                        emptyMessage="No hay calificaciones disponibles"
+                    />
                 </div>
 
                 <Button

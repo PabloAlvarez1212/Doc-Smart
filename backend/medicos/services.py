@@ -6,6 +6,7 @@ from dateutil.relativedelta import relativedelta
 from datetime import timedelta, date, datetime, time
 from django.db.models.functions import TruncWeek
 from citas.models import Cita
+from calificaciones.models import Calificacion
 from notificaciones.models import Notificacion
 from medicos.models import Medico, Especialidad,SolicitudValidacionMedico, DisponibilidadMedico, ExcepcionDisponibilidadMedico
 from citas.models import Cita
@@ -23,11 +24,11 @@ from medicos.serializers import (
     DisponibilidadMedicoSerializer,
     ExcepcionDisponibilidadMedicoSerializer,
 )
-
+from decimal import Decimal, InvalidOperation
 from medicos.services_disponibilidad import (obtenerProximaDisponibilidad,)
 from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
-from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, OuterRef, Q, Subquery, Value,Case,When,CharField
+from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, OuterRef, Q, Subquery, Value,Case,When,CharField,IntegerField,FloatField
 from django.db.models.functions import TruncMonth, Coalesce,TruncDay
 from django.db.models.functions import Concat
 from storage_app.services import guardar_archivo_medico,eliminar_archivo
@@ -53,7 +54,8 @@ def listarMedicosPublicosService(
     search=None,
     especialidad=None,
     departamento=None,
-    ciudad=None
+    ciudad=None,
+    calificacion_minima=None
 ):
 
     medicos = filtrarMedicosAprobados(
@@ -63,6 +65,50 @@ def listarMedicosPublicosService(
             'ciudad__departamento'
         )
     )
+    
+    if calificacion_minima is not None:
+
+        try:
+            calificacion_minima = Decimal(calificacion_minima)
+
+        except (InvalidOperation, TypeError, ValueError):
+            return "La calificación mínima debe ser un número válido.", 400
+
+        if not calificacion_minima.is_finite():
+            return "La calificación mínima debe ser un número válido.", 400
+
+        if not 1 <= calificacion_minima <= 5:
+            return "La calificación mínima debe estar entre 1 y 5.", 400
+        
+    # SUBCONSULTA DE CALIFICACIONES
+
+    calificaciones = (
+        Calificacion.objects.filter(
+            id_cita__id_medico_id=OuterRef("pk")
+        )
+        .order_by()
+        .values("id_cita__id_medico_id")
+        .annotate(
+            promedio=Avg("puntuacion"),
+            total=Count("id")
+        )
+    )
+
+    # AGREGAR ESTADÍSTICAS A CADA MÉDICO
+
+    medicos = medicos.annotate(
+        promedio_calificacion=Subquery(
+            calificaciones.values("promedio")[:1],
+            output_field=FloatField()
+        ),
+
+        total_calificaciones=Subquery(
+            calificaciones.values("total")[:1],
+            output_field=IntegerField()
+        )
+    )
+
+    # FILTRAR POR NOMBRE
 
     if search:
         terminos = search.strip().split()
@@ -73,26 +119,41 @@ def listarMedicosPublicosService(
                 Q(apellido__icontains=termino)
             )
 
+    # FILTRAR POR ESPECIALIDAD
+
     if especialidad:
         medicos = medicos.filter(
             id_especialidad_id=especialidad
         )
+
+    # FILTRAR POR DEPARTAMENTO
 
     if departamento:
         medicos = medicos.filter(
             ciudad__departamento_id=departamento
         )
 
+    # FILTRAR POR CIUDAD
+
     if ciudad:
-        medicos = medicos.filter(ciudad_id=ciudad)
+
+        medicos = medicos.filter(
+            ciudad_id=ciudad
+        )
+
+    # FILTRAR POR CALIFICACIÓN MÍNIMA
+
+    if calificacion_minima is not None:
+
+        medicos = medicos.filter(
+            promedio_calificacion__gte=calificacion_minima
+        )
 
     medicos = list(medicos)
 
     for medico in medicos:
         medico.proxima_disponibilidad_calculada = (
-            obtenerProximaDisponibilidad(
-                medico
-            )
+            obtenerProximaDisponibilidad(medico)
         )
 
     serializer = MedicosPublicosSerializer(
@@ -1709,9 +1770,9 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
         Cita.objects
         .filter(
             id_estado__nombre__iexact="completada",
-            fecha_final__isnull=False,
-            fecha_final__gte=inicioPeriodo,
-            fecha_final__lt=finPeriodo
+            fecha_completada__isnull=False,
+            fecha_completada__gte=inicioPeriodo,
+            fecha_completada__lt=finPeriodo
         )
         .values(
             "id_medico",
@@ -1761,7 +1822,7 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
     aniosCitas = Cita.objects.filter(
         id_estado__nombre__iexact="completada"
     ).dates(
-        "fecha_final",
+        "fecha_completada",
         "year",
         order="DESC"
     )

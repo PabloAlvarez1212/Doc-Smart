@@ -10,6 +10,7 @@ import {
     cancelarCitaService,
     confirmarCitaService,
     completarCitaService,
+    marcarInasistenciaPacienteService,
     reprogramarCitaService,
 } from "@/app/services/appointmentsServices";
 const PAGE_SIZE = 6;
@@ -494,6 +495,14 @@ export default function useAppointments() {
 
     };
 
+    // ==========================================
+    // REPROGRAMAR CITA
+    // ==========================================
+
+    const marcarInasistencia = async (id_cita) => {
+        await marcarInasistenciaPacienteService(id_cita);
+        await actualizarDatos();
+    }
 
     // ==========================================
     // REPROGRAMAR CITA
@@ -575,6 +584,7 @@ export default function useAppointments() {
         cancelarCita,
         confirmarCita,
         completarCita,
+        marcarInasistencia,
         reprogramarCita,
 
         // Recarga manual

@@ -45,6 +45,7 @@ export default function MyAppointments() {
         cancelarCita,
         confirmarCita,
         completarCita,
+        marcarInasistencia,
         reprogramarCita,
         recargarCitas,
     } = useAppointments();
@@ -193,6 +194,7 @@ export default function MyAppointments() {
                 }
                 cita={citaSeleccionada}
                 completarCita={completarCita}
+                marcarInasistencia={marcarInasistencia}
             />
         </main>
     );

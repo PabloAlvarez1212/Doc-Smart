@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CalendarX, CheckCircle2, Clock3, Eye, MapPin, AlertTriangle } from "lucide-react";
+import { CalendarDays, CalendarX, CheckCircle2, Clock3, Eye, MapPin, AlertTriangle, Star } from "lucide-react";
 import ConsultorioLink from "../ConsultorioLink/ConsultorioLink";
 import Image from "next/image";
 import styles from "./AppointmentCard.module.css";
@@ -122,23 +122,6 @@ export default function AppointmentCard({
                     </button>
                 )}
 
-                {/* Fecha de finalización, cancelación o vencimiento */}
-                {metadata && ResolutionIcon && (
-                    <div
-                        className={`${styles.resolutionInfo} ${
-                            statusKey === "completada"
-                                ? styles.resolutionCompleted
-                                : ["vencida", "inasistencia_paciente"].includes(statusKey)
-                                    ? styles.resolutionExpired
-                                    : styles.resolutionCancelled
-                        }`}
-                    >
-                        <ResolutionIcon size={15} aria-hidden="true" />
-
-                        <span>{metadata}</span>
-                    </div>
-                )}
-
                 {/* Acciones de la cita */}
                 {actions.length > 0 && (
                     <div
@@ -173,6 +156,24 @@ export default function AppointmentCard({
                         ))}
                     </div>
                 )}
+                
+                {/* Fecha de finalización, cancelación o vencimiento */}
+                {metadata && ResolutionIcon && (
+                    <div
+                        className={`${styles.resolutionInfo} ${
+                            statusKey === "completada"
+                                ? styles.resolutionCompleted
+                                : ["vencida", "inasistencia_paciente"].includes(statusKey)
+                                    ? styles.resolutionExpired
+                                    : styles.resolutionCancelled
+                        }`}
+                    >
+                        <ResolutionIcon size={15} aria-hidden="true" />
+
+                        <span>{metadata}</span>
+                    </div>
+                )}
+
             </footer>
         </article>
     );

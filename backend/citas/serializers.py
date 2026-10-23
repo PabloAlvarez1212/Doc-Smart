@@ -1,6 +1,10 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Cita
+from rest_framework import serializers
+from django.utils import timezone
+
+from .models import Cita, RecordatorioCita
+from calificaciones.serializers import CalificacionEnCitaSerializer
 
 def msg(campo, articulo='El'):
     return {
@@ -22,6 +26,7 @@ def msg_numero(campo, articulo='El'):
 
 class CitaSerializer(serializers.ModelSerializer):
     paciente = serializers.SerializerMethodField()
+    calificacion = CalificacionEnCitaSerializer(read_only=True)
     medico   = serializers.SerializerMethodField()
     estado   = serializers.CharField(source='id_estado.nombre')
     ciudad    = serializers.CharField(source='id_medico.ciudad.nombre', allow_null=True, read_only=True)
@@ -77,6 +82,7 @@ class CitaSerializer(serializers.ModelSerializer):
             'codigo_cita',
             'motivo_consulta',
             'historial_id',
+            'calificacion'
         ]
 
     def get_medico(self, obj):

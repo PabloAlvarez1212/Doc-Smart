@@ -46,6 +46,40 @@ def ejecutar_ocr(contenido):
     if not r:raise DocumentoError("No se pudo leer el documento")
     return max(r,key=len)
 
+
+def ejecutar_ocr_region(contenido, region, psm=6):
+    try:
+        img = Image.open(io.BytesIO(contenido)).convert("RGB")
+        if img.height > img.width:
+            img = img.rotate(90, expand=True)
+
+        w, h = img.size
+        x1, y1, x2, y2 = region
+
+        img = img.crop((
+            int(w * x1),
+            int(h * y1),
+            int(w * x2),
+            int(h * y2),
+        ))
+
+        img = img.resize(
+            (img.width * 3, img.height * 3),
+            Image.Resampling.LANCZOS
+        )
+        img = ImageOps.autocontrast(ImageOps.grayscale(img))
+        img = ImageEnhance.Contrast(img).enhance(1.8)
+
+        return pytesseract.image_to_string(
+            img,
+            lang="spa+eng",
+            config=f"--oem 3 --psm {psm}"
+        ).strip()
+
+    except (OSError, ValueError, pytesseract.TesseractError):
+        return ""
+
+
 def detectar_formato_cc(tf,tr=""):
     t=normalizar_texto(tf+"\n"+tr)
     raw=(tf+"\n"+tr).upper()
@@ -193,44 +227,225 @@ def extraer_cc_vieja(contenido_frente,tf,tr,nombre,apellido):
         "fecha_nacimiento":fecha
     }
 
-def extraer_cc_nueva(contenido_reverso,tf,tr,nombre,apellido):
-    mrz=extraer_mrz(ejecutar_ocr_mrz(contenido_reverso)) if contenido_reverso else {
-        "numero_documento":None,"fecha_nacimiento":None,"nombres":None,"apellidos":None
-    }
 
-    numero=extraer_numero_cc(tf) or mrz["numero_documento"] or extraer_numero_cc(tr)
-    fecha=extraer_fecha(tf) or mrz["fecha_nacimiento"] or extraer_fecha(tr)
 
-    total=tf+"\n"+tr
-    if mrz["nombres"]:total+="\n"+mrz["nombres"]
-    if mrz["apellidos"]:total+="\n"+mrz["apellidos"]
 
-    nc=cn=ac=ca=None
-    if nombre:nc,cn=comparar_nombre_ocr(total,nombre)
-    if apellido:ac,ca=comparar_nombre_ocr(total,apellido)
+def es_frente_cc_nueva(texto):
+    t = normalizar_texto(texto)
+
+    return bool(
+        re.search(r"\b(?:NUIP|NUP|NU1P)\b", t)
+        or (
+            "APELLIDOS" in t
+            and "NOMBRES" in t
+            and (
+                "REPUBLICA DE COLOMBIA" in t
+                or "EXPIRACION" in t
+            )
+        )
+    )
+
+
+
+
+
+def extraer_nuip_nueva(texto):
+    t = normalizar_texto(texto)
+
+    patron = r"\b(?:NUIP|NUP|NUI[P]?|NU1P)\s*[:#.]?\s*((?:\d[\s.]*){6,12})"
+
+    m = re.search(patron, t)
+    if not m:
+        return None
+
+    numero = normalizar_numero(m.group(1))
+    return numero if 6 <= len(numero) <= 12 else None
+
+
+
+
+def extraer_fecha_nacimiento_nueva(texto):
+    t = normalizar_texto(texto)
+
+    meses = (
+        r"ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|"
+        r"SEP|SEPT|OCT|NOV|DIC"
+    )
+
+    patron_fecha = (
+        rf"(?<!\d)(\d{{1,2}})[\s./-]*"
+        rf"({meses})[\s./-]*(\d{{4}})(?!\d)"
+    )
+
+    # Primero buscar cerca de la etiqueta de nacimiento.
+    etiquetas = [
+        r"FECHA\s+DE\s+NACIMIENTO",
+        r"NACIMIENTO",
+        r"F\s*DE\s*NACIMIENTO",
+    ]
+
+    for etiqueta in etiquetas:
+        m = re.search(etiqueta, t)
+        if not m:
+            continue
+
+        fragmento = t[m.end():m.end() + 90]
+        fecha = re.search(patron_fecha, fragmento)
+
+        if fecha:
+            try:
+                return date(
+                    int(fecha.group(3)),
+                    MESES[fecha.group(2)],
+                    int(fecha.group(1))
+                )
+            except (ValueError, KeyError):
+                pass
+
+    return None
+
+
+def extraer_cc_nueva(contenido_frente, contenido_reverso, tf, tr, nombre, apellido):
+    # Identificar el frente independientemente del orden.
+    frente = tf if es_frente_cc_nueva(tf) else tr
+    reverso = tr if frente == tf else tf
+
+    datos_region = extraer_datos_frente_cc_nueva(contenido_frente)
+    numero = extraer_nuip_nueva(frente) or datos_region["numero_documento"]
+    fecha = extraer_fecha_nacimiento_nueva(frente) or datos_region["fecha_nacimiento"]
+
+    # El MRZ solo se consulta en la imagen identificada como reverso.
+    contenido_mrz = contenido_reverso
+
+    mrz = (
+        extraer_mrz(ejecutar_ocr_mrz(contenido_mrz))
+        if contenido_mrz
+        else {
+            "numero_documento": None,
+            "fecha_nacimiento": None,
+            "nombres": None,
+            "apellidos": None,
+        }
+    )
+
+    if not numero:
+        numero = mrz["numero_documento"]
+
+    if not fecha:
+        fecha = mrz["fecha_nacimiento"]
+
+    total = frente + "\n" + reverso
+
+    if mrz["nombres"]:
+        total += "\n" + mrz["nombres"]
+
+    if mrz["apellidos"]:
+        total += "\n" + mrz["apellidos"]
+
+    nc = cn = ac = ca = None
+
+    if nombre:
+        nc, cn = comparar_nombre_ocr(total, nombre)
+
+    if apellido:
+        ac, ca = comparar_nombre_ocr(total, apellido)
 
     return {
-        "formato_cc":"nueva","tipo_documento":"CC",
-        "numero_documento":numero,
-        "nombre_coincide":nc,"confianza_nombre":cn,
-        "apellido_coincide":ac,"confianza_apellido":ca,
-        "fecha_nacimiento":fecha
+        "formato_cc": "nueva",
+        "tipo_documento": "CC",
+        "numero_documento": numero,
+        "nombre_coincide": nc,
+        "confianza_nombre": cn,
+        "apellido_coincide": ac,
+        "confianza_apellido": ca,
+        "fecha_nacimiento": fecha,
     }
 
-def extraer_datos_cc(contenido_frente,contenido_reverso=None,nombre_declarado=None,apellido_declarado=None):
-    tf=ejecutar_ocr(contenido_frente)
-    tr=ejecutar_ocr(contenido_reverso) if contenido_reverso else ""
-    formato=detectar_formato_cc(tf,tr)
 
-    if formato=="nueva":
-        return extraer_cc_nueva(
-            contenido_reverso,tf,tr,
-            nombre_declarado,apellido_declarado
+
+
+def extraer_datos_frente_cc_nueva(contenido):
+    # Coordenadas relativas: (izquierda, arriba, derecha, abajo)
+    # Son regiones amplias para tolerar variaciones de encuadre.
+    regiones = {
+        "nuip": (0.35, 0.05, 1.00, 0.42),
+        "fecha": (0.20, 0.38, 1.00, 0.90),
+    }
+
+    texto_nuip = ejecutar_ocr_region(
+        contenido, regiones["nuip"], psm=6
+    )
+    texto_fecha = ejecutar_ocr_region(
+        contenido,
+        (0.05, 0.25, 1.00, 0.95),
+        psm=11
+    )
+
+    fecha = extraer_fecha_nacimiento_nueva(texto_fecha)
+
+    if not fecha:
+        texto_fecha_2 = ejecutar_ocr_region(
+            contenido,
+            (0.05, 0.25, 1.00, 0.95),
+            psm=6
+        )
+        fecha = extraer_fecha_nacimiento_nueva(texto_fecha_2)
+
+    return {
+        "numero_documento": extraer_nuip_nueva(texto_nuip),
+        "fecha_nacimiento": fecha,
+    }
+
+def extraer_datos_cc(
+    contenido_frente,
+    contenido_reverso=None,
+    nombre_declarado=None,
+    apellido_declarado=None,
+):
+    tf = ejecutar_ocr(contenido_frente)
+    tr = ejecutar_ocr(contenido_reverso) if contenido_reverso else ""
+
+    formato = detectar_formato_cc(tf, tr)
+
+    if formato == "nueva":
+        frente_es_primero = es_frente_cc_nueva(tf)
+        frente_es_segundo = es_frente_cc_nueva(tr)
+
+        if not frente_es_primero and not frente_es_segundo:
+            raise DocumentoError(
+                "No se pudo identificar el frente de la cédula nueva"
+            )
+
+        reverso_real = (
+            contenido_reverso
+            if frente_es_primero
+            else contenido_frente
         )
 
+        texto_frente = tf if frente_es_primero else tr
+        texto_reverso = tr if frente_es_primero else tf
+
+        frente_real = (
+            contenido_frente if frente_es_primero
+            else contenido_reverso
+        )
+
+        return extraer_cc_nueva(
+            frente_real,
+            reverso_real,
+            texto_frente,
+            texto_reverso,
+            nombre_declarado,
+            apellido_declarado,
+        )
+
+    # Mantener exactamente el flujo de la cédula antigua.
     return extraer_cc_vieja(
-        contenido_frente,tf,tr,
-        nombre_declarado,apellido_declarado
+        contenido_frente,
+        tf,
+        tr,
+        nombre_declarado,
+        apellido_declarado,
     )
 
 def extraer_numero_pasaporte(texto):
