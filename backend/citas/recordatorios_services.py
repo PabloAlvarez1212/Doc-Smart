@@ -158,6 +158,7 @@ def programarRecordatoriosCitasService():
                             "estado_envio",
                             "intentos_envio",
                             "fecha_envio_recordatorio",
+                            "fecha_inicio_procesamiento",
                         ]
                     )
 

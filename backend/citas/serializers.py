@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from django.utils import timezone
-from rest_framework import serializers
-from django.utils import timezone
 
 from .models import Cita, RecordatorioCita
 from calificaciones.serializers import CalificacionEnCitaSerializer
