@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
+
 from .models import Cita, RecordatorioCita
 from calificaciones.serializers import CalificacionEnCitaSerializer
 
@@ -113,21 +114,6 @@ class CitaSerializer(serializers.ModelSerializer):
         return(
             obj.historialclinico_set.values_list("id", flat=True).first()
         )
-
-
-class RecordatorioSerializer(serializers.ModelSerializer):
-    estado = serializers.CharField(source='id_estado.nombre')
-    medio  = serializers.CharField(source='id_medios.nombre')
-
-    class Meta:
-        model  = RecordatorioCita
-        fields = [
-            'id',
-            'fecha_programada',
-            'fecha_envio_recordatorio',
-            'estado',
-            'medio'
-        ]
 
 # ─── ENTRADA ──────────────────────────────────────────────────────────────────
 

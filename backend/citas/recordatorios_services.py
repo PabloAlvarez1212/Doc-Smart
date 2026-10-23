@@ -151,12 +151,14 @@ def programarRecordatoriosCitasService():
                     recordatorio.estado_envio = "pendiente"
                     recordatorio.intentos_envio = 0
                     recordatorio.fecha_envio_recordatorio = None
+                    recordatorio.fecha_inicio_procesamiento = None
 
                     recordatorio.save(
                         update_fields=[
                             "estado_envio",
                             "intentos_envio",
                             "fecha_envio_recordatorio",
+                            "fecha_inicio_procesamiento",
                         ]
                     )
 
@@ -300,11 +302,14 @@ def enviarRecordatoriosPendientesService():
                 # Reservar el procesamiento.
                 recordatorio.estado_envio = "procesando"
                 recordatorio.intentos_envio += 1
+                # Registrar cuando comenzo realmente
+                recordatorio.fecha_inicio_procesamiento = timezone.now()
 
                 recordatorio.save(
                     update_fields=[
                         "estado_envio",
                         "intentos_envio",
+                        "fecha_inicio_procesamiento",
                     ]
                 )
 

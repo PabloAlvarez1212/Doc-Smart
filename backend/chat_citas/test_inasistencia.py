@@ -60,7 +60,7 @@ class MigracionInasistenciaTests(TransactionTestCase):
                       'Falta migración nueva para fecha_inasistencia y catálogo')
         latest = executor.loader.graph.leaf_nodes()
         try:
-            before = [node for node in latest if node[0] != 'citas'] + [('citas', '0006_cita_fecha_creacion')]
+            before = [node for node in latest if node[0] not in ('citas', 'calificaciones')] + [('citas', '0006_cita_fecha_creacion')]
             executor.migrate(before)
             old = executor.loader.project_state(before).apps
             EstadoOld = old.get_model('catalogos', 'Estado')

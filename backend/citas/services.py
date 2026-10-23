@@ -1,7 +1,7 @@
 from citas.models import Cita, RecordatorioCita
-from citas.serializers import CitaSerializer, RecordatorioSerializer
+from citas.serializers import CitaSerializer
 from rest_framework.exceptions import NotFound, PermissionDenied
-from catalogos.models import Estado, Medio
+from catalogos.models import Estado
 from medicos.models import Medico
 from users.models import Usuario,InfoUser
 from django.utils import timezone
@@ -1380,37 +1380,6 @@ def confirmarCitaService(id, medico_id):
 
     return cita_data, 200
 # ─── RECORDATORIOS ────────────────────────────────────────────────────────────
-
-def listarRecordatoriosService():
-    recordatorios = RecordatorioCita.objects.all()
-    serializer = RecordatorioSerializer(recordatorios, many=True)
-    return serializer.data, 200
-
-def crearRecordatorioService(datos):
-    cita = Cita.objects.filter(id=datos.get('id_cita')).first()
-    if not cita:
-        return 'Cita no encontrada', 404
-
-    estado = Estado.objects.filter(id=datos.get('id_estado')).first()
-    medio  = Medio.objects.filter(id=datos.get('id_medios')).first()
-
-    recordatorio = RecordatorioCita.objects.create(
-        id_cita                  = cita,
-        fecha_programada         = datos['fecha_programada'],
-        fecha_envio_recordatorio = datos['fecha_envio_recordatorio'],
-        id_estado                = estado,
-        id_medios                = medio
-    )
-
-    serializer = RecordatorioSerializer(recordatorio)
-    return serializer.data, 201
-
-def eliminarRecordatorioService(id):
-    recordatorio = RecordatorioCita.objects.filter(id=id).first()
-    if not recordatorio:
-        return 'Recordatorio no encontrado', 404
-    recordatorio.delete()
-    return 'Recordatorio eliminado correctamente', 200
 
 #!Service para estadisticas del modulo citas
 
