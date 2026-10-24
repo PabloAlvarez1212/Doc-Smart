@@ -17,6 +17,7 @@ import useAppointments from "../../../../components/patient/MyAppointments/useAp
 import Pagination from "../../../../components/ui/Pagination/Pagination";
 import ReprogramAppointmentModal from "../../../../components/ui/ReprogramAppointmentModal/ReprogramAppointmentModal";
 import CalificarMedicoModal from "../../../../components/patient/Calificaciones/CalificarMedicoModal/CalificarMedicoModal";
+import DoctorProfileModal from "../../../../components/patient/FindDoctors/Profile/DoctorProfileModal";
 import styles from "./myAppointments.module.css";
 
 export default function MyAppointments() {
@@ -25,6 +26,7 @@ export default function MyAppointments() {
     const [modalReprogramar, setModalReprogramar] = useState(false);
     const [citaCalificacion, setCitaCalificacion] = useState(null);
     const [modalCalificacion, setModalCalificacion] = useState(false);
+    const [perfilMedico, setPerfilMedico] = useState(null);
     const {
         citas,
         especialidades,
@@ -137,6 +139,7 @@ export default function MyAppointments() {
                             cancelarCita={cancelarCita}
                             reprogramarCita={abrirReprogramacion}
                             onCalificar={abrirCalificacion}
+                            onViewDoctorProfile={setPerfilMedico}
                             hasActiveFilters={hasActiveFilters}
                         />
                     </m.div>
@@ -170,6 +173,11 @@ export default function MyAppointments() {
                 cita={citaCalificacion}
                 onRefresh={recargarCitas}
                 onSuccess={confirmarCalificacion}
+            />
+
+            <DoctorProfileModal
+                doctor={perfilMedico}
+                onClose={() => setPerfilMedico(null)}
             />
         </div>
     );

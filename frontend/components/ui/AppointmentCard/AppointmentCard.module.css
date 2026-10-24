@@ -126,6 +126,48 @@
     color: var(--text-secondary);
 }
 
+.locationGroup {
+    display: grid;
+    min-width: 0;
+    gap: 8px;
+}
+
+.profileLink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: fit-content;
+    min-height: 32px;
+    padding: 4px 0;
+    border: 0;
+    border-radius: 5px;
+    color: var(--color-dark);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 720;
+    line-height: 1.35;
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--color-dark) 38%, transparent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    gap: 6px;
+    transition:
+        color 160ms ease,
+        text-decoration-color 160ms ease;
+}
+
+.profileLink svg {
+    flex: 0 0 auto;
+}
+
+.profileLink:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+}
+
 .location strong {
     color: var(--text-secondary);
     font-size: 0.82rem;
@@ -481,6 +523,11 @@
         background: var(--tone-blue);
         transform: translateY(-1px);
     }
+
+    .profileLink:hover {
+        color: #173f7d;
+        text-decoration-color: currentColor;
+    }
 }
 
 @media (max-width: 900px) {
@@ -539,7 +586,8 @@
     .item,
     .actionButton,
     .actionButton svg,
-    .detailsButton {
+    .detailsButton,
+    .profileLink {
         transition: none;
     }
 

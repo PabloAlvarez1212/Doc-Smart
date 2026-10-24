@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CalendarX, CheckCircle2, Clock3, Eye, MapPin, AlertTriangle, Star } from "lucide-react";
+import { CalendarDays, CalendarX, CheckCircle2, Clock3, Eye, MapPin, AlertTriangle, Star, UserRoundSearch } from "lucide-react";
 import ConsultorioLink from "../ConsultorioLink/ConsultorioLink";
 import Image from "next/image";
 import styles from "./AppointmentCard.module.css";
@@ -85,25 +85,39 @@ export default function AppointmentCard({
                     </div>
                 </div>
 
-                <div className={styles.location}>
-                    <MapPin size={18} aria-hidden="true" />
+                <div className={styles.locationGroup}>
+                    {person?.profileLink && (
+                        <button
+                            type="button"
+                            className={styles.profileLink}
+                            onClick={person.profileLink.onClick}
+                            aria-label={`${person.profileLink.label} de ${personName}`}
+                        >
+                            <UserRoundSearch size={15} aria-hidden="true" />
+                            <span>{person.profileLink.label}</span>
+                        </button>
+                    )}
 
-                    <div>
-                        <strong>
-                            {location?.name || "Ubicación no disponible"}
-                        </strong>
+                    <div className={styles.location}>
+                        <MapPin size={18} aria-hidden="true" />
 
-                        {permitirMapa ? (
-                            <ConsultorioLink
-                                direccion={location?.address}
-                                latitud={location?.latitud}
-                                longitud={location?.longitud}
-                            />
-                        ) : (
-                            <span>
-                                {location?.address || "Ubicación no disponible"}
-                            </span>
-                        )}
+                        <div>
+                            <strong>
+                                {location?.name || "Ubicación no disponible"}
+                            </strong>
+
+                            {permitirMapa ? (
+                                <ConsultorioLink
+                                    direccion={location?.address}
+                                    latitud={location?.latitud}
+                                    longitud={location?.longitud}
+                                />
+                            ) : (
+                                <span>
+                                    {location?.address || "Ubicación no disponible"}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
