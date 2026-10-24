@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import Modal from "../../../ui/Modal/Modal";
 import Image from "next/image";
 import {
@@ -27,6 +28,7 @@ function formatearFecha(fecha) {
 }
 
 export default function DoctorCard({ doctor, onSchedule, onViewProfile }) {
+    const reduceMotion = useReducedMotion();
 
     const [mapaAbierto, setMapaAbierto] = useState(false);
 
@@ -182,10 +184,10 @@ export default function DoctorCard({ doctor, onSchedule, onViewProfile }) {
             </div>
 
             <div className={styles.actions}>
-                <button type="button" className={styles.profileAction} onClick={() => onViewProfile?.(doctor)}>
-                    <UserRound size={17} aria-hidden="true" />
+                <motion.button initial="rest" whileHover="hover" whileFocus="hover" type="button" className={styles.profileAction} onClick={() => onViewProfile?.(doctor)}>
+                    <motion.span aria-hidden="true" style={{ display: "inline-flex" }} variants={{ rest: { y: 0 }, hover: { y: reduceMotion ? 0 : -2 } }} transition={{ duration: .18, ease: "easeOut" }}><UserRound size={17} /></motion.span>
                     Ver perfil y valoración
-                </button>
+                </motion.button>
                 <Button
                     className={styles.primaryAction}
                     disabled={!tieneDisponibilidad}

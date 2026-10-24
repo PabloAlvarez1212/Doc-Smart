@@ -36,3 +36,8 @@
     .statusBar { padding: 19px 17px 15px; }
     .tabs { margin-inline: -4px; padding-bottom: 7px; }
 }
+.tabs button { min-height:44px; }
+.tabs .active { color:var(--action-on); background:var(--action-primary-bg); }
+.tabs .active:hover { color:var(--action-on); background:var(--action-primary-hover); }
+.tabs button:focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
+@media(prefers-reduced-motion:reduce) { .tabs button { transition:none; transform:none; } }

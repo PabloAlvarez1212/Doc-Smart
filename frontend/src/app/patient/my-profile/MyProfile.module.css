@@ -6,19 +6,20 @@
     width: min(calc(100% - 64px), 1240px);
     margin: 0 auto;
     gap: 24px;
-    padding: 20px 40px !important;
-    margin-bottom: 25px;
+    padding: 20px 40px 40px;
     color: var(--profile-ink);
 }
 
 .pageHeader { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;}
 .pageHeader h1 { margin: 0; font-size: clamp(2rem, 4vw, 2.45rem); letter-spacing: -.035em; line-height: 1.08; }
 .pageHeader p { margin: 9px 0 0; color: var(--profile-muted); font-size: .92rem; line-height: 1.5; }
-.pageHeader > span { display: inline-flex; align-items: center; min-height: 32px; padding: 6px 10px; border-radius: 999px; color: var(--color-dark); background: var(--surface-muted); font-size: .74rem; font-weight: 740; }
+.pageHeader > span { display: inline-flex; align-items: center; min-height: 32px; padding: 6px 10px; border-radius: 999px; color: var(--accent); background: var(--tone-blue); font-size: .74rem; font-weight: 740; }
 
 .profileLayout { display: grid; grid-template-columns: minmax(260px, 300px) minmax(0, 1fr); align-items: start; gap: 24px; }
 .sidebarColumn, .formColumn { min-width: 0; }
 .sidebarColumn { position: sticky; top: 152px; }
+.formColumn > p[role="alert"] { margin-bottom: 16px; padding: 14px 16px; border-radius: 12px; background: var(--tone-red); color: var(--ink-red); font-size: 14px; }
+.formColumn > p[role="status"] { margin-bottom: 16px; color: var(--text-secondary); font-size: 14px; }
 
 .errorState { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 15px; min-height: 156px; padding: 24px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); }
 .errorState > span { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 11px; color: var(--ink-red); background: var(--surface-muted); }
@@ -36,15 +37,15 @@
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 @media (max-width: 1100px) {
-    .page { width: min(calc(100% - 44px), 1240px); padding-top: 32px; }
+    .page { width: calc(100% - 44px); padding: 24px 12px 36px; }
     .profileLayout, .skeletonLayout { grid-template-columns: minmax(0, 1fr); }
     .sidebarColumn { position: static; }
     .skeletonSidebar { min-height: 300px; }
 }
 
 @media (max-width: 600px) {
-    .page { width: min(calc(100% - 32px), 1240px); gap: 20px; padding: 24px 0 58px; }
-    .pageHeader { align-items: flex-start; flex-direction: column; gap: 12px; margin-top: 20px; }
+    .page { width: 100%; gap: 20px; padding: 20px 16px 32px; }
+    .pageHeader { align-items: flex-start; flex-direction: column; gap: 12px; margin-top: 0; }
     .profileLayout { gap: 18px; }
 }
 

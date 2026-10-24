@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { parseHistoryRecordId } from "./medicalHistoryLink.mjs";
 import { useNotificationsContext } from '../../contex/NotificationsContext';
 import {
     listarHistorialPacienteService,
@@ -48,6 +50,9 @@ const getRequestError = (error, context = "list") => {
 };
 
 export default function useMedicalHistory() {
+    const searchParams = useSearchParams();
+    const requestedRecord = searchParams.get("historial");
+    const previousRequestedRecord = useRef(null);
     const { eventoCita } = useNotificationsContext();
     const selectedRecordRef = useRef(null);
     const [records, setRecords] = useState([]);
@@ -216,6 +221,7 @@ export default function useMedicalHistory() {
             const detail = await obtenerHistorialClinicoService(record.id, {
                 signal: controller.signal,
             });
+            if (controller.signal.aborted) return;
             setSelectedRecord(detail);
         } catch (requestError) {
             if (requestError.code === "ERR_CANCELED") return;
@@ -234,6 +240,20 @@ export default function useMedicalHistory() {
         setDetailError(null);
         setDetailLoading(false);
     }, []);
+
+    useEffect(() => {
+        // Resolve notifications outside the current page; Back also dismisses their detail.
+        const id = parseHistoryRecordId(requestedRecord);
+        const previousId = previousRequestedRecord.current;
+        previousRequestedRecord.current = id;
+        if (id !== null) {
+            openDetail({ id });
+        } else if (previousId !== null) {
+            closeDetail();
+        }
+        // openDetail, closeDetail and the unmount effect own cancellation. A query
+        // cleanup must not abort a newer detail opened independently from the list.
+    }, [requestedRecord, openDetail, closeDetail]);
 
     const retryDetail = useCallback(() => {
         if (selectedRecord) openDetail(selectedRecord);

@@ -17,6 +17,9 @@ class Notificacion(models.Model):
     conversacion = models.ForeignKey('chat_citas.Conversacion', on_delete=models.PROTECT,
                                      null=True, blank=True, related_name='notificaciones')
 
+    cita = models.ForeignKey('citas.Cita', on_delete=models.SET_NULL, null=True, blank=True, related_name='notificaciones')
+    historial = models.ForeignKey('historial_medico.HistorialClinico', on_delete=models.SET_NULL, null=True, blank=True, related_name='notificaciones')
+
     # destinatario — puede ser usuario o médico
     id_usuario  = models.ForeignKey('users.Usuario', on_delete=models.CASCADE, null=True, blank=True)
     id_medico   = models.ForeignKey('medicos.Medico', on_delete=models.CASCADE, null=True, blank=True)

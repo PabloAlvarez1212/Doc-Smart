@@ -67,3 +67,9 @@
 @media (prefers-reduced-motion: reduce) {
     .skeletonList span, .updating::before { animation: none; }
 }
+/* All agenda states inherit the active patient theme. */
+.page ::selection { color:var(--action-on); background:var(--action-primary-bg); }
+.errorState button { color:var(--action-on); background:var(--action-primary-bg); }
+.errorState button:hover { background:var(--action-primary-hover); }
+.errorState button:focus-visible { outline:3px solid var(--focus); outline-offset:3px; }
+.skeletonList span { background-image:linear-gradient(90deg,var(--surface-muted) 25%,var(--surface) 50%,var(--surface-muted) 75%); }

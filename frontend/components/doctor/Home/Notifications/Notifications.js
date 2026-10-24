@@ -10,6 +10,7 @@ import { getContentTransition } from '../../../patient/Home/patientHomeMotion';
 import shared from '../../../patient/Home/Notifications/Notifications.module.css';
 import styles from './Notifications.module.css';
 import home from '../Home.module.css';
+import NotificationContent from '../../../ui/Notifications/NotificationContent';
 
 export default function Notifications({ data, notifications = [], unread = 0, loading, error, onRead, onRetry }) {
   const reduced = useReducedMotion();
@@ -45,13 +46,11 @@ export default function Notifications({ data, notifications = [], unread = 0, lo
             {recent.map(item => (
               <motion.article key={item.id} layout={!reduced} {...getContentTransition(reduced)} className={`${shared.item} ${styles.item} ${item.leida ? '' : styles.unread}`}>
                 <span className={`${shared.itemIcon} ${styles.itemIcon}`} aria-hidden="true">{renderIcono(item.tipo, 20) || <Bell size={20} />}</span>
-                <span className={`${shared.itemCopy} ${styles.itemCopy}`}>
-                  {item.titulo && <strong>{item.titulo}</strong>}<span>{item.mensaje}</span><small>{formatearFechaRelativa(item.fecha)}</small>
-                </span>
+                <NotificationContent notification={item} role="doctor" markRead={onRead} className={`${shared.itemCopy} ${styles.itemCopy}`} />
                 {item.leida ? <span className={styles.readLabel}><Check size={14} aria-hidden="true" />Vista</span> : (
-                  <button className={`${shared.readButton} ${styles.readButton}`} type="button" disabled={pending[item.id]} aria-busy={Boolean(pending[item.id])} aria-label={`Marcar como leída: ${item.mensaje}`} onClick={() => markRead(item)}>
+                  <button className={`${shared.readButton} ${styles.readButton}`} type="button" disabled={pending[item.id]} aria-busy={Boolean(pending[item.id])} title={pending[item.id] ? 'Marcando…' : 'Marcar como leída'} aria-label={`Marcar como leída: ${item.mensaje}`} onClick={() => markRead(item)}>
                     {pending[item.id] ? <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}
-                    {pending[item.id] ? 'Marcando…' : 'Marcar leída'}
+                    <span className={styles.readActionText}>{pending[item.id] ? 'Marcando…' : 'Marcar leída'}</span>
                   </button>
                 )}
               </motion.article>

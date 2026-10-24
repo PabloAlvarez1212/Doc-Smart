@@ -1,6 +1,6 @@
 .doctor .unread {background:color-mix(in srgb,var(--doctor-positive-bg) 50%,transparent);border-radius:10px}
 .doctor .itemIcon {color:var(--doctor-primary);background:var(--doctor-positive-bg)}
-.doctor .itemCopy>strong {color:var(--color-text);font-size:.89rem;line-height:1.5;font-weight:650}
+.doctor .itemCopy>strong {color:var(--color-text);font-size:.84rem;line-height:1.4;font-weight:650}
 .doctor .readButton {min-height:44px;white-space:nowrap}
 .doctor .readButton:disabled {cursor:wait;opacity:.65}
 .doctor .readButton:hover {background:var(--doctor-positive-bg)}
@@ -15,8 +15,14 @@
 @media(prefers-reduced-motion:no-preference){.spinner{animation:spin .8s linear infinite}}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.doctor {container-type:inline-size}
-@container(max-width:380px){
-  .doctor .item{grid-template-columns:auto minmax(0,1fr)}
-  .doctor .readButton,.doctor .readLabel{grid-column:2;justify-self:start}
-}
+.doctor .item{grid-template-columns:32px minmax(0,1fr) 44px;gap:10px;min-height:76px;padding:12px 8px;align-items:start}
+.doctor .itemIcon{width:32px;height:32px;border-radius:9px;margin-top:2px}
+.doctor .itemIcon svg{width:17px;height:17px}
+.doctor .itemCopy{gap:3px}
+.doctor .itemCopy>span{font-size:.82rem;line-height:1.5}
+.doctor .itemCopy small{font-size:.7rem;line-height:1.4}
+.doctor .readButton,.doctor .readLabel{grid-column:3;grid-row:1;align-self:center;justify-self:center;justify-content:center;width:44px;min-height:44px;padding:0;gap:0}
+.doctor .readButton{border-radius:9px}
+.doctor .readLabel{font-size:0}
+.readActionText{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(max-width:380px){.doctor .item{gap:8px;padding-inline:4px}}

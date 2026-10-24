@@ -7,3 +7,21 @@
 @media(prefers-reduced-motion:no-preference){.skeleton span{animation:ratingPulse 1.3s ease-in-out infinite alternate}}@keyframes ratingPulse{to{opacity:.48}}
 @media(max-width:480px){.card{padding:18px}.compact .metric{grid-template-columns:1fr}.compact .metric p{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){.skeleton span{animation:none}}
+
+/* The home summary balances the workspace column without stretching the next consultation. */
+.home{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:12px;min-height:94px;padding:16px 18px}
+.home .heading{align-items:center;gap:8px;min-width:0}
+.home .icon{width:32px;height:32px;flex-basis:32px;border-radius:9px}
+.home .heading h2{font-size:.88rem;line-height:1.4;overflow-wrap:break-word}
+.home .empty,.home .feedback{min-height:0;padding:0;background:transparent;font-size:.78rem}
+.home .empty>svg{display:none}
+.home .metric{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:5px;min-width:0}
+.home .metric>strong{font-size:1.5rem}
+.home .metric p{grid-column:1/-1;font-size:.74rem}
+.home .metric [role="img"]>div{gap:3px}
+.home .metric [role="img"]>div>span,.home .metric [role="img"] svg{width:18px;height:18px}
+.home .metric [role="img"]>span{display:none}
+.home .feedback{gap:6px}
+.home .feedback button{margin-left:0}
+@media(max-width:1100px) and (min-width:851px){.home{grid-template-columns:minmax(0,1fr);gap:10px}.home .metric{grid-template-columns:auto minmax(0,1fr)}.home .metric p{grid-column:1/-1}}
+@media(max-width:850px){.home .metric{grid-template-columns:minmax(0,1fr)}.home .metric p{grid-column:auto}}

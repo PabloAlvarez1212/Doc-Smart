@@ -19,6 +19,7 @@ import ReprogramAppointmentModal from "../../../../components/ui/ReprogramAppoin
 import CalificarMedicoModal from "../../../../components/patient/Calificaciones/CalificarMedicoModal/CalificarMedicoModal";
 import DoctorProfileModal from "../../../../components/patient/FindDoctors/Profile/DoctorProfileModal";
 import styles from "./myAppointments.module.css";
+import AppointmentDeepLink from "../../../../components/ui/AppointmentCard/DeepLinkedAppointment";
 
 export default function MyAppointments() {
     const reduceMotion = useReducedMotion();
@@ -92,6 +93,7 @@ export default function MyAppointments() {
     return (
         <div className={styles.page} data-appointments-page="true">
             <Hero />
+            <AppointmentDeepLink />
 
             <section className={styles.workspace} aria-label="Gestión de citas">
                 <HeaderAppointment estado={estado} cambiarEstado={cambiarEstado} />

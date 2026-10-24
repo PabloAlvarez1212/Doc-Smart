@@ -62,3 +62,19 @@
 @media (prefers-reduced-motion: reduce) {
     .avatarOverlay, .removePhotoButton, .cameraButton { transition: none; }
 }
+
+.summary { box-shadow: none; }
+.identity { background: var(--surface); }
+.avatar { border-color: var(--surface-muted); box-shadow: 0 0 0 1px var(--control-border), 0 8px 20px rgb(0 0 0 / 12%); }
+.role { background: var(--tone-blue); color: var(--accent); }
+.cameraButton { width: 44px; height: 44px; color: var(--action-on); background: var(--action-primary-bg); border-color: var(--surface); }
+.cameraButton:not(:disabled):hover { background: var(--action-primary-hover); transform: none; }
+.cameraButton > svg { transition: transform 200ms var(--motion-ease); }
+.cameraButton:not(:disabled):hover > svg { transform: rotate(-8deg); }
+.cameraButton:focus-visible, .removePhotoButton:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.cameraButton:disabled { background: var(--surface-muted); color: var(--text-secondary); border-color: var(--border); }
+.details dd { color: var(--text-primary); }
+@media (hover:none) { .removePhotoButton { width: 44px; height: 44px; } }
+@media (prefers-reduced-motion:no-preference) { .summary { animation: summaryEnter 240ms var(--motion-ease) both; } }
+@keyframes summaryEnter { from { opacity: .85; translate: 0 5px; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion:reduce) { .cameraButton > svg { transition: none; transform: none!important; } }

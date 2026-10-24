@@ -20,6 +20,7 @@ async function loadComponent(file, request = async () => ({url: 'https://storage
         if (id.includes('appointmentsServices')) return {obtenerUrlDocumentoSeguimientoService: request};
         if (id.includes('errrorUtils')) return {obtenerPrimerError: value => typeof value === 'string' ? value : ''};
         if (id.includes('/Button/')) return props => React.createElement('button', props, props.children);
+        if (id.includes('/AppointmentCode/')) return props => React.createElement('span', null, props.value);
         if (id.includes('DocumentosSeguimientoList')) return () => null;
         if (id.startsWith('.')) return require(path.resolve(path.dirname(file), id));
         return require(id);

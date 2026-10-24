@@ -87,7 +87,7 @@ export default function WeeklySchedule({
             setDuracion(Number(e.target.value));
             setMensaje(null);
           }}>{[15, 30, 45, 60, 90, 120].map(n => <option key={n} value={n}>{n} minutos</option>)}</select></span></label></div>
-  <div className={styles.days}>{semana.map(dia => <article key={dia.id} className={`${styles.dayCard} ${dia.activo ? styles.dayActive : ''}`}>
+  <div className={styles.days}>{semana.map(dia => <article key={dia.id} className={styles.dayCard}>
    <div className={styles.dayHeader}><div><h3>{dia.nombre}</h3><span className={dia.activo ? styles.statusActive : styles.statusInactive}>{dia.activo ? `${dia.bloques.length} ${dia.bloques.length === 1 ? 'bloque de atención' : 'bloques de atención'}` : 'Sin atención'}</span></div><button type="button" disabled={saving} className={`${styles.switch} ${dia.activo ? styles.switchActive : ''}`} aria-label={`Atención el ${dia.nombre}`} aria-pressed={dia.activo} onClick={() => update(dia.id, d => ({
             ...d,
             activo: !d.activo,

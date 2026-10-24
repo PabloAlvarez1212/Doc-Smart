@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { motion, useReducedMotion } from 'motion/react';
 import styles from "./PersonalInfo.module.css";
 
 export default function InfoSalud({
@@ -9,6 +10,7 @@ export default function InfoSalud({
     onEditar,
     onEliminar,
 }) {
+    const reduced = useReducedMotion();
     return (
         <div className={styles.container}>
             <header className={styles.header}>
@@ -45,9 +47,9 @@ export default function InfoSalud({
                                 </td>
                             </tr>
                         ) : registros.map((dato) => (
-                            <tr key={dato.id}>
-                                <td>{dato.tipo_nombre}</td>
-                                <td>
+                            <motion.tr key={dato.id} initial={reduced ? false : {opacity:0,y:4}} animate={{opacity:1,y:0}} transition={{duration:reduced ? 0 : .2}}>
+                                <td data-label="Tipo">{dato.tipo_nombre}</td>
+                                <td data-label="Información">
                                     <strong>{dato.nombre}</strong>
                                     {dato.descripcion && (
                                         <span className={styles.detail}>
@@ -60,7 +62,7 @@ export default function InfoSalud({
                                         </span>
                                     )}
                                 </td>
-                                <td>
+                                <td data-label="Estado">
                                     <span className={styles.badge}>
                                         {dato.estado}
                                     </span>
@@ -68,7 +70,7 @@ export default function InfoSalud({
                                         Reportado por ti
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Acciones">
                                     <div className={styles.actions}>
                                         <button
                                             type="button"
@@ -91,7 +93,7 @@ export default function InfoSalud({
                                         </button>
                                     </div>
                                 </td>
-                            </tr>
+                            </motion.tr>
                         ))}
                     </tbody>
                 </table>

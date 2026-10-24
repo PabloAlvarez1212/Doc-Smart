@@ -18,6 +18,7 @@ import {
 import CompleteAppointmentModal from "../../../../components/ui/CompleteAppointmentModal/CompleteAppointmentModal";
 import styles from "./myAppointments.module.css";
 import Button from "../../../../components/ui/Button/Button";
+import AppointmentDeepLink from "../../../../components/ui/AppointmentCard/DeepLinkedAppointment";
 
 export default function MyAppointments() {
     const reduceMotion = useReducedMotion();
@@ -78,6 +79,7 @@ export default function MyAppointments() {
     return (
         <main className={styles.page} data-appointments-page="true">
             <Hero resumen={resumen} loading={loadingResumen} />
+            <AppointmentDeepLink counterpart="paciente" />
 
             <nav className={styles.sectionTabs}aria-label="Secciones de citas médicas">
                 {/* AGENDA */}

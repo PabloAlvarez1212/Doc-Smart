@@ -106,7 +106,7 @@
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    color: #2456a6;
+    color: var(--color-dark);
     background: var(--surface-muted);
 }
 
@@ -176,7 +176,7 @@
 
 .field input:focus,
 .field textarea:focus {
-    border-color: #2456a6;
+    border-color: var(--color-dark);
     box-shadow: 0 0 0 3px rgb(36 86 166 / 13%);
 }
 
@@ -233,7 +233,7 @@
 .guidance svg,
 .availabilityState > svg {
     flex: 0 0 auto;
-    color: #2456a6;
+    color: var(--color-dark);
 }
 
 .guidance div,
@@ -256,21 +256,21 @@
 }
 
 .errorState {
-    border: 1px solid #efc7cb;
-    color: #8f2f3b;
-    background: #fff6f7;
+    border: 1px solid var(--border);
+    color: var(--ink-red);
+    background: var(--tone-red);
 }
 
 .errorState > svg,
 .errorState strong {
-    color: #a33140;
+    color: var(--ink-red);
 }
 
 .availabilityState button {
     margin-top: 3px;
     padding: 0;
     border: 0;
-    color: #2456a6;
+    color: var(--color-dark);
     background: transparent;
     font: inherit;
     font-weight: 750;
@@ -281,7 +281,7 @@
 
 .availabilityState button:focus-visible {
     border-radius: 3px;
-    outline: 2px solid #2456a6;
+    outline: 2px solid var(--color-dark);
     outline-offset: 3px;
 }
 
@@ -322,13 +322,13 @@
 .slot:focus-visible {
     outline: 3px solid rgb(36 86 166 / 20%);
     outline-offset: 2px;
-    border-color: #2456a6;
+    border-color: var(--color-dark);
 }
 
 .slot.selected {
-    border-color: #1733a4;
-    color: #fff;
-    background: #1733a4;
+    border-color: var(--brand-solid);
+    color: var(--on-accent);
+    background: var(--brand-solid);
     box-shadow: 0 5px 14px rgb(23 51 164 / 18%);
 }
 
@@ -428,8 +428,8 @@
 
 .footerActions .confirmButton,
 .confirmationActions .primaryAction {
-    color: #fff;
-    background: #2456a6;
+    color: var(--on-accent);
+    background: var(--color-dark);
     box-shadow: 0 4px 12px rgb(36 86 166 / 18%);
 }
 
@@ -472,7 +472,7 @@
     margin-bottom: 14px;
     border-radius: 16px;
     color: var(--ink-green);
-    background: #eff9f3;
+    background: var(--tone-green);
 }
 
 .confirmation h3 {
@@ -594,14 +594,14 @@
 
 @media (hover: hover) and (pointer: fine) {
     .slot:hover:not(:disabled) {
-        border-color: #2456a6;
-        color: #2456a6;
-        background: #f3f7fd;
+        border-color: var(--color-dark);
+        color: var(--color-dark);
+        background: var(--tone-blue);
     }
 
     .slot.selected:hover:not(:disabled) {
-        color: #fff;
-        background: #1733a4;
+        color: var(--on-accent);
+        background: var(--brand-solid);
     }
 }
 

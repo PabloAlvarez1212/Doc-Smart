@@ -60,7 +60,12 @@ class MigracionInasistenciaTests(TransactionTestCase):
                       'Falta migración nueva para fecha_inasistencia y catálogo')
         latest = executor.loader.graph.leaf_nodes()
         try:
-            before = [node for node in latest if node[0] not in ('citas', 'calificaciones')] + [('citas', '0006_cita_fecha_creacion')]
+            # The later notification resource FKs depend on current citas; this
+            # historical plan must use the notification schema from its era.
+            before = [node for node in latest if node[0] not in ('citas', 'calificaciones', 'notificaciones')] + [
+                ('citas', '0006_cita_fecha_creacion'),
+                ('notificaciones', '0002_notificacion_conversacion'),
+            ]
             executor.migrate(before)
             old = executor.loader.project_state(before).apps
             EstadoOld = old.get_model('catalogos', 'Estado')

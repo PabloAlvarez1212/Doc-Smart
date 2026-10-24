@@ -7,7 +7,7 @@
 .duration select{min-height:44px;padding:8px 30px 8px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--color-text);font:inherit;font-size:14px}
 .days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
 .dayCard{min-width:0;border:1px solid var(--border);border-radius:14px;background:var(--surface);transition:border-color 200ms,background-color 200ms;overflow:hidden}
-.dayActive{border-color:color-mix(in srgb,var(--doctor-primary) 40%,var(--border))}
+@media(hover:hover) and (pointer:fine){.dayCard:hover{border-color:var(--doctor-primary)}}
 .dayHeader{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px}
 .dayHeader h3{font-size:16px;line-height:1.35;font-weight:650}
 .statusActive,.statusInactive{display:block;margin-top:4px;font-size:12px;line-height:1.4}

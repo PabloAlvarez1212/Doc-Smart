@@ -50,7 +50,9 @@ class EventTests(Fase3Fixture):
         from .services import obtenerEstadoConversacionService
         from notificaciones.models import Notificacion
         completarCitaService(self.cita.pk, self.doctor.pk, self.datos_historial)
-        self.assertEqual(Notificacion.objects.count(), 2)
+        self.assertEqual(Notificacion.objects.count(), 4)
+        self.assertEqual(Notificacion.objects.filter(tipo='cita_completada', cita=self.cita).count(), 2)
+        self.assertEqual(Notificacion.objects.filter(tipo='historial_creado', historial__cita=self.cita).count(), 2)
         self.conv.refresh_from_db()
         with patch('django.utils.timezone.now', return_value=self.now + timedelta(hours=24)):
             self.assertEqual(obtenerEstadoConversacionService(self.conv)['estado'], 'cerrado')

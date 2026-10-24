@@ -50,7 +50,7 @@ export function TodaySchedule({ appointments = [] }) {
       </div>
       <p className={styles.srOnly} aria-live="polite">{visible.length} citas en el filtro {filters.find(([value]) => value === filter)[1]}.</p>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={filter} initial={reduced ? false : { opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: reduced ? 1 : 0 }} transition={{ duration: reduced ? 0 : 0.14 }}>
+        <motion.div className={styles.agendaViewport} tabIndex={0} role="region" aria-label="Citas de la agenda de hoy" key={filter} initial={reduced ? false : { opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: reduced ? 1 : 0 }} transition={{ duration: reduced ? 0 : 0.14 }}>
           {visible.length ? (
             <ol className={styles.agenda}>
               {visible.map(item => (

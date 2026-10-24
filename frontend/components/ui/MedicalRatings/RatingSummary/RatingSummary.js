@@ -9,6 +9,7 @@ export default function RatingSummary({
     error = null,
     onRetry,
     compact = false,
+    variant = "default",
     title = "Calificación de pacientes",
     emptyMessage = "Aún no tienes calificaciones.",
 }) {
@@ -16,7 +17,7 @@ export default function RatingSummary({
     const promedio = resumen?.promedio || 0;
 
     return (
-        <section className={`${styles.card} ${compact ? styles.compact : ""}`} aria-labelledby="rating-summary-title">
+        <section className={`${styles.card} ${compact ? styles.compact : ""} ${variant === "home" ? styles.home : ""}`} aria-labelledby="rating-summary-title">
             <div className={styles.heading}>
                 <span className={styles.icon} aria-hidden="true"><Star size={19} /></span>
                 <div>

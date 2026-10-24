@@ -93,6 +93,7 @@ export default function FormInfoSalud({
             <label>
                 {etiqueta}
                 <input
+                    aria-label={etiqueta}
                     name={nombre}
                     type={type}
                     value={datos[nombre]}
@@ -112,7 +113,7 @@ export default function FormInfoSalud({
                 <div className={styles.formGrid}>
                     <label>
                         Tipo
-                        <select name="id_tipo" value={datos.id_tipo}
+                        <select name="id_tipo" aria-label="Tipo" value={datos.id_tipo}
                             onChange={cambiar} required>
                             <option value="">Selecciona un tipo</option>
                             {tipos.map((tipo) => (
@@ -140,7 +141,7 @@ export default function FormInfoSalud({
 
                     <label>
                         Estado
-                        <select name="estado" value={datos.estado}
+                        <select name="estado" aria-label="Estado" value={datos.estado}
                             onChange={cambiar}>
                             <option value="vigente">Vigente</option>
                             <option value="resuelto">Resuelto</option>
@@ -150,7 +151,7 @@ export default function FormInfoSalud({
 
                     <label>
                         Descripción
-                        <textarea name="descripcion" rows={3}
+                        <textarea name="descripcion" aria-label="Descripción" rows={3}
                             value={datos.descripcion} onChange={cambiar} />
                     </label>
                 </div>

@@ -52,8 +52,8 @@
     place-items: center;
     min-height: 28px;
     border-radius: 7px;
-    color: #fff;
-    background: #315a99;
+    color: var(--on-accent);
+    background: var(--brand-solid);
     font-size: .7rem;
     font-weight: 700;
 }
@@ -71,3 +71,6 @@
 @media (max-width: 420px) {
     .statusRow { align-items: flex-start; flex-direction: column; gap: 7px; }
 }
+
+.statusRow strong { color: var(--color-text); }
+.day p { font-variant-numeric: tabular-nums; }

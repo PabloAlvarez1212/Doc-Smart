@@ -136,3 +136,8 @@
 
 .page.workspacePage[data-chat-page]{--chat-nav-reserve:135px}
 @media(max-width:1100px){.page.workspacePage[data-chat-page]{--chat-nav-reserve:87px}}
+
+/* Keep the panel aligned with the usable content width of both home pages. */
+.page.workspacePage[data-chat-page]{box-sizing:border-box;width:min(calc(100% - 64px),1240px);max-width:1240px;padding-inline:40px}
+@media(max-width:1020px){.page.workspacePage[data-chat-page]{width:min(calc(100% - 44px),1240px)}}
+@media(max-width:560px){.page.workspacePage[data-chat-page]{width:min(calc(100% - 32px),1240px);padding-inline:0}}

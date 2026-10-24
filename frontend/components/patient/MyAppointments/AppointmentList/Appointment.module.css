@@ -64,3 +64,6 @@
     .empty { grid-template-columns: minmax(0, 1fr); padding: 25px 4px; }
     .empty a { width: 100%; }
 }
+.empty > span { color:var(--color-dark); background:var(--tone-blue); }
+.empty a { color:var(--color-dark); }
+.empty a:focus-visible { outline:3px solid var(--focus); outline-offset:3px; }

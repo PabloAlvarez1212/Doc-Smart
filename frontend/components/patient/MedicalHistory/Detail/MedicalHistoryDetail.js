@@ -3,7 +3,6 @@ import {
     CalendarDays,
     Clock3,
     ClipboardList,
-    FileDown,
     RefreshCw,
     Stethoscope,
     TicketCheck,
@@ -80,7 +79,7 @@ export default function MedicalHistoryDetail({ record, loading, error, onRetry }
                     <div><dt>Observaciones</dt><dd>{record.observaciones || "Sin observaciones adicionales."}</dd></div>
                 </dl>
             </section>
-            <div className={styles.note}><ClipboardList size={19} aria-hidden="true" /><p>Registro clínico versionado. Estás viendo la versión {record.version_actual}.</p></div>
+            <div className={styles.note}><ClipboardList size={19} aria-hidden="true" /><p>Registro clínico versionado. Estás viendo la versión {record.version_actual ?? "—"}.</p></div>
         </article>
     );
 }

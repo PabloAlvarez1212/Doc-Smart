@@ -1,4 +1,4 @@
-import { FileHeart, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import styles from "./MedicalHistoryHero.module.css";
 
 export default function MedicalHistoryHero({ total, loading = false }) {
@@ -8,7 +8,6 @@ export default function MedicalHistoryHero({ total, loading = false }) {
         <header className={styles.hero}>
             <div className={styles.heading}>
                 <div>
-                    <p className={styles.eyebrow}>Tu expediente de salud</p>
                     <h1>Historial clínico</h1>
                     <p className={styles.description}>Consulta el registro de tus atenciones y diagnósticos médicos en orden cronológico.</p>
                 </div>

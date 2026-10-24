@@ -169,7 +169,7 @@ export default function PersonalInfo({
                     <div><h2>Información personal</h2><p>Consulta y actualiza tus datos personales.</p></div>
                 </div>
 
-                <div className={`${styles.inputs} ${styles.professionalGrid}`}>
+                <div className={styles.inputs}>
                     <div className={styles.itemInput}>
                         <div className={styles.labelRow}><label htmlFor="nombre">Nombre</label>{perfil.documento_verificado_en && <span><LockKeyhole size={12} aria-hidden="true" /> Verificado</span>}</div>
                         <Input
@@ -243,7 +243,7 @@ export default function PersonalInfo({
                     <div><h2>Información profesional</h2><p>Configura dónde atiendes para que los pacientes puedan encontrar tu consultorio.</p></div>
                 </div>
 
-                <div className={styles.inputs}>
+                <div className={`${styles.inputs} ${styles.professionalGrid}`}>
                     <div className={styles.itemInput}>
                         <label htmlFor="especialidad">
                             Especialidad

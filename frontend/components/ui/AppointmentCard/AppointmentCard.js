@@ -29,7 +29,7 @@ export default function AppointmentCard({
                     ? AlertTriangle
                     : null;
     return (
-        <article className={`${styles.item} ${variant === 'doctor' ? styles.doctor : ''}`} role="listitem">
+        <article className={`${styles.item} ${variant === 'doctor' ? styles.doctor : variant === 'patient' ? styles.patient : ''}`} role="listitem">
             <header className={styles.cardHeader}>
                 <div className={styles.schedule}>
                     <span className={styles.dateIcon} aria-hidden="true">

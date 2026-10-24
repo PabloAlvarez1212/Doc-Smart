@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion as m, useReducedMotion } from "motion/react";
 import { useRef, useState } from "react";
-import Link from 'next/link';
+import useNotificationNavigation from './useNotificationNavigation';
 import { filtrarNotificacionesPorFecha } from "@/app/utils/notificacionesUtils";
 import { formatearFechaRelativa } from "@/app/utils/fechaFormaterUtils";
 import Pagination from "../Pagination/Pagination";
@@ -57,7 +57,7 @@ export default function NotificationCenter({
     const hasDateFilter = dateFilter !== "todas";
 
     return (
-        <main className={`${styles.page} ${compactTop ? styles.compactTop : ""} ${variant === 'doctor' ? styles.doctor : ''}`}>
+        <main className={`${styles.page} ${styles.enhanced} ${compactTop ? styles.compactTop : ""} ${variant === 'doctor' ? styles.doctor : styles.patient}`}>
             <header className={styles.header}>
                 <div className={styles.heading}>
                     <h1>Notificaciones</h1>
@@ -179,6 +179,8 @@ function NotificationItem({ notification, markRead, deleteNotification, reduceMo
     const [busy, setBusy] = useState(false);
     const [feedback, setFeedback] = useState('');
     const pending = useRef(false);
+    const navigation = useNotificationNavigation(notification,variant === 'doctor' ? 'doctor' : 'patient',markRead);
+    const Content = navigation.canNavigate ? 'button' : 'div';
     async function read() {
         if (pending.current || notification.leida) return;
         pending.current = true;
@@ -207,17 +209,18 @@ function NotificationItem({ notification, markRead, deleteNotification, reduceMo
                 <Icon size={20} />
             </span>
 
-            <div className={styles.content}>
-                <div className={styles.titleRow}>
-                    <h3>{notification.titulo || "Actualización de DocSmart"}</h3>
+            <Content className={`${styles.content} ${navigation.canNavigate ? styles.openContent : ''}`} onClick={navigation.canNavigate ? navigation.open : undefined} type={navigation.canNavigate ? 'button' : undefined} disabled={navigation.canNavigate ? navigation.opening : undefined} aria-busy={navigation.opening}
+                aria-label={navigation.canNavigate ? `Abrir notificación: ${notification.titulo || 'Actualización de DocSmart'}` : undefined}>
+                <span className={styles.titleRow}>
+                    <span role="heading" aria-level="3">{notification.titulo || "Actualización de DocSmart"}</span>
                     <span className={styles.readState}>{state.label}</span>
-                </div>
-                <p>{notification.mensaje}</p>
+                </span>
+                <span className={styles.messageText}>{notification.mensaje}</span>
                 <time dateTime={notification.fecha}>{formatearFechaRelativa(notification.fecha)}</time>
-            </div>
+            </Content>
 
             <div className={styles.itemActions}>
-                {variant === 'doctor' && <button type="button" aria-expanded={expanded} aria-controls={`notification-${notification.id}-detail`} onClick={() => {setExpanded(!expanded);}}><span>{expanded ? 'Cerrar' : 'Ver detalle'}</span><ChevronDown size={15} aria-hidden="true" style={{rotate:expanded?'180deg':'0deg',transition:reduceMotion?'none':'rotate 200ms'}}/></button>}
+                <button type="button" aria-expanded={expanded} aria-controls={`notification-${notification.id}-detail`} onClick={() => {setExpanded(!expanded);}}><span>{expanded ? 'Cerrar' : 'Ver detalle'}</span><ChevronDown size={15} aria-hidden="true" style={{rotate:expanded?'180deg':'0deg',transition:reduceMotion?'none':'rotate 200ms'}}/></button>
                 {!notification.leida && (
                     <button type="button" className={styles.markReadButton} disabled={busy} aria-busy={busy} onClick={read}>
                         {busy ? <LoaderCircle size={15} aria-hidden="true"/> : <Check size={15} aria-hidden="true"/>} {busy ? 'Marcando…' : 'Marcar leída'}
@@ -234,9 +237,9 @@ function NotificationItem({ notification, markRead, deleteNotification, reduceMo
                 </button>
             </div>
             <span className={styles.srOnly} role="status">{feedback}</span>
-            <AnimatePresence initial={false}>{variant === 'doctor' && expanded && <m.div id={`notification-${notification.id}-detail`} className={styles.detail} initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}} transition={{duration:reduceMotion ? 0:.2}}>
+            <AnimatePresence initial={false}>{expanded && <m.div id={`notification-${notification.id}-detail`} className={styles.detail} initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}} transition={{duration:reduceMotion ? 0:.2}}>
                 <time dateTime={notification.fecha}>{Number.isNaN(Date.parse(notification.fecha)) ? 'Fecha no disponible' : new Intl.DateTimeFormat('es-CO', {dateStyle:'full',timeStyle:'short'}).format(new Date(notification.fecha))}</time>
-                {notification.conversacion_id && <Link href={`/doctor/my-chats/${notification.conversacion_id}`}>Abrir conversación</Link>}
+                {navigation.canNavigate && <button type="button" className={styles.resourceButton} onClick={navigation.open} disabled={navigation.canNavigate ? navigation.opening : undefined}>{navigation.opening ? 'Abriendo…' : 'Abrir conversación'}</button>}
             </m.div>}</AnimatePresence>
         </m.article>
     );

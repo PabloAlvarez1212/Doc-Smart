@@ -677,6 +677,7 @@ def crearCitaService(
 
     # 8. Notificación paciente
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo="Cita solicitada",
         mensaje=(
             f"Tu cita con el Dr. "
@@ -696,6 +697,7 @@ def crearCitaService(
 
     # 9. Notificación médico
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo="Nueva solicitud de cita",
         mensaje=(
             f"El paciente "
@@ -874,6 +876,7 @@ def editarCitaService(id, datos, solicitante):
         cita_data = CitaSerializer(cita).data
 
         enviarNotificacion(
+            cita_id=cita.pk,
             titulo='Cita reprogramada',
             mensaje=(
                 f'Tu cita con el Dr. '
@@ -890,6 +893,7 @@ def editarCitaService(id, datos, solicitante):
         )
 
         enviarNotificacion(
+            cita_id=cita.pk,
             titulo='Cita reprogramada',
             mensaje=(
                 f'La cita con el paciente '
@@ -1014,6 +1018,7 @@ def cancelarCitaService(id, solicitante, motivo_cancelacion=None):
     cita_data = CitaSerializer(cita).data
 
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo='Cita cancelada',
         mensaje=(
             f'Tu cita con el Dr. '
@@ -1029,6 +1034,7 @@ def cancelarCitaService(id, solicitante, motivo_cancelacion=None):
         }
     )
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo='Cita cancelada',
         mensaje=(
             f'Tu cita con el paciente '
@@ -1121,6 +1127,7 @@ def completarCitaService(id, medico_id, datos_historial):
     fecha_fmt = timezone.localtime(cita.fecha_programada).strftime("%d/%m/%Y a las %H:%M")
     cita_data = CitaSerializer(cita).data
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo='Consulta finalizada',
         mensaje=f'Tu consulta con el Dr. {cita.id_medico.nombre} {cita.id_medico.apellido} del {fecha_fmt} fue completada. Ya existe documentación de seguimiento de la consulta.',
         tipo='cita_completada', 
@@ -1131,6 +1138,7 @@ def completarCitaService(id, medico_id, datos_historial):
         }
     )
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo='Consulta finalizada',
         mensaje=f'Tu consulta con el paciente {cita.id_usuario.nombre} {cita.id_usuario.apellido} del {fecha_fmt} ha finalizado.',
         tipo='cita_completada', 
@@ -1340,6 +1348,7 @@ def confirmarCitaService(id, medico_id):
     ).data
 
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo='Cita confirmada',
         mensaje=(
             f'Tu cita del {fecha_fmt} '
@@ -1356,6 +1365,7 @@ def confirmarCitaService(id, medico_id):
     )
 
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo='Cita confirmada',
         mensaje=(
             f'Confirmaste la cita con el paciente '
@@ -1672,6 +1682,7 @@ def vencerCitaPorFaltaConfirmacionService(id):
 
     # Notificación al paciente
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo="Solicitud de cita vencida",
         mensaje=(
             f"Tu solicitud de cita con el Dr. "
@@ -1692,6 +1703,7 @@ def vencerCitaPorFaltaConfirmacionService(id):
 
     # Notificación al médico
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo="Solicitud de cita vencida",
         mensaje=(
             f"La solicitud de cita con el paciente "

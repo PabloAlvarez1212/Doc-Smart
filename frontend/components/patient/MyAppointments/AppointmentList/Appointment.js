@@ -78,6 +78,7 @@ export default function AppointmentList({
 
                     return (
                         <AppointmentCard
+                            variant="patient"
                             permitirMapa={true}
                             key={cita.id}
                             date={fecha}

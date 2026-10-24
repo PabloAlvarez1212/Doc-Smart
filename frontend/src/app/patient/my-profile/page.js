@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertCircle } from "lucide-react";
-import { m, useReducedMotion } from "motion/react";
+import { motion as m, useReducedMotion } from "motion/react";
 import Swal from "sweetalert2";
 import {
     listarInfoSalud,
@@ -231,18 +231,6 @@ export default function MyProfile() {
                             ? eliminarDato : undefined}
                     />
 
-                    {formAbierto && (
-                        <FormInfoSalud
-                            key={datoEditado?.id ?? "nuevo"}
-                            tipos={tiposSalud}
-                            datoInicial={datoEditado}
-                            onGuardar={guardarDato}
-                            onCancelar={() => {
-                                setFormAbierto(false);
-                                setDatoEditado(null);
-                            }}
-                        />
-                    )}
                 </m.div>
             </div>
         </main>

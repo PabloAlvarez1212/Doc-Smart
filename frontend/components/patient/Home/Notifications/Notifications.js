@@ -5,6 +5,7 @@ import { renderIcono } from "@/app/utils/estadoDise/estadoDiseUtils";
 import { formatearFechaRelativa } from "@/app/utils/fechaFormaterUtils";
 import { getContentTransition } from "../patientHomeMotion";
 import styles from "./Notifications.module.css";
+import useNotificationNavigation from '../../../ui/Notifications/useNotificationNavigation';
 
 export default function Notifications({ notifications = [], loading = false, error = null, onMarcarLeida, onRetry }) {
     const reduceMotion = useReducedMotion();
@@ -53,6 +54,8 @@ export default function Notifications({ notifications = [], loading = false, err
 
 function NotificationItem({ notification, onRead, reduceMotion }) {
     const isUnread = !notification.leida;
+    const navigation = useNotificationNavigation(notification,'patient',onRead);
+    const Content = navigation.canNavigate ? 'button' : 'div';
 
     return (
         <m.article
@@ -63,10 +66,10 @@ function NotificationItem({ notification, onRead, reduceMotion }) {
             <span className={styles.itemIcon} aria-hidden="true">
                 {renderIcono(notification.tipo, 20) || <Bell size={20} />}
             </span>
-            <span className={styles.itemCopy}>
+            <Content className={`${styles.itemCopy} ${navigation.canNavigate ? styles.openButton : ''}`} onClick={navigation.canNavigate ? navigation.open : undefined} type={navigation.canNavigate ? 'button' : undefined} disabled={navigation.canNavigate ? navigation.opening : undefined} aria-busy={navigation.opening} aria-label={navigation.canNavigate ? `Abrir notificación: ${notification.titulo || notification.mensaje}` : undefined}>
                 <span>{notification.mensaje}</span>
                 <small>{formatearFechaRelativa(notification.fecha)}</small>
-            </span>
+            </Content>
             {isUnread && (
                 <button
                     className={styles.readButton}

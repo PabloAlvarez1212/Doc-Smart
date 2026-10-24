@@ -1024,8 +1024,12 @@ class CierreClinicoTests(ChatFixture):
 
         self.assertEqual(
             layer.group_send.await_count,
-            2
+            4
         )
+
+        payloads = [call.args[1]['notificacion'] for call in layer.group_send.await_args_list]
+        self.assertEqual(sum(item['tipo'] == 'historial_creado' and item['historial_id'] is not None for item in payloads), 2)
+        self.assertEqual(sum(item['tipo'] == 'cita_completada' and item['cita_id'] == self.cita.pk for item in payloads), 2)
 
         self.assertEqual(
             {

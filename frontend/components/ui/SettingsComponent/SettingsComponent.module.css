@@ -15,8 +15,8 @@
     cursor: pointer;
     transition: border-color .16s ease, background-color .16s ease, transform .16s ease;
 }
-.card:hover { border-color: var(--border); background: var(--surface); transform: translateY(-1px); }
-.card:focus-visible { outline: 3px solid rgba(37, 99, 235, .18); outline-offset: 2px; }
+.card:hover { border-color: var(--control-border); background: var(--surface-muted); transform: none; }
+.card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .titleContainer { display: flex; align-items: center; min-width: 0; gap: 12px; }
 .textContainer { display: grid; min-width: 0; gap: 3px; }
 .textContainer h3 { color: var(--color-text); font-size: .94rem; font-weight: 700; }

@@ -1,7 +1,7 @@
 .home {
-  width: min(calc(100% - 48px), 1320px);
+  width: min(calc(100% - 64px), 1240px);
   margin: 0 auto;
-  padding: 26px 32px 40px;
+  padding: 42px 40px;
   display: grid;
   gap: 28px;
   color: var(--color-text);
@@ -17,8 +17,22 @@
 .date { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 14px; flex-shrink: 0; }
 .date svg { color: var(--doctor-primary); }
 .primaryGrid, .secondaryGrid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(290px, 1fr); gap: 28px; align-items: start; }
-.primaryGrid { align-items: stretch; }
-.homeSidebar{display:grid;align-content:start;min-width:0;gap:22px}
+.primaryGrid { align-items: start; }
+.secondaryGrid { align-items: start; }
+.schedule { display: flex; flex-direction: column; min-height: 0; max-height: var(--agenda-max-height,640px); }
+.schedule > :not(.agendaViewport) { flex-shrink: 0; }
+.agendaViewport { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.heroActions { display: grid; justify-items: end; gap: 8px; flex-shrink: 0; }
+.notificationLink { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 11px; padding: 10px 12px; min-height: 60px; border-radius: 12px; color: var(--color-text); text-decoration: none; transition: background-color 200ms ease; }
+.notificationLink > span:first-child { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 11px; background: var(--doctor-positive-bg); color: var(--doctor-primary); }
+.notificationLink > span:nth-child(2) { display: grid; }
+.notificationLink strong { font-size: 1rem; font-variant-numeric: tabular-nums; }
+.notificationLink small { color: var(--text-secondary); font-size: .78rem; }
+.notificationLink > svg { color: var(--doctor-primary); transition: transform 200ms ease; }
+.notificationLink:hover { background: var(--surface-muted); }
+.notificationLink:hover > svg { transform: translateX(2px); }
+.notificationLink:focus-visible, .agendaViewport:focus-visible { outline: 2px solid var(--doctor-primary); outline-offset: 3px; }
+.homeSidebar{display:grid;grid-template-rows:auto minmax(min-content,1fr);align-self:stretch;min-width:0;gap:20px}
 .panel { border: 1px solid var(--border); background: var(--surface); border-radius: 16px; padding: 24px; min-width: 0; }
 .sectionHeading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
 .sectionHeading h2, .quick h2 { font-size: 20px; font-weight: 650; letter-spacing: -.02em; line-height: 1.35; }
@@ -159,3 +173,10 @@
   from { opacity:0; translate:-5px 0; }
   to { opacity:1; translate:0 0; }
 }
+
+/* Match the patient home gutters without changing the workspace interactions. */
+@media(max-width:1100px) { .home { width:min(calc(100% - 64px),1240px); padding:42px 40px; } }
+@media(max-width:1020px) { .home { width:min(calc(100% - 44px),1240px); padding-top:36px; } }
+@media(max-width:850px) { .agendaViewport { max-height:min(420px,50dvh); } .heroActions { justify-items:start; } .heroActions .date { margin-left:12px; } }
+@media(max-width:560px) { .home { width:min(calc(100% - 32px),1240px); padding:28px 0 58px; } .heroActions { width:100%; } .notificationLink { padding-left:0; } }
+@media(prefers-reduced-motion:reduce) { .notificationLink, .notificationLink > svg { transition:none; transform:none; } }
