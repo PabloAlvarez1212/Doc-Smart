@@ -297,6 +297,7 @@ export default function DoctorAppointmentList({
                          */
                         return (
                             <AppointmentCard
+                                variant="doctor"
                                 key={cita.id}
                                 date={fecha}
                                 time={hora}

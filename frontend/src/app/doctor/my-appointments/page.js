@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AlertCircle, RefreshCw, CalendarDays, Clock3 } from "lucide-react";
-import { m, useReducedMotion } from "motion/react";
+import { motion as m, useReducedMotion } from "motion/react";
 import DoctorAppointmentList from "../../../../components/doctor/MyAppointments/AppointmentList/DoctorAppointmentList";
 import FilterAppointments from "../../../../components/doctor/MyAppointments/FilterAppointments/FilterAppointments";
 import HeaderAppointments from "../../../../components/doctor/MyAppointments/HeaderAppointments/HeaderAppointments";

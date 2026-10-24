@@ -1,9 +1,11 @@
 "use client";
 
+import { useReducedMotion } from "motion/react";
+
 import { Cell, Label, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import styles from "./GraficaEstados.module.css";
 
-const colors = ["#13796f", "#2563eb", "#b42335", "#a8640b", "#7257b5", "#4e789b", "#64748b"];
+const colors = ["var(--doctor-chart-0)", "var(--doctor-chart-1)", "var(--doctor-chart-2)", "var(--doctor-chart-3)", "var(--doctor-chart-4)", "var(--doctor-chart-5)", "var(--doctor-chart-6)"];
 const numberFormatter = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
 const percentageFormatter = new Intl.NumberFormat("es-CO", {
     minimumFractionDigits: 0,
@@ -30,6 +32,7 @@ function StateTooltip({ active, payload }) {
 }
 
 export default function GraficaEstados({ data = [] }) {
+    const reduced = useReducedMotion();
     const distribution = data.map((item) => ({
         ...item,
         cantidad: Math.max(0, Number(item.cantidad) || 0),
@@ -49,7 +52,7 @@ export default function GraficaEstados({ data = [] }) {
                     <div className={styles.chartArea} role="img" aria-label="Distribución de citas por estado">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
-                                <Pie
+                                <Pie isAnimationActive={!reduced} animationDuration={240}
                                     data={distribution}
                                     dataKey="cantidad"
                                     nameKey="estado"

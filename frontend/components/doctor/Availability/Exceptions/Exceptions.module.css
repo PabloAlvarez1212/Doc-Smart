@@ -225,3 +225,16 @@
         flex-direction: column;
     }
 }
+.container{padding:24px 0 0;border-top:1px solid var(--border);background:transparent;box-shadow:none;color:var(--color-text)}
+.header h2{font-size:22px;letter-spacing:-.025em}.header p{font-size:14px;line-height:1.5}
+.addButton{background:var(--doctor-button);color:var(--doctor-on-primary);min-height:44px;border-radius:10px;box-shadow:none}
+.card{border:1px solid var(--border);border-radius:14px;background:var(--surface);box-shadow:none;padding:20px}
+.dateIcon{color:var(--doctor-primary);background:var(--doctor-positive-bg)}
+.special{color:var(--doctor-primary);background:var(--doctor-positive-bg)}.unavailable{color:var(--ink-orange);background:var(--tone-orange)}
+.schedules span{color:var(--color-text);background:var(--surface-muted)}.reason,.description{color:var(--text-secondary)}
+.actions button{color:var(--text-secondary);background:var(--surface-muted);border:1px solid var(--border);min-width:44px;min-height:44px;transition:color 200ms,background 200ms}
+.actions button:last-child{color:var(--ink-red)}.actions button svg,.addButton svg{transition:transform 200ms}
+.addButton:is(:hover,:active),.actions button:is(:hover,:active){transform:none;box-shadow:none}
+@media(hover:hover){.addButton:hover{background:var(--doctor-button-hover)}.actions button:hover{background:var(--doctor-positive-bg);color:var(--doctor-primary)}.actions button:hover svg{transform:translateX(2px)}}
+@media(prefers-reduced-motion:reduce){.container *{transition:none!important;animation:none!important;transform:none!important}}
+.container{border:0;border-top:1px solid var(--border);border-radius:0}.addButton:hover{opacity:1}

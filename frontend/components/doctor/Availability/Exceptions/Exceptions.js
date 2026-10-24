@@ -1,5 +1,7 @@
 "use client";
 
+import { AnimatePresence, motion as m, useReducedMotion } from "motion/react";
+
 import styles from "./Exceptions.module.css";
 import {
     CalendarDays,
@@ -18,6 +20,7 @@ export default function Exceptions({
     onEliminar
 }) {
 
+    const reduced = useReducedMotion();
     const excepcionesAgrupadas =
         Object.values(
             excepciones.reduce(
@@ -132,12 +135,12 @@ export default function Exceptions({
 
             ) : (
 
-                <div className={styles.list}>
+                <div className={styles.list}><AnimatePresence initial={false}>
 
                     {excepcionesAgrupadas.map(
                         (excepcion) => (
 
-                            <article
+                            <m.article initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:reduced?0:.18}}
                                 key={excepcion.fecha}
                                 className={styles.card}
                             >
@@ -255,7 +258,7 @@ export default function Exceptions({
                                 >
                                     <button
                                         type="button"
-                                        title="Editar"
+                                        title="Editar" aria-label={`Editar excepción del ${excepcion.fecha}`}
                                         onClick={() =>
                                             onEditar?.(
                                                 excepcion
@@ -267,7 +270,7 @@ export default function Exceptions({
 
                                     <button
                                         type="button"
-                                        title="Eliminar"
+                                        title="Eliminar" aria-label={`Eliminar excepción del ${excepcion.fecha}`}
                                         onClick={() =>
                                             onEliminar?.(
                                                 excepcion.fecha
@@ -278,10 +281,10 @@ export default function Exceptions({
                                     </button>
                                 </div>
 
-                            </article>
+                            </m.article>
                         )
                     )}
-
+                    </AnimatePresence>
                 </div>
             )}
 

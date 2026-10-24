@@ -71,9 +71,9 @@
 
 .scheduled { color: var(--accent); }
 .completed { color: var(--ink-green); }
-.cancelled {color: #EF4444;}
+.cancelled {color: var(--ink-red);}
 .missed { color: var(--ink-red); }
-.attendance { color: #7257b5; }
+.attendance { color: var(--doctor-chart-4); }
 
 @media (max-width: 980px) {
     .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

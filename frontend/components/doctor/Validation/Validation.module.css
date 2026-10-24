@@ -19,7 +19,7 @@
 .date dd { margin-top: 6px; color: var(--text-secondary); font-size: .9rem; font-weight: 600; overflow-wrap: anywhere; }
 .notice { display: flex; align-items: flex-start; gap: 12px; margin-top: 24px; padding: 16px; border-radius: 11px; background: var(--surface-muted); color: var(--text-secondary); font-size: .88rem; line-height: 1.6; }
 .notice svg { flex-shrink: 0; margin-top: 2px; }
-.reason { margin-top: 24px; padding: 18px; border: 1px solid var(--border); border-left: 3px solid #a52a3b; border-radius: 11px; background: var(--surface); }
+.reason { margin-top: 24px; padding: 18px; border: 1px solid var(--border); border-left: 1px solid var(--ink-red); border-radius: 11px; background: var(--surface); }
 .reason h2 { color: var(--ink-red); font-size: .9rem; }
 .reason p { margin-top: 10px; font-size: .94rem; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
 .actions { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
@@ -30,7 +30,7 @@
 .retryHeading p { margin-top: 4px; color: var(--text-secondary); font-size: .8rem; line-height: 1.5; }
 .fileInput { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
 .filePicker { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; min-width: 0; border: 1px dashed var(--border); border-radius: 11px; padding: 12px; background: var(--surface); transition: border-color .16s ease, background-color .16s ease; }
-.filePicker:focus-within { border-color: #2b7fff; box-shadow: 0 0 0 3px rgba(43, 127, 255, .1); }
+.filePicker:focus-within { border-color: var(--focus); box-shadow: none; }
 .fileSelected { border-style: solid; border-color: var(--border); background: var(--surface); }
 .filePickerIcon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--surface-muted); color: var(--color-dark); }
 .fileSelected .filePickerIcon { background: var(--surface-muted); color: var(--ink-green); }

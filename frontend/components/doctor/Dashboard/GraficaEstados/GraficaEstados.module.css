@@ -42,8 +42,8 @@
 .legend li > span:last-child { min-width: 39px; font-variant-numeric: tabular-nums; text-align: right; }
 .stateName { overflow: hidden; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .swatch { width: 9px; height: 9px; border-radius: 50%; }
-.color0 { background: #13796f; }.color1 { background: #2563eb; }.color2 { background: #b42335 }
-.color3 { background: #a8640b;; }.color4 { background: #7257b5; }.color5 { background: #4e789b; }.color6 { background: #64748b; }
+.color0 { background: var(--doctor-chart-0); }.color1 { background: var(--doctor-chart-1); }.color2 { background: var(--doctor-chart-2) }
+.color3 { background: var(--doctor-chart-3);; }.color4 { background: var(--doctor-chart-4); }.color5 { background: var(--doctor-chart-5); }.color6 { background: var(--doctor-chart-6); }
 
 .tooltip { display: grid; gap: 3px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text-secondary); font-size: .7rem; }
 .tooltip strong { color: var(--color-text); font-size: .76rem; }

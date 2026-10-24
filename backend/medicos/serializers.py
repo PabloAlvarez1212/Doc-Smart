@@ -247,6 +247,8 @@ class MedicoPerfilSerializer(serializers.ModelSerializer):
             'departamento',
 
             'direccion',
+            'latitud',
+            'longitud',
             'foto_perfil',
             'estado_validacion',
             'documento_verificado_en',

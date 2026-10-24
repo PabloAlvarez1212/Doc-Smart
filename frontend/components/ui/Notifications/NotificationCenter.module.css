@@ -140,3 +140,31 @@
     .globalActions button, .itemActions button, .feedback button, .item, .item::before { transition: none; }
     .skeleton span { animation: none; }
 }
+/* Doctor inbox uses precisely the home page width and responsive gutters. */
+.page.doctor{box-sizing:border-box;width:min(calc(100% - 48px),1320px);padding:26px 32px 40px!important;gap:28px;--notification-accent:var(--doctor-primary)}
+.doctor .header{margin-top:0!important}.doctor .heading h1{font-size:clamp(28px,2.8vw,36px);letter-spacing:-.03em;line-height:1.13}
+.doctor .inbox{box-shadow:none;border-radius:16px}.doctor .toolbar{min-height:80px}
+.doctor .item{padding:22px 24px;gap:18px;transition:background 220ms,border-color 220ms}
+.doctor .item::before{width:1px;background:transparent}.doctor .unread{background:color-mix(in srgb,var(--doctor-positive-bg) 35%,var(--surface))}
+.doctor .unread::before{background:var(--doctor-primary)}.doctor .unread .titleRow h3{color:var(--color-text)}
+.doctor .read .titleRow h3{font-weight:550}.doctor .titleRow h3{font-size:15px}
+.doctor .itemIcon{background:var(--surface-muted);color:var(--doctor-primary);border-radius:12px;width:44px;height:44px}
+.doctor .itemIcon.attention{color:var(--ink-red);background:var(--tone-red)}.doctor .itemIcon.document{color:var(--ink-purple);background:var(--tone-purple)}
+.doctor .readState{color:var(--text-secondary)}.doctor .unread .readState{color:var(--doctor-primary)}.doctor .unread .readState::before{background:var(--doctor-primary);border-color:var(--doctor-primary)}
+.doctor .content>p{font-size:14px;line-height:1.6}.doctor .content time{font-size:12px}
+.doctor :is(.readAllButton,.markReadButton,.feedback button){color:var(--doctor-primary)}
+.doctor .itemActions button{min-height:44px}.doctor .itemActions button svg{transition:transform 200ms}
+.doctor .itemActions button:not(:disabled):active svg{transform:scale(.9)}.doctor .itemActions button:disabled{cursor:wait;opacity:.65}
+.doctor .itemActions a{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:var(--doctor-primary);font-size:13px;font-weight:600;text-underline-offset:4px}
+.doctor .detail{grid-column:2/-1;padding:12px 0 0;border-top:1px solid var(--border);color:var(--text-secondary);font-size:14px;line-height:1.6;overflow:hidden}
+.doctor .detail p{overflow-wrap:anywhere}.doctor .detail time{display:block;margin-top:8px;font-size:12px}
+.doctor button:focus-visible,.doctor a:focus-visible,.doctor input:focus-visible,.doctor select:focus-visible{outline:2px solid var(--doctor-primary);outline-offset:3px}
+.srOnly{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-width:1100px){.page.doctor{width:calc(100% - 48px);padding:24px 12px 32px!important}}
+@media(max-width:900px){.doctor .itemActions{grid-column:2;justify-content:flex-start}}
+@media(max-width:520px){.page.doctor{width:100%;padding:20px 20px 32px!important;gap:22px}.doctor .globalActions{display:flex}.doctor .globalActions button{width:auto;flex:1;min-height:44px}.doctor .item{grid-template-columns:36px minmax(0,1fr);padding:18px 16px;gap:12px}.doctor .itemIcon{width:36px;height:36px}.doctor .itemActions{grid-column:1/-1;padding-left:0;gap:6px}.doctor .itemActions button{flex:1;font-size:12px;padding-inline:8px}.doctor .detail{grid-column:1/-1}}
+@media(hover:hover){.doctor .item:hover{background:var(--surface-muted)}.doctor .itemActions button:not(:disabled):hover svg{transform:translateX(2px)}}
+@media(prefers-reduced-motion:reduce){.doctor .itemActions button svg{transition:none;transform:none!important}}
+@media(prefers-reduced-motion:no-preference){.doctor button[aria-busy=true]>svg{animation:notificationSpin .8s linear infinite}}
+@keyframes notificationSpin{to{transform:rotate(360deg)}}
+.doctor .filter select,.doctor .dateRange input{border-color:var(--control-border)}

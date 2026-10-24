@@ -36,7 +36,7 @@ test("medico reutiliza el mismo criterio responsive de cards", () => {
 });
 
 test("AppointmentCard es una superficie independiente y no conserva encabezado de tabla", () => {
-    assert.match(cardStyles, /\.item\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*height:\s*100%;[^}]*border:\s*1px solid #dce5ee;[^}]*border-radius:\s*15px;/);
+    assert.match(cardStyles, /\.item\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*height:\s*100%;[^}]*border:\s*1px solid var\(--border\);[^}]*border-radius:\s*15px;/);
     assert.match(cardStyles, /\.actions\s*\{[^}]*margin-top:\s*auto;/s);
     assert.match(cardStyles, /@media\s*\(max-width:\s*900px\)[^{]*\{[\s\S]*?\.item\s*\{[^}]*height:\s*auto;/);
     assert.doesNotMatch(cardSource, /AppointmentListHeader/);

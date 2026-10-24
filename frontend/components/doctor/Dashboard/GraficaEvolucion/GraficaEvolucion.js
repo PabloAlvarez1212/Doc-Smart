@@ -1,5 +1,7 @@
 "use client";
 
+import { useReducedMotion } from "motion/react";
+
 import {
     CartesianGrid,
     Legend,
@@ -43,6 +45,7 @@ const getIntegerAxis = (data) => {
 };
 
 export default function GraficaEvolucion({ data = [], agrupacion = "mes" }) {
+    const reduced = useReducedMotion();
     const hasActivity = data.some(
         (item) => (Number(item.programadas) || 0) > 0 || (Number(item.completadas) || 0) > 0,
     );
@@ -84,36 +87,36 @@ export default function GraficaEvolucion({ data = [], agrupacion = "mes" }) {
                             <Tooltip
                                 labelFormatter={(value) => formatPeriod(value, agrupacion)}
                                 formatter={(value, name) => [numberFormatter.format(Number(value) || 0), name]}
-                                contentStyle={{ borderRadius: 10, borderColor: "var(--border)", fontSize: 12 }}
+                                contentStyle={{ borderRadius: 10, borderColor: "var(--border)", backgroundColor: "var(--surface)", color: "var(--color-text)", fontSize: 12 }} labelStyle={{ color: "var(--color-text)" }}
                             />
                             <Legend
                                 iconType="circle"
                                 iconSize={8}
                                 wrapperStyle={{ fontSize: 12, color: "var(--text-secondary)" }}
                             />
-                            <Line
+                            <Line isAnimationActive={!reduced} animationDuration={240}
                                 type="monotone"
                                 dataKey="programadas"
                                 name="Programadas"
-                                stroke="#2563eb"
+                                stroke="var(--doctor-chart-1)"
                                 strokeWidth={2.4}
                                 dot={{ r: 3, strokeWidth: 2, fill: "var(--surface)" }}
                                 activeDot={{ r: 5 }}
                             />
-                            <Line
+                            <Line isAnimationActive={!reduced} animationDuration={240}
                                 type="monotone"
                                 dataKey="completadas"
                                 name="Completadas"
-                                stroke="#13796f"
+                                stroke="var(--doctor-chart-0)"
                                 strokeWidth={2.4}
                                 dot={{ r: 3, strokeWidth: 2, fill: "var(--surface)" }}
                                 activeDot={{ r: 5 }}
                             />
-                            <Line
+                            <Line isAnimationActive={!reduced} animationDuration={240}
                                 type="monotone"
                                 dataKey="canceladas"
                                 name="Canceladas"
-                                stroke="#ef4444"
+                                stroke="var(--ink-red)"
                                 strokeWidth={2}
                                 dot={{ r: 3 }}
                                 activeDot={{ r: 6 }}

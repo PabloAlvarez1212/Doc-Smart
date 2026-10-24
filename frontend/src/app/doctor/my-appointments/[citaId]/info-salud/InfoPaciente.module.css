@@ -12,7 +12,7 @@
     color: var(--color-dark);
     cursor: pointer;
 }
-.page h1 { margin: 24px 0 8px; font-size: 28px; }
+.page h1 { color:var(--color-text); margin: 24px 0 8px; font-size: 28px; }
 .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
 .grid {
     display: grid;
@@ -28,7 +28,7 @@
     overflow-wrap: anywhere;
 }
 .grid .card { margin-bottom: 0; }
-.card h2 { font-size: 19px; margin: 10px 0; }
+.card h2 { color:var(--color-text); font-size: 19px; margin: 10px 0; }
 .card p { line-height: 1.6; white-space: pre-wrap; }
 .type, .card small { color: var(--text-secondary); font-size: 13px; }
 .status {
@@ -41,7 +41,7 @@
     font-size: 12px;
 }
 .measures { display: flex; flex-wrap: wrap; gap: 24px; }
-.allergy { border-color: #edce92; background: var(--surface-muted); }
+.allergy { border-color: var(--ink-orange); background: var(--surface-muted); }
 .error { color: var(--ink-red); }
 @media (max-width: 640px) {
     .grid { grid-template-columns: 1fr; }

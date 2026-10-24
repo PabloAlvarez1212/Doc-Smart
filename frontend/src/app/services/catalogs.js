@@ -1,4 +1,5 @@
 import api from "./api";
+import { loadClinicCities } from './clinicCities.mjs';
 
 // ===========================ROLES===========================
 
@@ -109,6 +110,8 @@ export const eliminarMediosService = async function (id) {
 };
 
 // ===========================CIUDADES===========================
+export const getCiudadesConsultorioService = async () =>
+    loadClinicCities((url, config) => api.get(url, config));
 
 export const getCiudadesService = async function (page = 1, search = "") {
     const response = await api.get(

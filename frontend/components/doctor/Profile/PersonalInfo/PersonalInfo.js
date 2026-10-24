@@ -2,7 +2,8 @@
 
 import { Mail, LockKeyhole, UserRound, BriefcaseMedical, Save, LoaderCircle } from "lucide-react";
 import Swal from "sweetalert2";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getCiudadesConsultorioService } from '@/app/services/catalogs';
 import Button from "../../../ui/Button/Button";
 import Input from "../../../ui/Input/Input";
 import ConsultorioMap from "../../../ui/ConsultorioMap/ConsultorioMap";
@@ -20,12 +21,33 @@ export default function PersonalInfo({
     const [telefono, setTelefono] = useState("");
 
 
-    const [direccion, setDireccion] = useState("");
-    const [latitud, setLatitud] = useState("");
-    const [longitud, setLongitud] = useState("");
-    const [ciudad, setCiudad] = useState("");
+    const [direccion, setDireccion] = useState(() => perfil?.direccion ?? '');
+    const [latitud, setLatitud] = useState(() => perfil?.latitud ?? '');
+    const [longitud, setLongitud] = useState(() => perfil?.longitud ?? '');
+    const [ciudad, setCiudad] = useState(() => perfil?.ciudad ?? '');
     const [especialidad, setEspecialidad] = useState("");
     const [errorUbicacion, setErrorUbicacion] = useState("");
+    const [ciudadId, setCiudadId] = useState(() => String(perfil?.ciudad_id ?? ''));
+    const [ciudades, setCiudades] = useState([]);
+    const [cargandoCiudades, setCargandoCiudades] = useState(true);
+    const [errorCiudades, setErrorCiudades] = useState('');
+    const [intentoCiudades, setIntentoCiudades] = useState(0);
+    const [ubicacionVerificada, setUbicacionVerificada] = useState(false);
+    const [validandoUbicacion, setValidandoUbicacion] = useState(false);
+    useEffect(() => {
+        let activo = true;
+        setCargandoCiudades(true); setErrorCiudades('');
+        getCiudadesConsultorioService().then(data => {
+            if (!Array.isArray(data)) throw new Error('Catálogo inválido');
+            if (activo) setCiudades(data);
+        }).catch(() => { if (activo) setErrorCiudades('No pudimos cargar las ciudades. Inténtalo nuevamente.'); })
+          .finally(() => { if (activo) setCargandoCiudades(false); });
+        return () => { activo = false; };
+    }, [intentoCiudades]);
+    const ciudadSeleccionada = useMemo(() => ({
+        id: Number(ciudadId) || null, nombre: ciudad,
+        departamento: ciudades.find(c => String(c.id_ciudad) === String(ciudadId))?.nombre_departamento || (String(ciudadId) === String(perfil?.ciudad_id) ? perfil?.departamento : ''),
+    }), [ciudadId, ciudad, ciudades, perfil?.ciudad_id, perfil?.departamento]);
 
     useEffect(() => {
         if (!perfil) return;
@@ -40,9 +62,11 @@ export default function PersonalInfo({
         setLatitud(perfil.latitud ?? "");
         setLongitud(perfil.longitud ?? "");
         setCiudad(perfil.ciudad ?? "");
+        setCiudadId(String(perfil.ciudad_id ?? ''));
+        setUbicacionVerificada(false);
         setEspecialidad(perfil.especialidad ?? "");
         setErrorUbicacion("");
-    }, [perfil?.id, perfil?.nombre, perfil?.apellido, perfil?.fecha_nacimiento, perfil?.telefono, perfil?.direccion, perfil?.latitud, perfil?.longitud, perfil?.ciudad, perfil?.especialidad]);
+    }, [perfil?.id, perfil?.nombre, perfil?.apellido, perfil?.fecha_nacimiento, perfil?.telefono, perfil?.direccion, perfil?.latitud, perfil?.longitud, perfil?.ciudad, perfil?.ciudad_id, perfil?.especialidad]);
 
     const handleUbicacion = (ubicacion) => {
         if (guardando) return;
@@ -50,13 +74,21 @@ export default function PersonalInfo({
         setDireccion(ubicacion.direccion);
         setLatitud(ubicacion.latitud);
         setLongitud(ubicacion.longitud);
+        setUbicacionVerificada(Boolean(ubicacion.verificada));
         setErrorUbicacion("");
     };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
 
-        if (guardando) return;
+        if (guardando || validandoUbicacion) return;
+
+        const cambioCiudad = String(ciudadId) !== String(perfil?.ciudad_id ?? '');
+        const cambioUbicacion = direccion !== (perfil?.direccion ?? '') || String(latitud) !== String(perfil?.latitud ?? '') || String(longitud) !== String(perfil?.longitud ?? '');
+        if ((cambioCiudad || cambioUbicacion) && (!ciudadSeleccionada.id || !ubicacionVerificada)) {
+            setErrorUbicacion('Selecciona una dirección o un punto del mapa para verificar que pertenece a la ciudad elegida.');
+            return;
+        }
 
         const tieneValor = (valor) =>
             valor != null && String(valor).trim() !== "";
@@ -80,7 +112,7 @@ export default function PersonalInfo({
             (cambioDireccion || tieneLatitud || tieneLongitud)
         ) {
             setErrorUbicacion(
-                "Selecciona una dirección de las sugerencias del mapa."
+                "Selecciona una dirección o un punto válido del mapa."
             );
             return;
         }
@@ -108,6 +140,7 @@ export default function PersonalInfo({
             formData.latitud = Number(latitud).toFixed(7);
             formData.longitud = Number(longitud).toFixed(7);
         }
+        if (cambioCiudad) formData.ciudad = Number(ciudadId);
 
         const result = await Swal.fire({
             title: "¿Actualizar información?",
@@ -226,13 +259,26 @@ export default function PersonalInfo({
 
                     <div className={styles.itemInput}>
                         <label htmlFor="ciudad">Ciudad</label>
-                        <Input
+                        <select
                             id="ciudad"
                             aria-label="Ciudad"
                             name="ciudad"
-                            value={ciudad}
-                            readOnly
-                        />
+                            value={ciudadId}
+                            disabled={guardando || cargandoCiudades}
+                            aria-describedby={errorCiudades ? 'ciudad-error' : 'ciudad-help'}
+                            onChange={event => {
+                                const id = event.target.value;
+                                const elegida = ciudades.find(c => String(c.id_ciudad) === id);
+                                setCiudadId(id); setCiudad(elegida?.nombre_ciudad || '');
+                                setDireccion(''); setLatitud(''); setLongitud(''); setUbicacionVerificada(false);
+                                setErrorUbicacion('Selecciona la dirección del consultorio en la nueva ciudad.');
+                            }}
+                        >
+                            <option value="">{cargandoCiudades ? 'Cargando ciudades…' : 'Selecciona una ciudad'}</option>
+                            {perfil?.ciudad_id && !ciudades.some(c => String(c.id_ciudad) === String(perfil.ciudad_id)) && <option value={perfil.ciudad_id}>{perfil.ciudad}</option>}
+                            {ciudades.map(c => <option key={c.id_ciudad} value={c.id_ciudad}>{c.nombre_ciudad} · {c.nombre_departamento}</option>)}
+                        </select>
+                        {errorCiudades ? <p id="ciudad-error" role="alert">{errorCiudades} <button type="button" onClick={() => setIntentoCiudades(n => n+1)}>Reintentar</button></p> : <p id="ciudad-help" className={styles.fieldHelp}>Al cambiar la ciudad, selecciona nuevamente la dirección.</p>}
                     </div>
 
                     <div className={styles.itemInput}>
@@ -257,6 +303,11 @@ export default function PersonalInfo({
                         onChange={handleUbicacion}
                         disabled={guardando}
                         error={errorUbicacion}
+                        ciudad={ciudadSeleccionada}
+                        onValidando={setValidandoUbicacion}
+                        ubicacionGuardada={Boolean(direccion && direccion === perfil?.direccion &&
+                            String(latitud) === String(perfil?.latitud ?? '') && String(longitud) === String(perfil?.longitud ?? '') &&
+                            String(ciudadId) === String(perfil?.ciudad_id ?? ''))}
                     />
                 </div>
             </div>
@@ -267,7 +318,7 @@ export default function PersonalInfo({
                 <Button
                     className={styles.btnGreen}
                     type="submit"
-                    disabled={guardando || ocupadoCorreo}
+                    disabled={guardando || ocupadoCorreo || validandoUbicacion}
                 >
                     {guardando ? <><LoaderCircle size={17} className={styles.spinner} aria-hidden="true" />Guardando...</> : <><Save size={17} aria-hidden="true" />Guardar cambios</>}
                 </Button></div>

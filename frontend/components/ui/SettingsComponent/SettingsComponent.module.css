@@ -35,3 +35,8 @@
 .textContainer>button{min-height:44px;padding:8px 14px;margin-top:6px;background:var(--tone-blue);color:var(--color-dark);border:1px solid var(--border);border-radius:8px;font:inherit;font-size:12px;cursor:pointer}.textContainer>button:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.card:hover{transform:none}}
 
 .textContainer>button:disabled{opacity:1;color:var(--text-secondary);background:var(--surface-muted)}
+:global(body:has([data-doctor-workspace])) .card:focus-visible{outline-color:var(--focus)}
+:global(body:has([data-doctor-workspace])) .card:hover{transform:none;background:var(--surface-muted)}
+:global(body:has([data-doctor-workspace])) .containerllaveIcon svg{color:var(--doctor-primary)}
+:global(body:has([data-doctor-workspace])) .textContainer>button:not(:disabled){color:var(--doctor-primary);background:var(--doctor-positive-bg)}
+:global(body:has([data-doctor-workspace])) .containerllaveIcon svg{stroke:var(--doctor-primary)}

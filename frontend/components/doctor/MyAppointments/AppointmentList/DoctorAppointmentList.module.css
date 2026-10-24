@@ -31,8 +31,8 @@
     height: 46px;
     place-items: center;
     border-radius: 12px;
-    color: #17664e;
-    background: #dff0e9;
+    color: var(--doctor-primary);
+    background: var(--doctor-positive-bg);
 }
 
 /* Título */

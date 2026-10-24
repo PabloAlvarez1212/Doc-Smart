@@ -12,9 +12,12 @@ import {
     MessageCircle,
     RefreshCw,
     Trash2,
+    ChevronDown,
+    LoaderCircle,
 } from "lucide-react";
-import { m, useReducedMotion } from "motion/react";
-import { useState } from "react";
+import { AnimatePresence, motion as m, useReducedMotion } from "motion/react";
+import { useRef, useState } from "react";
+import Link from 'next/link';
 import { filtrarNotificacionesPorFecha } from "@/app/utils/notificacionesUtils";
 import { formatearFechaRelativa } from "@/app/utils/fechaFormaterUtils";
 import Pagination from "../Pagination/Pagination";
@@ -39,6 +42,7 @@ export default function NotificationCenter({
     pagination,
     actions,
     compactTop = false,
+    variant,
 }) {
     const reduceMotion = useReducedMotion();
     const [dateFilter, setDateFilter] = useState("todas");
@@ -53,7 +57,7 @@ export default function NotificationCenter({
     const hasDateFilter = dateFilter !== "todas";
 
     return (
-        <main className={`${styles.page} ${compactTop ? styles.compactTop : ""}`}>
+        <main className={`${styles.page} ${compactTop ? styles.compactTop : ""} ${variant === 'doctor' ? styles.doctor : ''}`}>
             <header className={styles.header}>
                 <div className={styles.heading}>
                     <h1>Notificaciones</h1>
@@ -141,6 +145,7 @@ export default function NotificationCenter({
                                 markRead={actions?.markRead}
                                 deleteNotification={actions?.deleteOne}
                                 reduceMotion={reduceMotion}
+                                variant={variant}
                             />
                         ))}
                     </div>
@@ -169,7 +174,23 @@ export default function NotificationCenter({
     );
 }
 
-function NotificationItem({ notification, markRead, deleteNotification, reduceMotion }) {
+function NotificationItem({ notification, markRead, deleteNotification, reduceMotion, variant }) {
+    const [expanded, setExpanded] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [feedback, setFeedback] = useState('');
+    const pending = useRef(false);
+    async function read() {
+        if (pending.current || notification.leida) return;
+        pending.current = true;
+        setBusy(true);
+        setFeedback('Marcando como leída.');
+        try {
+            const success = await markRead?.(notification.id);
+            setFeedback(success ? 'Notificación marcada como leída.' : 'No se pudo marcar como leída. Inténtalo nuevamente.');
+        } catch {
+            setFeedback('No se pudo marcar como leída. Inténtalo nuevamente.');
+        } finally { pending.current = false; setBusy(false); }
+    }
     const presentation = getNotificationPresentation(notification.tipo);
     const state = getNotificationReadState(notification.leida);
     const Icon = ICONS[presentation.icon] || Bell;
@@ -182,7 +203,7 @@ function NotificationItem({ notification, markRead, deleteNotification, reduceMo
             animate={{ opacity: 1, transform: "translateY(0px)" }}
             transition={{ duration: reduceMotion ? 0 : .16, ease: [0.23, 1, 0.32, 1] }}
         >
-            <span className={`${styles.itemIcon} ${styles[presentation.tone]}`} aria-hidden="true">
+            <span className={`${styles.itemIcon} ${styles[presentation.tone] || ""}`} aria-hidden="true">
                 <Icon size={20} />
             </span>
 
@@ -196,9 +217,10 @@ function NotificationItem({ notification, markRead, deleteNotification, reduceMo
             </div>
 
             <div className={styles.itemActions}>
+                {variant === 'doctor' && <button type="button" aria-expanded={expanded} aria-controls={`notification-${notification.id}-detail`} onClick={() => {setExpanded(!expanded);}}><span>{expanded ? 'Cerrar' : 'Ver detalle'}</span><ChevronDown size={15} aria-hidden="true" style={{rotate:expanded?'180deg':'0deg',transition:reduceMotion?'none':'rotate 200ms'}}/></button>}
                 {!notification.leida && (
-                    <button type="button" className={styles.markReadButton} onClick={() => markRead?.(notification.id)}>
-                        <Check size={15} aria-hidden="true" /> Marcar leída
+                    <button type="button" className={styles.markReadButton} disabled={busy} aria-busy={busy} onClick={read}>
+                        {busy ? <LoaderCircle size={15} aria-hidden="true"/> : <Check size={15} aria-hidden="true"/>} {busy ? 'Marcando…' : 'Marcar leída'}
                     </button>
                 )}
                 <button
@@ -211,6 +233,11 @@ function NotificationItem({ notification, markRead, deleteNotification, reduceMo
                     <span>Eliminar</span>
                 </button>
             </div>
+            <span className={styles.srOnly} role="status">{feedback}</span>
+            <AnimatePresence initial={false}>{variant === 'doctor' && expanded && <m.div id={`notification-${notification.id}-detail`} className={styles.detail} initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}} transition={{duration:reduceMotion ? 0:.2}}>
+                <time dateTime={notification.fecha}>{Number.isNaN(Date.parse(notification.fecha)) ? 'Fecha no disponible' : new Intl.DateTimeFormat('es-CO', {dateStyle:'full',timeStyle:'short'}).format(new Date(notification.fecha))}</time>
+                {notification.conversacion_id && <Link href={`/doctor/my-chats/${notification.conversacion_id}`}>Abrir conversación</Link>}
+            </m.div>}</AnimatePresence>
         </m.article>
     );
 }

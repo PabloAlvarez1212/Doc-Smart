@@ -134,9 +134,9 @@
 }
 
 .primaryAction {
-    border: 1px solid var(--brand-solid);
-    background: var(--brand-solid);
-    color: #fff;
+    border: 1px solid var(--doctor-button);
+    background: var(--doctor-button);
+    color: var(--doctor-on-primary);
 }
 
 .secondaryAction {
@@ -178,3 +178,4 @@
 @media (prefers-reduced-motion: reduce) {
     .actions button { transition: none; }
 }
+.headingIcon{background:var(--doctor-positive-bg);color:var(--doctor-primary)}

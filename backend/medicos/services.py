@@ -1042,6 +1042,10 @@ def editarPerfilMedicoService(id_medico, data):
         return {"correo": ["Verifica el nuevo correo mediante el código OTP"]}, 400
     data_validada.pop("correo", None)
 
+    if ('direccion' in data_validada and data_validada['direccion'] != medico.direccion
+            and any(data_validada.get(campo) is None for campo in ('latitud', 'longitud'))):
+        return {'ubicacion': ['Selecciona la nueva dirección con sus coordenadas.']}, 400
+
     # Validar especialidad
     if 'id_especialidad' in data_validada:
 
@@ -1072,6 +1076,11 @@ def editarPerfilMedicoService(id_medico, data):
                 ]
             }, 404
 
+        if ciudad.pk != medico.ciudad_id and (
+            not data_validada.get('direccion') or
+            any(data_validada.get(campo) is None for campo in ('latitud', 'longitud'))
+        ):
+            return {'ubicacion': ['Al cambiar la ciudad debes seleccionar una dirección y sus coordenadas.']}, 400
         medico.ciudad = ciudad
 
     # Campos normales

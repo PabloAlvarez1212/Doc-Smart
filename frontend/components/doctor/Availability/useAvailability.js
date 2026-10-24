@@ -6,6 +6,8 @@ import {
     useState
 } from "react";
 
+import { errorText } from "./availabilityFeedback.mjs";
+
 import {
     obtenerDisponibilidadMedicoService,
     actualizarDisponibilidadMedicoService,
@@ -162,14 +164,13 @@ export default function useAvailability() {
                 );
 
                 const mensaje =
-                    error?.response?.data?.errores?.detalle
+                    errorText(error?.response?.data?.errores)
                     || error?.response?.data?.mensaje
                     || "No fue posible guardar los cambios.";
 
-                setError(mensaje);
-
                 return {
                     ok: false,
+                    errores: error?.response?.data?.errores,
                     mensaje
                 };
 
@@ -207,13 +208,13 @@ export default function useAvailability() {
             );
 
             const mensaje =
-                error?.response?.data?.mensaje
+                errorText(error?.response?.data?.errores)
+                || error?.response?.data?.mensaje
                 || "No fue posible crear la excepción.";
-
-            setError(mensaje);
 
             return {
                 ok: false,
+                errores: error?.response?.data?.errores,
                 mensaje
             };
 
@@ -253,13 +254,13 @@ const actualizarExcepcion =
             );
 
             const mensaje =
-                error?.response?.data?.mensaje
+                errorText(error?.response?.data?.errores)
+                || error?.response?.data?.mensaje
                 || "No fue posible actualizar la excepción.";
-
-            setError(mensaje);
 
             return {
                 ok: false,
+                errores: error?.response?.data?.errores,
                 mensaje
             };
 
@@ -296,13 +297,15 @@ const eliminarExcepcion =
             );
 
             const mensaje =
-                error?.response?.data?.mensaje
+                errorText(error?.response?.data?.errores)
+                || error?.response?.data?.mensaje
                 || "No fue posible eliminar la excepción.";
 
             setError(mensaje);
 
             return {
                 ok: false,
+                errores: error?.response?.data?.errores,
                 mensaje
             };
 

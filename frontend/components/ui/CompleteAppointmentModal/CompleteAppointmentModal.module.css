@@ -85,7 +85,7 @@
     border-radius: 14px;
     cursor: pointer;
     color: var(--ink-green);
-    background: #f7fcfa;
+    background: var(--surface-muted);
     transition:
         border-color 160ms ease,
         background-color 160ms ease;
@@ -310,8 +310,8 @@
 }
 
 .absenceConfirmButton {
-    color: #fff;
-    background: var(--ink-red);
+    color: var(--action-danger-on, #fff);
+    background: var(--action-danger-bg, #b12844);
 }
 
 .absenceButton:disabled,

@@ -15,9 +15,11 @@ export default function AppointmentCard({
     permitirMapa = false,
     metadata,
     onViewDetails,
+    variant,
 }) {
     const personName = person?.name || "Usuario de DocSmart";
     const statusKey = String(status?.key || "").toLowerCase();
+    const statusBadge = <span className={`${styles.status} ${styles[statusKey] || ""}`}>{status?.label || "Sin estado"}</span>;
     const ResolutionIcon =
         statusKey === "completada"
             ? CheckCircle2
@@ -27,7 +29,7 @@ export default function AppointmentCard({
                     ? AlertTriangle
                     : null;
     return (
-        <article className={styles.item} role="listitem">
+        <article className={`${styles.item} ${variant === 'doctor' ? styles.doctor : ''}`} role="listitem">
             <header className={styles.cardHeader}>
                 <div className={styles.schedule}>
                     <span className={styles.dateIcon} aria-hidden="true">
@@ -43,13 +45,7 @@ export default function AppointmentCard({
                     </div>
                 </div>
 
-                <div className={styles.statusBlock}>
-                    <span
-                        className={`${styles.status} ${styles[statusKey] || ""}`}
-                    >
-                        {status?.label || "Sin estado"}
-                    </span>
-                </div>
+                {variant !== 'doctor' && <div className={styles.statusBlock}>{statusBadge}</div>}
             </header>
 
             <div className={styles.cardBody}>
@@ -79,10 +75,11 @@ export default function AppointmentCard({
                             >
                                 {person.infoAbierta
                                     ? "Ocultar información médica"
-                                    : "Presiona aquí para ver información médica"}
+                                    : variant === "doctor" ? "Información médica" : "Presiona aquí para ver información médica"}
                             </button>
                         )}
                     </div>
+                    {variant === 'doctor' && <div className={styles.statusBlock}>{statusBadge}</div>}
                 </div>
 
                 <div className={styles.locationGroup}>

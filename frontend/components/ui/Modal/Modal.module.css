@@ -341,4 +341,5 @@
   .secondary{
     width:100%;
   }
-}
+}:global(body:has([data-doctor-workspace])) .primary:not(:disabled){background:var(--doctor-button);border-color:var(--doctor-button);color:var(--doctor-on-primary);box-shadow:none}
+:global(body:has([data-doctor-workspace])) .primary:not(:disabled):hover{background:var(--doctor-button-hover)}
