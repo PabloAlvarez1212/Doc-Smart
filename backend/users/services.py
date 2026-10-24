@@ -698,7 +698,7 @@ def configurarCredencialesRegistroService(datos, tipo_registro="paciente"):
     error=validarProcesoRegistro(proceso,tipo_registro)
     if error:return error
     if not proceso.documento_verificado:return {"documento":["Primero debes verificar el documento"]},403
-    if tipo_registro == "medico" and not all([proceso.telefono,proceso.direccion_profesional,proceso.ciudad_profesional_id,proceso.especialidad_id,proceso.hoja_vida_id]):
+    if tipo_registro == "medico" and not all([proceso.telefono,proceso.ciudad_profesional_id,proceso.especialidad_id,proceso.hoja_vida_id]):
         return {"general":["Primero debes guardar los datos profesionales y la hoja de vida"]},403
     if tipo_registro == "paciente" and (
         not proceso.telefono
