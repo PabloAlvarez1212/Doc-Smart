@@ -1,4 +1,4 @@
-.section { display: grid; gap: 12px; color: var(--color-text); }
+.section { --document-accent:var(--accent); --document-soft:var(--tone-blue); display: grid; gap: 12px; color: var(--color-text); }
 .section h3 { font-size: 1rem; margin: 0; }
 .section ul { padding: 0; margin: 0; list-style: none; display: grid; gap: 8px; }
 .section li { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
@@ -7,9 +7,14 @@
 .fileInfo small { color: var(--text-secondary); font-size: .8rem; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 560px) { .section li { flex-wrap: wrap; } .actions { flex-basis: 100%; justify-content: flex-end; } }
-.section button { border: 1px solid var(--ink-green); border-radius: 8px; padding: 7px 12px; color: var(--ink-green); background: var(--tone-green); cursor: pointer; }
-.section button:disabled { opacity: .6; cursor: default; }
+.section button { min-height:44px; border: 1px solid var(--document-accent); border-radius: 8px; padding: 7px 12px; color: var(--document-accent); background: var(--document-soft); cursor: pointer; transition:background-color 200ms ease,border-color 200ms ease; }
+.section button:disabled { opacity: 1; color:var(--text-secondary); background:var(--surface-muted); border-color:var(--border); cursor: default; }
+:global(body:has([data-doctor-workspace])) .section { --document-accent:var(--doctor-primary); --document-soft:var(--doctor-positive-bg); }
+@media(prefers-reduced-motion:reduce) { .section button { transition:none; } }
 .section p { font-size: .9rem; margin: 0; }
 .section p[role="alert"] { color: var(--ink-red); }
 
-button:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+.section button:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+}

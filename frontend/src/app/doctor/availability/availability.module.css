@@ -74,3 +74,8 @@
         flex-direction: column;
     }
 }
+/* Align this surface to the medical home grid. */
+.page{box-sizing:border-box;width:min(calc(100% - 48px),1320px);padding:26px 32px 40px!important;color:var(--color-text)}
+.error button{background:var(--doctor-button);color:var(--doctor-on-primary);min-height:44px}
+@media(max-width:1100px){.page{width:calc(100% - 48px);padding:24px 12px 32px!important}}
+@media(max-width:520px){.page{width:100%;padding:20px 20px 32px!important}}

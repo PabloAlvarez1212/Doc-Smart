@@ -10,6 +10,7 @@ import ValidationSummary from "../../../../components/admin/DoctorValidation/Val
 import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
 import styles from "./doctorRequests.module.css";
 import useDoctorValidation from "../../../../components/admin/DoctorValidation/useDoctorValidation";
+import { completeReviewAfterSuccess } from "../../../../components/admin/DoctorValidation/requestReviewFlow";
 
 export default function DoctorRequestsPage() {
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -44,10 +45,11 @@ export default function DoctorRequestsPage() {
         verHojaVida,
         aprobarSolicitud,
         rechazarSolicitud,
+        procesandoSolicitud,
     } = useDoctorValidation();
 
     const openRejectModal = (request) => {
-        if (request?.estado !== "pendiente") return;
+        if (request?.estado !== "pendiente" || procesandoSolicitud) return;
 
         setSelectedRequest(request);
         setIsRejectModalOpen(true);
@@ -57,20 +59,25 @@ export default function DoctorRequestsPage() {
         setIsRejectModalOpen(false);
     };
 
+    const closeProcessedReview = () => {
+        setIsRejectModalOpen(false);
+        setSelectedRequest(null);
+    };
+
+    const handleApproveRequest = (solicitudId) => (
+        completeReviewAfterSuccess(
+            () => aprobarSolicitud(solicitudId),
+            closeProcessedReview
+        )
+    );
+
     const handleRejectRequest = async ({ solicitudId, motivo }) => {
         if (solicitudId == null || !motivo.trim()) return false;
 
-        const rechazado = await rechazarSolicitud({
-            solicitudId,
-            motivo,
-        });
-
-        if (!rechazado) return false;
-
-        setIsRejectModalOpen(false);
-        setSelectedRequest(null);
-
-        return true;
+        return completeReviewAfterSuccess(
+            () => rechazarSolicitud({ solicitudId, motivo }),
+            closeProcessedReview
+        );
     };
 
     return (
@@ -129,8 +136,9 @@ export default function DoctorRequestsPage() {
                 open={Boolean(selectedRequest) && !isRejectModalOpen}
                 onClose={() => setSelectedRequest(null)}
                 onViewResume={verHojaVida}
-                onApprove={aprobarSolicitud}
+                onApprove={handleApproveRequest}
                 onReject={openRejectModal}
+                processing={procesandoSolicitud}
             />
 
             <RejectDoctorModal

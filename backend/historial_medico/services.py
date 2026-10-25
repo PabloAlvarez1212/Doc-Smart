@@ -184,6 +184,14 @@ def crearHistorialDesdeCierreService(
             400,
         )
 
+    from notificaciones.services import enviarNotificacion
+    for destinatario in ({'id_usuario': historial.usuario_id}, {'id_medico': historial.medico_id}):
+        enviarNotificacion(
+            titulo='Historial clínico disponible',
+            mensaje='El historial clínico de tu consulta ya está disponible.',
+            tipo='historial_creado', historial_id=historial.pk, cita_id=cita.pk,
+            **destinatario,
+        )
     return historial, 201
 
 

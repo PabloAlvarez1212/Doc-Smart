@@ -1,7 +1,7 @@
 from citas.models import Cita, RecordatorioCita
-from citas.serializers import CitaSerializer, RecordatorioSerializer
+from citas.serializers import CitaSerializer
 from rest_framework.exceptions import NotFound, PermissionDenied
-from catalogos.models import Estado, Medio
+from catalogos.models import Estado
 from medicos.models import Medico
 from users.models import Usuario,InfoUser
 from django.utils import timezone
@@ -677,6 +677,7 @@ def crearCitaService(
 
     # 8. Notificación paciente
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo="Cita solicitada",
         mensaje=(
             f"Tu cita con el Dr. "
@@ -696,6 +697,7 @@ def crearCitaService(
 
     # 9. Notificación médico
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo="Nueva solicitud de cita",
         mensaje=(
             f"El paciente "
@@ -874,6 +876,7 @@ def editarCitaService(id, datos, solicitante):
         cita_data = CitaSerializer(cita).data
 
         enviarNotificacion(
+            cita_id=cita.pk,
             titulo='Cita reprogramada',
             mensaje=(
                 f'Tu cita con el Dr. '
@@ -890,6 +893,7 @@ def editarCitaService(id, datos, solicitante):
         )
 
         enviarNotificacion(
+            cita_id=cita.pk,
             titulo='Cita reprogramada',
             mensaje=(
                 f'La cita con el paciente '
@@ -1014,6 +1018,7 @@ def cancelarCitaService(id, solicitante, motivo_cancelacion=None):
     cita_data = CitaSerializer(cita).data
 
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo='Cita cancelada',
         mensaje=(
             f'Tu cita con el Dr. '
@@ -1029,6 +1034,7 @@ def cancelarCitaService(id, solicitante, motivo_cancelacion=None):
         }
     )
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo='Cita cancelada',
         mensaje=(
             f'Tu cita con el paciente '
@@ -1121,6 +1127,7 @@ def completarCitaService(id, medico_id, datos_historial):
     fecha_fmt = timezone.localtime(cita.fecha_programada).strftime("%d/%m/%Y a las %H:%M")
     cita_data = CitaSerializer(cita).data
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo='Consulta finalizada',
         mensaje=f'Tu consulta con el Dr. {cita.id_medico.nombre} {cita.id_medico.apellido} del {fecha_fmt} fue completada. Ya existe documentación de seguimiento de la consulta.',
         tipo='cita_completada', 
@@ -1131,6 +1138,7 @@ def completarCitaService(id, medico_id, datos_historial):
         }
     )
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo='Consulta finalizada',
         mensaje=f'Tu consulta con el paciente {cita.id_usuario.nombre} {cita.id_usuario.apellido} del {fecha_fmt} ha finalizado.',
         tipo='cita_completada', 
@@ -1173,10 +1181,16 @@ def marcarInasistenciaPacienteService(id, solicitante):
         return('Solo se puede registrar inasistencia en citas previamente confirmadas', 400)
 
     ahora = timezone.now()
-    if timezone.is_naive(ahora) or timezone.is_naive(cita.fecha_programada):
-        return 'La transición requiere fechas con zona horaria', 400
-    if ahora.astimezone(dt_timezone.utc) < cita.fecha_programada.astimezone(dt_timezone.utc):
-        return 'No se puede marcar inasistencia antes del inicio programado', 400
+    if cita.fecha_final is None:
+        return ('La cita no tiene una hora de finalización programada',400)
+    if timezone.is_naive(ahora) or timezone.is_naive(cita.fecha_final):
+        return ('La transición requiere fechas con zona horaria',400)
+    if (ahora.astimezone(dt_timezone.utc)< cita.fecha_final.astimezone(dt_timezone.utc)):
+        return (
+            'Solo puedes registrar la inasistencia cuando haya terminado '
+            'el tiempo programado de la consulta',
+            400
+        )
 
     estado = Estado.objects.filter(nombre__iexact='inasistencia_paciente').first()
     if estado is None:
@@ -1334,6 +1348,7 @@ def confirmarCitaService(id, medico_id):
     ).data
 
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo='Cita confirmada',
         mensaje=(
             f'Tu cita del {fecha_fmt} '
@@ -1350,6 +1365,7 @@ def confirmarCitaService(id, medico_id):
     )
 
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo='Cita confirmada',
         mensaje=(
             f'Confirmaste la cita con el paciente '
@@ -1374,37 +1390,6 @@ def confirmarCitaService(id, medico_id):
 
     return cita_data, 200
 # ─── RECORDATORIOS ────────────────────────────────────────────────────────────
-
-def listarRecordatoriosService():
-    recordatorios = RecordatorioCita.objects.all()
-    serializer = RecordatorioSerializer(recordatorios, many=True)
-    return serializer.data, 200
-
-def crearRecordatorioService(datos):
-    cita = Cita.objects.filter(id=datos.get('id_cita')).first()
-    if not cita:
-        return 'Cita no encontrada', 404
-
-    estado = Estado.objects.filter(id=datos.get('id_estado')).first()
-    medio  = Medio.objects.filter(id=datos.get('id_medios')).first()
-
-    recordatorio = RecordatorioCita.objects.create(
-        id_cita                  = cita,
-        fecha_programada         = datos['fecha_programada'],
-        fecha_envio_recordatorio = datos['fecha_envio_recordatorio'],
-        id_estado                = estado,
-        id_medios                = medio
-    )
-
-    serializer = RecordatorioSerializer(recordatorio)
-    return serializer.data, 201
-
-def eliminarRecordatorioService(id):
-    recordatorio = RecordatorioCita.objects.filter(id=id).first()
-    if not recordatorio:
-        return 'Recordatorio no encontrado', 404
-    recordatorio.delete()
-    return 'Recordatorio eliminado correctamente', 200
 
 #!Service para estadisticas del modulo citas
 
@@ -1697,6 +1682,7 @@ def vencerCitaPorFaltaConfirmacionService(id):
 
     # Notificación al paciente
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo="Solicitud de cita vencida",
         mensaje=(
             f"Tu solicitud de cita con el Dr. "
@@ -1717,6 +1703,7 @@ def vencerCitaPorFaltaConfirmacionService(id):
 
     # Notificación al médico
     enviarNotificacion(
+        cita_id=cita.pk,
         titulo="Solicitud de cita vencida",
         mensaje=(
             f"La solicitud de cita con el paciente "

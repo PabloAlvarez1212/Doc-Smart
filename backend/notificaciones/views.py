@@ -140,3 +140,12 @@ class EliminarTodasNotificacionesView(APIView):
                 mensaje="Error interno en el servidor",
                 status=500
             )
+class DestinoNotificacionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id_notificacion):
+        from .services import resolverDestinoNotificacionService
+        data, status_code = resolverDestinoNotificacionService(id_notificacion, request.user)
+        if status_code != 200:
+            return respuesta_error(data, status=status_code)
+        return respuesta_ok(data=data)

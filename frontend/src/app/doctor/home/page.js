@@ -1,7 +1,7 @@
 "use client";
 
 import '../../../../components/doctor/Home/home-theme.css';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import Hero from '../../../../components/doctor/Home/Hero/Hero';
 import Notifications from '../../../../components/doctor/Home/Notifications/Notifications';
@@ -12,11 +12,28 @@ import { useDashboardMedico } from '../../../../components/doctor/Home/useDashbo
 import { nextAppointment } from '../../../../components/doctor/Home/homeData.mjs';
 import { useNotificationsContext } from '../../../../components/contex/NotificationsContext';
 import styles from '../../../../components/doctor/Home/Home.module.css';
+import useCalificacionesMedico from '../../../../components/hooks/useCalificacionesMedico';
+import RatingSummary from '../../../../components/ui/MedicalRatings/RatingSummary/RatingSummary';
 
 export default function Home() {
+  const homeRef = useRef(null);
   const { dashboard, loading, error, retry } = useDashboardMedico();
+  const ratings = useCalificacionesMedico(dashboard?.id, { activo: Boolean(dashboard?.id) });
   const [date, setDate] = useState('');
   const notifications = useNotificationsContext();
+
+  useLayoutEffect(() => {
+    if (loading || error) return;
+    const schedule = homeRef.current?.querySelector('[aria-labelledby="schedule-title"]');
+    const inbox = homeRef.current?.querySelector('[aria-labelledby="notifications-title"]');
+    if (!schedule || !inbox) return;
+    // Cap the agenda at its neighbour's actual height without stretching short days.
+    const measure = () => schedule.style.setProperty('--agenda-max-height', `${inbox.getBoundingClientRect().height}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(inbox);
+    return () => observer.disconnect();
+  }, [loading, error]);
 
   useEffect(() => {
     const update = () => setDate(new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()));
@@ -26,7 +43,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className={styles.home} data-doctor-home="true">
+    <div ref={homeRef} className={styles.home} data-doctor-home="true">
       {loading ? (
         <div role="status" aria-label="Cargando tu inicio" className={styles.skeleton}>
           <span className={styles.skeletonHeading} aria-hidden="true" />
@@ -40,10 +57,13 @@ export default function Home() {
         </section>
       ) : (
         <>
-          <Hero nombre={dashboard?.usuario} especialidad={dashboard?.especialidad} foto_perfil={dashboard?.foto_perfil} date={date} />
+          <Hero nombre={dashboard?.usuario} especialidad={dashboard?.especialidad} foto_perfil={dashboard?.foto_perfil} date={date} noLeidas={notifications.noLeidas} />
           <HomeReveal className={styles.primaryGrid}>
             <NextAppointment appointment={nextAppointment(dashboard?.proximas_citas)} />
-            <QuickActions />
+            <div className={styles.homeSidebar}>
+              <QuickActions />
+              <RatingSummary compact variant="home" resumen={ratings.resumen} loading={ratings.loading} error={ratings.error} onRetry={ratings.retry} />
+            </div>
           </HomeReveal>
           <HomeReveal className={styles.secondaryGrid} delay={0.06}>
             <TodaySchedule appointments={dashboard?.citas_hoy} />

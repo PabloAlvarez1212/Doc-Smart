@@ -269,8 +269,10 @@ class CompletadaChatTests(CicloFixture):
         self.assertEqual(self.estado(), 'activo')
         result = obtenerEstadoConversacionService(self.conv)
         self.assertEqual(result['fecha_cierre_automatico'], self.now + timedelta(hours=24))
-        self.assertEqual(len(callbacks), 5)  # Dos avisos clínicos y dos eventos de chat.
-        self.assertEqual(Notificacion.objects.count(), 2)
+        self.assertEqual(len(callbacks), 7)  # Dos avisos de cita, dos de historial, correo y eventos de chat.
+        self.assertEqual(Notificacion.objects.count(), 4)
+        self.assertEqual(Notificacion.objects.filter(tipo='cita_completada', cita=self.cita).count(), 2)
+        self.assertEqual(Notificacion.objects.filter(tipo='historial_creado', historial__cita=self.cita).count(), 2)
 
     def test_ventana_postconsulta_limite_inclusivo_sin_escrituras(self):
         self.completar()
@@ -306,7 +308,9 @@ class CompletadaChatTests(CicloFixture):
             self.assertEqual(self.estado(), 'cerrado')
         self.cita.refresh_from_db()
         self.assertEqual(self.cita.fecha_completada, self.now)
-        self.assertEqual(Notificacion.objects.count(), 2)
+        self.assertEqual(Notificacion.objects.count(), 4)
+        self.assertEqual(Notificacion.objects.filter(tipo='cita_completada', cita=self.cita).count(), 2)
+        self.assertEqual(Notificacion.objects.filter(tipo='historial_creado', historial__cita=self.cita).count(), 2)
 
     def test_ajeno_no_completa(self):
         self.assertEqual(self.completar(self.doctors[0])[1], 404)

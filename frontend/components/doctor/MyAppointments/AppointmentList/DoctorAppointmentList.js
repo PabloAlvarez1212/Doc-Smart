@@ -8,6 +8,7 @@ import {
     CircleX,
     ClipboardCheck,
     SearchX,
+    Star,
 } from "lucide-react";
 import formatearFecha, {
     formatearFechaResolucion,
@@ -18,6 +19,11 @@ import { obtenerInfoPacienteCita } from "@/app/services/api";
 import AppointmentCard from "../../../ui/AppointmentCard/AppointmentCard";
 import AppointmentDetailsModal from "../../../ui/AppointmentDetailsModal/AppointmentDetailsModal";
 import Modal from "../../../ui/Modal/Modal";
+import VerValoracionModal from "../../Calificaciones/VerValoracionModal/VerValoracionModal";
+import {
+    buildDoctorCalificacionAction,
+    getDoctorCalificacionPresentation,
+} from "../../Calificaciones/doctorCalificacionPresentation";
 
 import { getDoctorAppointmentActionKeys } from "../appointmentActions";
 
@@ -116,6 +122,7 @@ export default function DoctorAppointmentList({
      */
     const [detailsAppointment, setDetailsAppointment] = useState(null);
     const [detailsOpen, setDetailsOpen] = useState(false);
+    const [citaValorada, setCitaValorada] = useState(null);
 
     /*
      * Modal de información médica del paciente.
@@ -281,11 +288,16 @@ export default function DoctorAppointmentList({
                                 ...actionMap[id],
                             }));
 
+                        const ratingPresentation = getDoctorCalificacionPresentation(cita);
+                        const ratingAction = buildDoctorCalificacionAction(cita, setCitaValorada, Star);
+                        if (ratingAction) actions.push(ratingAction);
+
                         /*
                          * Tarjeta de la cita.
                          */
                         return (
                             <AppointmentCard
+                                variant="doctor"
                                 key={cita.id}
                                 date={fecha}
                                 time={hora}
@@ -340,6 +352,7 @@ export default function DoctorAppointmentList({
                                  * información de vencimiento.
                                  */
                                 metadata={metadata}
+                                rating={ratingPresentation ? { label: ratingPresentation.scoreLabel } : null}
                             />
                         );
                     })}
@@ -357,6 +370,8 @@ export default function DoctorAppointmentList({
                 counterpart="paciente"
                 mostrarHistorialClinico={seccion === "historial"}
             />
+
+            <VerValoracionModal cita={citaValorada} onClose={() => setCitaValorada(null)} />
 
             {/* Modal de información médica del paciente */}
             <Modal

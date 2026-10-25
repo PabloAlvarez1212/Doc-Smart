@@ -149,3 +149,9 @@
   .spinner{animation:none}
 }
 @media(prefers-reduced-motion:reduce){.steps li>span,.restart{transition:none}}
+
+.steps li > span { border-color: var(--control-border); }
+.steps li[aria-current] > span { color: var(--action-on); background: var(--action-primary-bg); border-color: var(--action-primary-bg); box-shadow: none; }
+.restart { min-height: 44px; }
+.restart:focus-visible { outline: 2px solid var(--focus); }
+@media(max-width:540px) { .steps { flex-wrap: wrap; overflow: visible; gap: 10px; margin-bottom: 20px; } }

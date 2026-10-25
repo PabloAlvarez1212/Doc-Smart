@@ -103,7 +103,19 @@ class MedicosPublicosSerializer(serializers.ModelSerializer):
     departamento = serializers.SerializerMethodField()
     ciudad = serializers.SerializerMethodField()
     foto_perfil = serializers.SerializerMethodField()
-    proxima_disponibilidad = (serializers.SerializerMethodField())
+
+    proxima_disponibilidad = serializers.SerializerMethodField()
+
+    promedio_calificacion = serializers.FloatField(
+        read_only=True,
+        allow_null=True
+    )
+
+    total_calificaciones = serializers.IntegerField(
+        read_only=True,
+        allow_null=True
+    )
+
     class Meta:
         model = Medico
         fields = [
@@ -115,7 +127,9 @@ class MedicosPublicosSerializer(serializers.ModelSerializer):
             'departamento',
             'ciudad',
             'foto_perfil',
-            'proxima_disponibilidad'
+            'proxima_disponibilidad',
+            'promedio_calificacion',
+            'total_calificaciones'
         ]
     def get_departamento(self, obj):
         if obj.ciudad and obj.ciudad.departamento:
@@ -233,6 +247,8 @@ class MedicoPerfilSerializer(serializers.ModelSerializer):
             'departamento',
 
             'direccion',
+            'latitud',
+            'longitud',
             'foto_perfil',
             'estado_validacion',
             'documento_verificado_en',

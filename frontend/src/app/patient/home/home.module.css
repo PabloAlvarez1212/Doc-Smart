@@ -22,8 +22,8 @@
     gap: clamp(24px, 3vw, 38px);
 }
 
-.primaryGrid { grid-template-columns: minmax(0, 1.65fr) minmax(280px, .72fr); }
-.secondaryGrid { grid-template-columns: minmax(0, 1.42fr) minmax(300px, .78fr); }
+.primaryGrid,
+.secondaryGrid { grid-template-columns: minmax(0, 1.65fr) minmax(280px, .72fr); }
 
 .liveRegion {
     position: absolute;
@@ -106,8 +106,8 @@
 
 @media (max-width: 1020px) {
     .page { width: min(calc(100% - 44px), 1240px); padding-top: 36px; }
-    .primaryGrid { grid-template-columns: minmax(0, 1fr); }
-    .secondaryGrid { grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr); }
+    .primaryGrid,
+    .secondaryGrid { grid-template-columns: minmax(0, 1fr); }
     .skeletonAppointment { height: 330px; }
     .skeletonActions { height: 220px; }
 }

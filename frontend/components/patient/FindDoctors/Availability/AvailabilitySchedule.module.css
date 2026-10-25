@@ -16,8 +16,8 @@
     flex: 0 0 42px;
     height: 42px;
     border-radius: 11px;
-    color: #fff;
-    background: #315a99;
+    color: var(--on-accent);
+    background: var(--brand-solid);
 }
 
 .doctorSummary div { min-width: 0; }
@@ -106,3 +106,8 @@
     .dayRow { grid-template-columns: 1fr; gap: 8px; }
     .dayName strong { font-size: .88rem; }
 }
+
+.doctorSummary strong, .dayName strong { color: var(--color-text); }
+.blocks span { color: var(--color-dark); background: var(--tone-blue); border-color: transparent; font-variant-numeric: tabular-nums; }
+.dayRow.unavailable { background: var(--surface-muted); }
+.doctorSummary { border: 0; background: var(--surface-muted); }

@@ -36,6 +36,29 @@ export function getPatientAppointmentActionKeys(status) {
     return PATIENT_ACTIONS_BY_STATUS[String(status || "").toLowerCase()] || [];
 }
 
+export function buildDoctorProfileLink(appointment, onViewProfile) {
+    const doctorId = appointment?.id_medico;
+
+    if (doctorId == null || doctorId === "" || typeof onViewProfile !== "function") {
+        return null;
+    }
+
+    const doctor = {
+        id: doctorId,
+        nombre: appointment.medico || "Profesional de DocSmart",
+        especialidad: appointment.especialidad,
+        foto_perfil: appointment.foto_medico,
+        ciudad: appointment.ciudad,
+        departamento: appointment.departamento,
+        direccion: appointment.direccion,
+    };
+
+    return {
+        label: "Ver perfil y valoraciones",
+        onClick: () => onViewProfile(doctor),
+    };
+}
+
 export function getBogotaDateInputValue(date = new Date()) {
     const parts = new Intl.DateTimeFormat("en-CA", {
         timeZone: "America/Bogota",

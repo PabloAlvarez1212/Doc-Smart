@@ -44,7 +44,7 @@ def validarVentanaCierre(cita, ahora):
 
 
 def _notificar(cita, titulo, mensaje, tipo, *, medico=False):
-    return enviarNotificacion(titulo=titulo, mensaje=mensaje, tipo=tipo,
+    return enviarNotificacion(cita_id=cita.pk, titulo=titulo, mensaje=mensaje, tipo=tipo,
         **({'id_medico': cita.id_medico_id} if medico else {'id_usuario': cita.id_usuario_id}),
         extra_data={'tipo_evento': 'ACTUALIZACION_CITA', 'cita': CitaSerializer(cita).data})
 

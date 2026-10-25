@@ -1,8 +1,8 @@
 .overlay{
-  --modal-ink:#223147;
-  --modal-muted:#56677d;
-  --modal-accent:#2456a6;
-  --modal-line:#dce5ee;
+  --modal-ink:var(--text-primary);
+  --modal-muted:var(--text-secondary);
+  --modal-accent:var(--accent);
+  --modal-line:var(--border);
   position:fixed;
   inset:0;
   z-index:9999;
@@ -149,20 +149,20 @@
 }
 
 .yellow {
-    background: #f59e0b;
-    color: #2b1700;
+    background: var(--tone-orange);
+    color: var(--ink-orange);
 }
 
 .yellow .titulo,
 .yellow .containerTitle p,
 .yellow .cerrar,
 .yellow .container svg {
-    color: #2b1700;
+    color: var(--ink-orange);
 }
 
 .yellow .cerrar:hover {
-    background: #d97706;
-    color: #ffffff;
+    background: var(--surface-muted);
+    color: var(--color-text);
 }
 
 @media (max-width:640px){
@@ -341,4 +341,16 @@
   .secondary{
     width:100%;
   }
-}
+}:global(body:has([data-doctor-workspace])) .primary:not(:disabled){background:var(--doctor-button);border-color:var(--doctor-button);color:var(--doctor-on-primary);box-shadow:none}
+:global(body:has([data-doctor-workspace])) .primary:not(:disabled):hover{background:var(--doctor-button-hover)}
+
+.feedback { color: var(--ink-red); background: var(--tone-red); border-color: var(--border); }
+.success { color: var(--ink-green); background: var(--tone-green); border-color: var(--border); }
+.primary { color: var(--action-on); background: var(--action-primary-bg); border-color: var(--action-primary-bg); box-shadow: none; }
+.primary:not(:disabled):hover { background: var(--action-primary-hover); border-color: var(--action-primary-hover); }
+.primary:disabled, .secondary:disabled { opacity: 1; background: var(--surface-muted); color: var(--text-secondary); border-color: var(--border); }
+.primary:focus-visible, .secondary:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; box-shadow: none; }
+.field input, .field select, .field textarea { border-color: var(--control-border); }
+.field :is(input,select,textarea):focus { border-color: var(--focus); box-shadow: none; outline: 2px solid var(--focus); outline-offset: 2px; }
+.primary, .secondary { min-height: 44px; }
+.cerrar { width: 44px; height: 44px; }

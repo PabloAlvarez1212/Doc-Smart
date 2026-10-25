@@ -16,7 +16,9 @@ export default function useChatViewport() {
     const measure = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        if (nav && bar) nav.style.setProperty('--chat-nav-space', `${Math.ceil(bar.getBoundingClientRect().bottom + 5)}px`);
+        const doctorMobile = node.closest('[data-doctor-workspace]') && window.matchMedia('(max-width: 760px)').matches;
+        const gap = doctorMobile ? 16 : 5;
+        if (nav && bar) nav.style.setProperty('--chat-nav-space', `${Math.ceil(bar.getBoundingClientRect().bottom + gap)}px`);
         const top = Math.max(0, node.getBoundingClientRect().top - (viewport?.offsetTop || 0));
         const height = Math.max(0, (viewport?.height || window.innerHeight) - top);
         node.style.setProperty('--chat-page-height', `${height}px`);

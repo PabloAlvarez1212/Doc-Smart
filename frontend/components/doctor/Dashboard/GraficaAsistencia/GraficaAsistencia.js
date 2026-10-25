@@ -1,5 +1,7 @@
 "use client";
 
+import { useReducedMotion } from "motion/react";
+
 import {
     Bar,
     BarChart,
@@ -28,6 +30,7 @@ function AttendanceTooltip({ active, payload }) {
 }
 
 export default function GraficaAsistencia({ data = [] }) {
+    const reduced = useReducedMotion();
     const chartData = data.map((item) => ({
         ...item,
         cantidad: Math.max(0, Number(item.cantidad) || 0),
@@ -62,7 +65,7 @@ export default function GraficaAsistencia({ data = [] }) {
                                 width={42}
                             />
                             <Tooltip cursor={{ fill: "var(--surface-muted)" }} content={<AttendanceTooltip />} />
-                            <Bar dataKey="cantidad" name="Citas" fill="#13796f" radius={[7, 7, 2, 2]} maxBarSize={72} />
+                            <Bar isAnimationActive={!reduced} animationDuration={240} dataKey="cantidad" name="Citas" fill="var(--doctor-chart-0)" radius={[7, 7, 2, 2]} maxBarSize={72} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

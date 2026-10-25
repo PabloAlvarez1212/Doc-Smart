@@ -1,5 +1,7 @@
 "use client";
 
+import { useReducedMotion } from "motion/react";
+
 import {
     Bar,
     BarChart,
@@ -26,6 +28,7 @@ const dayLabels = {
 const formatDay = (value) => dayLabels[String(value ?? "").toLocaleLowerCase("es-CO")] ?? value;
 
 export default function GraficaDemanda({ data = [] }) {
+    const reduced = useReducedMotion();
     const chartData = data.map((item) => ({
         ...item,
         cantidad: Math.max(0, Number(item.cantidad) || 0),
@@ -65,9 +68,9 @@ export default function GraficaDemanda({ data = [] }) {
                                     labelFormatter={(value) => value}
                                     formatter={(value) => [Number(value) || 0, "Citas programadas"]}
                                     cursor={{ fill: "var(--surface-muted)" }}
-                                    contentStyle={{ borderRadius: 10, borderColor: "var(--border)", fontSize: 12 }}
+                                    contentStyle={{ borderRadius: 10, borderColor: "var(--border)", backgroundColor: "var(--surface)", color: "var(--color-text)", fontSize: 12 }} labelStyle={{ color: "var(--color-text)" }}
                                 />
-                                <Bar dataKey="cantidad" name="Citas programadas" fill="#2563eb" radius={[7, 7, 2, 2]} maxBarSize={48} />
+                                <Bar isAnimationActive={!reduced} animationDuration={240} dataKey="cantidad" name="Citas programadas" fill="var(--doctor-chart-1)" radius={[7, 7, 2, 2]} maxBarSize={48} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>

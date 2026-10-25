@@ -15,8 +15,8 @@
     cursor: pointer;
     transition: border-color .16s ease, background-color .16s ease, transform .16s ease;
 }
-.card:hover { border-color: var(--border); background: var(--surface); transform: translateY(-1px); }
-.card:focus-visible { outline: 3px solid rgba(37, 99, 235, .18); outline-offset: 2px; }
+.card:hover { border-color: var(--control-border); background: var(--surface-muted); transform: none; }
+.card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .titleContainer { display: flex; align-items: center; min-width: 0; gap: 12px; }
 .textContainer { display: grid; min-width: 0; gap: 3px; }
 .textContainer h3 { color: var(--color-text); font-size: .94rem; font-weight: 700; }
@@ -35,3 +35,8 @@
 .textContainer>button{min-height:44px;padding:8px 14px;margin-top:6px;background:var(--tone-blue);color:var(--color-dark);border:1px solid var(--border);border-radius:8px;font:inherit;font-size:12px;cursor:pointer}.textContainer>button:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.card:hover{transform:none}}
 
 .textContainer>button:disabled{opacity:1;color:var(--text-secondary);background:var(--surface-muted)}
+:global(body:has([data-doctor-workspace])) .card:focus-visible{outline-color:var(--focus)}
+:global(body:has([data-doctor-workspace])) .card:hover{transform:none;background:var(--surface-muted)}
+:global(body:has([data-doctor-workspace])) .containerllaveIcon svg{color:var(--doctor-primary)}
+:global(body:has([data-doctor-workspace])) .textContainer>button:not(:disabled){color:var(--doctor-primary);background:var(--doctor-positive-bg)}
+:global(body:has([data-doctor-workspace])) .containerllaveIcon svg{stroke:var(--doctor-primary)}

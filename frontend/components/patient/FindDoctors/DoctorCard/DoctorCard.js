@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import Modal from "../../../ui/Modal/Modal";
 import Image from "next/image";
 import {
@@ -9,7 +10,8 @@ import {
     CalendarPlus,
     MapPin,
     Navigation,
-    Stethoscope
+    Stethoscope,
+    UserRound,
 } from "lucide-react";
 
 import Button from "../../../ui/Button/Button";
@@ -25,7 +27,8 @@ function formatearFecha(fecha) {
     }).format(new Date(`${fecha}T00:00:00`));
 }
 
-export default function DoctorCard({ doctor, onSchedule }) {
+export default function DoctorCard({ doctor, onSchedule, onViewProfile }) {
+    const reduceMotion = useReducedMotion();
 
     const [mapaAbierto, setMapaAbierto] = useState(false);
 
@@ -181,6 +184,10 @@ export default function DoctorCard({ doctor, onSchedule }) {
             </div>
 
             <div className={styles.actions}>
+                <motion.button initial="rest" whileHover="hover" whileFocus="hover" type="button" className={styles.profileAction} onClick={() => onViewProfile?.(doctor)}>
+                    <motion.span aria-hidden="true" style={{ display: "inline-flex" }} variants={{ rest: { y: 0 }, hover: { y: reduceMotion ? 0 : -2 } }} transition={{ duration: .18, ease: "easeOut" }}><UserRound size={17} /></motion.span>
+                    Ver perfil y valoración
+                </motion.button>
                 <Button
                     className={styles.primaryAction}
                     disabled={!tieneDisponibilidad}

@@ -1,7 +1,7 @@
 .panel {
     position: relative;
     margin-bottom: 24px;
-    padding: 17px 18px 14px;
+    padding: 18px 20px 16px;
     z-index: 2;
     border: 1px solid var(--border);
     border-radius: 16px;
@@ -16,7 +16,7 @@
     width: 46px;
     height: 3px;
     border-radius: 0 0 4px 4px;
-    background: #2b7fff;
+    background: var(--color-dark);
     content: "";
 }
 
@@ -25,7 +25,7 @@
     align-items: flex-end;
     justify-content: space-between;
     gap: 20px;
-    margin-bottom: 13px;
+    margin-bottom: 16px;
 }
 
 .titleGroup {
@@ -69,16 +69,19 @@
 
 .filters {
     display: grid;
-    grid-template-columns: minmax(270px, 1.65fr) repeat(3, minmax(145px, .78fr));
+    grid-template-columns:
+        minmax(180px, 1.2fr)
+        repeat(4, minmax(0, 1fr))
+        minmax(126px, auto);
     align-items: end;
-    gap: 9px 11px;
+    gap: 12px;
 }
 
 .searchField,
 .field {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
     min-width: 0;
 }
 
@@ -94,13 +97,17 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    min-height: 44px;
+    height: 48px;
+    min-height: 48px;
     padding: 0 12px;
     border: 1px solid var(--border);
     border-radius: 10px;
     color: var(--text-secondary);
     background: var(--surface);
-    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    transition:
+        border-color .18s ease,
+        box-shadow .18s ease,
+        background-color .18s ease;
 }
 
 .searchControl input {
@@ -120,40 +127,77 @@
 }
 
 .searchControl:focus-within {
-    border-color: #2b7fff;
+    border-color: var(--focus);
     box-shadow: 0 0 0 3px rgba(43, 127, 255, .12);
     background: var(--surface);
 }
 
-.reset {
-    grid-column: 1 / -1;
-    justify-self: end;
-    white-space: nowrap;
-    min-height: 32px;
-    margin-top: -1px;
-    padding: 5px 8px !important;
-    border: 0 !important;
-    color: var(--text-secondary) !important;
-    background: transparent !important;
-    font-size: .76rem !important;
-    font-weight: 700;
+.filterSelect :global(.select-search__control) {
+    height: 48px;
+    min-height: 48px;
 }
 
-.reset:hover {
-    color: var(--text-secondary) !important;
-    background: var(--surface-muted) !important;
+.filterSelect :global(.select-search__value-container),
+.filterSelect :global(.select-search__indicators) {
+    height: 46px;
+}
+
+.filterSelect :global(.select-search__value-container) {
+    padding-left: 12px;
+}
+
+.filterSelect :global(.select-search__input-container) {
+    margin: 0;
+    padding: 0;
+}
+
+.filterSelect :global(.select-search__placeholder),
+.filterSelect :global(.select-search__single-value) {
+    line-height: 1.25;
+}
+
+.filters .reset {
+    justify-self: end;
+    white-space: nowrap;
+    min-height: 48px;
+    padding: 0 12px;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    background: transparent;
+    font-size: .78rem;
+    font-weight: 700;
+    transition:
+        color .16s ease,
+        border-color .16s ease,
+        background-color .16s ease;
+}
+
+.filters .reset:hover {
+    border-color: var(--border);
+    color: var(--color-text);
+    background: var(--surface-muted);
     opacity: 1;
     transform: none;
 }
 
-.reset:focus-visible {
-    outline: 2px solid #2b7fff;
+.filters .reset:active {
+    transform: none;
+}
+
+.filters .reset:focus-visible {
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
 }
 
-@media (max-width: 920px) {
-    .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .searchField { grid-column: 1 / -1; }
+@media (max-width: 1280px) {
+    .filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filters .reset {
+        align-self: end;
+        min-width: 150px;
+    }
 }
 
 @media (max-width: 760px) {
@@ -164,12 +208,28 @@
 @media (max-width: 640px) {
     .panel { padding: 16px 15px 15px; border-radius: 14px; }
     .panel::before { left: 15px; }
-    .filters { grid-template-columns: 1fr; }
+    .filters {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+    }
+
     .searchField { grid-column: auto; }
-    .reset {
+
+    .filters .reset {
         justify-self: stretch;
         width: 100%;
-        min-height: 42px;
-        margin-top: 2px;
+        min-height: 46px;
+        margin-top: 0;
     }
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .searchControl,
+    .filters .reset {
+        transition-duration: .01ms;
+    }
+}
+
+.panel { box-shadow: none; }
+.panel::before { display: none; }
+.searchField, .field { min-width: 0; }

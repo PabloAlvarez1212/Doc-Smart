@@ -1,6 +1,7 @@
 "use client";
 
 import { ClipboardList } from "lucide-react";
+import { Suspense } from "react";
 import Modal from "../../../../components/ui/Modal/Modal";
 import Pagination from "../../../../components/ui/Pagination/Pagination";
 import MedicalHistoryHero from "../../../../components/patient/MedicalHistory/Hero/MedicalHistoryHero";
@@ -11,7 +12,15 @@ import MedicalHistoryDetail from "../../../../components/patient/MedicalHistory/
 import useMedicalHistory from "../../../../components/patient/MedicalHistory/useMedicalHistory";
 import styles from "./myMedicalHistory.module.css";
 
-export default function MedicalHistory() {
+export default function MedicalHistoryPage() {
+    return (
+        <Suspense fallback={<div className={styles.page} role="status">Cargando historial clínico…</div>}>
+            <MedicalHistory />
+        </Suspense>
+    );
+}
+
+function MedicalHistory() {
     const {
         records,
         loading,

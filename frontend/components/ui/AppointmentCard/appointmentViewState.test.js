@@ -61,3 +61,43 @@ test("solo permite confirmar un horario vigente y evita dobles envíos", () => {
     assert.equal(appointmentState.canSubmitReprogram({ fecha: "2026-10-08", hora: "09:30", horarios, cargando: true }), false);
     assert.equal(appointmentState.canSubmitReprogram({ fecha: "2026-10-08", hora: "09:30", horarios, guardando: true }), false);
 });
+
+test("construye el enlace de perfil con el id real del médico de la cita", () => {
+    assert.equal(typeof appointmentState.buildDoctorProfileLink, "function");
+
+    const openings = [];
+    const profileLink = appointmentState.buildDoctorProfileLink({
+        id: 31,
+        id_medico: 2,
+        medico: "Pipe García",
+        especialidad: "Cardiología",
+        foto_medico: "/media/pipe.jpg",
+        ciudad: "Neiva",
+        departamento: "Huila",
+        direccion: "Calle 10 # 20-30",
+    }, (doctor) => openings.push(doctor));
+
+    assert.equal(profileLink.label, "Ver perfil y valoraciones");
+
+    profileLink.onClick();
+
+    assert.deepEqual(openings, [{
+        id: 2,
+        nombre: "Pipe García",
+        especialidad: "Cardiología",
+        foto_perfil: "/media/pipe.jpg",
+        ciudad: "Neiva",
+        departamento: "Huila",
+        direccion: "Calle 10 # 20-30",
+    }]);
+});
+
+test("omite el enlace de perfil cuando la cita no identifica un médico", () => {
+    assert.equal(
+        appointmentState.buildDoctorProfileLink(
+            { id: 31, medico: "Profesional" },
+            () => {}
+        ),
+        null
+    );
+});

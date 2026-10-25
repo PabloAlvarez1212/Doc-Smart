@@ -21,10 +21,6 @@ export default function AvailabilityHero({
 
                 <div>
 
-                    <p className={styles.eyebrow}>
-                        Disponibilidad
-                    </p>
-
                     <h1>
                         Mi disponibilidad
                     </h1>

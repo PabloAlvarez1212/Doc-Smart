@@ -13,6 +13,7 @@ export default function Notifications() {
 
     return (
         <NotificationCenter
+            variant="doctor"
             notifications={notificaciones}
             unreadCount={noLeidas}
             totalRecords={totalRegistros}

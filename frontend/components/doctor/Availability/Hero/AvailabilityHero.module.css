@@ -126,3 +126,7 @@
         width: 23px;
     }
 }
+.icon{border-radius:14px;color:var(--doctor-primary);background:var(--doctor-positive-bg);box-shadow:none}
+.heading h1{font-size:clamp(28px,2.8vw,36px);line-height:1.13;letter-spacing:-.03em;font-weight:700}
+.description{font-size:15px;max-width:60ch;line-height:1.5}.summary{color:var(--doctor-primary);border:0;background:var(--doctor-positive-bg)}
+.summary strong{color:var(--color-text)}

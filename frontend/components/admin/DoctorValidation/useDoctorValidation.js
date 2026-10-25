@@ -6,6 +6,7 @@ import { getEspecialidadesService } from "@/app/services/doctorServices"
 import { listarSolicitudesMedicosValidacionService, obtenerMetricasValidacionMedicosService, obtenerHojaVidaSolicitudService, aprobarSolicitudValidacionService, rechazarSolicitudValidacionService } from "@/app/services/adminServices"
 import { getDepartamentosService } from "@/app/services/catalogs"
 import { getCiudadesByDepartamentoService } from "@/app/services/authService"
+import { createSingleFlight } from "./requestReviewFlow"
 const consultaInicial = { page: 1, page_size: 10, busqueda: "", estado: "", especialidad: "", departamento: "", ciudad: "" }
 
 export default function useDoctorValidation() {
@@ -28,6 +29,9 @@ export default function useDoctorValidation() {
     const [solicitudesDoctores, setsolicitudesDoctores] = useState([])
     const [busqueda, setBusquedaEntrada] = useState("")
     const [metricas, setMetricas] = useState(null)
+    const [procesandoSolicitud, setProcesandoSolicitud] = useState(false)
+    const operationGuard = useRef(null)
+    if (!operationGuard.current) operationGuard.current = createSingleFlight()
     const busquedaPendiente = busqueda.trim() !== consulta.busqueda
     const hayFiltros = Boolean(busqueda.trim() || estadoSeleccionado || especialidadSeleccionada || departamentoSeleccionado || ciudadSeleccionada)
     const setBusqueda = valor => {
@@ -142,6 +146,46 @@ export default function useDoctorValidation() {
         }
     }
 
+    const procesarSolicitud = ({ operacion, tituloExito, mensajeExito, mensajeError }) => (
+        operationGuard.current.run(async () => {
+            setProcesandoSolicitud(true)
+
+            try {
+                await operacion()
+
+                await Promise.all([
+                    refrescarSolicitudes(),
+                    cargarMetricas(),
+                ])
+
+                await Swal.fire({
+                    title: tituloExito,
+                    text: mensajeExito,
+                    icon: "success",
+                    confirmButtonText: "OK",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                })
+
+                return true
+            } catch (error) {
+                const mensaje =
+                    obtenerPrimerError(error?.response?.data) ||
+                    mensajeError
+
+                await Swal.fire({
+                    title: "Error",
+                    text: mensaje,
+                    icon: "error",
+                })
+
+                return false
+            } finally {
+                setProcesandoSolicitud(false)
+            }
+        })
+    )
+
     const aprobarSolicitud = async (solicitudId) => {
         const resultado = await Swal.fire({
             title: "¿Aprobar médico?",
@@ -152,68 +196,26 @@ export default function useDoctorValidation() {
             cancelButtonText: "Cancelar",
         })
 
-        if (!resultado.isConfirmed) return
+        if (!resultado.isConfirmed) return false
 
-        try {
-            await aprobarSolicitudValidacionService(solicitudId)
-
-            await Promise.all([
-                refrescarSolicitudes(),
-                cargarMetricas(),
-            ])
-
-            Swal.fire({
-                title: "Solicitud aprobada",
-                text: "El médico ha sido aprobado correctamente.",
-                icon: "success",
-            })
-
-        } catch (error) {
-            console.error("Error aprobando solicitud:", error)
-
-            Swal.fire({
-                title: "Error",
-                text: "No fue posible aprobar la solicitud.",
-                icon: "error",
-            })
-        }
+        return procesarSolicitud({
+            operacion: () => aprobarSolicitudValidacionService(solicitudId),
+            tituloExito: "Solicitud aprobada",
+            mensajeExito: "El médico ha sido aprobado correctamente.",
+            mensajeError: "No fue posible aprobar la solicitud.",
+        })
     }
 
     const rechazarSolicitud = async ({ solicitudId, motivo }) => {
-        try {
-            await rechazarSolicitudValidacionService(
+        return procesarSolicitud({
+            operacion: () => rechazarSolicitudValidacionService(
                 solicitudId,
                 motivo
-            )
-
-            await Promise.all([
-                refrescarSolicitudes(),
-                cargarMetricas(),
-            ])
-
-            await Swal.fire({
-                title: "Solicitud rechazada",
-                text: "La solicitud del médico fue rechazada correctamente.",
-                icon: "success",
-            })
-
-            return true
-
-        } catch (error) {
-            console.error("Error rechazando solicitud:", error)
-
-            const mensaje =
-                obtenerPrimerError(error) ||
-                "No fue posible rechazar la solicitud."
-
-            await Swal.fire({
-                title: "Error",
-                text: mensaje,
-                icon: "error",
-            })
-
-            return false
-        }
+            ),
+            tituloExito: "Solicitud rechazada",
+            mensajeExito: "La solicitud del médico fue rechazada correctamente.",
+            mensajeError: "No fue posible rechazar la solicitud.",
+        })
     }
 
     const limpiarFiltros = () => {
@@ -295,6 +297,7 @@ export default function useDoctorValidation() {
         verHojaVida,
         aprobarSolicitud,
         rechazarSolicitud,
+        procesandoSolicitud,
 
         limpiarFiltros,
     }

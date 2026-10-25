@@ -21,7 +21,7 @@ export default function FilterAppointments({
                     aria-hidden="true"
                 />
                 <input
-                    type="text"
+                    type="text" aria-label="Buscar paciente"
                     placeholder="Buscar paciente..."
                     value={paciente}
                     onChange={(e) =>
@@ -36,7 +36,7 @@ export default function FilterAppointments({
                     aria-hidden="true"
                 />
                 <input
-                    type="date"
+                    type="date" aria-label="Fecha de la cita"
                     value={fecha}
                     onChange={(e) =>
                         cambiarFecha(e.target.value)

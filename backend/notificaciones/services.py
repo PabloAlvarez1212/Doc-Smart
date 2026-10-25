@@ -10,7 +10,7 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from .serializers import NotificacionSerializer
 
-def enviarNotificacion(titulo, mensaje, tipo, id_usuario=None, id_medico=None, extra_data=None, *, conversacion_id=None):
+def enviarNotificacion(titulo, mensaje, tipo, id_usuario=None, id_medico=None, extra_data=None, *, conversacion_id=None, cita_id=None, historial_id=None):
     # 1. Crear registro en BD
     notificacion = Notificacion.objects.create(
         titulo=titulo,
@@ -19,6 +19,8 @@ def enviarNotificacion(titulo, mensaje, tipo, id_usuario=None, id_medico=None, e
         id_usuario_id=id_usuario,
         id_medico_id=id_medico,
         conversacion_id=conversacion_id,
+        cita_id=cita_id,
+        historial_id=historial_id,
     )
     
     # 2. Definir destinatario y conteo de no leídas
@@ -68,6 +70,7 @@ def notificar_actualizacion_cita(cita, fue_creada=False):
         mensaje=mensaje,
         tipo=tipo_evento,
         id_usuario=paciente_id,
+        cita_id=cita.pk,
         extra_data={
             "tipo_evento": tipo_evento,
             "cita": data_cita
@@ -194,3 +197,58 @@ def eliminarTodasNotificacionesService(usuario):
     notificaciones.delete()
 
     return "Todas las notificaciones fueron eliminadas correctamente", 200
+
+# Exact event types only: titles and messages never select a destination.
+EVENTOS_CITA = frozenset({
+    'cita_confirmada', 'cita_cancelada', 'cita_agendada', 'cita_pendiente',
+    'nueva_solicitud', 'cita_reprogramada', 'cita_completada', 'cita_vencida',
+    'documentacion_seguimiento', 'cierre_cita_24h', 'cierre_cita_48h',
+    'NUEVA_SOLICITUD', 'ACTUALIZACION_CITA',
+})
+
+
+def resolverDestinoNotificacionService(id_notificacion, usuario):
+    notification = Notificacion.objects.select_related(
+        'cita', 'conversacion__cita__id_estado', 'historial__cita',
+    ).filter(pk=id_notificacion).first()
+    if notification is None:
+        return 'Notificación no encontrada', 404
+    medico = isinstance(usuario, Medico)
+    paciente = isinstance(usuario, Usuario)
+    if not ((medico and notification.id_medico_id == usuario.pk) or
+            (paciente and notification.id_usuario_id == usuario.pk)):
+        return 'No tienes permiso para consultar esta notificación', 403
+    prefix = '/doctor' if medico else '/patient'
+    if notification.tipo in EVENTOS_CITA:
+        kind, resource = 'cita', notification.cita
+    elif notification.tipo == 'mensaje_nuevo':
+        kind, resource = 'conversacion', notification.conversacion
+    elif notification.tipo == 'historial_creado':
+        kind, resource = 'historial', notification.historial
+    else:
+        return 'Esta notificación no tiene un destino disponible', 404
+    if resource is None:
+        return 'El recurso de esta notificación ya no está disponible', 404
+    owner = resource.cita if kind == 'conversacion' else resource
+    patient_id = owner.usuario_id if kind == 'historial' else owner.id_usuario_id
+    doctor_id = owner.medico_id if kind == 'historial' else owner.id_medico_id
+    if (medico and doctor_id != usuario.pk) or (paciente and patient_id != usuario.pk):
+        return 'Ya no tienes permiso para consultar este recurso', 403
+    if kind == 'conversacion':
+        from chat_citas.services import puedeVerConversacionService
+        if not puedeVerConversacionService(resource, usuario):
+            return 'Esta conversación ya no está disponible para tu cuenta', 403
+    if kind == 'cita':
+        route = f'{prefix}/my-appointments?cita={resource.pk}'
+    elif kind == 'conversacion':
+        route = f'{prefix}/my-chats/{resource.pk}'
+    elif medico:
+        if resource.cita_id is None:
+            return 'La cita de este historial ya no está disponible', 404
+        if resource.cita.id_medico_id != usuario.pk:
+            return 'Ya no tienes permiso para consultar la cita de este historial', 403
+        route = f'{prefix}/my-appointments?historial={resource.pk}&cita={resource.cita_id}'
+    else:
+        route = f'{prefix}/my-medical-history?historial={resource.pk}'
+    return {'tipo': kind, 'id': resource.pk, 'ruta': route,
+            **({'cita_id': resource.cita_id} if kind == 'historial' else {})}, 200

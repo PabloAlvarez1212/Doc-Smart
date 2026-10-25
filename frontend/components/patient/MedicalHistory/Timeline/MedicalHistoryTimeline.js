@@ -16,7 +16,7 @@ export default function MedicalHistoryTimeline({
     return (
         <section className={styles.section} aria-labelledby="timeline-title">
             <div className={styles.header}>
-                <div><p className={styles.kicker}>Registro de atenciones</p><h2 id="timeline-title">Historial cronológico</h2></div>
+                <div><h2 id="timeline-title">Historial cronológico</h2></div>
                 <span>{loading ? "Actualizando…" : `${records.length} ${records.length === 1 ? "resultado" : "resultados"}`}</span>
             </div>
             {loading ? (

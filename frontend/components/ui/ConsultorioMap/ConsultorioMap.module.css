@@ -1,4 +1,7 @@
 .container {
+    position: relative;
+    isolation: isolate;
+    z-index: 0;
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -22,14 +25,90 @@
 }
 
 .search {
+    position: relative;
+    z-index: 1;
     margin-bottom: 14px;
 }
+.search[hidden] { display: none; }
 
 .search > * {
     width: 100%;
 }
 
+/* The Google web component otherwise chooses its own light/dark scheme. */
+.autocomplete {
+    position: relative;
+    isolation: isolate;
+    z-index: 0;
+    color-scheme: inherit;
+    background-color: var(--surface);
+    color: var(--color-text);
+    border: 1px solid var(--control-border);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    min-height: 46px;
+    scroll-margin-top: 160px;
+    scroll-margin-bottom: 24px;
+}
+
+.autocomplete:focus-within {
+    border-color: var(--focus);
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+/* Keep one local focus indicator instead of Google's separate floating ring. */
+.autocomplete::part(focus-ring) {
+    outline: none;
+    box-shadow: none;
+}
+
+.autocomplete::part(input) {
+    color: var(--color-text);
+    background-color: var(--surface);
+    caret-color: var(--focus);
+    outline: none;
+    box-shadow: none;
+}
+
+.autocomplete::part(prediction-list) {
+    z-index: 2;
+    background-color: var(--surface);
+    color: var(--color-text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+}
+
+.autocomplete::part(prediction-item) {
+    background-color: var(--surface);
+    color: var(--text-secondary);
+}
+
+.autocomplete::part(prediction-item-main-text),
+.autocomplete::part(prediction-item-match),
+.autocomplete::part(prediction-item-nonmatch) {
+    color: var(--color-text);
+}
+
+.autocomplete::part(prediction-item-secondary-text),
+.autocomplete::part(prediction-item-icon) {
+    color: var(--text-secondary);
+}
+
+.autocomplete::part(prediction-item):hover {
+    background-color: var(--surface-muted);
+}
+
+.autocomplete::part(prediction-item-selected) {
+    background-color: var(--doctor-positive-bg, var(--tone-blue));
+    color: var(--color-text);
+}
+
 .map {
+    position: relative;
+    z-index: 0;
     width: 100%;
     height: 300px;
     border: 1px solid var(--border);
@@ -38,9 +117,105 @@
     background: var(--surface-muted);
 }
 
+.pointButton {
+    margin-top: 12px;
+    max-width: 100%;
+    min-height: 44px;
+    padding: 11px 15px;
+    font-size: 14px;
+}
+
+.bymaxMarker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 64px;
+    height: 82px;
+    color: var(--doctor-primary, var(--text-primary));
+    cursor: grab;
+}
+.bymaxMarker img {
+    display: block;
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    filter: drop-shadow(0 3px 4px rgb(0 0 0 / 28%));
+    animation: markerAppear 200ms ease-out both;
+}
+/* The global dark-theme avatar treatment must not add a white tile on the map. */
+.bymaxMarker[data-clinic-marker="bymax"] img[src] { background: transparent; border-radius: 0; }
+.markerTip { display: block; height: 14px; filter: drop-shadow(0 1px 1px rgb(0 0 0 / 30%)); }
+.markerTip svg { display: block; }
+.bymaxPending { cursor: default; }
+.bymaxMarker[data-locked="true"] { cursor: default; }
+.bymaxPending img { filter: drop-shadow(0 4px 5px rgb(0 0 0 / 30%)); }
+@keyframes markerAppear {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.pointConfirmation {
+    margin-top: 12px;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    color: var(--text-primary);
+}
+
+.pointDescription {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.confirmationIcon { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px; background: var(--doctor-positive-bg, var(--surface-muted)); color: var(--doctor-primary, var(--text-primary)); }
+.pointDescription > div { min-width: 0; }
+.pointDescription strong { display: block; font-size: 16px; line-height: 1.35; letter-spacing: -0.02em; }
+.pointDescription p, .previewStatus {
+    margin: 6px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+.confirmationCity { display: block; margin-top: 8px; font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--doctor-primary, var(--text-primary)); }
+.previewStatus:empty { display: none; }
+.pointActions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.pointActions > button { min-height: 46px; padding: 12px 16px; font-size: 14px; }
+.confirmPoint { min-width: 190px; }
+.pointActions > button, .pointButton { transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease; }
+.pointActions > button:is(:hover,:active), .pointButton:is(:hover,:active) { transform: none; }
+.pointActions > button > svg, .pointButton > svg { transition: transform 200ms ease; }
+@media (hover:hover) and (pointer:fine) {
+    .confirmPoint:not(:disabled):hover > svg { transform: translateX(2px); }
+    .pointButton:not(:disabled):hover > svg { transform: rotate(30deg); }
+    .cancelPoint:not(:disabled):hover { border-color: var(--control-border); }
+}
+.address { display: flex; gap: 10px; align-items: flex-start; padding: 14px 16px; background: var(--surface-muted); border-radius: 12px; overflow-wrap: anywhere; }
+.address > svg { flex-shrink: 0; margin-top: 2px; color: var(--doctor-primary, var(--text-primary)); }
+.address > span { display: grid; gap: 3px; }
+.address strong { font-size: 12px; font-weight: 600; }
+.address > span > span { color: var(--text-primary); font-weight: 500; }
+.spinner { animation: locationSpin 800ms linear infinite; }
+.fixedLocation { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 12px; }
+.fixedLocation > span { display: flex; align-items: center; gap: 8px; color: var(--doctor-primary, var(--text-primary)); font-size: 13px; }
+.fixedLocation .pointButton { margin-top: 0; }
+@keyframes locationSpin { to { transform: rotate(360deg); } }
+@media (max-width: 640px) {
+    .pointConfirmation { padding: 16px; }
+    .pointActions > button { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .bymaxMarker img, .spinner { animation: none; }
+    .pointActions > button, .pointButton, .pointActions > button > svg, .pointButton > svg { transition: none; }
+    .pointActions > button:hover > svg, .pointButton:hover > svg { transform: none; }
+}
+
 .error {
     margin: 0;
-    color: #c83d4d;
+    color: var(--ink-red);
     font-size: 14px;
     line-height: 1.5;
 }

@@ -19,12 +19,18 @@ class EventTests(Fase3Fixture):
             ('anticipada', self.now + timedelta(days=3), lambda: habilitarConversacionAnticipadamenteService(self.conv.pk, self.doctor)),
             ('reprogramada', self.now + timedelta(hours=1), lambda: editarCitaService(self.cita.pk, {'fecha_programada': self.now + timedelta(days=4)}, self.patient)),
             ('completada', self.now, lambda: completarCitaService(self.cita.pk, self.doctor.pk, self.datos_historial)),
-            ('inasistencia', self.now, lambda: marcarInasistenciaPacienteService(self.cita.pk, self.doctor)),
+            ('inasistencia',self.now - timedelta(minutes=31),lambda: marcarInasistenciaPacienteService(self.cita.pk,self.doctor)),
         ]
         for name, scheduled, operation in cases:
             with self.subTest(name=name):
+                fin_esperado = (
+                    self.now - timedelta(minutes=1)
+                    if name == 'inasistencia'
+                    else self.now + timedelta(minutes=30)
+                )
                 self.cita.fecha_programada = scheduled
-                self.cita.save()
+                self.cita.fecha_final = fin_esperado
+                self.cita.save(update_fields=['fecha_programada','fecha_final'])
                 with self.captureOnCommitCallbacks(execute=False) as callbacks:
                     with patch('chat_citas.event_services.registrarEventoConversacionService', side_effect=RuntimeError('fallo')):
                         with self.assertRaises(RuntimeError):
@@ -33,7 +39,7 @@ class EventTests(Fase3Fixture):
                 self.conv.refresh_from_db()
                 self.assertEqual(self.cita.id_estado.nombre, 'confirmada')
                 self.assertEqual(self.cita.fecha_programada, scheduled)
-                self.assertEqual(self.cita.fecha_final, self.now + timedelta(minutes=30))
+                self.assertEqual(self.cita.fecha_final,fin_esperado)
                 self.assertIsNone(self.cita.fecha_inasistencia)
                 self.assertIsNone(self.conv.fecha_habilitacion_anticipada)
                 self.assertIsNone(self.conv.fecha_cierre)
@@ -44,7 +50,9 @@ class EventTests(Fase3Fixture):
         from .services import obtenerEstadoConversacionService
         from notificaciones.models import Notificacion
         completarCitaService(self.cita.pk, self.doctor.pk, self.datos_historial)
-        self.assertEqual(Notificacion.objects.count(), 2)
+        self.assertEqual(Notificacion.objects.count(), 4)
+        self.assertEqual(Notificacion.objects.filter(tipo='cita_completada', cita=self.cita).count(), 2)
+        self.assertEqual(Notificacion.objects.filter(tipo='historial_creado', historial__cita=self.cita).count(), 2)
         self.conv.refresh_from_db()
         with patch('django.utils.timezone.now', return_value=self.now + timedelta(hours=24)):
             self.assertEqual(obtenerEstadoConversacionService(self.conv)['estado'], 'cerrado')
@@ -128,9 +136,10 @@ class EventTests(Fase3Fixture):
         self.assertEqual(Mensaje.objects.get().metadata['documentos_editables_hasta'], self.cita.fecha_limite_cierre.isoformat())
 
     def test_inasistencia(self):
-        self.cita.fecha_programada = self.now
-        self.cita.save()
-        marcarInasistenciaPacienteService(self.cita.pk, self.doctor)
+        self.cita.fecha_programada = self.now - timedelta(minutes=31)
+        self.cita.fecha_final = self.now - timedelta(minutes=1)
+        self.cita.save(update_fields=['fecha_programada', 'fecha_final'])
+        marcarInasistenciaPacienteService(self.cita.pk,self.doctor)
         self.assertEqual(Mensaje.objects.count(), 1)
         self.assertEqual(Mensaje.objects.get().metadata['evento'], 'inasistencia_paciente')
 

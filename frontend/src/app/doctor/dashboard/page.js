@@ -51,7 +51,6 @@ export default function Dashboard() {
             <div className={styles.container}>
                 <header className={styles.pageHeader}>
                     <div>
-                        <p className={styles.eyebrow}>Vista profesional</p>
                         <h1>Dashboard médico</h1>
                         <p className={styles.introduction}>
                             Consulta el comportamiento de tus citas y la asistencia de tus pacientes.

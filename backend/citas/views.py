@@ -18,10 +18,7 @@ from citas.services import (
     editarCitaService,
     cancelarCitaService,
     completarCitaService,
-    listarRecordatoriosService,
-    crearRecordatorioService,
     confirmarCitaService,
-    eliminarRecordatorioService,
     obtenerEstadisticasCitas,
     obtenerInfoPacienteCitaService,
 )
@@ -404,43 +401,6 @@ class CitaConfirmarView(APIView):
             return respuesta_error('Error interno del servidor', status=500)
 
 # ─── RECORDATORIOS ───────────────────────────────────────────────────────────
-
-#!Metodos admin
-class RecordatorioListView(APIView):
-    permission_classes = [IsAuthenticated,IsAdmin]
-    #!Listar recordatorios
-    def get(self, request):
-        try:
-            resultado, status_code = listarRecordatoriosService()
-            return respuesta_ok(data=resultado)
-        except Exception as e:
-            print(e)
-            return respuesta_error('Error interno del servidor', status=500)
-
-    #!Crear recordatorio
-    def post(self, request):
-        try:
-            resultado, status_code = crearRecordatorioService(request.data)
-            if status_code != 201:
-                return respuesta_error(resultado, status=status_code)
-            return respuesta_ok(data=resultado, mensaje='Recordatorio creado correctamente', status=201)
-        except Exception as e:
-            print(e)
-            return respuesta_error('Error interno del servidor', status=500)
-
-
-class RecordatorioDetailView(APIView):
-    permission_classes = [IsAuthenticated,IsAdmin]
-    #!Eliminar recordatorio
-    def delete(self, request, pk):
-        try:
-            resultado, status_code = eliminarRecordatorioService(pk)
-            if status_code != 200:
-                return respuesta_error(resultado, status=status_code)
-            return respuesta_ok(mensaje=resultado)
-        except Exception as e:
-            print(e)
-            return respuesta_error('Error interno del servidor', status=500)
 
 #Estadisticas Dashboard
 

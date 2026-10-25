@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import useInactivityLogout from "../../../components/hooks/useInactivityLogout";
 import Header from "../../../components/doctor/layout/Header/Header";
 import styles from "./layout.module.css";
+import './workspace.css';
 import BymaxAssistant from "../../../components/bymax/BymaxAssistant";
 import useProfile from "../../../components/doctor/Profile/useProfile";
 import { NotificationsProvider } from "../../../components/contex/NotificationsContext";
@@ -16,7 +17,7 @@ export default function DoctorLayout({ children }) {
 
     // Al salir de validación, comprobar un perfil nuevo antes de abrir el panel.
     return (
-        <div data-doctor-home-shell={pathname === "/doctor/home" ? "true" : undefined}>
+        <div data-doctor-workspace="true" data-doctor-home-shell={pathname === "/doctor/home" ? "true" : undefined}>
         <DoctorAccess key={esPaginaValidacion ? "validacion" : "panel"} esPaginaValidacion={esPaginaValidacion}>
             {children}
         </DoctorAccess>

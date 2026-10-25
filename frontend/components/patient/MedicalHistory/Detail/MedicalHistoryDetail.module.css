@@ -2,7 +2,7 @@
 .detail {
     display: grid;
     min-width: 0;
-    color: #263247;
+    color: var(--color-text);
 }
 
 /* Estados de carga y error */
@@ -15,17 +15,17 @@
     flex-direction: column;
     gap: 12px;
     padding: 30px;
-    color: #566174;
+    color: var(--text-secondary);
     text-align: center;
 }
 
 .detailError svg {
-    color: #a33a34;
+    color: var(--ink-red);
 }
 
 .detailError h3 {
     margin: 0;
-    color: #172033;
+    color: var(--color-text);
 }
 
 .detailError p {
@@ -38,8 +38,8 @@
 .spinner {
     width: 34px;
     height: 34px;
-    border: 3px solid #dbeafe;
-    border-top-color: #2b7fff;
+    border: 3px solid var(--tone-blue);
+    border-top-color: var(--color-dark);
     border-radius: 50%;
     animation: detail-spin .8s linear infinite;
 }
@@ -50,7 +50,7 @@
     min-width: 0;
     gap: 15px;
     padding: 22px 0;
-    border-top: 1px solid #e2e9f1;
+    border-top: 1px solid var(--border);
 }
 
 .detail > .section:first-child {
@@ -63,7 +63,7 @@
     align-items: center;
     gap: 8px;
     margin: 0;
-    color: #1f2f45;
+    color: var(--color-text);
     font-size: .96rem;
     font-weight: 760;
     line-height: 1.35;
@@ -71,7 +71,7 @@
 
 .sectionTitle svg {
     flex: 0 0 auto;
-    color: #2b67b3;
+    color: var(--color-dark);
 }
 
 /* Distribución de información */
@@ -84,7 +84,7 @@
 }
 
 .peopleGrid {
-    border-top: 1px solid #e2e9f1;
+    border-top: 1px solid var(--border);
 }
 
 .peopleGrid .section {
@@ -101,18 +101,18 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #66758a;
+    color: var(--text-secondary);
     font-size: .75rem;
     font-weight: 700;
     line-height: 1.35;
 }
 
 .detailItem span svg {
-    color: #4973ad;
+    color: var(--color-dark);
 }
 
 .detailItem strong {
-    color: #26354a;
+    color: var(--color-text);
     font-size: .9rem;
     font-weight: 650;
     line-height: 1.5;
@@ -134,8 +134,8 @@
     flex: 0 0 40px;
     place-items: center;
     border-radius: 11px;
-    color: #245ba6;
-    background: #edf4fd;
+    color: var(--color-dark);
+    background: var(--tone-blue);
 }
 
 .person > div {
@@ -145,7 +145,7 @@
 }
 
 .person small {
-    color: #748196;
+    color: var(--text-secondary);
     font-size: .72rem;
     line-height: 1.35;
 }
@@ -156,14 +156,14 @@
 }
 
 .person strong {
-    color: #202f44;
+    color: var(--color-text);
     font-size: .91rem;
     line-height: 1.4;
 }
 
 .person p {
     margin: 0;
-    color: #657489;
+    color: var(--text-secondary);
     font-size: .8rem;
     line-height: 1.4;
 }
@@ -177,7 +177,7 @@
 .clinicalSections > div {
     min-width: 0;
     padding: 17px 0;
-    border-bottom: 1px solid #e7edf3;
+    border-bottom: 1px solid var(--border);
 }
 
 .clinicalSections > div:first-child {
@@ -191,7 +191,7 @@
 
 .clinicalSections dt {
     margin-bottom: 7px;
-    color: #315f9e;
+    color: var(--color-dark);
     font-size: .76rem;
     font-weight: 740;
     line-height: 1.4;
@@ -199,7 +199,7 @@
 
 .clinicalSections dd {
     margin: 0;
-    color: #364154;
+    color: var(--color-text);
     font-size: .9rem;
     line-height: 1.7;
     overflow-wrap: anywhere;
@@ -248,7 +248,7 @@
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    color: #fff;
+    color: var(--surface);
     background: var(--brand-solid);
 }
 
@@ -309,9 +309,9 @@
     margin-top: 2px;
     padding: 13px 14px;
     border-radius: 10px;
-    border-left: 3px solid #2b7fff;
-    color: #566174;
-    background: #f5f8fc;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    background: var(--surface-muted);
     font-size: .82rem;
     line-height: 1.5;
 }
@@ -322,7 +322,7 @@
 
 .note svg {
     flex-shrink: 0;
-    color: #2b67b3;
+    color: var(--color-dark);
 }
 
 /* Acciones relacionadas con documentos */
@@ -335,9 +335,9 @@
 /* Botón de descarga */
 .download {
     width: 100%;
-    border: 1px solid #d7dee8 !important;
-    color: #53627a !important;
-    background: #f8fafc !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-secondary) !important;
+    background: var(--surface-muted) !important;
 }
 
 .download:disabled {

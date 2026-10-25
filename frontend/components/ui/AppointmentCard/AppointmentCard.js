@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CalendarX, CheckCircle2, Clock3, Eye, MapPin, AlertTriangle } from "lucide-react";
+import { CalendarDays, CalendarX, CheckCircle2, Clock3, Eye, MapPin, AlertTriangle, Star, UserRoundSearch } from "lucide-react";
 import ConsultorioLink from "../ConsultorioLink/ConsultorioLink";
 import Image from "next/image";
 import styles from "./AppointmentCard.module.css";
@@ -15,9 +15,11 @@ export default function AppointmentCard({
     permitirMapa = false,
     metadata,
     onViewDetails,
+    variant,
 }) {
     const personName = person?.name || "Usuario de DocSmart";
     const statusKey = String(status?.key || "").toLowerCase();
+    const statusBadge = <span className={`${styles.status} ${styles[statusKey] || ""}`}>{status?.label || "Sin estado"}</span>;
     const ResolutionIcon =
         statusKey === "completada"
             ? CheckCircle2
@@ -27,7 +29,7 @@ export default function AppointmentCard({
                     ? AlertTriangle
                     : null;
     return (
-        <article className={styles.item} role="listitem">
+        <article className={`${styles.item} ${variant === 'doctor' ? styles.doctor : variant === 'patient' ? styles.patient : ''}`} role="listitem">
             <header className={styles.cardHeader}>
                 <div className={styles.schedule}>
                     <span className={styles.dateIcon} aria-hidden="true">
@@ -43,13 +45,7 @@ export default function AppointmentCard({
                     </div>
                 </div>
 
-                <div className={styles.statusBlock}>
-                    <span
-                        className={`${styles.status} ${styles[statusKey] || ""}`}
-                    >
-                        {status?.label || "Sin estado"}
-                    </span>
-                </div>
+                {variant !== 'doctor' && <div className={styles.statusBlock}>{statusBadge}</div>}
             </header>
 
             <div className={styles.cardBody}>
@@ -79,31 +75,46 @@ export default function AppointmentCard({
                             >
                                 {person.infoAbierta
                                     ? "Ocultar información médica"
-                                    : "Presiona aquí para ver información médica"}
+                                    : variant === "doctor" ? "Información médica" : "Presiona aquí para ver información médica"}
                             </button>
                         )}
                     </div>
+                    {variant === 'doctor' && <div className={styles.statusBlock}>{statusBadge}</div>}
                 </div>
 
-                <div className={styles.location}>
-                    <MapPin size={18} aria-hidden="true" />
+                <div className={styles.locationGroup}>
+                    {person?.profileLink && (
+                        <button
+                            type="button"
+                            className={styles.profileLink}
+                            onClick={person.profileLink.onClick}
+                            aria-label={`${person.profileLink.label} de ${personName}`}
+                        >
+                            <UserRoundSearch size={15} aria-hidden="true" />
+                            <span>{person.profileLink.label}</span>
+                        </button>
+                    )}
 
-                    <div>
-                        <strong>
-                            {location?.name || "Ubicación no disponible"}
-                        </strong>
+                    <div className={styles.location}>
+                        <MapPin size={18} aria-hidden="true" />
 
-                        {permitirMapa ? (
-                            <ConsultorioLink
-                                direccion={location?.address}
-                                latitud={location?.latitud}
-                                longitud={location?.longitud}
-                            />
-                        ) : (
-                            <span>
-                                {location?.address || "Ubicación no disponible"}
-                            </span>
-                        )}
+                        <div>
+                            <strong>
+                                {location?.name || "Ubicación no disponible"}
+                            </strong>
+
+                            {permitirMapa ? (
+                                <ConsultorioLink
+                                    direccion={location?.address}
+                                    latitud={location?.latitud}
+                                    longitud={location?.longitud}
+                                />
+                            ) : (
+                                <span>
+                                    {location?.address || "Ubicación no disponible"}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -120,23 +131,6 @@ export default function AppointmentCard({
                         <Eye size={14} aria-hidden="true" />
                         <span>Ver detalles</span>
                     </button>
-                )}
-
-                {/* Fecha de finalización, cancelación o vencimiento */}
-                {metadata && ResolutionIcon && (
-                    <div
-                        className={`${styles.resolutionInfo} ${
-                            statusKey === "completada"
-                                ? styles.resolutionCompleted
-                                : ["vencida", "inasistencia_paciente"].includes(statusKey)
-                                    ? styles.resolutionExpired
-                                    : styles.resolutionCancelled
-                        }`}
-                    >
-                        <ResolutionIcon size={15} aria-hidden="true" />
-
-                        <span>{metadata}</span>
-                    </div>
                 )}
 
                 {/* Acciones de la cita */}
@@ -173,6 +167,24 @@ export default function AppointmentCard({
                         ))}
                     </div>
                 )}
+                
+                {/* Fecha de finalización, cancelación o vencimiento */}
+                {metadata && ResolutionIcon && (
+                    <div
+                        className={`${styles.resolutionInfo} ${
+                            statusKey === "completada"
+                                ? styles.resolutionCompleted
+                                : ["vencida", "inasistencia_paciente"].includes(statusKey)
+                                    ? styles.resolutionExpired
+                                    : styles.resolutionCancelled
+                        }`}
+                    >
+                        <ResolutionIcon size={15} aria-hidden="true" />
+
+                        <span>{metadata}</span>
+                    </div>
+                )}
+
             </footer>
         </article>
     );

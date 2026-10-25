@@ -1,0 +1,5 @@
+.notice{border:1px solid var(--border)!important;border-radius:14px!important;box-shadow:var(--shadow)!important;font-family:inherit!important;max-width:calc(100vw - 32px)!important}
+.notice :global(.swal2-title){font-size:15px!important;line-height:1.4!important}
+.notice :global(.swal2-html-container){font-size:13px!important;line-height:1.6!important;color:var(--text-secondary)!important}
+.notice button:focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.notice{animation:none!important;transition:none!important}}

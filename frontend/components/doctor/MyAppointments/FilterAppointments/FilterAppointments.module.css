@@ -39,10 +39,11 @@
 
 .searchField:focus-within,
 .dateField:focus-within {
-    border-color: #22c55e;
+    border-color: var(--doctor-primary);
 
-    box-shadow:
-        0 0 0 3px rgba(34, 197, 94, .10);
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    box-shadow: none;
 }
 
 
@@ -60,12 +61,21 @@
 .searchField input,
 .dateField input {
     width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     border: 0;
     outline: 0;
     color: var(--color-text);
     background: transparent;
     font: inherit;
     font-size: .88rem;
+}
+
+/* The wrapper provides the keyboard ring; a second ring clips date segments. */
+.container .searchField input:focus-visible,
+.container .dateField input:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 
@@ -129,3 +139,6 @@
     }
 
 }
+.searchField,.dateField{min-height:44px;flex-shrink:0;border-color:var(--control-border)}
+.searchField input,.dateField input{min-height:42px}
+@media(max-width:760px){.searchField{flex:none}}

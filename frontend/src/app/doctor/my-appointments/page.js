@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AlertCircle, RefreshCw, CalendarDays, Clock3 } from "lucide-react";
-import { m, useReducedMotion } from "motion/react";
+import { motion as m, useReducedMotion } from "motion/react";
 import DoctorAppointmentList from "../../../../components/doctor/MyAppointments/AppointmentList/DoctorAppointmentList";
 import FilterAppointments from "../../../../components/doctor/MyAppointments/FilterAppointments/FilterAppointments";
 import HeaderAppointments from "../../../../components/doctor/MyAppointments/HeaderAppointments/HeaderAppointments";
@@ -18,6 +18,7 @@ import {
 import CompleteAppointmentModal from "../../../../components/ui/CompleteAppointmentModal/CompleteAppointmentModal";
 import styles from "./myAppointments.module.css";
 import Button from "../../../../components/ui/Button/Button";
+import AppointmentDeepLink from "../../../../components/ui/AppointmentCard/DeepLinkedAppointment";
 
 export default function MyAppointments() {
     const reduceMotion = useReducedMotion();
@@ -45,6 +46,7 @@ export default function MyAppointments() {
         cancelarCita,
         confirmarCita,
         completarCita,
+        marcarInasistencia,
         reprogramarCita,
         recargarCitas,
     } = useAppointments();
@@ -77,6 +79,7 @@ export default function MyAppointments() {
     return (
         <main className={styles.page} data-appointments-page="true">
             <Hero resumen={resumen} loading={loadingResumen} />
+            <AppointmentDeepLink counterpart="paciente" />
 
             <nav className={styles.sectionTabs}aria-label="Secciones de citas médicas">
                 {/* AGENDA */}
@@ -193,6 +196,7 @@ export default function MyAppointments() {
                 }
                 cita={citaSeleccionada}
                 completarCita={completarCita}
+                marcarInasistencia={marcarInasistencia}
             />
         </main>
     );

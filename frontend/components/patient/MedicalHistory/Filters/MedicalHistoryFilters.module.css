@@ -1,6 +1,6 @@
 .filters { display: grid; grid-template-columns: minmax(240px, 1.4fr) repeat(3, minmax(150px, .7fr)) auto; align-items: end; gap: 14px; padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: 0 6px 22px rgba(26, 43, 76, .06); }
 .search { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
-.search:focus-within, .field select:focus { border-color: #2b7fff; box-shadow: 0 0 0 3px rgba(43, 127, 255, .12); outline: none; }
+.search:focus-within, .field select:focus { border-color: var(--color-dark); box-shadow: 0 0 0 3px rgba(43, 127, 255, .12); outline: none; }
 .search input { width: 100%; border: 0; outline: none; background: transparent; color: var(--color-text); font: inherit; }
 .search input::placeholder { color: var(--text-secondary); }
 .field { display: flex; flex-direction: column; gap: 7px; }

@@ -1,9 +1,11 @@
 import { CalendarDays, ChevronRight, ClipboardPlus, Stethoscope } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import AppointmentCode from "../../../ui/AppointmentCode/AppointmentCode";
 import styles from "./MedicalHistoryCard.module.css";
 import { formatMedicalHistoryDate } from "../medicalHistoryFormatters";
 
 export default function MedicalHistoryCard({ record, isLatest, onSelect }) {
+    const reduceMotion = useReducedMotion();
     return (
         <article className={styles.entry}>
             <span className={styles.marker} aria-hidden="true" />
@@ -25,16 +27,19 @@ export default function MedicalHistoryCard({ record, isLatest, onSelect }) {
                     contextId={record.id}
                     compact
                 />
-                <button
+                <motion.button
                     type="button"
                     className={styles.action}
                     onClick={onSelect}
+                    initial="rest"
+                    whileHover="hover"
+                    whileFocus="hover"
                     aria-label={`Ver detalles de la consulta del ${formatMedicalHistoryDate(record.fecha_creacion)}`}
                 >
                     <ClipboardPlus size={17} aria-hidden="true" />
                     Ver detalles
-                    <ChevronRight size={17} aria-hidden="true" />
-                </button>
+                    <motion.span aria-hidden="true" style={{ display: "inline-flex" }} variants={{ rest: { x: 0 }, hover: { x: reduceMotion ? 0 : 3 } }} transition={{ duration: .18, ease: "easeOut" }}><ChevronRight size={17} /></motion.span>
+                </motion.button>
             </div>
         </article>
     );

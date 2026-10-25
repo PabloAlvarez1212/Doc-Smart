@@ -1,5 +1,8 @@
 import api from "./api";
 
+export const resolverDestinoNotificacionService = async (id,signal) =>
+    (await api.get(`/notificaciones/${id}/destino/`,{signal})).data;
+
 export const obtenerNotificacionesService = async (params = {}) => {
     const response = await api.get(
         "/notificaciones/",{params,}

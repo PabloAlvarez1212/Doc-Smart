@@ -125,17 +125,13 @@ export default function AvailabilityPage() {
 
 
             if (!resultado.ok) {
-
-                alert(
-                    resultado.mensaje
-                );
-
-                return;
+                return resultado;
             }
 
 
             setModalAbierto(false);
             setExcepcionSeleccionada(null);
+            return resultado;
         };
 
 

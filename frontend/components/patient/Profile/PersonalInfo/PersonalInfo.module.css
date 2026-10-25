@@ -39,8 +39,8 @@
 }
 
 .profileActions>div:first-child{display:grid;gap:3px;min-width:0}
-.profileActions strong{color:#344359;font-size:.84rem}
-.profileActions span{color:#748297;font-size:.74rem;line-height:1.4}
+.profileActions strong{color:var(--text-primary);font-size:.84rem}
+.profileActions span{color:var(--text-secondary);font-size:.74rem;line-height:1.4}
 
 .actionButtons{
     display:flex;
@@ -75,15 +75,15 @@
 }
 
 .saveButton{
-    background:#2456a6;
+    background:var(--action-primary-bg);
     color:#fff;
     transition:background-color 160ms ease,transform 120ms cubic-bezier(.23,1,.32,1)
 }
 
 .saveButton:hover:not(:disabled){
     opacity:1;
-    background:#1e4a91;
-    transform:translateY(-1px)
+    background:var(--action-primary-hover);
+    transform:none
 }
 
 .emailButton:active:not(:disabled),
@@ -116,7 +116,7 @@
     padding:11px 16px;
     border:0;
     border-radius:10px;
-    background:#2857ad;
+    background:var(--action-primary-bg);
     color:#fff;
     font:inherit;
     font-size:13px;
@@ -202,7 +202,7 @@
     cursor:pointer
 }
 
-.formActions .addButton{background:#2857ad;color:#fff;border-color:#2857ad}
+.formActions .addButton{background:var(--action-primary-bg);color:#fff;border-color:var(--action-primary-bg)}
 .formActions button:disabled{opacity:.6;cursor:not-allowed}
 
 .error{color:var(--ink-red)}
@@ -272,23 +272,23 @@
 }
 
 .actions .editButton{
-    background:rgba(36,86,166,.12);
-    color:#2456a6;
+    background:var(--tone-blue);
+    color:var(--accent);
 }
 
 .actions .editButton:hover:not(:disabled){
-    background:rgba(36,86,166,.18);
-    transform:translateY(-1px);
+    background:var(--tone-blue);
+    transform:none;
 }
 
 .actions .deleteButton{
-    background:rgba(220,53,69,.12);
-    color:#d64545;
+    background:var(--tone-red);
+    color:var(--ink-red);
 }
 
 .actions .deleteButton:hover:not(:disabled){
-    background:rgba(220,53,69,.18);
-    transform:translateY(-1px);
+    background:var(--tone-red);
+    transform:none;
 }
 
 .actions button:disabled{
@@ -301,3 +301,68 @@
     outline:2px solid rgba(36,86,166,.28);
     outline-offset:3px;
 }
+
+/* Profile surfaces share the light/dark semantic palette. */
+.section { box-shadow: none; }
+.medicalGrid { max-width: none; grid-template-columns: repeat(4,minmax(0,1fr)); }
+.field select { min-width: 0; width: 100%; min-height: 46px; padding: 11px 12px; border: 1px solid var(--control-border); border-radius: 10px; background: var(--surface); color: var(--text-primary); font: inherit; font-size: .87rem; transition: border-color 180ms,background-color 180ms; }
+.field select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.field select:disabled { color: var(--text-secondary); background: var(--surface-muted); cursor: not-allowed; }
+@media(max-width:1100px) { .medicalGrid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) { .medicalGrid { grid-template-columns: minmax(0,1fr); } .field select { font-size: 16px; } }
+@media(prefers-reduced-motion:reduce) { .field select { transition: none; } }
+.sectionHeader > span { color: var(--accent); background: var(--tone-blue); }
+.medicalSection .sectionHeader > span { background: var(--tone-green); }
+.field input, .formGrid input, .formGrid select, .formGrid textarea { border-color: var(--control-border); color: var(--text-primary); }
+.field input:focus, .formGrid :is(input,select,textarea):focus-visible { border-color: var(--focus); outline: 2px solid var(--focus); outline-offset: 2px; box-shadow: none; }
+.field input[readonly] { color: var(--text-secondary); }
+.profileActions { flex-wrap: wrap; box-shadow: none; }
+.profileActions > div:first-child > span { color: var(--text-secondary); }
+.profileActions .saveButton, .addButton, .formActions .addButton { background: var(--action-primary-bg); color: var(--action-on); border-color: var(--action-primary-bg); }
+.profileActions .saveButton:not(:disabled):hover, .addButton:not(:disabled):hover { background: var(--action-primary-hover); }
+.profileActions .saveButton:not(:disabled):is(:hover,:active), .emailButton:not(:disabled):active { transform: none; }
+.profileActions .emailButton:not(:disabled):hover { border-color: var(--control-border)!important; }
+.profileActions .saveButton:disabled, .addButton:disabled, .formActions button:disabled { opacity: 1; background: var(--surface-muted); color: var(--text-secondary); border: 1px solid var(--border); cursor: not-allowed; }
+.profileActions .saveButton, .emailButton, .addButton, .formActions button { min-height: 44px; }
+.profileActions .saveButton:focus-visible, .emailButton:focus-visible, .addButton:focus-visible, .actions button:focus-visible, .formActions button:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.header h3, .table td > strong, .editor h3 { color: var(--text-primary); }
+.header { align-items: flex-start; }
+.table td { color: var(--text-primary); overflow-wrap: anywhere; }
+.table tr { transition: background-color 200ms ease; }
+.badge { color: var(--accent); background: var(--tone-blue); }
+.actions button { width: 44px; height: 44px; flex-shrink: 0; }
+.actions button:disabled { opacity: 1; color: var(--text-secondary); background: var(--surface-muted); border: 1px solid var(--border); }
+.editor { margin: 0; padding: 0; border: 0; border-radius: 0; background: var(--surface); }
+.formGrid textarea { min-height: 100px; }
+.formGrid input, .formGrid select { min-height: 46px; }
+.check { min-height: 44px; color: var(--text-primary); }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.formActions button { color: var(--text-primary); border-color: var(--control-border); }
+.formActions button:not(.addButton):hover { background: var(--surface-muted); }
+.actions button svg, .profileActions button svg, .addButton svg { transition: transform 200ms var(--motion-ease); }
+.addButton, .formActions button { transition: background-color 200ms ease, border-color 200ms ease; }
+.spinner { animation: profileSpin 800ms linear infinite; }
+@keyframes profileSpin { to { transform: rotate(360deg); } }
+@keyframes profileEnter { from { opacity: .85; translate: 0 5px; } to { opacity: 1; translate: 0 0; } }
+@media (hover:hover) and (pointer:fine) {
+    .table tbody tr:hover { background: var(--surface-muted); }
+    .profileActions button:not(:disabled):hover svg, .actions button:not(:disabled):hover svg, .addButton:not(:disabled):hover svg { transform: translateX(2px); }
+}
+@media (prefers-reduced-motion:no-preference) { .section, .profileActions { animation: profileEnter 240ms var(--motion-ease) both; } }
+@media (max-width:640px) {
+    .container { margin: 20px 16px; }
+    .header { gap: 12px; }
+    .addButton { white-space: normal; flex-shrink: 0; }
+    .table { min-width: 0; table-layout: fixed; }
+    .table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .table tbody, .table tr, .table td { display: block; }
+    .table tbody tr + tr { border-top: 1px solid var(--border); }
+    .table td { padding: 10px 14px; border: 0; }
+    .table td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 5px; color: var(--text-secondary); font-size: 12px; font-weight: 600; }
+    .table .empty { padding: 22px 14px; }
+    .field input, .formGrid input, .formGrid select, .formGrid textarea { font-size: 16px; }
+    .formActions { flex-wrap: wrap; }
+    .formActions button { flex: 1; }
+}
+@media (max-width:360px) { .header { flex-direction: column; } .header .addButton { width: 100%; } }
+@media (prefers-reduced-motion:reduce) { .spinner { animation: none; } .table tr, .actions button, .actions button svg, .profileActions button svg, .addButton, .addButton svg, .formActions button { transition: none; transform: none!important; } }

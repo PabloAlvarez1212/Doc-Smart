@@ -680,12 +680,14 @@ class MedicosDisponiblesView(APIView):
             especialidad = request.query_params.get("especialidad")
             departamento = request.query_params.get("departamento")
             ciudad = request.query_params.get("ciudad")
+            calificacion_minima = request.query_params.get("calificacion_minima")
 
             respuesta, status_code = listarMedicosPublicosService(
                 search=search,
                 especialidad=especialidad,
                 departamento=departamento,
-                ciudad=ciudad
+                ciudad=ciudad,
+                calificacion_minima=calificacion_minima
             )
 
             return respuesta_ok(data=respuesta,mensaje="Lista de médicos públicos",status=status_code)

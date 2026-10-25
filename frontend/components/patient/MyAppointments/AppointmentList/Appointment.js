@@ -1,12 +1,16 @@
 "use client";
 
-import { CalendarClock, CircleX, SearchX } from "lucide-react";
+import { CalendarClock, CircleX, SearchX, Star } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import formatearFecha, { formatearFechaResolucion } from "@/app/utils/fechaFormaterUtils";
 import AppointmentCard from "../../../ui/AppointmentCard/AppointmentCard";
 import AppointmentDetailsModal from "../../../ui/AppointmentDetailsModal/AppointmentDetailsModal";
-import { getPatientAppointmentActionKeys } from "../../../ui/AppointmentCard/appointmentViewState";
+import {
+    buildDoctorProfileLink,
+    getPatientAppointmentActionKeys,
+} from "../../../ui/AppointmentCard/appointmentViewState";
+import { buildCalificacionAction } from "../../Calificaciones/calificacionPresentation";
 import styles from "./Appointment.module.css";
 
 function capitalize(value) {
@@ -18,6 +22,8 @@ export default function AppointmentList({
     citas = [],
     cancelarCita,
     reprogramarCita,
+    onCalificar,
+    onViewDoctorProfile,
     hasActiveFilters = false,
 }) {
     const [detailsAppointment, setDetailsAppointment] = useState(null);
@@ -63,9 +69,16 @@ export default function AppointmentList({
                             tone: "danger",
                             onClick: () => cancelarCita?.(cita.id),
                         });
+                    const calificacionAction = buildCalificacionAction(cita, onCalificar, Star);
+                    if (calificacionAction) actions.push(calificacionAction);
+                    const doctorProfileLink = buildDoctorProfileLink(
+                        cita,
+                        onViewDoctorProfile
+                    );
 
                     return (
                         <AppointmentCard
+                            variant="patient"
                             permitirMapa={true}
                             key={cita.id}
                             date={fecha}
@@ -74,6 +87,7 @@ export default function AppointmentList({
                                 name: cita.medico || "Profesional de DocSmart",
                                 image: cita.foto_medico,
                                 secondary: cita.especialidad || "Especialidad no disponible",
+                                profileLink: doctorProfileLink,
                             }}
                             location={{
                                 name: location,

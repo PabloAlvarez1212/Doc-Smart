@@ -183,6 +183,7 @@ INSTALLED_APPS = [
     "historial_medico",
     "notificaciones",
     "storage_app",
+    "calificaciones",
 ]
 
 

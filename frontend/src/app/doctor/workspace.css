@@ -1,0 +1,46 @@
+/* Medical workspace accents share the home palette, including portal dialogs. */
+body:has([data-doctor-workspace]) {
+  --doctor-primary: #10813d;
+  --doctor-button: #10813d;
+  --doctor-button-hover: #06672c;
+  --doctor-on-primary: #fff;
+  --doctor-positive-bg: #dcfce7;
+  --color-dark: var(--doctor-primary);
+  --focus: var(--doctor-primary);
+}
+html[data-theme="dark"] body:has([data-doctor-workspace]) {
+  --doctor-primary: #43dc6b;
+  --doctor-button: #43dc6b;
+  --doctor-button-hover: #70e68e;
+  --doctor-on-primary: #07190b;
+  --doctor-positive-bg: #183321;
+}
+[data-doctor-workspace] :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+[data-doctor-workspace] ::selection { background: var(--doctor-button); color: var(--doctor-on-primary); }
+body:has([data-doctor-workspace]) [role="dialog"] {--modal-ink:var(--color-text);--modal-muted:var(--text-secondary);--modal-accent:var(--doctor-primary);--modal-line:var(--border);color:var(--color-text)}
+/* The existing assistant launcher docks away from medical page controls on phones. */
+@media(max-width:760px){body:has([data-doctor-workspace]) button[aria-controls="bymax-chat"]{position:fixed!important;left:auto!important;right:128px!important;top:22px!important;bottom:auto!important;width:34px!important;height:38px!important;transform:none!important;translate:none!important;z-index:101!important}body:has([data-doctor-workspace]) button[aria-controls="bymax-chat"]>span:last-child{display:none}}
+/* Shared chart semantics stay distinct and readable on either ground. */
+body:has([data-doctor-workspace]) {
+ --accent:var(--doctor-primary);
+ --doctor-chart-0:#13796f;--doctor-chart-1:#2456a6;--doctor-chart-2:#b42335;
+ --doctor-chart-3:#a8640b;--doctor-chart-4:#7257b5;--doctor-chart-5:#4e789b;--doctor-chart-6:#64748b;
+}
+html[data-theme="dark"] body:has([data-doctor-workspace]) {
+ --doctor-chart-0:#5bdda7;--doctor-chart-1:#91b8ff;--doctor-chart-2:#ffa5b7;
+ --doctor-chart-3:#f3c58e;--doctor-chart-4:#d0adf5;--doctor-chart-5:#83cde8;--doctor-chart-6:#bac3d1;
+}
+[data-doctor-workspace]{color:var(--color-text);background:var(--background);min-height:100dvh}
+[data-doctor-workspace] :is(input,select,textarea){caret-color:var(--doctor-primary)}
+body:has([data-doctor-workspace]) .swal2-popup{background:var(--surface);color:var(--color-text);border:1px solid var(--border)}
+body:has([data-doctor-workspace]) .swal2-html-container{color:var(--text-secondary)}
+body:has([data-doctor-workspace]) .swal2-input,body:has([data-doctor-workspace]) .swal2-textarea{background:var(--surface-muted);color:var(--color-text);border-color:var(--control-border)}
+body:has([data-doctor-workspace]){--action-primary-bg:var(--doctor-button);--action-primary-hover:var(--doctor-button-hover);--action-success-bg:var(--doctor-button);--action-success-hover:var(--doctor-button-hover);--action-on:var(--doctor-on-primary);--action-danger-bg:#b12844;--action-danger-on:#fff}
+html[data-theme="dark"] body:has([data-doctor-workspace]){--action-danger-bg:#ffa5b7;--action-danger-on:#3b0714}
+body:has([data-doctor-workspace]) [role="dialog"]>div:first-child{background:var(--surface);color:var(--color-text)}
+body:has([data-doctor-workspace]) [role="dialog"]>div:first-child :is(h2,button[aria-label="Cerrar ventana"]){color:var(--color-text)}
+body:has([data-doctor-workspace]) [role="dialog"]>div:first-child p{color:var(--text-secondary)}
+body:has([data-doctor-workspace]) .swal2-confirm{background:var(--doctor-button)!important;color:var(--doctor-on-primary)!important;box-shadow:none!important}
+body:has([data-doctor-workspace]) .swal2-popup:has(.swal2-warning) .swal2-confirm,body:has([data-doctor-workspace]) .swal2-popup:has(.swal2-error) .swal2-confirm{background:var(--action-danger-bg)!important;color:var(--action-danger-on)!important}
+body:has([data-doctor-workspace]) .swal2-cancel{background:var(--surface-muted)!important;color:var(--color-text)!important;border:1px solid var(--control-border)!important}
+body:has([data-doctor-workspace]) .swal2-actions button:focus-visible{outline:2px solid var(--focus);outline-offset:3px}

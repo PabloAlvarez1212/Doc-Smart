@@ -23,7 +23,12 @@
     padding: 16px 7px;
     border-bottom: 1px solid var(--border);
 }
-.itemUnread { background: linear-gradient(90deg, rgba(225, 237, 252, .65), transparent 55%); }
+.itemUnread { background: var(--tone-blue); border-radius: 10px; }
+.openButton { background:transparent; border:0; padding:0; width:100%; text-align:left; color:inherit; font:inherit; cursor:pointer; border-radius:6px; }
+.openButton:focus-visible { outline:2px solid var(--focus); outline-offset:5px; }
+.openButton:disabled { cursor:wait; }
+.contentWrap { min-width:0; }
+.navigationError { grid-column:1/-1; padding:10px; border-radius:9px; background:var(--tone-red); color:var(--ink-red); font-size:13px; line-height:1.5; }
 .itemIcon { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 11px; color: var(--color-dark); background: var(--surface-muted); }
 .itemCopy { display: grid; min-width: 0; gap: 5px; }
 .itemCopy > span { color: var(--text-secondary); font-size: .89rem; line-height: 1.5; overflow-wrap: break-word; }
@@ -73,3 +78,11 @@
 @media (prefers-reduced-motion: reduce) {
     .loading span { animation: none; }
 }
+
+.section { box-shadow: none; }
+.readButton { min-height: 44px; }
+.readButton:is(:hover,:active) { transform: none; }
+.readButton > svg, .header a > svg { transition: transform 200ms var(--motion-ease); }
+.readButton:focus-visible, .header a:focus-visible, .feedback button:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+@media(hover:hover) and (pointer:fine) { .readButton:not(:disabled):hover > svg, .header a:hover > svg { transform: translateX(2px); } }
+@media(prefers-reduced-motion:reduce) { .readButton, .readButton > svg, .header a > svg { transition: none; transform: none!important; } }

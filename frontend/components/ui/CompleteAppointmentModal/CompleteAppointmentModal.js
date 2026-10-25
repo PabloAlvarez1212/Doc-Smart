@@ -1,13 +1,14 @@
 "use client";
 
-import {FileText,LoaderCircle,Trash2,UploadCloud,UserRound,} from "lucide-react";
-import {useEffect,useId,useRef,useState,} from "react";
+import {FileText,LoaderCircle,Trash2,UploadCloud,UserRound,UserX} from "lucide-react";
+import {useEffect,useEffectEvent,useId,useRef,useState,} from "react";
 import {listarDocumentosSeguimientoCitaService,subirDocumentosSeguimientoCitaService} from "@/app/services/appointmentsServices";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
 import { obtenerPrimerError } from "@/app/utils/errrorUtils";
 import Modal from "../Modal/Modal";
 import DocumentosSeguimientoList from '../DocumentosSeguimientoList/DocumentosSeguimientoList';
 import styles from "./CompleteAppointmentModal.module.css";
+
 
 
 function normalizarDocumentos(data) {
@@ -33,6 +34,7 @@ export default function CompleteAppointmentModal({
     onExitComplete,
     cita,
     completarCita,
+    marcarInasistencia,
 }) {
 
     const inputId = useId(); 
@@ -51,10 +53,30 @@ export default function CompleteAppointmentModal({
     const [cargandoDocumentos,setCargandoDocumentos] = useState(false);
 
     const [guardando,setGuardando] = useState(false);
-
+    const [confirmandoInasistencia, setConfirmandoInasistencia] = useState(false)
     const [error,setError] = useState("");
 
     const citaId = cita?.id;
+
+    const esConfirmada = String(cita?.estado || "").trim().toLowerCase() === "confirmada";
+    const finProgramado = Date.parse(cita?.fecha_final || "");
+    const [ahora, setAhora] = useState(() => Date.now());
+
+    useEffect(() => {
+        if (!abierto || !esConfirmada) return;
+        setAhora(Date.now());
+
+        const intervalo = setInterval(() => {
+            setAhora(Date.now());
+        }, 10000);
+
+        return () => clearInterval(intervalo);
+    }, [abierto, esConfirmada]);
+
+    const puedeMarcarInasistencia =
+        esConfirmada &&
+        Number.isFinite(finProgramado) &&
+        ahora >= finProgramado;
 
 
     useEffect(() => {
@@ -196,7 +218,7 @@ export default function CompleteAppointmentModal({
     ) => {
         event.preventDefault();
 
-        if (guardando || submitLock.current || cargandoDocumentos) return;
+        if (guardando || submitLock.current || cargandoDocumentos || confirmandoInasistencia) return;
         if (!soloDocumentos && (!motivoConsulta.trim() || !diagnosticoGeneral.trim())) {
             setError('Motivo de consulta y diagnóstico son obligatorios.');
             return;
@@ -304,6 +326,38 @@ export default function CompleteAppointmentModal({
         }
     };
 
+    const registrarInasistencia = async () => {
+        if (
+            !citaId ||
+            !puedeMarcarInasistencia ||
+            guardando ||
+            submitLock.current
+        ) return;
+
+        submitLock.current = true;
+        setGuardando(true);
+        setError("");
+
+        try {
+            await marcarInasistencia(citaId);
+
+            onCerrar();
+
+        } catch (requestError) {
+            setError(
+                obtenerPrimerError(
+                    requestError.response?.data?.errores
+                ) ||
+                requestError.response?.data?.mensaje ||
+                "No fue posible registrar la inasistencia."
+            );
+
+        } finally {
+            submitLock.current = false;
+            setGuardando(false);
+        }
+    };
+
     const cerrar = () => {
         if (!guardando) {
             onCerrar();
@@ -319,6 +373,7 @@ export default function CompleteAppointmentModal({
         setError("");
         setGuardando(false);
         onExitComplete?.();
+        setConfirmandoInasistencia(false);
     };
 
     const fechaCita =
@@ -597,53 +652,110 @@ export default function CompleteAppointmentModal({
 
                 </div>
 
-                <div
-                    className={
-                        styles.actions
-                    }
-                >
-
-                    <button
-                        type="button"
-                        className={
-                            styles.cancelButton
-                        }
-                        disabled={guardando}
-                        onClick={cerrar}
+                {confirmandoInasistencia && (
+                    <section
+                        className={styles.absenceConfirm}
+                        aria-label="Confirmación de inasistencia"
                     >
-                        Cancelar
-                    </button>
+                        <strong>¿Confirmas que el paciente no asistió?</strong>
 
-                    <button
-                        type="submit"
+                        <p>
+                            La cita cambiará a inasistencia del paciente
+                            y se cerrará su chat. No se guardarán los
+                            datos clínicos ni los archivos seleccionados.
+                        </p>
+
+                        <div className={styles.absenceConfirmActions}>
+                            <button
+                                type="button"
+                                className={styles.cancelButton}
+                                disabled={guardando}
+                                onClick={() => setConfirmandoInasistencia(false)}
+                            >
+                                Volver
+                            </button>
+
+                            <button
+                                type="button"
+                                className={styles.absenceConfirmButton}
+                                disabled={guardando}
+                                onClick={registrarInasistencia}
+                            >
+                                {guardando
+                                    ? "Registrando..."
+                                    : "Sí, registrar inasistencia"}
+                            </button>
+                        </div>
+                    </section>
+                )}
+
+                {!confirmandoInasistencia && (
+                    <div
                         className={
-                            styles.submitButton
-                        }
-                        disabled={
-                            !puedeCompletar
+                            styles.actions
                         }
                     >
-                        {guardando ? (
-                            <>
-                                <LoaderCircle
-                                    size={17}
-                                    className={
-                                        styles.spinner
-                                    }
-                                />
+                        <button
+                            type="button"
+                            className={
+                                styles.cancelButton
+                            }
+                            disabled={guardando}
+                            onClick={cerrar}
+                        >
+                            Cancelar
+                        </button>
 
-                                Cerrando consulta...
-                            </>
-                        ) : (
-                            <>
-                                <FileText
-                                    size={17}
-                                />
-                                {soloDocumentos ? 'Guardar documentos' : 'Guardar y completar'}
-                            </>
+                        {esConfirmada && (
+                            <button
+                                type="button"
+                                className={styles.absenceButton}
+                                disabled={!puedeMarcarInasistencia || guardando}
+                                title= {
+                                    !puedeMarcarInasistencia
+                                    ? "Disponible cuando termine el tiempo programado de la consulta" : undefined
+                                }
+                                onClick={() => {
+                                    setError("");
+                                    setConfirmandoInasistencia(true);
+                                }}
+                            >
+                                <UserX size={17}/>
+                                Inasistencia del paciente
+                            </button>
                         )}
-                    </button>
-                </div>
+
+                        <button
+                            type="submit"
+                            className={
+                                styles.submitButton
+                            }
+                            disabled={
+                                !puedeCompletar
+                            }
+                        >
+                            {guardando ? (
+                                <>
+                                    <LoaderCircle
+                                        size={17}
+                                        className={
+                                            styles.spinner
+                                        }
+                                    />
+
+                                    Cerrando consulta...
+                                </>
+                            ) : (
+                                <>
+                                    <FileText
+                                        size={17}
+                                    />
+                                    {soloDocumentos ? 'Guardar documentos' : 'Guardar y completar'}
+                                </>
+                            )}
+                        </button>
+                    </div>
+                )}
             </form>
         </Modal>
     );

@@ -85,7 +85,7 @@
     border-radius: 14px;
     cursor: pointer;
     color: var(--ink-green);
-    background: #f7fcfa;
+    background: var(--surface-muted);
     transition:
         border-color 160ms ease,
         background-color 160ms ease;
@@ -252,12 +252,110 @@
         width: 100%;
     }
 }
-.clinicalFields { display: grid; gap: 10px; color: var(--color-text); }
-.clinicalFields label { font-size: .9rem; font-weight: 600; }
-.clinicalFields textarea { width: 100%; min-height: 86px; resize: vertical; padding: 12px; border: 1px solid var(--border); border-radius: 10px; font: inherit; color: inherit; background: var(--surface); }
-.clinicalFields textarea:focus { outline: 2px solid var(--focus); outline-offset: 2px; }
+.clinicalFields {
+    display: grid;
+    gap: 10px;
+    color: var(--color-text);
+}
+
+.clinicalFields label {
+    font-size: .9rem;
+    font-weight: 600;
+}
+.clinicalFields textarea {
+    width: 100%;
+    min-height: 86px;
+    resize: vertical;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font: inherit;
+    color: inherit;
+    background: var(--surface);
+}
+.clinicalFields textarea:focus {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
 
 @media(prefers-reduced-motion:reduce){.spinner,.loading svg{animation:none}.dropzone,.cancelButton,.submitButton{transition:none}}
+
+/* ==========================================
+   INASISTENCIA DEL PACIENTE
+========================================== */
+
+.absenceButton,
+.absenceConfirmButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--ink-red);
+    border-radius: 10px;
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.absenceButton {
+    color: var(--ink-red);
+    background: var(--tone-red);
+}
+
+.absenceButton:hover:not(:disabled) {
+    filter: brightness(0.96);
+}
+
+.absenceConfirmButton {
+    color: var(--action-danger-on, #fff);
+    background: var(--action-danger-bg, #b12844);
+}
+
+.absenceButton:disabled,
+.absenceConfirmButton:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.absenceConfirm {
+    display: grid;
+    gap: 12px;
+    padding: 18px;
+    border: 1px solid var(--ink-red);
+    border-radius: 12px;
+    background: var(--tone-red);
+}
+
+.absenceConfirm p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.absenceConfirmActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.actions {
+    flex-wrap: wrap;
+}
+
+@media (max-width: 560px) {
+    .absenceConfirmActions {
+        flex-direction: column-reverse;
+    }
+
+    .absenceConfirmActions button {
+        width: 100%;
+    }
+}
 
 .form{color:var(--color-text)}
 

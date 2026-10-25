@@ -16,7 +16,8 @@ from catalogos.views import (
     RolDetailView,
     RolListView,
 )
-from citas.views import CitaListView, RecordatorioDetailView, RecordatorioListView
+from django.urls import resolve, Resolver404
+from citas.views import CitaListView
 from medicos.views import (
     AprobarSolicitudValidacionView,
     EspecialidadDetailView,
@@ -37,9 +38,6 @@ class AdminEndpointPermissionTests(SimpleTestCase):
 
     admin_operations = (
         (CitaListView, "get", {}),
-        (RecordatorioListView, "get", {}),
-        (RecordatorioListView, "post", {}),
-        (RecordatorioDetailView, "delete", {"pk": 1}),
         (MedicoListView, "get", {}),
         (ListarSolicitudesValidacionView, "get", {}),
         (MetricasValidacionMedicosView, "get", {}),
@@ -119,7 +117,7 @@ class AdminEndpointPermissionTests(SimpleTestCase):
             "anonimo": 401,
         }
 
-        self.assertEqual(len(self.admin_operations), 39)
+        self.assertEqual(len(self.admin_operations), 36)
 
         for view_class, method, kwargs in self.admin_operations:
             for actor_name, actor in self.actors.items():
@@ -134,8 +132,6 @@ class AdminEndpointPermissionTests(SimpleTestCase):
     def test_vistas_admin_completas_declaran_ambas_barreras(self):
         admin_only_views = (
             CitaListView,
-            RecordatorioListView,
-            RecordatorioDetailView,
             MedicoListView,
             ListarSolicitudesValidacionView,
             MetricasValidacionMedicosView,
@@ -183,3 +179,14 @@ class AdminEndpointPermissionTests(SimpleTestCase):
                     [IsAuthenticated, IsAdmin],
                 )
 
+    def test_endpoints_legacy_recordatorios_no_disponibles(self):
+
+        rutas_obsoletas = [
+            "/api/citas/recordatorios/",
+            "/api/citas/recordatorios/1/",
+        ]
+
+        for ruta in rutas_obsoletas:
+            with self.subTest(ruta=ruta):
+                with self.assertRaises(Resolver404):
+                    resolve(ruta)

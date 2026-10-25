@@ -126,6 +126,48 @@
     color: var(--text-secondary);
 }
 
+.locationGroup {
+    display: grid;
+    min-width: 0;
+    gap: 8px;
+}
+
+.profileLink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: fit-content;
+    min-height: 32px;
+    padding: 4px 0;
+    border: 0;
+    border-radius: 5px;
+    color: var(--color-dark);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 720;
+    line-height: 1.35;
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--color-dark) 38%, transparent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    gap: 6px;
+    transition:
+        color 160ms ease,
+        text-decoration-color 160ms ease;
+}
+
+.profileLink svg {
+    flex: 0 0 auto;
+}
+
+.profileLink:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+}
+
 .location strong {
     color: var(--text-secondary);
     font-size: 0.82rem;
@@ -351,6 +393,18 @@
     border-color: var(--border);
     background: var(--surface);
 }
+
+.rating {
+    color: #1f4f9b;
+    border-color: #cbdaf0;
+    background: #f5f8fd;
+}
+
+.rating svg {
+    color: #b96e00;
+    fill: #fff1c2;
+}
+.ratingIndicator{display:inline-flex;align-items:center;gap:6px;width:fit-content;padding:5px 8px;border-radius:999px;background:#fff4ce;color:#8a5100;font-size:.74rem;font-weight:760;line-height:1.3}.ratingIndicator svg{flex:0 0 auto;color:#d98700}
 .actions small { 
     max-width: 28ch; 
     color: var(--text-secondary); 
@@ -456,11 +510,23 @@
         box-shadow: 0 4px 10px rgba(145, 57, 74, .09);
     }
 
+    .rating:not(:disabled):hover {
+        color: #173f7d;
+        border-color: #aebfdd;
+        background: #eaf1fb;
+        box-shadow: 0 4px 10px rgb(36 86 166 / 12%);
+    }
+
     .detailsButton:hover {
         color: var(--color-dark);
         border-color: var(--border);
         background: var(--tone-blue);
         transform: translateY(-1px);
+    }
+
+    .profileLink:hover {
+        color: #173f7d;
+        text-decoration-color: currentColor;
     }
 }
 
@@ -520,7 +586,8 @@
     .item,
     .actionButton,
     .actionButton svg,
-    .detailsButton {
+    .detailsButton,
+    .profileLink {
         transition: none;
     }
 
@@ -550,3 +617,101 @@
 }
 
 @media(prefers-reduced-motion:reduce){.spinner,.loading svg{animation:none}.dropzone,.cancelButton,.submitButton{transition:none}}
+/* Medical variant preserves patient cards and their action rules. */
+.doctor{gap:20px;padding:22px;background:var(--surface);border-radius:16px}
+.doctor .cardHeader{padding-bottom:16px;border-bottom:1px solid var(--border);align-items:center}
+.doctor .schedule strong{font-size:15px;font-weight:600;letter-spacing:-.015em}
+.doctor .schedule div>span{font-size:14px;color:var(--color-text);font-weight:600;margin-top:2px}
+.doctor .dateIcon{background:var(--doctor-positive-bg);color:var(--doctor-primary);width:44px;height:44px;flex-basis:44px}
+.doctor .person strong{font-size:19px;font-weight:650;letter-spacing:-.02em}
+.doctor .person img{width:56px;height:56px;flex-basis:56px}
+.doctor .cardBody{gap:16px}
+.doctor .locationGroup{padding:12px 0 0;border-top:1px solid var(--border)}
+.doctor .person .medicalLink{font-size:13px;min-height:36px;margin-top:2px;color:var(--doctor-primary);text-underline-offset:4px}
+.doctor .detailsButton{min-height:44px;background:transparent;color:var(--doctor-primary);border-color:var(--border);box-shadow:none;font-size:13px}
+.doctor .actionButton{min-height:44px;font-size:13px;white-space:normal;box-shadow:none;padding:10px 12px}
+.doctor .actionButton.primary,.doctor .actionButton.success{background:var(--doctor-button);color:var(--doctor-on-primary);border-color:transparent}
+.doctor .actionButtons{grid-template-columns:repeat(2,minmax(0,1fr))}
+.doctor .actionButtons[data-action-count="1"]{grid-template-columns:minmax(0,1fr)}
+.doctor .actionButtons :is(.primary,.success){grid-column:1/-1;grid-row:1}
+.doctor :is(.actionButton,.detailsButton):is(:hover,:active){transform:none;box-shadow:none}
+.doctor :is(.actionButton,.detailsButton)>:is(svg,span){transition:transform 200ms cubic-bezier(.16,1,.3,1)}
+.doctor :is(.actionButton,.detailsButton):not(:disabled):active svg{transform:scale(.9)}
+@media(hover:hover){.doctor .actionButton.primary:not(:disabled):hover,.doctor .actionButton.success:not(:disabled):hover{background:var(--doctor-button-hover)}.doctor .detailsButton:hover{background:var(--doctor-positive-bg)}.doctor :is(.actionButton,.detailsButton):not(:disabled):hover>svg{transform:translateX(2px)}}
+@media(max-width:430px){.doctor{padding:18px;gap:18px}.doctor .person strong{font-size:18px}.doctor .schedule{gap:8px}.doctor .statusBlock{flex-basis:auto}.doctor .schedule strong{font-size:13px}.doctor .dateIcon{width:36px;height:40px;flex-basis:36px}}
+@media(prefers-reduced-motion:reduce){.doctor :is(.actionButton,.detailsButton)>:is(svg,span){transition:none;transform:none!important}}
+.doctor .status:not(.pendiente):not(.reprogramada):not(.vencida):not(.inasistencia_paciente):not(.cancelada):not(.completada){color:var(--doctor-primary);background:var(--doctor-positive-bg)}
+@media(max-width:350px){.doctor .actionButtons,.doctor .actionButtons[data-action-count="3"]{grid-template-columns:minmax(0,1fr)}}
+/* Patient identity anchors each medical appointment; schedule is a distinct reading band. */
+.doctor{gap:18px;padding:24px;isolation:isolate;overflow-wrap:anywhere}
+.doctor .cardBody{display:contents}
+.doctor .person{order:1;align-items:flex-start;gap:13px;min-height:64px}
+.doctor .person>div:not(.statusBlock){flex:1;padding-top:2px}
+.doctor .person .statusBlock{display:flex;flex:0 1 auto;margin-left:auto;align-items:flex-end;padding-top:3px}
+.doctor .person strong{font-size:20px;line-height:1.25;letter-spacing:-.025em}
+.doctor .person img{width:52px;height:56px;flex-basis:52px;border-radius:12px}
+.doctor .status{font-size:11px;padding:6px 9px;white-space:normal;text-align:center}
+.doctor .cardHeader{order:2;border:0;padding:14px 16px;border-radius:12px;background:var(--surface-muted)}
+.doctor .dateIcon{background:transparent;width:28px;flex-basis:28px}
+.doctor .schedule{width:100%;gap:10px}
+.doctor .schedule>div{display:flex;flex:1;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.doctor .schedule strong{font-size:15px;line-height:1.5;font-weight:550;color:var(--text-secondary)}
+.doctor .schedule div>span{font-size:18px;font-weight:650;letter-spacing:-.02em;margin:0;line-height:1.3}
+.doctor .locationGroup{order:3;border:0;padding:0 2px;gap:6px}
+.doctor .location strong{font-weight:550;font-size:13px}.doctor .location span{font-size:12px;line-height:1.6}
+.doctor .actions{order:4;gap:12px;padding-top:16px}
+.doctor .detailsButton{width:fit-content;align-self:flex-start;min-height:36px;padding:5px 0;border:0;font-size:13px;font-weight:600}
+.doctor .detailsButton:hover{background:transparent;text-decoration:underline;text-underline-offset:4px}
+.doctor .actionButton{font-weight:600;border-radius:9px}
+.doctor .actionButton.danger{color:var(--ink-red);background:var(--tone-red);border-color:transparent}
+.doctor .actionButton.secondary{background:var(--surface);color:var(--text-secondary);border-color:var(--control-border)}
+.doctor:hover{background:var(--surface);border-color:color-mix(in srgb,var(--doctor-primary) 38%,var(--border))}
+.doctor .person .medicalLink{line-height:1.5;font-weight:500;margin-top:6px;min-height:36px}
+@media(max-width:600px){.doctor{padding:20px;gap:16px}.doctor .person{flex-wrap:wrap;gap:10px}.doctor .person strong{font-size:18px}.doctor .person .statusBlock{flex-basis:100%;margin-left:62px;align-items:flex-start;padding:0}.doctor .cardHeader{padding:12px}.doctor .schedule>div{gap:3px;display:grid}.doctor .schedule div>span{font-size:19px}.doctor .status{white-space:nowrap}.doctor .actions{padding-top:14px}}
+.doctor .status.pendiente,.doctor .status.reprogramada,.doctor .status.vencida,.doctor .status.inasistencia_paciente{color:var(--ink-orange);background:var(--tone-orange)}
+.doctor .status.completada{color:var(--ink-green);background:var(--tone-green)}
+.doctor .status.cancelada{color:var(--ink-red);background:var(--tone-red)}
+.doctor .status{font-size:12px}
+/* Rating action follows the medical theme instead of keeping a pale fixed surface. */
+.doctor .actionButton.rating:not(:disabled){color:var(--doctor-primary);background:var(--surface-muted);border-color:var(--control-border);box-shadow:none}
+.doctor .actionButton.rating svg{color:var(--ink-orange);fill:var(--tone-orange)}
+.doctor .actionButton.rating:disabled{color:var(--text-secondary);background:var(--surface-muted);border-color:var(--border)}
+@media(hover:hover){.doctor .actionButton.rating:not(:disabled):hover{color:var(--doctor-primary);background:var(--doctor-positive-bg);border-color:var(--doctor-primary);box-shadow:none}}
+/* Patient appointments: a steady surface, with a full blue boundary on interaction. */
+.patient { gap: 22px; padding: 24px; isolation: isolate; transition: border-color 180ms ease, box-shadow 180ms ease; }
+.patient .cardHeader { align-items: center; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.patient .dateIcon { width: 44px; height: 44px; flex-basis: 44px; color: var(--color-dark); }
+.patient .schedule strong { font-size: 15px; font-weight: 600; letter-spacing: -.015em; }
+.patient .schedule div > span { margin-top: 2px; color: var(--color-text); font-size: 18px; font-weight: 650; letter-spacing: -.02em; }
+.patient .statusBlock { flex-basis: auto; }
+.patient .status { white-space: normal; text-align: center; font-size: 12px; }
+.patient .person strong { font-size: 20px; letter-spacing: -.025em; line-height: 1.3; }
+.patient .person span { font-size: 13px; }
+.patient .locationGroup { gap: 14px; }
+.patient .profileLink { min-height: 40px; font-size: 13px; text-underline-offset: 4px; }
+.patient .location strong { font-size: 13px; font-weight: 600; }
+.patient .location span { font-size: 12px; line-height: 1.6; }
+.patient .actions { gap: 12px; padding-top: 18px; }
+.patient :is(.actionButton, .detailsButton) { min-height: 44px; font-size: 13px; font-weight: 600; box-shadow: none; white-space: normal; }
+.patient .detailsButton { color: var(--color-dark); background: var(--tone-blue); border-color: transparent; }
+.patient .secondary { color: var(--color-text); background: var(--surface-muted); border-color: var(--border); }
+.patient .danger { color: var(--ink-red); background: var(--tone-red); border-color: transparent; }
+.patient .rating { color: var(--color-dark); background: var(--tone-blue); border-color: var(--border); }
+.patient .rating svg { color: var(--ink-orange); fill: var(--tone-orange); }
+.patient :is(.actionButton,.detailsButton):is(:hover,:active) { transform: none; box-shadow: none; }
+.patient :is(.actionButton,.detailsButton,.profileLink) > svg { transition: transform 180ms cubic-bezier(.16,1,.3,1); }
+.patient :is(.actionButton,.detailsButton,.profileLink):not(:disabled):active > svg { transform: scale(.9); }
+.patient .actionButton:disabled { color: var(--text-secondary); background: var(--surface-muted); border-color: var(--border); opacity: .65; }
+.patient .actionButton[aria-busy="true"] { cursor: progress; }
+.patient:focus-within { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus), 0 0 16px color-mix(in srgb,var(--focus) 16%,transparent); }
+@media(hover:hover) and (pointer:fine) {
+ .patient:hover { background: var(--surface); border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus), 0 0 16px color-mix(in srgb,var(--focus) 16%,transparent); }
+ .patient .secondary:not(:disabled):hover { color: var(--color-dark); background: var(--tone-blue); border-color: var(--color-dark); }
+ .patient .danger:not(:disabled):hover { color: var(--ink-red); background: var(--tone-red); border-color: var(--ink-red); }
+ .patient .rating:not(:disabled):hover { color: var(--color-dark); background: var(--tone-blue); border-color: var(--color-dark); }
+ .patient .detailsButton:hover { background: var(--tone-blue); border-color: var(--color-dark); }
+ .patient .profileLink:hover { color: var(--color-dark); }
+ .patient :is(.actionButton,.detailsButton,.profileLink):not(:disabled):hover > svg { transform: translateX(2px); }
+}
+@media(max-width:600px) { .patient { padding: 20px; gap: 18px; } .patient .cardHeader { flex-wrap: wrap; gap: 14px; } .patient .schedule strong { font-size: 14px; } .patient .person strong { font-size: 18px; } }
+@media(prefers-reduced-motion:reduce) { .patient,.patient :is(.actionButton,.detailsButton,.profileLink) > svg { transition: none; } .patient :is(.actionButton,.detailsButton,.profileLink) > svg { transform: none!important; } }

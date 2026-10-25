@@ -1,0 +1,6 @@
+.notice { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:16px 20px; color:var(--color-text); background:var(--surface); border:1px solid var(--border); border-radius:12px; }
+.notice p { flex:1; min-width:180px; margin:0; font-size:14px; line-height:1.6; }
+.notice button { min-height:44px; padding:8px 12px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; color:var(--color-dark); background:var(--tone-blue); border:1px solid transparent; border-radius:8px; }
+.notice button:hover { border-color:var(--color-dark); }
+.notice button:active { background:var(--surface-muted); }
+.notice button:focus-visible { outline:3px solid var(--focus); outline-offset:3px; }
