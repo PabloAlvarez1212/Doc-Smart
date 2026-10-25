@@ -677,41 +677,148 @@
 .doctor .actionButton.rating svg{color:var(--ink-orange);fill:var(--tone-orange)}
 .doctor .actionButton.rating:disabled{color:var(--text-secondary);background:var(--surface-muted);border-color:var(--border)}
 @media(hover:hover){.doctor .actionButton.rating:not(:disabled):hover{color:var(--doctor-primary);background:var(--doctor-positive-bg);border-color:var(--doctor-primary);box-shadow:none}}
-/* Patient appointments: a steady surface, with a full blue boundary on interaction. */
-.patient { gap: 22px; padding: 24px; isolation: isolate; transition: border-color 180ms ease, box-shadow 180ms ease; }
-.patient .cardHeader { align-items: center; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
-.patient .dateIcon { width: 44px; height: 44px; flex-basis: 44px; color: var(--color-dark); }
-.patient .schedule strong { font-size: 15px; font-weight: 600; letter-spacing: -.015em; }
-.patient .schedule div > span { margin-top: 2px; color: var(--color-text); font-size: 18px; font-weight: 650; letter-spacing: -.02em; }
-.patient .statusBlock { flex-basis: auto; }
-.patient .status { white-space: normal; text-align: center; font-size: 12px; }
-.patient .person strong { font-size: 20px; letter-spacing: -.025em; line-height: 1.3; }
-.patient .person span { font-size: 13px; }
-.patient .locationGroup { gap: 14px; }
-.patient .profileLink { min-height: 40px; font-size: 13px; text-underline-offset: 4px; }
-.patient .location strong { font-size: 13px; font-weight: 600; }
-.patient .location span { font-size: 12px; line-height: 1.6; }
-.patient .actions { gap: 12px; padding-top: 18px; }
-.patient :is(.actionButton, .detailsButton) { min-height: 44px; font-size: 13px; font-weight: 600; box-shadow: none; white-space: normal; }
-.patient .detailsButton { color: var(--color-dark); background: var(--tone-blue); border-color: transparent; }
-.patient .secondary { color: var(--color-text); background: var(--surface-muted); border-color: var(--border); }
-.patient .danger { color: var(--ink-red); background: var(--tone-red); border-color: transparent; }
-.patient .rating { color: var(--color-dark); background: var(--tone-blue); border-color: var(--border); }
-.patient .rating svg { color: var(--ink-orange); fill: var(--tone-orange); }
-.patient :is(.actionButton,.detailsButton):is(:hover,:active) { transform: none; box-shadow: none; }
-.patient :is(.actionButton,.detailsButton,.profileLink) > svg { transition: transform 180ms cubic-bezier(.16,1,.3,1); }
-.patient :is(.actionButton,.detailsButton,.profileLink):not(:disabled):active > svg { transform: scale(.9); }
-.patient .actionButton:disabled { color: var(--text-secondary); background: var(--surface-muted); border-color: var(--border); opacity: .65; }
-.patient .actionButton[aria-busy="true"] { cursor: progress; }
-.patient:focus-within { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus), 0 0 16px color-mix(in srgb,var(--focus) 16%,transparent); }
-@media(hover:hover) and (pointer:fine) {
- .patient:hover { background: var(--surface); border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus), 0 0 16px color-mix(in srgb,var(--focus) 16%,transparent); }
- .patient .secondary:not(:disabled):hover { color: var(--color-dark); background: var(--tone-blue); border-color: var(--color-dark); }
- .patient .danger:not(:disabled):hover { color: var(--ink-red); background: var(--tone-red); border-color: var(--ink-red); }
- .patient .rating:not(:disabled):hover { color: var(--color-dark); background: var(--tone-blue); border-color: var(--color-dark); }
- .patient .detailsButton:hover { background: var(--tone-blue); border-color: var(--color-dark); }
- .patient .profileLink:hover { color: var(--color-dark); }
- .patient :is(.actionButton,.detailsButton,.profileLink):not(:disabled):hover > svg { transform: translateX(2px); }
+/* Patient appointment layout: natural height, three readable groups, two action tiers. */
+.patient{height:auto;gap:14px;padding:18px;align-self:start;isolation:isolate;transition:border-color 200ms,box-shadow 200ms}
+.patient .cardHeader{align-items:flex-start;gap:12px;border:0;padding:0;flex-wrap:nowrap}
+.patient .person{flex:1;min-width:0;gap:11px;align-items:center;text-align:left}
+.patient .person img{width:44px;height:44px;flex:0 0 44px;border-radius:11px}
+.patient .person>div{gap:3px;text-align:left}
+.patient .person strong{font-size:18px;line-height:1.35;letter-spacing:-.02em}
+.patient .person span{font-size:13px;line-height:1.4}
+.patient .statusBlock{flex:0 1 auto;padding-top:2px;max-width:38%}
+.patient .status{font-size:11px;line-height:1.4;white-space:normal;text-align:center;padding:5px 8px}
+.patient .cardBody{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.patient .schedule{gap:8px;min-height:44px;padding:8px 10px;border-radius:9px;background:var(--surface-muted)}
+.patient .dateIcon{width:24px;height:24px;flex-basis:24px;background:transparent}
+.patient .dateIcon svg{width:17px;height:17px}
+.patient .schedule>div{display:flex;align-items:center;flex-wrap:wrap;gap:3px 12px}
+.patient .schedule strong{font-size:13px;line-height:1.4;font-weight:600;letter-spacing:0}
+.patient .schedule div>span{font-size:13px;line-height:1.4;font-weight:600;letter-spacing:0;margin:0;color:var(--color-text)}
+.patient .locationGroup{gap:0}
+.patient .location{gap:9px;align-items:flex-start}
+.patient .location>svg{margin-top:3px;width:17px;flex-shrink:0}
+.patient .location strong{font-size:12px;line-height:1.4;color:var(--text-secondary);font-weight:500}
+.patient .location span{font-size:13px;line-height:1.5}
+.patient .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:6px 10px;padding-top:12px;margin-top:0}
+.patient .actionButtons{display:contents}
+.patient :is(.detailsButton,.actionButton){order:0;grid-column:auto;grid-row:auto;width:100%;min-width:0;min-height:44px;padding:9px 10px;gap:6px;border-radius:9px;font-size:13px;line-height:1.4;font-weight:600;box-shadow:none;white-space:normal;transform:none;transition:background-color 200ms,border-color 200ms,color 200ms}
+.patient :is(.detailsButton,.actionButton)>svg{flex-shrink:0;transition:transform 180ms cubic-bezier(.16,1,.3,1)}
+.patient .detailsButton{background:var(--action-primary-bg);color:var(--action-on);border:1px solid var(--action-primary-bg)}
+.patient .actionButton.secondary,.patient .actionButton.rating{background:transparent;color:var(--color-dark);border:1px solid var(--control-border)}
+.patient .actionButton.rating svg{color:currentColor;fill:none}
+.patient .actionButton.danger{order:3;color:var(--ink-red);background:transparent;border:1px solid transparent}
+.patient .actions>.profileLink{order:2;min-width:0;min-height:44px;padding:6px 0;font-size:12px;line-height:1.4;font-weight:500;text-decoration:none;justify-content:flex-start;gap:5px;color:var(--color-dark)}
+.patient .actions[data-action-count="0"]>.profileLink{order:1}
+.patient .actions[data-action-count="1"]>.profileLink{grid-column:1/-1}
+.patient .resolutionInfo{order:4;grid-column:1/-1;margin:0;padding-top:3px;font-size:12px;line-height:1.5}
+.patient:focus-within{border-color:var(--focus);box-shadow:0 0 0 1px color-mix(in srgb,var(--focus) 35%,transparent)}
+.patient :is(button,a):focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+.patient .actionButton:disabled{opacity:1;color:var(--text-secondary);background:var(--surface-muted);border-color:var(--border);cursor:not-allowed}
+.patient .actionButton[aria-busy=true]{cursor:progress}
+@media(hover:hover) and (pointer:fine){
+ .patient:hover{background:var(--surface);border-color:var(--focus);box-shadow:0 0 0 1px color-mix(in srgb,var(--focus) 35%,transparent)}
+ .patient .detailsButton:not(:disabled):hover{background:var(--action-primary-hover);color:var(--action-on);border-color:var(--action-primary-hover)}
+ .patient :is(.secondary,.rating):not(:disabled):hover{background:var(--surface-muted);border-color:var(--color-dark)}
+ .patient .danger:not(:disabled):hover{background:var(--tone-red);border-color:transparent}
+ .patient .profileLink:hover{color:var(--color-dark);background:transparent;text-decoration:underline;text-underline-offset:3px}
+ .patient :is(.detailsButton,.actionButton):not(:disabled):hover>svg{transform:translateX(2px)}
 }
-@media(max-width:600px) { .patient { padding: 20px; gap: 18px; } .patient .cardHeader { flex-wrap: wrap; gap: 14px; } .patient .schedule strong { font-size: 14px; } .patient .person strong { font-size: 18px; } }
-@media(prefers-reduced-motion:reduce) { .patient,.patient :is(.actionButton,.detailsButton,.profileLink) > svg { transition: none; } .patient :is(.actionButton,.detailsButton,.profileLink) > svg { transform: none!important; } }
+.patient :is(.detailsButton,.actionButton):not(:disabled):active>svg{transform:scale(.92)}
+@media(max-width:350px){.patient{padding:15px}.patient .cardHeader{gap:9px}.patient .person strong{font-size:16px}.patient .person{gap:8px}.patient .status{padding-inline:6px}.patient :is(.detailsButton,.actionButton){padding-inline:7px;font-size:12px}}
+/* Shared doctor variant keeps its permissions and green identity. */
+.doctor{height:auto;align-self:start;gap:14px;padding:18px;transition:border-color 200ms,box-shadow 200ms}
+.doctor .person{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:start;gap:11px;min-height:0}
+.doctor .person img{width:44px;height:44px;flex-basis:44px;border-radius:11px}
+.doctor .person strong{font-size:18px;line-height:1.35}
+.doctor .person .statusBlock{flex-basis:auto;margin:0;padding:2px 0 0;max-width:105px}
+.doctor .person .medicalLink{min-height:32px;margin-top:2px;font-size:12px}
+.doctor .cardHeader{padding:8px 10px;border-radius:9px}
+.doctor .schedule>div{display:flex;align-items:center;flex-wrap:wrap;gap:3px 12px}
+.doctor .schedule div>span{font-size:15px}
+.doctor .detailsButton{width:100%;min-height:44px;padding:9px 12px;color:var(--doctor-on-primary);background:var(--doctor-button);border:1px solid var(--doctor-button);border-radius:9px}
+.doctor .detailsButton:not(:disabled):hover{color:var(--doctor-on-primary);background:var(--doctor-button-hover);text-decoration:none}
+.doctor .actionButton.danger{color:var(--ink-red);background:transparent;border-color:transparent}
+.doctor .actionButton.rating{color:var(--doctor-primary);background:transparent;border-color:var(--control-border)}
+.doctor .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-top:12px;margin-top:0}
+.doctor .actionButtons{display:contents}
+.doctor .actionButtons .actionButton{min-height:44px;grid-column:auto;grid-row:auto;padding:9px 10px;font-size:13px;white-space:normal;line-height:1.4}
+.doctor .actionButtons :is(.primary,.success){color:var(--doctor-primary);background:transparent;border:1px solid var(--control-border)}
+.doctor .actions[data-action-count="0"] .detailsButton{grid-column:1/-1}
+.doctor .resolutionInfo{grid-column:1/-1;font-size:12px;line-height:1.5}
+.doctor:focus-within{border-color:var(--doctor-primary);box-shadow:0 0 0 1px color-mix(in srgb,var(--doctor-primary) 30%,transparent)}
+@media(hover:hover) and (pointer:fine){.doctor:hover{border-color:var(--doctor-primary);box-shadow:0 0 0 1px color-mix(in srgb,var(--doctor-primary) 30%,transparent)}.doctor .actionButton.danger:not(:disabled):hover{background:var(--tone-red)}}
+@media(hover:hover) and (pointer:fine){.doctor .actionButtons :is(.primary,.success):not(:disabled):hover{color:var(--doctor-primary);background:var(--doctor-positive-bg);border-color:var(--doctor-primary)}}
+@media(max-width:350px){.doctor .person{grid-template-columns:44px minmax(0,1fr)}.doctor .person .statusBlock{grid-column:2;margin:0;justify-self:start}.doctor{padding:15px}}
+@media(prefers-reduced-motion:reduce){.patient,.doctor,.patient :is(.detailsButton,.actionButton),.patient :is(.detailsButton,.actionButton)>svg{transition:none}.patient :is(.detailsButton,.actionButton)>svg{transform:none!important}}
+
+/* Grouped controls and compact secondary information. */
+.controlGroup{display:contents}.cardExtras{display:contents}
+.patient .actions,.doctor .actions{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.patient .controlGroup,.doctor .controlGroup{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:stretch}
+.patient .controlGroup[data-control-count="2"],.doctor .controlGroup[data-control-count="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+.patient .controlGroup[data-control-count="1"],.doctor .controlGroup[data-control-count="1"]{grid-template-columns:minmax(0,1fr)}
+.patient .controlGroup>.detailsButton,.doctor .controlGroup>.detailsButton{grid-column:auto;grid-row:auto}
+.patient .controlGroup .actionButton,.doctor .controlGroup .actionButton{order:0;grid-column:auto;grid-row:auto;height:100%;min-height:44px}
+.patient .controlGroup .danger,.doctor .controlGroup .danger{background:transparent;color:var(--ink-red);border:1px solid color-mix(in srgb,var(--ink-red) 50%,var(--border))}
+.patient .controlGroup .danger:not(:disabled):hover,.doctor .controlGroup .danger:not(:disabled):hover{background:var(--tone-red);border-color:var(--ink-red);color:var(--ink-red)}
+.patient .controlGroup .danger:focus-visible,.doctor .controlGroup .danger:focus-visible{outline:2px solid var(--ink-red);outline-offset:3px}
+.patient .controlGroup button:disabled,.doctor .controlGroup button:disabled{color:var(--text-secondary);background:var(--surface-muted);border-color:var(--border);opacity:1}
+.patient .cardExtras,.doctor .cardExtras{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
+.patient .cardExtras>.profileLink{order:0;min-height:32px;max-width:100%;padding:4px 0;color:var(--color-dark);font-size:12px;line-height:1.4;font-weight:500;text-decoration:none;justify-content:flex-start}
+.patient .cardExtras>.profileLink:hover{color:var(--color-dark);text-decoration:underline;text-underline-offset:3px}
+.patient .cardExtras .resolutionInfo,.doctor .cardExtras .resolutionInfo{order:1;padding:0;margin:0;font-size:11px;line-height:1.5;font-weight:500}
+.patient .cardExtras:empty,.doctor .cardExtras:empty{display:none}
+@media(min-width:901px){
+ .patient{display:grid;grid-template-rows:subgrid;grid-row:span 3;align-self:stretch;height:auto;gap:12px}
+ .patient .actions{align-self:stretch;justify-content:flex-start}
+ .doctor{align-self:stretch;height:100%}.doctor .actions{margin-top:auto}
+}
+@media(max-width:600px){
+ .patient .controlGroup[data-control-count="3"],.doctor .controlGroup[data-control-count="3"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .patient .controlGroup[data-control-count="3"]>.detailsButton,.doctor .controlGroup[data-control-count="3"]>.detailsButton{grid-column:1/-1}
+}
+
+/* The professional link accompanies the address, separate from appointment actions. */
+.patient .locationGroup{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
+.patient .locationGroup>.profileLink{justify-self:end;min-height:44px;max-width:155px;margin:0;padding:4px 0;font-size:12px;line-height:1.4;font-weight:500;text-decoration:none;justify-content:flex-start;color:var(--color-dark)}
+.patient .locationGroup>.profileLink>svg{flex-shrink:0}
+.patient .locationGroup>.profileLink:hover{color:var(--color-dark);text-decoration:underline;text-underline-offset:3px}
+@media(max-width:600px){.patient .locationGroup{grid-template-columns:minmax(0,1fr) minmax(100px,38%);gap:10px}}
+
+/* Doctor-only compact card: identity, schedule, location and a balanced action grid. */
+.doctor{container-type:inline-size;padding:16px;gap:12px}
+.doctor .person{min-height:44px;gap:10px;align-items:center}
+.doctor .person>div:not(.statusBlock){padding-top:0}
+.doctor .person strong{font-size:18px;line-height:1.35}
+.doctor .person span{font-size:13px;line-height:1.4}
+.doctor .person .statusBlock{padding-top:0}
+.doctor .status{font-size:11px;line-height:1.4;padding:5px 8px}
+.doctor .cardHeader{min-height:44px;padding:8px 10px;border-radius:9px}
+.doctor .dateIcon{width:22px;height:22px;flex-basis:22px}
+.doctor .dateIcon svg{width:17px;height:17px}
+.doctor .schedule{gap:8px}
+.doctor .schedule>div{display:flex;align-items:center;flex-wrap:wrap;gap:3px 12px}
+.doctor .schedule strong,.doctor .schedule div>span{font-size:13px;line-height:1.4;letter-spacing:0;margin:0}
+.doctor .locationGroup{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 14px;padding:0;border:0}
+.doctor .location{flex:1 1 150px;min-width:0;gap:8px}
+.doctor .location>svg{width:17px;margin-top:2px;flex-shrink:0}
+.doctor .location strong{font-size:12px;line-height:1.4;font-weight:500;color:var(--text-secondary)}
+.doctor .location span{font-size:13px;line-height:1.5;color:var(--color-text)}
+.doctor .locationGroup>.medicalLink{flex:0 1 auto;min-height:44px;max-width:100%;margin:0;padding:5px 0;border:0;border-radius:6px;background:transparent;font:inherit;font-size:12px;line-height:1.4;font-weight:600;color:var(--doctor-primary);text-align:left;white-space:normal;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.doctor .actions{padding-top:12px;gap:0}
+.doctor .controlGroup{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.doctor .controlGroup[data-control-count="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+.doctor .controlGroup :is(.detailsButton,.actionButton){min-height:44px;height:100%;padding:9px 8px;gap:6px;border-radius:9px;font-size:13px;line-height:1.4;white-space:normal;transform:none;box-shadow:none;transition:background-color 200ms,border-color 200ms,color 200ms}
+.doctor .controlGroup :is(.detailsButton,.actionButton)>svg{flex-shrink:0}
+.doctor .controlGroup .detailsButton{grid-column:auto}
+.doctor .controlGroup :is(.success,.primary){background:var(--doctor-positive-bg);border:1px solid var(--doctor-primary);color:var(--doctor-primary)}
+.doctor .controlGroup .secondary{background:transparent;border:1px solid var(--control-border);color:var(--color-text)}
+.doctor .controlGroup .danger{background:transparent;border:1px solid color-mix(in srgb,var(--ink-red) 50%,var(--border));color:var(--ink-red)}
+.doctor .controlGroup[data-control-count="1"]{grid-template-columns:minmax(0,1fr)}
+.doctor :is(.controlGroup button,.medicalLink):focus-visible{outline:2px solid var(--doctor-primary);outline-offset:3px}
+.doctor .controlGroup .danger:focus-visible{outline-color:var(--ink-red)}
+.doctor .controlGroup button:disabled{background:var(--surface-muted);border-color:var(--border);color:var(--text-secondary);opacity:1}
+@container(min-width:520px){.doctor .controlGroup[data-control-count="4"]{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(hover:hover) and (pointer:fine){.doctor .controlGroup .secondary:not(:disabled):hover{background:var(--surface-muted);border-color:var(--doctor-primary)}.doctor .controlGroup :is(.success,.primary):not(:disabled):hover{background:var(--doctor-positive-bg);border-color:var(--doctor-primary);color:var(--doctor-primary)}.doctor .controlGroup .danger:not(:disabled):hover{background:var(--tone-red);border-color:var(--ink-red)}}
+@media(max-width:350px){.doctor .controlGroup :is(.detailsButton,.actionButton){font-size:12px}.doctor .person strong{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.doctor .controlGroup :is(.detailsButton,.actionButton){transition:none}}

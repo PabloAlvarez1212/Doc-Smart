@@ -176,6 +176,7 @@ export default function DocSmartNav({
                     </Link>
 
                     <div className={styles.actions}>
+                        {pathname.includes('/my-appointments') && <span className={styles.assistantDock} data-bymax-dock="appointments" />}
                         {onSettings ? (
                             <button
                                 className={styles.settings}

@@ -253,3 +253,9 @@
 @media(prefers-reduced-motion:reduce){.spinner,.loading svg{animation:none}.dropzone,.cancelButton,.submitButton{transition:none}}
 
 .content{color:var(--color-text)}
+.summary{flex-direction:row;align-items:flex-start}
+.summary>div{flex-direction:column;align-items:flex-start;gap:5px;min-width:0}
+.summary>.statusSummary{align-items:flex-end;margin-left:auto;max-width:65%;text-align:right;gap:6px}
+.statusDate{color:var(--text-secondary);font-size:12px;line-height:1.5;overflow-wrap:break-word}
+.vencida{color:var(--ink-orange);background:var(--tone-orange)}
+@media(max-width:480px){.summary{align-items:flex-start;gap:12px}.summary>.statusSummary{max-width:60%}.statusDate{font-size:11px}}

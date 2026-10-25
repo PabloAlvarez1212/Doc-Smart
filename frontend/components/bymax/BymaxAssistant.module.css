@@ -407,3 +407,9 @@
 
 /* Account dialogs must stay above the floating assistant. */
 .launcher{z-index:1200}
+
+/* In appointments the launcher lives in the navigation, outside the cards. */
+.launcher.launcherDocked{position:static!important;inset:auto!important;transform:none!important;translate:none!important;width:44px;height:44px;min-width:44px;min-height:44px;z-index:auto;touch-action:manipulation;cursor:pointer;border-radius:10px;background:var(--surface-muted);overflow:hidden;justify-content:center}
+.launcherDocked .character{width:34px;height:42px;min-height:0;max-height:42px}
+.launcherDocked .launcherLabel{display:none}
+.launcherDocked:hover{background:var(--surface)}
