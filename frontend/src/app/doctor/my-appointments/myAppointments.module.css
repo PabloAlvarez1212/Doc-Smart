@@ -280,3 +280,7 @@
 .sectionTab:focus-visible{outline-color:var(--doctor-primary)}
 .skeletonList span{background:var(--surface-muted)}
 .workspace input,.workspace select{border-color:var(--control-border)}
+
+/* Focus and anchor jumps keep the title, filters and count below the fixed nav. */
+.page :is(h1,h2,input,select,button){scroll-margin-top:168px}
+@media(max-width:1100px){.page :is(h1,h2,input,select,button){scroll-margin-top:124px}}

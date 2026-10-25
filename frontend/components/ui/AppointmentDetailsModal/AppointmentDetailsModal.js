@@ -2,7 +2,8 @@
 
 import {CalendarDays,Clock3,MapPin,MessageSquareText,Stethoscope,TicketCheck,UserRound,ClipboardList,} from "lucide-react";
 import Image from "next/image";
-import formatearFecha from "@/app/utils/fechaFormaterUtils";
+import formatearFecha, { formatearFechaResolucion } from "@/app/utils/fechaFormaterUtils";
+import { getAppointmentStatusMoment } from '../AppointmentCard/appointmentDetails';
 import AppointmentCode from "../AppointmentCode/AppointmentCode";
 import Modal from "../Modal/Modal";
 import { getAppointmentDetailsData } from "./appointmentDetailsModalData";
@@ -27,6 +28,7 @@ export default function AppointmentDetailsModal({
     const data = getAppointmentDetailsData(cita, counterpart);
     const scheduled = data.scheduledAt ? formatearFecha(data.scheduledAt) : null;
     const statusKey = data.status.toLowerCase();
+    const statusMoment = getAppointmentStatusMoment(cita);
     const [historialClinico, setHistorialClinico] = useState(null)
     const [cargandoHistorial, setCargandoHistorial] = useState(false);
     const [errorHistorial, setErrorHistorial] = useState("");
@@ -144,11 +146,16 @@ export default function AppointmentDetailsModal({
                 <div className={styles.summary}>
                     <div>
                         <span className={styles.summaryLabel}>Estado actual</span>
+                        <p>Información de solo lectura</p>
+                    </div>
+                    <div className={styles.statusSummary}>
                         <span className={`${styles.status} ${styles[statusKey] || ""}`}>
                             {capitalize(data.status)}
                         </span>
+                        {statusMoment && <time className={styles.statusDate} dateTime={statusMoment.at}>
+                            {statusMoment.label} {formatearFechaResolucion(statusMoment.at)}
+                        </time>}
                     </div>
-                    <p>Información de solo lectura</p>
                 </div>
 
                 <section className={styles.section} aria-labelledby="appointment-identification-title">

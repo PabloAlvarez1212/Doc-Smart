@@ -11,4 +11,5 @@
 .doctorHome .bar{background:var(--glass);border-color:var(--border)}.doctorHome .link:hover{background:var(--doctor-positive-bg);color:var(--color-text)}.doctorHome .active{color:var(--doctor-primary)}.doctorHome .indicator{background:var(--doctor-positive-bg)}.doctorHome .logo strong{color:var(--doctor-primary)}
 
 .doctorHome{--doctor-primary:#10813d;--doctor-positive-bg:#dcfce7}
+.assistantDock{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px}
 :global(html[data-theme="dark"]) .doctorHome{--doctor-primary:#43dc6b;--doctor-positive-bg:#183321}

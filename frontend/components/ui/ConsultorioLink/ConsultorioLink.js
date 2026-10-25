@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, Navigation } from "lucide-react";
+import { MapPin, Navigation, ArrowUpRight } from "lucide-react";
 import Modal from "../Modal/Modal";
 import styles from "./ConsultorioLink.module.css";
 
@@ -9,6 +9,8 @@ export default function ConsultorioLink({
     direccion,
     latitud,
     longitud,
+    compact = false,
+    ciudad,
 }) {
     const [abierto, setAbierto] = useState(false);
 
@@ -52,15 +54,15 @@ export default function ConsultorioLink({
         <>
             <button
                 type="button"
-                className={styles.link}
+                className={`${styles.link} ${compact ? styles.compact : ''}`}
                 aria-haspopup="dialog"
+                aria-label={compact ? `Ver mapa y cómo llegar: ${ciudad || ''}, ${direccion}` : undefined}
                 onClick={(event) => {
                     event.stopPropagation();
                     setAbierto(true);
                 }}
             >
-                {direccion}
-                <span>Ver mapa y cómo llegar</span>
+                {compact ? <><strong>{ciudad || 'Consultorio'}</strong><span className={styles.compactAddress}>{direccion}<ArrowUpRight size={14} aria-hidden="true" /></span></> : <>{direccion}<span>Ver mapa y cómo llegar</span></>}
             </button>
 
             <Modal

@@ -10,9 +10,7 @@ import {
     SearchX,
     Star,
 } from "lucide-react";
-import formatearFecha, {
-    formatearFechaResolucion,
-} from "@/app/utils/fechaFormaterUtils";
+import formatearFecha from "@/app/utils/fechaFormaterUtils";
 
 import { obtenerInfoPacienteCita } from "@/app/services/api";
 
@@ -36,75 +34,6 @@ function capitalize(value) {
     return text
         ? `${text[0].toUpperCase()}${text.slice(1)}`
         : "Sin estado";
-}
-
-
-/**
- * Obtiene la fecha de resolución de una cita.
- *
- * - Cancelada: utiliza fecha_cancelacion.
- * - Completada: prioriza fecha_completada.
- * - Si fecha_completada no existe, utiliza fecha_final.
- *
- * Esto mantiene compatibilidad con ambas versiones del backend.
- */
-function obtenerFechaResolucion(cita, status) {
-    if (status === "cancelada") {
-        return cita.fecha_cancelacion || null;
-    }
-
-    if (status === "completada") {
-        return cita.fecha_completada || cita.fecha_final || null;
-    }
-
-    if (status === "vencida") {
-        return cita.fecha_vencimiento || null;
-    }
-
-    if (status === "inasistencia_paciente") {
-        return cita.fecha_inasistencia || null;
-    }
-
-    return null;
-}
-
-
-/**
- * Construye el texto que aparece debajo del botón
- * Ver detalles.
- */
-function obtenerMetadata(cita, status) {
-    const fechaResolucion = obtenerFechaResolucion(cita, status);
-
-    if (!fechaResolucion) {
-        return null;
-    }
-
-    const fechaFormateada = formatearFechaResolucion(
-        fechaResolucion
-    );
-
-    if (!fechaFormateada) {
-        return null;
-    }
-
-    if (status === "cancelada") {
-        return `Cancelada el ${fechaFormateada}`;
-    }
-
-    if (status === "completada") {
-        return `Completada el ${fechaFormateada}`;
-    }
-
-    if (status === "vencida") {
-        return `Vencida el ${fechaFormateada}`;
-    }
-
-    if (status === "inasistencia_paciente") {
-        return `Inasistencia registrada el ${fechaFormateada}`;
-    }
-
-    return null;
 }
 
 
@@ -218,10 +147,7 @@ export default function DoctorAppointmentList({
                          * - fecha_completada
                          * - fecha_final
                          */
-                        const metadata = obtenerMetadata(
-                            cita,
-                            status
-                        );
+
 
                         /*
                          * Determinamos si el modal de información
@@ -351,7 +277,6 @@ export default function DoctorAppointmentList({
                                  * Fecha de resolución o
                                  * información de vencimiento.
                                  */
-                                metadata={metadata}
                                 rating={ratingPresentation ? { label: ratingPresentation.scoreLabel } : null}
                             />
                         );

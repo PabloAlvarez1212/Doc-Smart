@@ -20,6 +20,11 @@
     text-underline-offset: 3px;
 }
 
+.compact{min-height:44px;padding:0;gap:3px;text-decoration:none}
+.compact strong{font-size:12px;line-height:1.4;font-weight:500;color:var(--text-secondary)}
+.compact .compactAddress{display:inline;line-height:1.5;font-size:13px;color:var(--color-dark);text-decoration:underline;text-underline-offset:3px}
+.compactAddress svg{display:inline;vertical-align:middle;margin-left:5px;flex-shrink:0}
+
 .link:hover {
     text-decoration: underline;
 }

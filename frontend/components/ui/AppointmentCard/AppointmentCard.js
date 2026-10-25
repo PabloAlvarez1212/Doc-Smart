@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CalendarX, CheckCircle2, Clock3, Eye, MapPin, AlertTriangle, Star, UserRoundSearch } from "lucide-react";
+import { CalendarDays, Clock3, Eye, MapPin, UserRoundSearch } from "lucide-react";
 import ConsultorioLink from "../ConsultorioLink/ConsultorioLink";
 import Image from "next/image";
 import styles from "./AppointmentCard.module.css";
@@ -13,25 +13,27 @@ export default function AppointmentCard({
     status,
     actions = [],
     permitirMapa = false,
-    metadata,
     onViewDetails,
     variant,
 }) {
     const personName = person?.name || "Usuario de DocSmart";
     const statusKey = String(status?.key || "").toLowerCase();
     const statusBadge = <span className={`${styles.status} ${styles[statusKey] || ""}`}>{status?.label || "Sin estado"}</span>;
-    const ResolutionIcon =
-        statusKey === "completada"
-            ? CheckCircle2
-            : statusKey === "cancelada"
-                ? CalendarX
-                : ["vencida", "inasistencia_paciente"].includes(statusKey)
-                    ? AlertTriangle
-                    : null;
-    return (
-        <article className={`${styles.item} ${variant === 'doctor' ? styles.doctor : variant === 'patient' ? styles.patient : ''}`} role="listitem">
-            <header className={styles.cardHeader}>
-                <div className={styles.schedule}>
+    const profileLink = person?.profileLink && (
+        <button type="button" className={styles.profileLink} onClick={person.profileLink.onClick}
+            aria-label={`${person.profileLink.label} de ${personName}`}>
+            <UserRoundSearch size={15} aria-hidden="true" />
+            <span>{person.profileLink.label}</span>
+        </button>
+    );
+    const medicalInfo = person?.onVerInfo && (
+        <button type="button" className={styles.medicalLink} onClick={person.onVerInfo}
+            aria-expanded={person.infoAbierta} aria-controls={person.infoPanelId}>
+            {person.infoAbierta ? 'Ocultar información médica' : variant === 'doctor' ? 'Información médica' : 'Presiona aquí para ver información médica'}
+        </button>
+    );
+    const scheduleContent = (
+<div className={styles.schedule}>
                     <span className={styles.dateIcon} aria-hidden="true">
                         <CalendarDays size={19} />
                     </span>
@@ -44,12 +46,9 @@ export default function AppointmentCard({
                         </span>
                     </div>
                 </div>
-
-                {variant !== 'doctor' && <div className={styles.statusBlock}>{statusBadge}</div>}
-            </header>
-
-            <div className={styles.cardBody}>
-                <div className={styles.person}>
+    );
+    const personContent = (
+<div className={styles.person}>
                     <Image
                         src={person?.image || "/images/foto_default.png"}
                         alt={`Foto de ${personName}`}
@@ -65,49 +64,40 @@ export default function AppointmentCard({
                         )}
 
                         {/* Información médica: cambio proveniente de main */}
-                        {person?.onVerInfo && (
-                            <button
-                                type="button"
-                                className={styles.medicalLink}
-                                onClick={person.onVerInfo}
-                                aria-expanded={person.infoAbierta}
-                                aria-controls={person.infoPanelId}
-                            >
-                                {person.infoAbierta
-                                    ? "Ocultar información médica"
-                                    : variant === "doctor" ? "Información médica" : "Presiona aquí para ver información médica"}
-                            </button>
-                        )}
+                        {variant !== 'doctor' && medicalInfo}
                     </div>
                     {variant === 'doctor' && <div className={styles.statusBlock}>{statusBadge}</div>}
                 </div>
+    );
+    return (
+        <article className={`${styles.item} ${variant === 'doctor' ? styles.doctor : variant === 'patient' ? styles.patient : ''}`} role="listitem">
+            <header className={styles.cardHeader}>
+                {variant === 'patient' ? personContent : scheduleContent}
+
+                {variant !== 'doctor' && <div className={styles.statusBlock}>{statusBadge}</div>}
+            </header>
+
+            <div className={styles.cardBody}>
+                {variant === 'patient' ? scheduleContent : personContent}
 
                 <div className={styles.locationGroup}>
-                    {person?.profileLink && (
-                        <button
-                            type="button"
-                            className={styles.profileLink}
-                            onClick={person.profileLink.onClick}
-                            aria-label={`${person.profileLink.label} de ${personName}`}
-                        >
-                            <UserRoundSearch size={15} aria-hidden="true" />
-                            <span>{person.profileLink.label}</span>
-                        </button>
-                    )}
+                    {variant !== 'patient' && profileLink}
 
                     <div className={styles.location}>
                         <MapPin size={18} aria-hidden="true" />
 
                         <div>
-                            <strong>
+                            {!(variant === 'patient' && permitirMapa && location?.address) && <strong>
                                 {location?.name || "Ubicación no disponible"}
-                            </strong>
+                            </strong>}
 
                             {permitirMapa ? (
                                 <ConsultorioLink
                                     direccion={location?.address}
                                     latitud={location?.latitud}
                                     longitud={location?.longitud}
+                                    compact={variant === 'patient'}
+                                    ciudad={location?.name}
                                 />
                             ) : (
                                 <span>
@@ -116,10 +106,13 @@ export default function AppointmentCard({
                             )}
                         </div>
                     </div>
+                    {variant === 'patient' && profileLink}
+                    {variant === 'doctor' && medicalInfo}
                 </div>
             </div>
 
-            <footer className={styles.actions}>
+            <footer className={styles.actions} data-action-count={actions.length}>
+                <div className={styles.controlGroup} data-control-count={actions.length + (onViewDetails ? 1 : 0)}>
                 {/* Botón Ver detalles*/}
                 {onViewDetails && (
                     <button
@@ -168,22 +161,7 @@ export default function AppointmentCard({
                     </div>
                 )}
                 
-                {/* Fecha de finalización, cancelación o vencimiento */}
-                {metadata && ResolutionIcon && (
-                    <div
-                        className={`${styles.resolutionInfo} ${
-                            statusKey === "completada"
-                                ? styles.resolutionCompleted
-                                : ["vencida", "inasistencia_paciente"].includes(statusKey)
-                                    ? styles.resolutionExpired
-                                    : styles.resolutionCancelled
-                        }`}
-                    >
-                        <ResolutionIcon size={15} aria-hidden="true" />
-
-                        <span>{metadata}</span>
-                    </div>
-                )}
+                </div>
 
             </footer>
         </article>
