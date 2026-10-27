@@ -15,7 +15,11 @@ import styles from "./Appointment.module.css";
 
 function capitalize(value) {
     const text = String(value || "").trim();
-    return text ? `${text[0].toUpperCase()}${text.slice(1)}` : "Sin estado";
+    if (!text) return "Sin estado";
+    if (text.toLowerCase() === "inasistencia_paciente") {
+        return "Inasistencia del paciente";
+    }
+    return `${text[0].toUpperCase()}${text.slice(1)}`;
 }
 
 export default function AppointmentList({
