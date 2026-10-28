@@ -7,7 +7,7 @@ from .serializers import EnviarMensajeSerializer, MensajeSerializer, LecturaSeri
 from .message_services import enviarMensajeConversacionService
 from .read_services import marcarLecturaConversacionService
 from .attachment_services import cargarAdjuntoConversacionService, obtenerUrlAdjuntoConversacionService
-from .services import habilitarConversacionAnticipadamenteService
+from .services import habilitarConversacionAnticipadamenteService, deshabilitarConversacionService
 from .access import cargarConversacionVisible
 from dataclasses import asdict
 
@@ -32,12 +32,31 @@ class ChatView(APIView):
 
 class ConversacionesView(ChatView):
     def get(self, request):
+        filtro = request.query_params.get('archivadas', 'false').lower()
+        if filtro not in ('true', 'false'):
+            raise ChatError(400, 'invalid_filter', 'archivadas debe ser true o false')
         return ok(listarConversacionesService(request.user, page=request.query_params.get('page'),
-            page_size=request.query_params.get('page_size')))
+            page_size=request.query_params.get('page_size'), archivadas=filtro == 'true'))
 
 
 class ConversacionView(ChatView):
     def get(self, request, pk):
+        return ok(detalleConversacionService(pk, request.user))
+
+    def delete(self, request, pk):
+        if request.data:
+            raise ChatError(400, 'invalid_payload', 'Esta acción no admite campos')
+        from .participant_services import cambiarEstadoParticipanteService
+        cambiarEstadoParticipanteService(pk, request.user, 'eliminar')
+        return ok(detalleConversacionService(pk, request.user))
+
+
+class EstadoPersonalView(ChatView):
+    def post(self, request, pk):
+        if set(request.data) != {'accion'} or request.data['accion'] not in ('archivar', 'desarchivar'):
+            raise ChatError(400, 'invalid_action', 'Indica archivar o desarchivar')
+        from .participant_services import cambiarEstadoParticipanteService
+        cambiarEstadoParticipanteService(pk, request.user, request.data['accion'])
         return ok(detalleConversacionService(pk, request.user))
 
 
@@ -69,6 +88,17 @@ class HabilitarView(ChatView):
         if status != 200:
             raise ChatError(status, 'enable_rejected', str(result))
         return ok(detalleConversacionService(pk, actor))
+
+
+class DeshabilitarView(ChatView):
+    def post(self, request, pk):
+        if request.data:
+            raise ChatError(400, 'invalid_payload', 'Esta acción no admite campos')
+        conv, actor = cargarConversacionVisible(pk, request.user)
+        result, status = deshabilitarConversacionService(conv.pk, actor)
+        if status != 200:
+            raise ChatError(status, 'disable_rejected', str(result))
+        return ok(detalleConversacionService(conv.pk, actor))
 
 
 class AdjuntosView(ChatView):

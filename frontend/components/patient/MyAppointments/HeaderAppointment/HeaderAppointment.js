@@ -7,7 +7,8 @@ const statuses = [
     ["reprogramada", "Reprogramadas"],
     ["completada", "Completadas"],
     ["cancelada", "Canceladas"],
-    ["vencida", "Vencidas"]
+    ["vencida", "Vencidas"],
+    ["inasistencia_paciente", "Inasistencas"]
 ];
 
 export default function HeaderAppointment({ estado, cambiarEstado }) {

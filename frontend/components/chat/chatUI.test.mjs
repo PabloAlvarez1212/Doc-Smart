@@ -33,7 +33,7 @@ function jsx(file) {
 }
 const { ChatListView, ChatComposer, ChatMessage, ClinicalActions, ChatConnection, ChatPresence } = jsx('components/chat/ChatUI.js');
 const conv = estado => ({ id: 7, estado, no_leidos: 3, tiene_nota_previa: false,
-  cita: { id: 9, estado: 'confirmada', fecha_programada: '2026-01-01T15:00Z' },
+  cita: { id: 9, estado: 'confirmada', fecha_programada: '2026-01-01T15:00Z', fecha_final: '2026-01-01T15:30Z' },
   otro_participante: { nombre: 'Ana', apellido: 'Pérez', tipo: 'medico', id: 102 } });
 const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
 test('estados WS comprensibles y lectura solo para mensaje propio confirmado por cursor', () => {

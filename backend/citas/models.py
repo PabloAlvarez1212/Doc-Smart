@@ -5,6 +5,9 @@ from catalogos.models import Estado
 from .utils import generarCodigoCita
 
 class Cita(models.Model):
+    conversacion_chat = models.ForeignKey('chat_citas.Conversacion', null=True, blank=True, on_delete=models.PROTECT, related_name='citas_vinculadas')
+    fecha_chat_habilitacion = models.DateTimeField(null=True, blank=True)
+    fecha_chat_cierre = models.DateTimeField(null=True, blank=True)
     class ResponsableCancelacion (models.TextChoices):
         PACIENTE = "paciente", "Paciente"
         MEDICO = "medico", "Médico"

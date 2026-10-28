@@ -6,7 +6,7 @@ from medicos.models import Medico
 from users.models import Usuario,InfoUser
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Count, Value, Q, Prefetch
+from django.db.models import Count, Value, Q, Prefetch, Case, When, F, IntegerField, DateTimeField
 from django.db.models.functions import (Concat,TruncMonth,ExtractWeekDay,ExtractHour,TruncDay,)
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta, timezone as dt_timezone
@@ -61,8 +61,8 @@ def listarCitasPacienteService(usuario_id,busqueda=None,estado=None,ciudad=None,
     )
     
     #estado
-    if estado:
-        citas = citas.filter(id_estado__nombre = estado)
+    if estado and estado.lower() != "todas":
+        citas = citas.filter(id_estado__nombre__iexact=estado)
     #doctor
     if busqueda:
         citas = citas.annotate(
@@ -103,7 +103,48 @@ def listarCitasPacienteService(usuario_id,busqueda=None,estado=None,ciudad=None,
             fecha_programada__gte=inicio,
             fecha_programada__lt=fin
         )
-    citas = citas.order_by("-fecha_programada")
+
+    # ==========================================
+    # ORDEN DE CITAS DEL PACIENTE
+    # ==========================================
+    if not estado or estado.lower() == "todas":
+        ahora = timezone.now()
+        citas = citas.annotate(
+            _prioridad=Case(
+                When(
+                    Q(
+                        id_estado__nombre__in=[
+                            "pendiente",
+                            "confirmada",
+                            "reprogramada",
+                        ]
+                    )
+                    & (
+                        Q(fecha_programada__gte=ahora)
+                        | Q(
+                            id_estado__nombre__iexact="confirmada",
+                            fecha_final__gt=ahora,
+                        )
+                    ),
+                    then=Value(0),
+                ),
+
+                default=Value(1),
+                output_field=IntegerField(),
+            )
+        ).annotate(
+            _orden_proximo=Case(
+                When(
+                    _prioridad=0,
+                    then=F("fecha_programada"),
+                ),
+                output_field=DateTimeField(),
+            )
+        ).order_by("_prioridad","_orden_proximo","-fecha_programada","-id",)
+    else:
+        citas = citas.order_by("-fecha_programada", "-id")
+
+
     if page is None:
         serializer = CitaSerializer(citas, many=True)
     try:
@@ -289,9 +330,43 @@ def listarCitasMedicoService(
     # ORDEN
     # ==========================================
 
-    citas = citas.order_by(
-        "-fecha_programada"
-    )
+    if seccion == "agenda" and (not estado or estado.lower() == "todas"):
+        ahora = timezone.now()
+        citas = citas.annotate(
+            _prioridad=Case(
+                When(
+                    id_estado__nombre__iexact="confirmada",
+                    fecha_final__lte=ahora,
+                    then=Value(0),
+                ),
+                When(
+                    Q(fecha_programada__gte=ahora)
+                    | Q(
+                        id_estado__nombre__iexact="confirmada",
+                        fecha_final__gt=ahora,
+                    ),
+                    then=Value(1),
+                ),
+                default=Value(2),
+                output_field=IntegerField(),
+            )
+        ).annotate(
+            _orden_proximo=Case(
+                When(
+                    _prioridad=1,
+                    then=F("fecha_programada"),
+                ),
+                output_field=DateTimeField(),
+            )
+        ).order_by(
+            "_prioridad",
+            "_orden_proximo",
+            "-fecha_programada",
+            "-id",
+        )
+
+    else:
+        citas = citas.order_by("-fecha_programada", "-id")
 
 
     # ==========================================
@@ -654,6 +729,9 @@ def crearCitaService(
         id_estado=estado,
         motivo_consulta=motivo_consulta
     )
+    from chat_citas.services import vincularConversacionExistenteService
+    vincularConversacionExistenteService(cita)
+    cita.refresh_from_db(fields=['conversacion_chat'])
 
     fecha_fmt = (
         timezone.localtime(cita.fecha_programada)
@@ -1333,6 +1411,7 @@ def confirmarCitaService(id, medico_id):
             f'No se pudo preparar la conversación: '
             f'{resultado_chat}'
         )
+    cita.conversacion_chat_id = resultado_chat.pk
 
     fecha_fmt = (
         timezone.localtime(

@@ -33,16 +33,19 @@ class ChatCitasConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _visible(self, actor):
-        return cargarConversacionVisible(self.conversacion_id, actor)[1]
+        conv, actor = cargarConversacionVisible(self.conversacion_id, actor)
+        self.conversacion_id = conv.pk
+        return actor
 
     async def connect(self):
         self.conversacion_id = int(self.scope['url_route']['kwargs']['conversacion_id'])
-        self.group = f'chat_citas_{self.conversacion_id}'
+        self.origen_solicitado_id = self.conversacion_id
         try:
             await self._autorizar()
         except ChatError as exc:
             await self.close(code=4401 if exc.status == 401 else 4404 if exc.status == 404 else 4403)
             return
+        self.group = f'chat_citas_{self.conversacion_id}'
         await self.channel_layer.group_add(self.group, self.channel_name)
         self.presence_identity, self.counterpart = await database_sync_to_async(presence.renovar)(
             self.channel_name, self.conversacion_id, self.actor)
@@ -194,15 +197,23 @@ class ChatCitasConsumer(AsyncJsonWebsocketConsumer):
     def _send_message(self, data):
         serializer = EnviarMensajeSerializer(data=data)
         serializer.is_valid(raise_exception=True)
-        result = enviarMensajeConversacionService(self.conversacion_id, self.actor, **serializer.validated_data)
+        result = enviarMensajeConversacionService(self.origen_solicitado_id, self.actor, **serializer.validated_data)
         return {'id': result.mensaje.pk, 'client_message_id': str(result.mensaje.client_message_id),
                 'created': result.created}
 
     @database_sync_to_async
     def _message_data(self, pk):
-        cargarConversacionVisible(self.conversacion_id, self.actor)
-        message = Mensaje.objects.prefetch_related('adjuntos__archivo').get(pk=pk, conversacion_id=self.conversacion_id)
+        conv, actor = cargarConversacionVisible(self.conversacion_id, self.actor)
+        from .participant_services import mensajesVisibles
+        message = mensajesVisibles(conv, actor).prefetch_related('adjuntos__archivo').filter(pk=pk).first()
+        if message is None:
+            return None
         return dict(MensajeSerializer(message).data)
+
+    @database_sync_to_async
+    def _conversation_data(self):
+        from .queries import detalleConversacionService
+        return detalleConversacionService(self.conversacion_id, self.actor)
 
     async def chat_event(self, event):
         try:
@@ -212,6 +223,10 @@ class ChatCitasConsumer(AsyncJsonWebsocketConsumer):
             data = event['data']
             if event['event'] == 'chat.message.created':
                 data = await self._message_data(data['id'])
+                if data is None:
+                    return
+            elif event['event'] == 'chat.conversation.updated':
+                data = await self._conversation_data()
             await self.send_json({'event': event['event'], 'data': data})
         except ChatError as exc:
             await self.close(code=4401 if exc.status == 401 else 4403)

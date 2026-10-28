@@ -1,7 +1,7 @@
 from datetime import timedelta
 from uuid import uuid4
 from unittest.mock import patch
-from django.db import connection, transaction
+from django.db import connection, transaction, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 from django.test.utils import CaptureQueriesContext
@@ -76,7 +76,7 @@ class IntegrationTests(Fase3Fixture):
         self.assertFalse(Mensaje.objects.exists())
 
     def test_lectura_mensaje_otro_chat_no_avanza(self):
-        other = Cita.objects.create(id_usuario=self.patient, id_medico=self.doctor,
+        other = Cita.objects.create(id_usuario=self.patient, id_medico=self.doctors[0],
             id_estado=self.states['confirmada'], fecha_programada=self.now)
         conv = Conversacion.objects.create(cita=other)
         msg = Mensaje.objects.create(conversacion=conv, tipo='sistema', clave_evento='test')
@@ -90,7 +90,13 @@ class IntegrationTests(Fase3Fixture):
         with CaptureQueriesContext(connection) as small:
             listarConversacionesService(self.patient)
         for i in range(19):
-            cita = Cita.objects.create(id_usuario=self.patient, id_medico=self.doctor,
+            from medicos.models import Medico
+            doctor = Medico.objects.get(pk=self.doctor.pk)
+            doctor.pk = None
+            doctor.correo = f'lista{i}@example.test'
+            doctor.cedula = f'lista{i}'
+            doctor.save()
+            cita = Cita.objects.create(id_usuario=self.patient, id_medico=doctor,
                 id_estado=self.states['confirmada'], fecha_programada=self.now + timedelta(minutes=i))
             conv = Conversacion.objects.create(cita=cita)
             Mensaje.objects.create(conversacion=conv, tipo='sistema', clave_evento='test')
@@ -112,14 +118,29 @@ class IntegrationTests(Fase3Fixture):
 
 class Fase3MigrationTests(TransactionTestCase):
     def test_migracion_sin_backfill(self):
+        if connection.vendor != 'sqlite':
+            self.skipTest('La copia histórica aislada requiere SQLite en memoria')
+        original = connections['default']
+        temporal = original.copy()
+        temporal.settings_dict = {**original.settings_dict, 'NAME': ':memory:'}
+        connections['default'] = temporal
+        try:
+            self.comprobar_migracion_historica()
+        finally:
+            if temporal.connection is not None:
+                temporal.connection.close()
+            connections['default'] = original
+
+    def comprobar_migracion_historica(self):
         executor = MigrationExecutor(connection)
         latest = executor.loader.graph.leaf_nodes()
         before = [('chat_citas', '0001_initial'), ('notificaciones', '0001_initial')]
         try:
             executor.migrate(before)
             old = MigrationExecutor(connection).loader.project_state(before).apps
-            ChatFixture.setUpTestData.__func__(type(self))
-            conv = old.get_model('chat_citas', 'Conversacion').objects.create(cita_id=self.cita.pk)
+            from .tests import crearCitaHistorica
+            cita = crearCitaHistorica(old)
+            conv = old.get_model('chat_citas', 'Conversacion').objects.create(cita_id=cita.pk)
             previous = conv.fecha_creacion
             MigrationExecutor(connection).migrate(latest)
             current = Conversacion.objects.get(pk=conv.pk)

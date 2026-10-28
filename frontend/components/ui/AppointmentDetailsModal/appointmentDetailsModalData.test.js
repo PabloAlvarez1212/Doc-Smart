@@ -58,3 +58,12 @@ test("normaliza citas antiguas sin código, motivo o ubicación", () => {
     assert.equal(result.person.name, "Profesional de DocSmart");
     assert.deepEqual(result.location, { city: "", department: "", address: "" });
 });
+import { getAppointmentChatHref } from './appointmentDetailsModalData.js';
+
+test('Ir al chat conserva la misma conversación y ruta de cada rol sin crear recursos', () => {
+    assert.equal(getAppointmentChatHref({conversacion_id: 7}, 'paciente'), '/doctor/my-chats/7');
+    assert.equal(getAppointmentChatHref({conversacion_id: 7}, 'medico'), '/patient/my-chats/7');
+    assert.equal(getAppointmentChatHref({}, 'medico'), null);
+    assert.equal(getAppointmentChatHref({id: 8, conversacion_id: 7}, 'medico'), '/patient/my-chats/7?cita=8');
+    assert.equal(getAppointmentChatHref({id: 9, conversacion_id: 7}, 'paciente'), '/doctor/my-chats/7?cita=9');
+});

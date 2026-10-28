@@ -1,7 +1,7 @@
 "use client";
 import { useLayoutEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { Paperclip, FileText, X, Send } from 'lucide-react';
+import { Paperclip, FileText, X, Send, EllipsisVertical, MessageCircle, MessageCircleOff, UserX } from 'lucide-react';
 import ProfilePhoto from '../ui/ProfilePhoto/ProfilePhoto';
 import Link from "next/link";
 import Button from '../ui/Button/Button.js';
@@ -53,43 +53,146 @@ export function ChatPresence({ presence }) {
   return <span role="status" className={`${styles.presence} ${presence === 'online' ? styles.online : presence === 'offline' ? styles.offline : ''}`}><span aria-hidden="true" />{label}</span>;
 }
 
-export function ChatListView({ role, data, page, loading, onPage, selectedId }) {
+export function ChatListView({role,data,page,loading,onPage,selectedId,onMenu}) {
   const root = role === 'medico' ? 'doctor' : 'patient';
-  return <>
-    <div className={styles.list}>
-      {(data?.results || []).map(conversation => {
-        const person = conversation.otro_participante;
-        const last = conversation.ultimo_mensaje;
-        const preview = last?.tipo === 'sistema' ? systemText(last) : last?.contenido || (last?.adjuntos?.length ? 'Archivo adjunto' : 'Todavía no hay mensajes.');
-        return <Link key={conversation.id} href={`/${root}/my-chats/${conversation.id}`} className={`${styles.card} ${Number(selectedId) === conversation.id ? styles.selected : ""}`} aria-current={Number(selectedId) === conversation.id ? "page" : undefined}>
-          <ChatAvatar participant={person} />
-          <div className={styles.cardContent}>
-            <div className={styles.row}><h3>{person?.nombre} {person?.apellido}</h3>{conversation.no_leidos > 0 && <span className={styles.unread}>{conversation.no_leidos} sin leer</span>}</div>
-            <p className={styles.preview}>{preview}</p>
-            <div className={styles.row}>
-              <small>{conversation.fecha_ultimo_mensaje ? formatDate(conversation.fecha_ultimo_mensaje) : 'Sin actividad de mensajes'}</small>
-              <ChatStatus conversation={conversation} role={role} />
+  return (
+    <>
+      <div className={styles.list}>
+        {(data?.results || []).map(conversation => {
+          const person = conversation.otro_participante;
+          const last = conversation.ultimo_mensaje;
+          const preview = last?.tipo === 'sistema' ? systemText(last) : last?.contenido || (last?.adjuntos?.length ? 'Archivo adjunto' : 'Todavía no hay mensajes.');
+          return (
+            <div
+              key={conversation.id}
+              className={styles.chatEntry}
+              onContextMenu={event => onMenu(event, conversation)}
+            >
+              <Link
+                href={`/${root}/my-chats/${conversation.id}`}
+                className={`${styles.card} ${
+                  Number(selectedId) === conversation.id ? styles.selected : ''}`}
+                aria-current={Number(selectedId) === conversation.id ? 'page' : undefined}
+              >
+                <ChatAvatar participant={person} />
+                <div className={styles.cardContent}>
+                  <div className={styles.row}>
+                    <h3>{person?.nombre} {person?.apellido}</h3>
+
+                    {conversation.no_leidos > 0 && (
+                      <span className={styles.unread}>
+                        {conversation.no_leidos} sin leer
+                      </span>
+                    )}
+                  </div>
+                  <p className={styles.preview}>{preview}</p>
+                  <div className={styles.row}>
+                    <small>
+                      {conversation.fecha_ultimo_mensaje
+                        ? formatDate(conversation.fecha_ultimo_mensaje)
+                        : 'Sin actividad de mensajes'}
+                    </small>
+
+                    <ChatStatus conversation={conversation} role={role} />
+                  </div>
+                  {conversation.estado === 'programado' && (
+                    <small>
+                      Disponible desde{' '}
+                      {formatDate(conversation.fecha_habilitacion_automatica)}
+                      {' '}o cuando el médico lo habilite.
+                    </small>
+                  )}
+                </div>
+              </Link>
+
+              <button
+                type="button"
+                className={styles.chatMoreButton}
+                aria-label={`Opciones de conversación con ${person?.nombre || 'participante'}`}
+                title="Opciones de conversación"
+                onClick={event => onMenu(event, conversation, true)}
+              >
+                <EllipsisVertical size={17} />
+              </button>
             </div>
-            {conversation.estado === 'programado' && <small>Disponible desde {formatDate(conversation.fecha_habilitacion_automatica)} o cuando el médico lo habilite.</small>}
-          </div>
-        </Link>;
-      })}
-    </div>
-    {(data?.next || data?.previous) && <nav aria-label="Páginas de conversaciones" className={styles.pagination}>
-      <Button variant="secundary" disabled={loading || !data.previous} onClick={() => onPage(data.previous)}>Anterior</Button>
-      <span>Página {page} · {data.count} conversaciones</span>
-      <Button className={styles.primary} disabled={loading || !data.next} onClick={() => onPage(data.next)}>Siguiente</Button>
-    </nav>}
-  </>;
+          );
+        })}
+      </div>
+      {(data?.next || data?.previous) && (
+        <nav aria-label="Páginas de conversaciones"className={styles.pagination}>
+          <Button
+            variant="secundary"
+            disabled={loading || !data.previous}
+            onClick={() => onPage(data.previous)}
+          >
+            Anterior
+          </Button>
+
+          <span>Página {page} · {data.count} conversaciones</span>
+
+          <Button
+            className={styles.primary}
+            disabled={loading || !data.next}
+            onClick={() => onPage(data.next)}
+          >
+            Siguiente
+          </Button>
+        </nav>
+      )}
+    </>
+  );
 }
 
-export function ClinicalActions({ conversation, role, busy, onAction }) {
+export function ClinicalActions({conversation,role,busy,onAction}) {
   const view = presentation(conversation, role);
-  if (!view.canEnable && !view.canAbsence) return null;
-  return <div className={styles.actions}>
-    {view.canEnable && <Button className={styles.primary} disabled={busy} onClick={() => onAction('habilitar')}>Habilitar chat</Button>}
-    {view.canAbsence && <Button variant="warning" disabled={busy} onClick={() => onAction('inasistencia')}>Inasistencia del paciente</Button>}
-  </div>;
+  const showDisable =
+    role === 'medico' && conversation.estado === 'activo';
+  if (!view.canEnable && !view.canAbsence && !showDisable) {
+    return null;
+  }
+  return (
+    <div className={`${styles.actions} ${styles.clinicalActions}`}>
+      {view.canEnable && (
+        <Button
+          className={`${styles.primary} ${styles.clinicalButton}`}
+          disabled={busy}
+          onClick={() => onAction('habilitar')}
+        >
+          <MessageCircle size={15} />
+          Habilitar chat
+        </Button>
+      )}
+
+      {showDisable && (
+        <Button
+          variant="secundary"
+          className={styles.clinicalButton}
+          disabled={busy || !view.canDisable}
+          title={
+            view.canDisable
+              ? 'Deshabilitar la apertura anticipada'
+              : 'Existe una ventana automática activa'
+          }
+          onClick={() => onAction('deshabilitar')}
+        >
+          <MessageCircleOff size={15} />
+          Deshabilitar chat
+        </Button>
+      )}
+
+      {view.canAbsence && (
+        <Button
+          variant="warning"
+          className={styles.clinicalButton}
+          disabled={busy}
+          onClick={() => onAction('inasistencia')}
+        >
+          <UserX size={15} />
+          Inasistencia del paciente
+        </Button>
+      )}
+    </div>
+  );
 }
 
 export function ChatMessage({ message, role, onDownload, downloading, readCursor = 0, animate = false }) {
@@ -108,12 +211,12 @@ export function ChatMessage({ message, role, onDownload, downloading, readCursor
         <small>{file.content_type === 'application/pdf' ? 'PDF' : 'Imagen'}{file.tamano ? ` · ${(file.tamano / 1024).toFixed(1)} KB` : ''}</small>
       </Button>)}
       <time dateTime={message.fecha_creacion}>{formatDate(message.fecha_creacion)}</time>
-      {own && message.id <= readCursor && <small className={styles.meta}>Leído</small>}
+      {own && (message.id <= readCursor || message[role === 'medico' ? 'leido_paciente' : 'leido_medico']) && <small className={styles.meta}>Leído</small>}
     </article>
   </motion.li>;
 }
 
-export function ChatComposer({ state, role, onText, onSend, onFiles, onRemove }) {
+export function ChatComposer({ state, role, onText, onSend, onFiles, onRemove, onNoteCita, onNoteMode }) {
   const reduced = useReducedMotion();
   const textRef = useRef(null);
   useLayoutEffect(() => {
@@ -123,18 +226,28 @@ export function ChatComposer({ state, role, onText, onSend, onFiles, onRemove })
     field.style.height = `${Math.min(field.scrollHeight, 132)}px`;
   }, [state.text]);
   const view = presentation(state.conversation, role);
+  const asNote = view.canNote && (!view.canWrite || state.noteMode);
   const allowed = view.canWrite || view.canNote;
   const busy = state.sending || state.uploading || state.acting || state.loading || state.loadingOlder;
   const frozen = busy || !!state.pending || !allowed;
   const hasPayload = state.pending || state.text?.trim() || state.attachments?.length;
-  const canSubmit = !busy && Boolean(hasPayload) && (allowed || Boolean(state.pending));
+  const notes = state.conversation?.citas_nota_previa || [];
+  const noteSelected = !asNote || notes.length < 2 || notes.some(c => String(c.id) === String(state.noteCita));
+  const canSubmit = !busy && Boolean(hasPayload) && (allowed || Boolean(state.pending)) && (state.pending || noteSelected);
   return <form className={styles.composer} onSubmit={event => { event.preventDefault(); if (canSubmit) onSend(); }}>
-    {(state.pending || view.canNote || !allowed) && <p id="chat-compose-help" className={styles.meta}>
+    {view.canWrite && view.canNote && <label className={styles.meta}><input type="checkbox" checked={state.noteMode || false} disabled={frozen} onChange={event => onNoteMode(event.target.checked)} />Enviar nota previa para otra cita</label>}
+    {asNote && notes.length > 1 && <label className={styles.meta}>Cita para la nota previa
+      <select value={state.noteCita} disabled={frozen} onChange={event => onNoteCita(event.target.value)}>
+        <option value="">Selecciona una cita</option>
+        {notes.map(c => <option key={c.id} value={c.id}>{c.codigo_cita || `Cita #${c.id}`}</option>)}
+      </select>
+    </label>}
+    {(state.pending || asNote || !allowed) && <p id="chat-compose-help" className={styles.meta}>
       {state.pending ? 'El envío no fue confirmado. Reintentar recupera el mismo mensaje sin duplicarlo, aunque el chat se haya cerrado.'
-        : view.canNote ? 'Puedes enviar una única nota previa al médico. Esta nota no activa el chat.' : view.explanation}
+        : asNote ? 'Puedes enviar una única nota previa por cita al médico. Esta nota no activa el chat.' : view.explanation}
     </p>}
     <div className={styles.composeLine}>
-    <label className={styles.label} htmlFor="chat-text">{view.canNote ? 'Nota previa' : 'Mensaje'}</label>
+    <label className={styles.label} htmlFor="chat-text">{asNote ? 'Nota previa' : 'Mensaje'}</label>
     <textarea ref={textRef} id="chat-text" value={state.text || ''} onChange={event => onText(event.target.value)}
       aria-keyshortcuts="Enter" title="Enter para enviar · Shift + Enter para un salto de línea"
       onKeyDown={event => {
@@ -142,12 +255,12 @@ export function ChatComposer({ state, role, onText, onSend, onFiles, onRemove })
         event.preventDefault();
         if (!event.repeat && !frozen && canSubmit) event.currentTarget.form?.requestSubmit();
       }}
-      disabled={frozen} maxLength={4000} rows={1} aria-describedby={state.pending || view.canNote || !allowed ? "chat-compose-help" : undefined} placeholder={allowed ? 'Escribe tu mensaje…' : 'Envío no disponible'} />
-    <div className={styles.composeTools} data-expanded={Boolean(state.pending || state.uploading || state.sending || view.canNote)}>
+      disabled={frozen} maxLength={4000} rows={1} aria-describedby={state.pending || asNote || !allowed ? "chat-compose-help" : undefined} placeholder={allowed ? 'Escribe tu mensaje…' : 'Envío no disponible'} />
+    <div className={styles.composeTools} data-expanded={Boolean(state.pending || state.uploading || state.sending || asNote)}>
       <label className={styles.attachButton} htmlFor="chat-files" title="Adjuntar imágenes o PDF"><Paperclip size={19} aria-hidden="true" /><span className={styles.srOnly}>Adjuntar archivos</span></label>
       <input id="chat-files" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf" disabled={frozen || (state.attachments?.length || 0) >= 5} onChange={event => { const files = Array.from(event.target.files || []); event.target.value = ''; onFiles(files); }} />
-      <Button type="submit" className={styles.primary} disabled={!canSubmit} aria-label={state.sending ? 'Enviando…' : state.uploading ? 'Subiendo…' : state.pending ? 'Reintentar mismo mensaje' : view.canNote ? 'Enviar nota previa' : 'Enviar mensaje'}>
-        {state.sending ? 'Enviando…' : state.uploading ? 'Subiendo…' : state.pending ? 'Reintentar mismo mensaje' : view.canNote ? 'Enviar nota previa' : <><Send size={17} aria-hidden="true" /><span className={styles.srOnly}>Enviar mensaje</span></>}
+      <Button type="submit" className={styles.primary} disabled={!canSubmit} aria-label={state.sending ? 'Enviando…' : state.uploading ? 'Subiendo…' : state.pending ? 'Reintentar mismo mensaje' : asNote ? 'Enviar nota previa' : 'Enviar mensaje'}>
+        {state.sending ? 'Enviando…' : state.uploading ? 'Subiendo…' : state.pending ? 'Reintentar mismo mensaje' : asNote ? 'Enviar nota previa' : <><Send size={17} aria-hidden="true" /><span className={styles.srOnly}>Enviar mensaje</span></>}
       </Button>
     </div></div>
     <div className={styles.pendingFiles}>

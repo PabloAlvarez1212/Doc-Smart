@@ -7,6 +7,42 @@ from .models import Mensaje
 
 
 class ApiCommandTests(Fase3Fixture):
+    def test_archivar_ocultar_y_archivo_antiguo_respetan_participante(self):
+        from storage_app.models import Archivo
+        from .models import AdjuntoConversacion
+        from .message_services import enviarMensajeConversacionService
+        from unittest.mock import patch
+        message = enviarMensajeConversacionService(self.conv.pk, self.doctor,
+            client_message_id=uuid4(), contenido='Documento').mensaje
+        archivo = Archivo.objects.create(medico=self.doctor, storage_key='chat/prueba.pdf', nombre_original='original.pdf')
+        adj = AdjuntoConversacion.objects.create(conversacion=self.conv, mensaje=message, archivo=archivo)
+        base = f'/api/chat-citas/conversaciones/{self.conv.pk}/'
+        patient, doctor = self.client_for(), self.client_for(self.doctor)
+        self.assertEqual(patient.post(base + 'estado-personal/', {'accion': 'archivar'}, format='json').status_code, 200)
+        self.assertEqual(patient.get('/api/chat-citas/conversaciones/?archivadas=true').data['data']['count'], 1)
+        self.assertFalse(doctor.get(base).data['data']['archivada'])
+        self.assertEqual(patient.delete(base).status_code, 200)
+        with patch('storage_app.services.generar_url_firmada', return_value='https://signed.test/file') as signed:
+            self.assertEqual(patient.get(base + f'adjuntos/{adj.pk}/url/').status_code, 404)
+            signed.assert_not_called()
+            self.assertEqual(doctor.get(base + f'adjuntos/{adj.pk}/url/').status_code, 200)
+        self.assertEqual(self.client_for(self.patients[1]).delete(base).status_code, 403)
+        self.assertEqual(patient.post(base + 'estado-personal/', {'accion': 'desarchivar'}, format='json').status_code, 200)
+        self.assertTrue(Mensaje.objects.filter(pk=message.pk).exists())
+
+    def test_disable_rest_valida_ventana_automatica_y_aprobacion(self):
+        from medicos.models import SolicitudValidacionMedico
+        base = f'/api/chat-citas/conversaciones/{self.conv.pk}/'
+        doctor = self.client_for(self.doctor)
+        self.assertEqual(doctor.post(base + 'deshabilitar/').status_code, 400)
+        self.assertEqual(self.client_for().post(base + 'deshabilitar/').status_code, 403)
+        self.cita.fecha_programada = self.now + timedelta(days=3); self.cita.save()
+        self.assertEqual(doctor.post(base + 'habilitar/').status_code, 200)
+        self.assertEqual(doctor.post(base + 'deshabilitar/').status_code, 200)
+        self.assertEqual(doctor.get(base).data['data']['estado'], 'programado')
+        SolicitudValidacionMedico.objects.filter(medico=self.doctor).update(estado='pendiente')
+        self.assertEqual(doctor.post(base + 'deshabilitar/').status_code, 403)
+
     def test_carga_url_y_mensaje_por_rest_sin_storage_key(self):
         from unittest.mock import patch
         from django.core.files.uploadedfile import SimpleUploadedFile

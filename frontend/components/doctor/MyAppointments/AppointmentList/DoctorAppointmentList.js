@@ -8,7 +8,6 @@ import {
     CircleX,
     ClipboardCheck,
     SearchX,
-    Star,
 } from "lucide-react";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
 
@@ -17,11 +16,7 @@ import { obtenerInfoPacienteCita } from "@/app/services/api";
 import AppointmentCard from "../../../ui/AppointmentCard/AppointmentCard";
 import AppointmentDetailsModal from "../../../ui/AppointmentDetailsModal/AppointmentDetailsModal";
 import Modal from "../../../ui/Modal/Modal";
-import VerValoracionModal from "../../Calificaciones/VerValoracionModal/VerValoracionModal";
-import {
-    buildDoctorCalificacionAction,
-    getDoctorCalificacionPresentation,
-} from "../../Calificaciones/doctorCalificacionPresentation";
+import { getDoctorCalificacionPresentation } from "../../Calificaciones/doctorCalificacionPresentation";
 
 import { getDoctorAppointmentActionKeys } from "../appointmentActions";
 
@@ -51,7 +46,6 @@ export default function DoctorAppointmentList({
      */
     const [detailsAppointment, setDetailsAppointment] = useState(null);
     const [detailsOpen, setDetailsOpen] = useState(false);
-    const [citaValorada, setCitaValorada] = useState(null);
 
     /*
      * Modal de información médica del paciente.
@@ -215,8 +209,6 @@ export default function DoctorAppointmentList({
                             }));
 
                         const ratingPresentation = getDoctorCalificacionPresentation(cita);
-                        const ratingAction = buildDoctorCalificacionAction(cita, setCitaValorada, Star);
-                        if (ratingAction) actions.push(ratingAction);
 
                         /*
                          * Tarjeta de la cita.
@@ -295,8 +287,6 @@ export default function DoctorAppointmentList({
                 counterpart="paciente"
                 mostrarHistorialClinico={seccion === "historial"}
             />
-
-            <VerValoracionModal cita={citaValorada} onClose={() => setCitaValorada(null)} />
 
             {/* Modal de información médica del paciente */}
             <Modal

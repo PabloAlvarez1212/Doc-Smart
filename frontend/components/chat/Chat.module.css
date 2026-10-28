@@ -141,3 +141,166 @@
 .page.workspacePage[data-chat-page]{box-sizing:border-box;width:min(calc(100% - 64px),1240px);max-width:1240px;padding-inline:40px}
 @media(max-width:1020px){.page.workspacePage[data-chat-page]{width:min(calc(100% - 44px),1240px)}}
 @media(max-width:560px){.page.workspacePage[data-chat-page]{width:min(calc(100% - 32px),1240px);padding-inline:0}}
+.composer select{display:block;max-width:100%;margin:5px 0;padding:7px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--color-text);font:inherit}
+
+
+/* Barra de filtros de conversaciones */
+.listToolbar {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Botón compacto de archivadas */
+.page .archiveToggle,
+.sidebar .archiveToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    width: auto;
+    min-height: 38px;
+    padding: 8px 12px;
+
+    border: 1px solid var(--border);
+    border-radius: 10px;
+
+    background: var(--surface-muted);
+    color: var(--color-text);
+
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+
+    box-shadow: none;
+    transform: none;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.page .archiveToggle:hover:not(:disabled),
+.sidebar .archiveToggle:hover:not(:disabled) {
+    background: var(--chat-soft);
+    color: var(--chat-foreground);
+    transform: none;
+}
+
+.page .archiveToggle[aria-pressed="true"],
+.sidebar .archiveToggle[aria-pressed="true"] {
+    background: var(--chat-soft);
+    color: var(--chat-foreground);
+}
+
+/* Tarjetas con menú contextual */
+.chatEntry {
+    position: relative;
+    min-width: 0;
+}
+
+.chatEntry .card {
+    padding-right: 48px;
+}
+
+.chatMoreButton {
+    position: absolute;
+    top: 13px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background-color .18s ease, color .18s ease;
+}
+
+.chatMoreButton:hover,
+.chatMoreButton:focus-visible {
+    color: var(--color-text);
+    background: var(--surface-muted);
+}
+
+/* Menú de clic derecho */
+.chatContextMenu {
+    position: fixed;
+    z-index: 9999;
+    width: 220px;
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 25%);
+}
+
+.chatContextMenu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--color-text);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.chatContextMenu button:hover,
+.chatContextMenu button:focus-visible {
+    background: var(--surface-muted);
+}
+
+.chatContextMenu .chatContextDanger {
+    color: var(--ink-red);
+}
+
+.chatContextMenu button:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+}
+
+/* Acciones clínicas compactas */
+.clinicalActions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.page .clinicalActions .clinicalButton,
+.embeddedConversation .clinicalActions .clinicalButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    width: fit-content;
+    min-height: 34px !important;
+    padding: 6px 11px !important;
+    border-radius: 9px;
+    font-size: 11px !important;
+    font-weight: 600;
+    box-shadow: none;
+    transform: none;
+}
+
+.clinicalButton svg {
+    flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chatMoreButton {
+        transition: none;
+    }
+}

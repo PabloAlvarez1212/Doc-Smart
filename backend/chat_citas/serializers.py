@@ -26,7 +26,7 @@ class MensajeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mensaje
         fields = ['id', 'conversacion_id', 'tipo', 'contenido', 'fecha_creacion',
-                  'emisor', 'client_message_id', 'metadata', 'adjuntos']
+                  'emisor', 'client_message_id', 'metadata', 'adjuntos', 'cita_id', 'origen_id', 'leido_paciente', 'leido_medico']
 
 
 class ConversacionSerializer(serializers.Serializer):
@@ -50,6 +50,7 @@ class StrictInteger(serializers.IntegerField):
 
 
 class EnviarMensajeSerializer(StrictSerializer):
+    cita_id = StrictInteger(min_value=1, required=False)
     client_message_id = serializers.UUIDField()
     contenido = serializers.CharField(required=False, default='', allow_blank=True, max_length=4000)
     modalidad = serializers.ChoiceField(choices=['mensaje', 'nota_previa'], default='mensaje')

@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (ConversacionesView, ConversacionView, MensajesView, LecturaView,
-                    HabilitarView, AdjuntosView, AdjuntoUrlView)
+                    HabilitarView, DeshabilitarView, EstadoPersonalView, AdjuntosView, AdjuntoUrlView)
 
 urlpatterns = [
     path('conversaciones/', ConversacionesView.as_view()),
@@ -8,6 +8,8 @@ urlpatterns = [
     path('conversaciones/<int:pk>/mensajes/', MensajesView.as_view()),
     path('conversaciones/<int:pk>/lectura/', LecturaView.as_view()),
     path('conversaciones/<int:pk>/habilitar/', HabilitarView.as_view()),
+    path('conversaciones/<int:pk>/deshabilitar/', DeshabilitarView.as_view()),
+    path('conversaciones/<int:pk>/estado-personal/', EstadoPersonalView.as_view()),
     path('conversaciones/<int:pk>/adjuntos/', AdjuntosView.as_view()),
     path('conversaciones/<int:pk>/adjuntos/<int:adjunto_id>/url/', AdjuntoUrlView.as_view()),
 ]

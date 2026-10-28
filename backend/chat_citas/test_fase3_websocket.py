@@ -76,3 +76,51 @@ class WebsocketTests(TransactionTestCase):
             await ws.disconnect()
         async_to_sync(run)()
         self.assertEqual(Mensaje.objects.count(), 1)
+
+    def test_retry_por_alias_conserva_origen_historico(self):
+        from citas.models import Cita
+        other = Cita.objects.create(id_medico=self.doctor, id_usuario=self.patient,
+            id_estado=self.states['confirmada'], fecha_programada=self.now)
+        canonical = self.conv
+        self.conv = Conversacion.objects.create(cita=other, canonica=canonical)
+        uid = uuid4()
+        Mensaje.objects.create(conversacion=canonical, origen=canonical, tipo='paciente',
+            emisor_usuario=self.patient, client_message_id=uid, contenido='Primero')
+        expected = Mensaje.objects.create(conversacion=canonical, origen=self.conv, cita=other,
+            tipo='paciente', emisor_usuario=self.patient, client_message_id=uid, contenido='Segundo')
+        async def run():
+            ws = self.socket()
+            self.assertTrue((await ws.connect())[0])
+            try:
+                await ws.send_json_to({'event': 'chat.message.send', 'data': {
+                    'client_message_id': str(uid), 'contenido': 'Segundo'}})
+                ack = await next_chat_event(ws)
+                self.assertEqual(ack['event'], 'chat.message.ack')
+                self.assertEqual(ack['data']['id'], expected.pk)
+                self.assertFalse(ack['data']['created'])
+            finally:
+                await ws.disconnect()
+        async_to_sync(run)()
+        self.assertEqual(Mensaje.objects.count(), 2)
+
+    def test_deshabilitacion_manual_actualiza_socket_y_bloquea_envios(self):
+        from datetime import timedelta
+        from .services import habilitarConversacionAnticipadamenteService, deshabilitarConversacionService
+        self.cita.fecha_programada = self.now + timedelta(days=3); self.cita.save()
+        self.assertEqual(habilitarConversacionAnticipadamenteService(self.conv.pk, self.doctor)[1], 200)
+        async def run():
+            ws = self.socket()
+            self.assertTrue((await ws.connect())[0])
+            try:
+                result = await database_sync_to_async(deshabilitarConversacionService)(self.conv.pk, self.doctor)
+                self.assertEqual(result[1], 200)
+                events = [await next_chat_event(ws), await next_chat_event(ws)]
+                updated = next(e for e in events if e['event'] == 'chat.conversation.updated')
+                self.assertEqual(updated['data']['estado'], 'programado')
+                await ws.send_json_to({'event': 'chat.message.send', 'data': {
+                    'client_message_id': str(uuid4()), 'contenido': 'No debe guardarse'}})
+                self.assertEqual((await next_chat_event(ws))['data']['status'], 403)
+            finally:
+                await ws.disconnect()
+        async_to_sync(run)()
+        self.assertFalse(Mensaje.objects.filter(contenido='No debe guardarse').exists())

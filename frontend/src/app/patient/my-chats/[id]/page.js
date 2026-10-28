@@ -1,5 +1,6 @@
 import ChatConversation from '../../../../../components/chat/ChatConversation';
-export default async function ConversationPage({ params }) {
+export default async function ConversationPage({ params, searchParams }) {
   const { id } = await params;
-  return <ChatConversation id={id} role="paciente" embedded />;
+  const query = await searchParams;
+  return <ChatConversation id={id} citaId={query?.cita} role="paciente" embedded />;
 }

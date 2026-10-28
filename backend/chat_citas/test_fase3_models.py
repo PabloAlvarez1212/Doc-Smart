@@ -35,7 +35,7 @@ class MensajeModelTests(ChatFixture):
         self.mensaje(tipo='medico', emisor_usuario=None, emisor_medico=self.doctors[1],
                      client_message_id=uid)
         from citas.models import Cita
-        other = Cita.objects.create(id_usuario=self.patients[0], id_medico=self.doctors[1],
+        other = Cita.objects.create(id_usuario=self.patients[0], id_medico=self.doctors[0],
             id_estado=self.states['confirmada'], fecha_programada=self.now)
         other_conv = Conversacion.objects.create(cita=other)
         self.mensaje(conversacion=other_conv, client_message_id=uid)

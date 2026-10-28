@@ -6,12 +6,12 @@ import { createChatSession } from './chatSession.mjs';
 import { createChatRealtime, chatSocketUrl } from './chatRealtime.mjs';
 
 const api = { ...chatService, inasistencia: marcarInasistenciaPacienteService };
-export default function useChatConversation(id, role) {
+export default function useChatConversation(id, role, citaId = null) {
   const session = useRef(null);
   const [state, setState] = useState({ loading: true, messages: [], attachments: [], text: '' });
   useEffect(() => {
     // Crear por setup hace segura la repetición de efectos de StrictMode.
-    const current = createChatSession({ api, id, role, isVisible: () => document.visibilityState === 'visible' });
+    const current = createChatSession({ api, id, role, citaId, isVisible: () => document.visibilityState === 'visible' });
     session.current = current;
     const unsubscribe = current.subscribe(() => setState(current.getSnapshot()));
     let realtime;
@@ -42,7 +42,7 @@ export default function useChatConversation(id, role) {
       unsubscribe(); realtime?.dispose(); current.dispose();
       if (session.current === current) session.current = null;
     };
-  }, [id, role]);
+  }, [id, role, citaId]);
   return {
     state,
     refresh: async () => { const current = session.current; if (await current?.refresh()) current.retryRealtime(); },
@@ -50,6 +50,8 @@ export default function useChatConversation(id, role) {
     send: () => session.current?.send(),
     upload: files => session.current?.upload(files),
     setText: text => session.current?.setText(text),
+    setNoteCita: value => session.current?.setNoteCita(value),
+    setNoteMode: value => session.current?.setNoteMode(value),
     removeAttachment: id => session.current?.removeAttachment(id),
     action: kind => session.current?.action(kind),
     attachmentUrl: fileId => session.current?.attachmentUrl(fileId),

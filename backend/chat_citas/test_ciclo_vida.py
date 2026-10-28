@@ -279,6 +279,8 @@ class CompletadaChatTests(CicloFixture):
         self.conv.refresh_from_db()
         # Cargar relaciones antes de afirmar que el cálculo temporal no consulta ni escribe.
         self.conv.cita.id_estado
+        from django.db.models import prefetch_related_objects
+        prefetch_related_objects([self.conv], 'citas_vinculadas__id_estado')
         deltas = ((timedelta(), 'activo'), (timedelta(hours=23, minutes=59, seconds=59), 'activo'),
                   (timedelta(hours=24) - timedelta(microseconds=1), 'activo'),
                   (timedelta(hours=24), 'cerrado'), (timedelta(hours=24, microseconds=1), 'cerrado'))

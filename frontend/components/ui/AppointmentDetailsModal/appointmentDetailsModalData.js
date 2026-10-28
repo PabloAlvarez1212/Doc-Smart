@@ -7,6 +7,14 @@ function optionalText(value) {
     return typeof value === "string" && value.trim() ? value : "";
 }
 
+export function getAppointmentChatHref(appointment, counterpart = 'medico') {
+    const id = appointment?.conversacion_id;
+    if (!Number.isSafeInteger(Number(id)) || Number(id) <= 0) return null;
+    const citaId = Number(appointment?.id);
+    const context = Number.isSafeInteger(citaId) && citaId > 0 ? `?cita=${citaId}` : '';
+    return `/${counterpart === 'paciente' ? 'doctor' : 'patient'}/my-chats/${Number(id)}${context}`;
+}
+
 export function getAppointmentDetailsData(appointment = {}, counterpart = "medico") {
     const showPatient = counterpart === "paciente";
 
