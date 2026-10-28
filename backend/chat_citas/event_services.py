@@ -1,18 +1,18 @@
 from django.db import connection
 from .models import Conversacion, Mensaje
-from .services import _obtener_estado
+from .services import _obtener_estado, conversacionDeCita
 from .realtime import programarEventoChat
 
 
 def registrarEventoConversacionService(cita, *, clave, evento, metadata, instante):
     if not connection.in_atomic_block:
         raise RuntimeError('El evento requiere la transacción clínica')
-    conv = Conversacion.objects.select_for_update().filter(cita=cita).first()
+    base = conversacionDeCita(cita)
+    conv = Conversacion.objects.select_for_update().filter(pk=base.pk).first() if base else None
     if conv is None:
         return None
-    conv.cita = cita
     snapshot = dict(metadata, evento=evento, instante=instante.isoformat())
-    message, created = Mensaje.objects.get_or_create(conversacion=conv, clave_evento=clave,
+    message, created = Mensaje.objects.get_or_create(conversacion=conv, cita=cita, clave_evento=clave,
         defaults={'tipo': 'sistema', 'contenido': '', 'metadata': snapshot})
     if created:
         programarEventoChat(conv.pk, 'chat.message.created', {'id': message.pk})

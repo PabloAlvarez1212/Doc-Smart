@@ -19,6 +19,17 @@ from storage_app.models import Archivo
 from users.models import Usuario
 
 
+def crearCitaHistorica(apps):
+    """Fixtures del estado histórico, sin usar modelos runtime con campos nuevos."""
+    from django.utils import timezone
+    rol = apps.get_model('catalogos', 'Rol').objects.create(nombre='historico')
+    especialidad = apps.get_model('medicos', 'Especialidad').objects.create(nombre='General')
+    medico = apps.get_model('medicos', 'Medico').objects.create(nombre='M', apellido='P', fecha_nacimiento='1990-01-01', correo='hist-m@test.local', cedula='hm', id_rol=rol, id_especialidad=especialidad)
+    paciente = apps.get_model('users', 'Usuario').objects.create(nombre='P', apellido='P', fecha_nacimiento='1990-01-01', estatura=1.7, peso=70, correo='hist-p@test.local', cedula='hp', id_rol=rol)
+    estado = apps.get_model('catalogos', 'Estado').objects.create(nombre='confirmada')
+    return apps.get_model('citas', 'Cita').objects.create(id_medico=medico, id_usuario=paciente, id_estado=estado, fecha_programada=timezone.now())
+
+
 class ChatFixture(TestCase):
     datos_historial = {'motivo_consulta': 'Consulta de prueba', 'diagnostico_general': 'Resultado de prueba', 'observaciones': ''}
     @classmethod
@@ -99,6 +110,8 @@ class PreparacionTests(ChatFixture):
 class EstadoTests(ChatFixture):
     def setUp(self):
         self.conv = self.model().objects.create(cita=self.cita)
+        from django.db.models import prefetch_related_objects
+        prefetch_related_objects([self.conv], 'citas_vinculadas__id_estado')
 
     def state(self, now=None):
         service = self.service('obtenerEstadoConversacionService')
@@ -271,6 +284,7 @@ class ConfirmacionTests(ChatFixture):
         self.assertEqual(data['id'], self.cita.pk)
         self.cita.refresh_from_db()
         self.assertEqual(self.cita.id_estado, self.states['confirmada'])
+        self.assertEqual(data['conversacion_id'], self.cita.conversacion_chat_id)
         self.assertEqual(self.model().objects.filter(cita=self.cita).count(), 1)
         self.assertEqual(Notificacion.objects.count(), 2)
         self.assertEqual(set(Notificacion.objects.values_list('id_usuario_id', 'id_medico_id')),

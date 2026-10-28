@@ -15,7 +15,7 @@ CHAT_CATEGORY = 'chat_citas_privado'
 
 def _puede_cargar(conv, actor):
     return (puedeEscribirConversacionService(conv, actor) or
-            (puedeCrearNota(conv, actor) and not conv.mensajes.filter(tipo='nota_previa').exists()))
+            puedeCrearNota(conv, actor))
 
 
 def cargarAdjuntoConversacionService(conversacion_id, actor, archivo):
@@ -52,6 +52,10 @@ def obtenerUrlAdjuntoConversacionService(conversacion_id, adjunto_id, actor):
     adj = AdjuntoConversacion.objects.select_related('archivo').filter(pk=adjunto_id, conversacion=conv).first()
     if adj is None or not adj.archivo.activo:
         raise ChatError(404, 'not_found', 'Adjunto no encontrado')
+    if adj.mensaje_id is not None:
+        from .participant_services import mensajesVisibles
+        if not mensajesVisibles(conv, actor).filter(pk=adj.mensaje_id).exists():
+            raise ChatError(404, 'not_found', 'Adjunto no encontrado')
     kind, pk = identidadActor(actor)
     owner = adj.archivo.medico_id if kind == 'medico' else adj.archivo.usuario_id
     if adj.mensaje_id is None and owner != pk:

@@ -1,13 +1,16 @@
 export function presentation(conversation, role, now = Date.now()) {
   const state = conversation?.estado;
   const clinical = ['confirmada', 'reprogramada'].includes(conversation?.cita?.estado?.toLowerCase());
-  const scheduled = Date.parse(conversation?.cita?.fecha_programada);
+  const end = Date.parse(conversation?.cita?.fecha_final);
   return {
     canWrite: state === 'activo',
-    canNote: role === 'paciente' && state === 'programado' && clinical && !conversation.tiene_nota_previa,
+    canNote: role === 'paciente' && (Array.isArray(conversation?.citas_nota_previa)
+      ? conversation.citas_nota_previa.length > 0
+      : state === 'programado' && clinical && !conversation.tiene_nota_previa),
     canEnable: role === 'medico' && state === 'programado' && clinical,
+    canDisable: role === 'medico' && state === 'activo' && conversation.puede_deshabilitar === true,
     // Disponibilidad visual; la acción clínica siempre se valida en el backend.
-    canAbsence: role === 'medico' && clinical && Number.isFinite(scheduled) && scheduled <= now,
+    canAbsence: role === 'medico' && conversation?.cita?.estado?.toLowerCase() === 'confirmada' && Number.isFinite(end) && end <= now,
     label: { programado: 'Programado', activo: 'Activo', cerrado: 'Cerrado' }[state] || 'No disponible',
     explanation: state === 'programado' ? 'El chat aún no está habilitado para intercambiar mensajes.'
       : state === 'cerrado' ? 'El chat está cerrado. Puedes consultar su historial.'
@@ -21,7 +24,8 @@ export function mergeMessages(previous, incoming) {
     if (message.client_message_id && message.emisor) {
       for (const [id, old] of ids) {
         if (id !== message.id && old.client_message_id === message.client_message_id &&
-          old.emisor?.tipo === message.emisor.tipo && old.emisor?.id === message.emisor.id) ids.delete(id);
+          old.emisor?.tipo === message.emisor.tipo && old.emisor?.id === message.emisor.id &&
+          old.origen_id === message.origen_id) ids.delete(id);
       }
     }
     ids.set(message.id, message);
@@ -54,6 +58,7 @@ export function systemText(message) {
   const metadata = message?.metadata || {};
   switch (metadata.evento) {
     case 'chat_habilitado': return 'El médico habilitó el chat anticipadamente.';
+    case 'chat_deshabilitado': return 'El médico deshabilitó la apertura anticipada del chat.';
     case 'cita_reprogramada': return `Cita reprogramada${metadata.fecha_nueva ? ' para ' + formatDate(metadata.fecha_nueva) : ''}.`;
     case 'cita_cancelada': return 'La cita fue cancelada.';
     case 'cita_completada': return 'La cita fue completada.';

@@ -3,7 +3,7 @@ from medicos.models import Medico
 from users.models import Usuario
 from .models import Conversacion
 from .exceptions import ChatError
-from .services import _bloquear_cita, puedeVerConversacionService
+from .services import _bloquear_cita, puedeVerConversacionService, resolverConversacion
 
 
 def identidadActor(actor):
@@ -68,8 +68,7 @@ def _autorizar(conv, actor):
 
 def cargarConversacionVisible(conversacion_id, actor):
     actor = actorVigente(actor)
-    conv = Conversacion.objects.select_related('cita__id_estado', 'cita__id_medico',
-                                               'cita__id_usuario').filter(pk=conversacion_id).first()
+    conv = resolverConversacion(conversacion_id)
     if conv is None:
         raise ChatError(404, 'not_found', 'Conversación no encontrada')
     return _autorizar(conv, actor)
@@ -79,11 +78,12 @@ def bloquearConversacion(conversacion_id, actor):
     if not connection.in_atomic_block:
         raise RuntimeError('Se requiere una transacción')
     actor = actorVigente(actor)
-    cita_id = Conversacion.objects.filter(pk=conversacion_id).values_list('cita_id', flat=True).first()
+    base = resolverConversacion(conversacion_id)
+    cita_id = base.cita_id if base else None
     if cita_id is None:
         raise ChatError(404, 'not_found', 'Conversación no encontrada')
     cita = _bloquear_cita(cita_id)
-    conv = Conversacion.objects.select_for_update().filter(pk=conversacion_id).first()
+    conv = Conversacion.objects.select_for_update().filter(pk=base.pk).first()
     if conv is None or cita is None or conv.cita_id != cita.pk:
         raise ChatError(409, 'changed', 'La conversación cambió; reintenta')
     conv.cita = cita

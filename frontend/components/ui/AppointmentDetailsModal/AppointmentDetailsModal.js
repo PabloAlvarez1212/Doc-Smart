@@ -2,11 +2,12 @@
 
 import {CalendarDays,Clock3,MapPin,MessageSquareText,Stethoscope,TicketCheck,UserRound,ClipboardList,} from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import formatearFecha, { formatearFechaResolucion } from "@/app/utils/fechaFormaterUtils";
 import { getAppointmentStatusMoment } from '../AppointmentCard/appointmentDetails';
 import AppointmentCode from "../AppointmentCode/AppointmentCode";
 import Modal from "../Modal/Modal";
-import { getAppointmentDetailsData } from "./appointmentDetailsModalData";
+import { getAppointmentDetailsData, getAppointmentChatHref } from "./appointmentDetailsModalData";
 import styles from "./AppointmentDetailsModal.module.css";
 import { useEffect, useState } from "react";
 import {obtenerHistorialClinicoService} from "@/app/services/medicalHistoryServices";
@@ -26,6 +27,7 @@ export default function AppointmentDetailsModal({
     mostrarHistorialClinico = false,
 }) {
     const data = getAppointmentDetailsData(cita, counterpart);
+    const chatHref = getAppointmentChatHref(cita, counterpart);
     const scheduled = data.scheduledAt ? formatearFecha(data.scheduledAt) : null;
     const statusKey = data.status.toLowerCase();
     const statusMoment = getAppointmentStatusMoment(cita);
@@ -143,7 +145,13 @@ export default function AppointmentDetailsModal({
             icon={<span className={styles.headerIcon} aria-hidden="true"><CalendarDays size={22} /></span>}
         >
             <div className={styles.content}>
-                <div className={styles.summary}>
+                {chatHref && (
+                    <Link className={styles.chatLink}href={chatHref}onClick={onCerrar}>
+                        <MessageSquareText size={17} />
+                        <span>Ir al chat</span>
+                    </Link>
+                )}
+                                <div className={styles.summary}>
                     <div>
                         <span className={styles.summaryLabel}>Estado actual</span>
                         <p>Información de solo lectura</p>

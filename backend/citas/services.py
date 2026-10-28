@@ -729,6 +729,9 @@ def crearCitaService(
         id_estado=estado,
         motivo_consulta=motivo_consulta
     )
+    from chat_citas.services import vincularConversacionExistenteService
+    vincularConversacionExistenteService(cita)
+    cita.refresh_from_db(fields=['conversacion_chat'])
 
     fecha_fmt = (
         timezone.localtime(cita.fecha_programada)
@@ -1408,6 +1411,7 @@ def confirmarCitaService(id, medico_id):
             f'No se pudo preparar la conversación: '
             f'{resultado_chat}'
         )
+    cita.conversacion_chat_id = resultado_chat.pk
 
     fecha_fmt = (
         timezone.localtime(
