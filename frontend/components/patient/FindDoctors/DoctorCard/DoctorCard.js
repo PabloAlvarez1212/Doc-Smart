@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 
 import Button from "../../../ui/Button/Button";
+import EstrellasCalificacion from "../../Calificaciones/EstrellasCalificacion/EstrellasCalificacion";
+import { getDoctorRatingPresentation } from "./doctorCardPresentation";
 import styles from "./DoctorCard.module.css";
 
 function formatearFecha(fecha) {
@@ -80,6 +82,8 @@ export default function DoctorCard({ doctor, onSchedule, onViewProfile }) {
     const tieneDisponibilidad =
         Boolean(proximaDisponibilidad);
 
+    const rating = getDoctorRatingPresentation(doctor);
+
     return (
         <article className={styles.card}>
 
@@ -105,6 +109,25 @@ export default function DoctorCard({ doctor, onSchedule, onViewProfile }) {
                     </span>
 
                     <h2>{fullName}</h2>
+
+                    <div
+                        className={styles.rating}
+                    >
+                        {rating.hasRatings ? (
+                            <>
+                                <EstrellasCalificacion
+                                    value={rating.averageValue}
+                                    readOnly
+                                    compact
+                                    showDescription={false}
+                                    ariaLabel={`Calificación ${rating.averageLabel} de 5, ${rating.opinionsLabel}`}
+                                />
+                                <span>({rating.opinionsLabel})</span>
+                            </>
+                        ) : (
+                            <span>{rating.opinionsLabel}</span>
+                        )}
+                    </div>
 
                     {location && (
                         <p className={styles.location}>

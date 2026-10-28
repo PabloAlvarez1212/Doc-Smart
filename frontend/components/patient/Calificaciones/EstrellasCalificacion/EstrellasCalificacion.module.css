@@ -126,6 +126,19 @@
     max-width: none;
 }
 
+.compact .stars {
+    gap: 2px;
+}
+
+.compact .stars svg,
+.compact .readOnlyStar,
+.compact .readOnlyStar > svg,
+.compact .starFill,
+.compact .starFill svg {
+    width: 16px;
+    height: 16px;
+}
+
 .srOnly {
     position: absolute;
     width: 1px;
