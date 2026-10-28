@@ -101,7 +101,7 @@ class AttachmentTests(Fase3Fixture):
         from citas.models import Cita
         from .models import Conversacion
         adj = self.upload()
-        other_cita = Cita.objects.create(id_usuario=self.patient, id_medico=self.doctor,
+        other_cita = Cita.objects.create(id_usuario=self.patient, id_medico=self.doctors[0],
             id_estado=self.states['confirmada'], fecha_programada=self.now)
         other_conv = Conversacion.objects.create(cita=other_cita)
         adj.conversacion = other_conv

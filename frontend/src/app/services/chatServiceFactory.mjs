@@ -12,6 +12,10 @@ export function createChatService(api) {
     enviar: (id, payload) => data(api.post(base(id) + 'mensajes/', payload)),
     leer: (id, ultimo_mensaje_id) => data(api.put(base(id) + 'lectura/', { ultimo_mensaje_id })),
     habilitar: id => data(api.post(base(id) + 'habilitar/', {})),
+    deshabilitar: id => data(api.post(base(id) + 'deshabilitar/', {})),
+    archivar: id => data(api.post(base(id) + 'estado-personal/', { accion: 'archivar' })),
+    desarchivar: id => data(api.post(base(id) + 'estado-personal/', { accion: 'desarchivar' })),
+    eliminar: id => data(api.delete(base(id))),
     subir: (id, file) => {
       const form = new FormData(); form.append('archivo', file);
       return data(api.post(base(id) + 'adjuntos/', form));

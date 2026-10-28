@@ -5,6 +5,7 @@ import ChatWorkspaceContext from './ChatWorkspaceContext';
 import useChatViewport from './useChatViewport';
 import { ArrowDown, ArrowLeft, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import Button from '../ui/Button/Button';
 import { ChatAvatar, ChatPresence, ChatStatus, ChatMessage, ChatComposer, ClinicalActions, ChatConnection } from './ChatUI';
@@ -13,19 +14,21 @@ import useChatConversation from './useChatConversation';
 import './chat-layout.css';
 import styles from './Chat.module.css';
 
-export default function ChatConversation({ id, role, embedded = false }) {
+export default function ChatConversation({ id, role, embedded = false, citaId = null }) {
   if (!/^\d+$/.test(String(id)) || !Number.isSafeInteger(Number(id)) || Number(id) < 1) return <section className={embedded ? styles.embeddedConversation : styles.page}>
     <Link className={styles.back} href={`/${role === 'medico' ? 'doctor' : 'patient'}/my-chats`}>← Volver a Mis chats</Link>
     <p className={styles.error} role="alert">La conversación no está disponible.</p>
   </section>;
-  return <ConversationScreen key={`${role}:${id}`} id={Number(id)} role={role} embedded={embedded} />;
+  const contextId = Number.isSafeInteger(Number(citaId)) && Number(citaId) > 0 ? Number(citaId) : null;
+  return <ConversationScreen key={`${role}:${id}:${contextId}`} id={Number(id)} citaId={contextId} role={role} embedded={embedded} />;
 }
 
-function ConversationScreen({ id, role, embedded }) {
+function ConversationScreen({ id, role, embedded, citaId }) {
+  const router = useRouter();
   const publish = useContext(ChatWorkspaceContext);
   const viewportRef = useChatViewport();
   const reduced = useReducedMotion();
-  const chat = useChatConversation(id, role);
+  const chat = useChatConversation(id, role, citaId);
   const { state } = chat;
   const [downloading, setDownloading] = useState(null);
   const [fileError, setFileError] = useState('');
@@ -38,6 +41,9 @@ function ConversationScreen({ id, role, embedded }) {
   const nearBottom = useRef(true);
   const back = `/${role === 'medico' ? 'doctor' : 'patient'}/my-chats`;
   const conversation = state.conversation;
+  useEffect(() => {
+    if (conversation?.id && conversation.id !== id) router.replace(`${back}/${conversation.id}${citaId ? `?cita=${citaId}` : ''}`);
+  }, [conversation?.id, id, back, router, citaId]);
   useEffect(() => {
     if (conversation && publish) publish({...conversation, ultimo_mensaje: state.messages.at(-1) || conversation.ultimo_mensaje, fecha_ultimo_mensaje: state.messages.at(-1)?.fecha_creacion || conversation.fecha_ultimo_mensaje});
   }, [conversation, state.messages, publish]);
@@ -101,9 +107,16 @@ function ConversationScreen({ id, role, embedded }) {
     } finally { setDownloading(null); }
   }
   async function action(kind) {
+    const prompts = {
+      habilitar: ['¿Habilitar el chat?', 'El paciente podrá intercambiar mensajes antes de la apertura programada.'],
+      deshabilitar: ['¿Deshabilitar la apertura anticipada?', 'El chat volverá a habilitarse automáticamente cuando corresponda. Se conserva el historial.'],
+      archivar: ['¿Archivar conversación?', 'Solo se archivará para tu cuenta. Los mensajes nuevos permanecerán en Archivadas.'],
+      desarchivar: ['¿Desarchivar conversación?', 'Volverá a tu lista principal.'],
+      eliminar: ['¿Eliminar conversación para ti?', 'Se ocultarán tus mensajes y archivos anteriores. El otro participante conserva su historial. Una nueva cita o mensaje hará reaparecer el chat sin restaurar tu historial anterior.'],
+      inasistencia: ['¿Registrar inasistencia del paciente?', 'Se marcará esta cita como inasistencia. Las otras citas conservan sus ventanas de chat.'],
+    };
     const response = await Swal.fire({
-      title: kind === 'inasistencia' ? '¿Registrar inasistencia del paciente?' : '¿Habilitar el chat?',
-      text: kind === 'inasistencia' ? 'La cita se marcará como inasistencia del paciente y el chat quedará cerrado.' : 'El paciente podrá intercambiar mensajes contigo antes de la apertura programada.',
+      title: prompts[kind][0], text: prompts[kind][1],
       icon: 'question', showCancelButton: true, confirmButtonText: 'Sí, confirmar', cancelButtonText: 'Cancelar',
       confirmButtonColor: role === 'medico' ? '#157347' : '#1733a4',
     });
@@ -134,6 +147,7 @@ function ConversationScreen({ id, role, embedded }) {
           {conversation.estado === 'programado' && <p className={styles.meta}>Apertura programada: {formatDate(conversation.fecha_habilitacion_automatica)}</p>}
           {conversation.fecha_cierre_automatico && <p className={styles.meta}>Ventana posterior a la cita hasta {formatDate(conversation.fecha_cierre_automatico)}</p>}
           <p className={styles.meta}>{conversation.no_leidos || 0} mensajes sin leer</p>
+          <p className={styles.meta}>{conversation.habilitacion === 'automatica' ? 'Habilitación automática por cita' : conversation.habilitacion === 'manual' ? 'Habilitación anticipada del médico' : 'Envío deshabilitado'}{conversation.archivada ? ' · Archivada para ti' : ''}{conversation.oculta ? ' · Eliminada para ti' : ''}</p>
           <ClinicalActions conversation={conversation} role={role} busy={busy} onAction={action} />
           </details>
           <ChatConnection connection={state.connection} />
@@ -149,7 +163,7 @@ function ConversationScreen({ id, role, embedded }) {
       {state.readError && <p role="status" className={styles.notice}>{state.readError}</p>}
       {state.historyNotice && <p role="status" className={styles.notice}>{state.historyNotice}</p>}
       {state.remoteTyping && <p role="status" className={styles.meta}>Escribiendo…</p>}
-      <ChatComposer state={state} role={role} onText={chat.setText} onSend={send} onFiles={chat.upload} onRemove={chat.removeAttachment} />
+      <ChatComposer state={state} role={role} onText={chat.setText} onSend={send} onFiles={chat.upload} onRemove={chat.removeAttachment} onNoteCita={chat.setNoteCita} onNoteMode={chat.setNoteMode} />
       </div>
     </>}
     </motion.div></div>

@@ -45,9 +45,10 @@ class ReadTests(Fase3Fixture):
             result = read(self.conv.pk, self.doctor, note.pk)
         self.assertEqual(result.no_leidos, 0)
         updates = [q['sql'] for q in captured if q['sql'].lstrip().upper().startswith('UPDATE')]
-        self.assertEqual(len(updates), 1)
-        self.assertIn('chat_citas_conversacion', updates[0])
-        self.assertNotIn('UPDATE "chat_citas_mensaje"', updates[0])
+        self.assertEqual(len(updates), 2)
+        self.assertTrue(any('chat_citas_conversacion' in sql for sql in updates))
+        self.assertTrue(any('chat_citas_estadoparticipante' in sql for sql in updates))
+        self.assertFalse(any('UPDATE "chat_citas_mensaje"' in sql for sql in updates))
 
     def test_lectura_disponible_programado_y_cerrado(self):
         read = self.api('read_services', 'marcarLecturaConversacionService')

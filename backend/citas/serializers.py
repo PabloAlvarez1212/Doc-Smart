@@ -23,6 +23,7 @@ def msg_numero(campo, articulo='El'):
 # ─── SALIDA ───────────────────────────────────────────────────────────────────
 
 class CitaSerializer(serializers.ModelSerializer):
+    conversacion_id = serializers.IntegerField(source='conversacion_chat_id', read_only=True, allow_null=True)
     paciente = serializers.SerializerMethodField()
     calificacion = CalificacionEnCitaSerializer(read_only=True)
     medico   = serializers.SerializerMethodField()
@@ -53,6 +54,7 @@ class CitaSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Cita
         fields = [
+            'conversacion_id',
             'id',
             'fecha_programada',
             'fecha_final',

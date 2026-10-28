@@ -139,12 +139,9 @@ def _procesarCitaCierre(id):
         cita.id_estado = Estado.objects.get(nombre__iexact='vencida')
         cita.fecha_vencimiento = ahora
         cita.save(update_fields=['id_estado', 'fecha_vencimiento'])
-        from chat_citas.models import Conversacion
         from chat_citas.event_services import registrarEventoConversacionService
-        conv = Conversacion.objects.select_for_update().filter(cita=cita).first()
-        if conv is not None:
-            conv.fecha_cierre = conv.fecha_cierre or ahora
-            conv.save(update_fields=['fecha_cierre'])
+        from chat_citas.services import _cerrar_ventana_cita
+        _cerrar_ventana_cita(cita, ahora)
         registrarEventoConversacionService(cita, clave=f'vencida:{ahora.isoformat()}', evento='cita_vencida', instante=ahora, metadata={})
         _notificar(cita, 'Plazo de cierre vencido', f'El plazo de cierre de la cita del {fecha} venció. Requiere gestión o revisión.', 'cita_vencida', medico=True)
         _notificar(cita, 'Cita pendiente de gestión', f'La cita del {fecha} quedó vencida pendiente de gestión o revisión.', 'cita_vencida')

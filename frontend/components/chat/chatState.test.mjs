@@ -4,7 +4,7 @@ import { presentation, mergeMessages, readTarget, validateFile, systemText, chat
 import { createChatSession } from './chatSession.mjs';
 
 const conversation = (estado = 'activo') => ({ id: 7, estado, tiene_nota_previa: false,
-  no_leidos: 2, cita: { id: 9, estado: 'confirmada', fecha_programada: '2026-01-01T15:00:00Z' } });
+  no_leidos: 2, cita: { id: 9, estado: 'confirmada', fecha_programada: '2026-01-01T15:00:00Z', fecha_final: '2026-01-01T15:30:00Z' } });
 const message = (id, tipo = 'medico', extra = {}) => ({ id, tipo, emisor: { tipo, id: 10 }, contenido: 'hola', ...extra });
 function fixture(overrides = {}) {
   const calls = [];
@@ -24,7 +24,8 @@ test('estado backend separa lectura, composer y acciones de cada rol', () => {
   assert.equal(presentation(conversation('programado'), 'medico').canEnable, true);
   assert.equal(presentation(conversation(), 'paciente').canEnable, false);
   assert.equal(presentation(conversation(), 'medico', Date.parse('2026-01-01T14:00Z')).canAbsence, false);
-  assert.equal(presentation(conversation(), 'medico', Date.parse('2026-01-01T15:00Z')).canAbsence, true);
+  assert.equal(presentation(conversation(), 'medico', Date.parse('2026-01-01T15:00Z')).canAbsence, false);
+  assert.equal(presentation(conversation(), 'medico', Date.parse('2026-01-01T15:30Z')).canAbsence, true);
   assert.equal(presentation({ ...conversation(), cita: { estado: 'completada' } }, 'medico').canAbsence, false);
 });
 test('historial descendente se ordena cronológico y deduplica ID/UUID propio tipado', () => {

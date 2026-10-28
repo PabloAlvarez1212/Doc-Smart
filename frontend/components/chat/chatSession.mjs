@@ -1,12 +1,12 @@
 import { chatError, mergeMessages, presentation, readTarget, validateFile } from './chatState.mjs';
 
 // Estado transitorio por pantalla. No se guarda contenido clínico en el navegador.
-export function createChatSession({ api, id, role, uuid = () => crypto.randomUUID(), isVisible = () => true,
+export function createChatSession({ api, id, role, citaId = null, uuid = () => crypto.randomUUID(), isVisible = () => true,
   setTimer = setTimeout, clearTimer = clearTimeout }) {
   let state = { conversation: null, messages: [], cursor: null, hasMore: false, loading: true,
     loadingOlder: false, sending: false, uploading: false, acting: false, denied: false,
-    error: '', readError: '', historyNotice: '', text: '', attachments: [], pending: null, readCursor: 0,
-    connection: 'disconnected', remotePresence: null, remoteTyping: false, remoteReadCursor: 0 };
+    error: '', readError: '', historyNotice: '', text: '', attachments: [], pending: null, readCursor: 0, noteCita: '',
+    connection: 'disconnected', remotePresence: null, remoteTyping: false, remoteReadCursor: 0, noteMode: false };
   let disposed = false;
   let revision = 0;
   let historyStarted = false;
@@ -16,6 +16,10 @@ export function createChatSession({ api, id, role, uuid = () => crypto.randomUUI
   let boundaryTimer = null;
   let presenceTimer = null;
   let confirmedPresence = null;
+  function contextualize(conversation) {
+    const cita = conversation?.citas?.find(c => c.id === Number(citaId));
+    return cita ? {...conversation, cita} : conversation;
+  }
   function confirmPresence() {
     // The server rechecks the peer snapshot before every ping. A fresh ping can
     // confirm an unchanged snapshot after a temporary silence, never after disconnect.
@@ -74,29 +78,34 @@ export function createChatSession({ api, id, role, uuid = () => crypto.randomUUI
         if (!disposed && ticket === revision && chatError(error).denied) failure(error, true);
         throw error;
       });
-      const [conversation, history] = await Promise.all([protect(api.detalle(id)), protect(api.historial(id, { limit: 50 }))]);
+      const [serverConversation, history] = await Promise.all([protect(api.detalle(id)), protect(api.historial(id, { limit: 50 }))]);
+      const conversation = contextualize(serverConversation);
       if (disposed || ticket !== revision) return false;
       const cursor = conversation[role === 'medico' ? 'ultimo_leido_medico' : 'ultimo_leido_paciente'] || 0;
+      const notes = conversation.citas_nota_previa;
+      const noteCita = notes?.some(c => String(c.id) === String(state.noteCita)) ? state.noteCita
+        : notes?.some(c => c.id === Number(citaId)) ? String(citaId) : notes?.length === 1 ? String(notes[0].id) : '';
       const incoming = history.results;
       const gap = historyTop !== null && history.has_more && incoming.length > 0 &&
         Math.min(...incoming.map(message => message.id)) > historyTop;
       // Reiniciar la ventana acotada evita saltar páginas intermedias sin descargarlas todas.
       const latest = Math.max(0, ...incoming.map(message => message.id));
       const newer = state.messages.filter(message => message.id > latest);
-      const messages = mergeMessages(gap ? newer : state.messages, incoming);
+      const messages = mergeMessages(gap ? newer : state.messages, incoming).filter(m => m.id > (conversation.visible_despues_id || 0));
       const snapshotTop = Math.max(latest, conversation.ultimo_mensaje?.id || 0);
       const addedUnread = newer.filter(message => message.id > snapshotTop && message.id > Math.max(cursor, state.readCursor) && message.emisor?.tipo !== role).length;
       conversation.no_leidos = Math.max(0, (conversation.no_leidos || 0) + addedUnread);
       const recovered = state.pending && messages.find(message => message.emisor?.tipo === role &&
         message.client_message_id === state.pending.client_message_id);
-      update({ conversation, messages, denied: false, readCursor: Math.max(state.readCursor, cursor),
+      update({ conversation, messages, denied: false, noteCita,
+        noteMode: state.noteMode && Boolean(notes?.length), readCursor: Math.max(state.readCursor, cursor),
         remoteReadCursor: Math.max(state.remoteReadCursor, conversation[role === 'medico' ? 'ultimo_leido_paciente' : 'ultimo_leido_medico'] || 0),
         ...(!historyStarted || gap ? { cursor: history.next_before, hasMore: history.has_more } : {}),
         ...(gap ? { historyNotice: 'Llegaron muchos mensajes. Se muestra la página más reciente; puedes cargar los anteriores.' } : {}),
         ...(recovered ? { pending: null, attachments: [], text: '' } : {}) });
       historyStarted = true;
       clearTimer(boundaryTimer); boundaryTimer = null;
-      const boundaries = [conversation.fecha_habilitacion_automatica, conversation.fecha_cierre_automatico, conversation.cita?.fecha_programada]
+      const boundaries = [conversation.proxima_transicion, conversation.fecha_habilitacion_automatica, conversation.fecha_cierre_automatico, conversation.cita?.fecha_final]
         .map(value => Date.parse(value)).filter(value => Number.isFinite(value) && value > Date.now());
       if (boundaries.length) boundaryTimer = setTimer(async () => {
         boundaryTimer = null;
@@ -130,8 +139,11 @@ export function createChatSession({ api, id, role, uuid = () => crypto.randomUUI
     if (disposed || state.loading || state.loadingOlder || state.sending || state.uploading || state.acting) return false;
     const capabilities = presentation(state.conversation, role);
     if (!state.pending && !capabilities.canWrite && !capabilities.canNote) return false;
+    const asNote = capabilities.canNote && (!capabilities.canWrite || state.noteMode);
     const payload = state.pending || { client_message_id: uuid(), contenido: state.text.trim(),
-      modalidad: capabilities.canWrite ? 'mensaje' : 'nota_previa', adjunto_ids: state.attachments.map(file => file.id) };
+      modalidad: asNote ? 'nota_previa' : 'mensaje', adjunto_ids: state.attachments.map(file => file.id),
+      ...(asNote && state.noteCita ? { cita_id: Number(state.noteCita) }
+        : !asNote && state.conversation?.citas?.some(c => c.id === Number(citaId)) ? {cita_id: Number(citaId)} : {}) };
     if ((!payload.contenido && !payload.adjunto_ids.length) || payload.contenido.length > 4000) return false;
     update({ sending: true, pending: payload, error: '' });
     try {
@@ -173,8 +185,9 @@ export function createChatSession({ api, id, role, uuid = () => crypto.randomUUI
     update({ acting: true, error: '' });
     try {
       if (kind === 'inasistencia') await api.inasistencia(state.conversation.cita.id);
-      else await api.habilitar(id);
+      else await api[kind](id);
       await refresh();
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('chat-list-changed'));
     } catch (error) {
       await refresh();
       failure(error);
@@ -207,8 +220,9 @@ export function createChatSession({ api, id, role, uuid = () => crypto.randomUUI
       confirmPresence();
     } else if (event === 'chat.message.created') {
       if (data.conversacion_id !== id || !Number.isSafeInteger(data.id) || data.id < 1) return;
+      if (data.id <= (state.conversation.visible_despues_id || 0)) return;
       const unseen = !state.messages.some(message => message.id === data.id || (data.client_message_id &&
-        message.client_message_id === data.client_message_id && message.emisor?.tipo === data.emisor?.tipo && message.emisor?.id === data.emisor?.id));
+        message.client_message_id === data.client_message_id && message.origen_id === data.origen_id && message.emisor?.tipo === data.emisor?.tipo && message.emisor?.id === data.emisor?.id));
       const confirmed = state.pending && data.emisor?.tipo === role && data.client_message_id === state.pending.client_message_id;
       update({ messages: mergeMessages(state.messages, [data]), ...(confirmed ? { pending: null, text: '', attachments: [], error: '' } : {}), conversation: { ...state.conversation,
         no_leidos: Math.max(0, (state.conversation.no_leidos || 0) + (unseen && data.emisor?.tipo !== role && data.id > state.readCursor ? 1 : 0)) } });
@@ -220,7 +234,8 @@ export function createChatSession({ api, id, role, uuid = () => crypto.randomUUI
       update({ remoteTyping: data.escribiendo && state.conversation.estado === 'activo' });
       if (state.remoteTyping) remoteTypingTimer = setTimer(() => { remoteTypingTimer = null; update({ remoteTyping: false }); }, 4500);
     } else if (event === 'chat.conversation.updated' && data.id === id) {
-      if (['programado', 'activo', 'cerrado'].includes(data.estado)) update({ conversation: { ...state.conversation, ...data } });
+      if (['programado', 'activo', 'cerrado'].includes(data.estado)) update({ conversation: contextualize({ ...state.conversation, ...data }),
+        messages: state.messages.filter(m => m.id > (data.visible_despues_id || 0)) });
       if (data.estado !== 'activo') { realtime?.typing(false); update({ remoteTyping: false }); }
       queueRefresh();
     } else if (event === 'chat.error') {
@@ -234,6 +249,8 @@ export function createChatSession({ api, id, role, uuid = () => crypto.randomUUI
     attachRealtime: transport => { realtime = transport; },
     retryRealtime: () => { if (!state.denied && state.conversation) realtime?.retry(); },
     confirmPresence,
+    setNoteCita: value => { if (!state.pending && !state.sending) update({ noteCita: value }); },
+    setNoteMode: value => { if (!state.pending && !state.sending) update({ noteMode: value }); },
     connection: value => {
       if (value !== 'connected') { clearTimer(presenceTimer); presenceTimer = null; confirmedPresence = null; }
       update({ connection: value, ...(value !== 'connected' ? { remoteTyping: false, remotePresence: null } : {}) });
