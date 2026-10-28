@@ -4,13 +4,14 @@ from rest_framework.test import (
     APIRequestFactory,
     force_authenticate,
 )
-
+from unittest.mock import patch
 from catalogos.models import Estado
 from chat_citas.tests import ChatFixture
 
 from citas.models import Cita
 from citas.services import (
     listarCitasMedicoService,
+    listarCitasPacienteService,
     resumenCitasMedicoService,
 )
 from citas.views import CitaMedicoView
@@ -320,4 +321,92 @@ class AgendaHistorialTests(ChatFixture):
         self.assertEqual(
             response.data["data"]["paginacion"]["count"],
             4
+        )
+
+    def test_agenda_prioriza_citas_listas_para_cierre(self):
+        medico = self.doctors[1]
+        paciente = self.patients[0]
+        confirmada = self.states["confirmada"]
+
+        def crear(inicio, fin):
+            return Cita.objects.create(
+                id_medico=medico,
+                id_usuario=paciente,
+                id_estado=confirmada,
+                fecha_programada=inicio,
+                fecha_final=fin,
+            )
+
+        cierre_antiguo = crear(
+            self.now - timedelta(hours=3),
+            self.now - timedelta(hours=2),
+        )
+
+        cierre_reciente = crear(
+            self.now - timedelta(hours=1),
+            self.now - timedelta(minutes=20),
+        )
+
+        proxima = crear(
+            self.now + timedelta(hours=1),
+            self.now + timedelta(hours=2),
+        )
+
+        with patch("citas.services.timezone.now", return_value=self.now):
+            pagina_1, codigo = listarCitasMedicoService(
+                medico_id=medico.pk,
+                seccion="agenda",
+                page=1,
+                page_size=2,
+            )
+
+            pagina_2, _ = listarCitasMedicoService(
+                medico_id=medico.pk,
+                seccion="agenda",
+                page=2,
+                page_size=2,
+            )
+
+        self.assertEqual(codigo, 200)
+
+        self.assertEqual(
+            [cita["id"] for cita in pagina_1["data"]],
+            [cierre_reciente.pk, cierre_antiguo.pk],
+        )
+
+        self.assertEqual(
+            pagina_2["data"][0]["id"],
+            proxima.pk,
+        )
+
+
+    def test_paciente_prioriza_proximas_citas(self):
+        proxima = Cita.objects.create(
+            id_medico=self.doctors[1],
+            id_usuario=self.patients[0],
+            id_estado=self.states["pendiente"],
+            fecha_programada=self.now + timedelta(hours=1),
+        )
+
+        cancelada_futura = Cita.objects.create(
+            id_medico=self.doctors[1],
+            id_usuario=self.patients[0],
+            id_estado=self.states["cancelada"],
+            fecha_programada=self.now + timedelta(days=30),
+        )
+
+        with patch("citas.services.timezone.now", return_value=self.now):
+            resultado, codigo = listarCitasPacienteService(
+                usuario_id=self.patients[0].pk,
+                page=1,
+                page_size=20,
+            )
+
+        ids = [cita["id"] for cita in resultado["data"]]
+
+        self.assertEqual(codigo, 200)
+        self.assertEqual(ids[0], proxima.pk)
+        self.assertLess(
+            ids.index(proxima.pk),
+            ids.index(cancelada_futura.pk),
         )
