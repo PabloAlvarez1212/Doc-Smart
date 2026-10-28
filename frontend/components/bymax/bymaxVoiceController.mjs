@@ -1,7 +1,10 @@
 import { attachProgressiveAudio } from "./bymaxProgressiveAudio.mjs";
 import { createVoiceSession } from "./bymaxVoiceSession.mjs";
 // Browser voice lifecycle. Dependencies are injected to test without microphone access.
-export const DEFAULT_VOICE = { motor: "neural", voiceURI: "", rate: 0.96, pitch: 1.02, volume: 1 };
+export const DEFAULT_VOICE = { motor: "neural", voiceURI: "", rate: 0.96, pitch: 1.02, volume: 1, silencio: 1600 };
+// A silent clip played inside a user gesture unlocks later automatic playback.
+const SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+const MAX_QUEUED_UNITS = 6;
 export const VOICE_ERRORS = {
   "not-allowed": "Permiso de micrófono denegado. Revisa los permisos del sitio y vuelve a tocar el micrófono.",
   "service-not-allowed": "El servicio de reconocimiento no está disponible. Revisa los permisos y la configuración de voz del dispositivo.",
@@ -34,7 +37,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
   const update = (next) => { state = { ...state, ...next }; if (!disposed) notify({ ...state }); };
   const session = createVoiceSession({
     browser, errors: VOICE_ERRORS, notify: update, onPartial, onWake: () => { ended = false; onWake(); },
-    onTranscript: text => { beginTurn(); onTranscript(text); },
+    onTranscript: (text, meta) => { beginTurn(); onTranscript(text, meta); },
     onEnd: () => {
       ended = true; turnPending = false; stopPlayback(false); onEnd();
 
@@ -105,8 +108,8 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
     if (disposed || generation !== voiceGeneration) return;
     browser.clearTimeout(playbackTimer);
     if (blocked) {
-
-      update({ playback: "ready", notice: "El navegador requiere un toque. Pulsa Reproducir para escuchar la respuesta." });
+      // Never pretend it is playing: explain how to allow automatic audio.
+      update({ playback: "ready", notice: "El navegador bloqueó el audio automático. Toca la pantalla una vez o permite el sonido del sitio (icono de candado de la barra de direcciones) para escuchar las respuestas sin pulsar nada." });
     } else {
       stopPlayback(false);
       update({ playback: "error", messageId: null, error: message });
@@ -116,7 +119,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
 
   function beginPlayback() {
     if (!current || disposed) return;
-    session.pause();
+    session.pause(false);
     const generation = voiceGeneration;
     const item = current;
     update({ playback: "starting", error: "", notice: "Iniciando reproducción…" });
@@ -232,7 +235,10 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
 
   function enqueue(text, id) {
     if (!state.enabled || !text.trim() || disposed || ended || suspended || mutedIds.has(id)) return;
-    queue.push({ text, id });
+    const last = queue.at(-1);
+    // A saturated queue merges new text into the last unit that has not been requested yet.
+    if (queue.length >= MAX_QUEUED_UNITS && last && last.id === id && !last.prepared) last.text += ` ${text}`;
+    else queue.push({ text, id });
     drain();
     preloadNext();
   }
@@ -242,7 +248,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
     if (current?.id === id && state.playback === "ready") { beginPlayback(); return; }
     stopPlayback(false);
     mutedIds.delete(id);
-    session.pause();
+    session.pause(false);
     if (text.trim()) prepare({ text, id, direct: true });
   }
 
@@ -254,6 +260,24 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
   function configure(next, availableVoices = voices) {
     config = { ...config, ...next };
     voices = availableVoices;
+    session.configure({ silenceMs: Math.min(4000, Math.max(800, Number(config.silencio) || DEFAULT_VOICE.silencio)) });
+  }
+
+  // Called from a user gesture: prepares one reusable audio element and, when a
+  // response was blocked, plays it now.
+  let unlocked = false;
+  function unlockAudio() {
+    if (disposed || !state.enabled) return;
+    if (!unlocked && !current && browser.Audio) {
+      try {
+        if (!audio) audio = new browser.Audio();
+        audio.src = SILENT_WAV;
+        const attempt = audio.play();
+        if (attempt?.then) attempt.then(() => { unlocked = true; if (!current) { audio.pause(); audio.removeAttribute?.("src"); } }).catch(() => {});
+        else unlocked = true;
+      } catch {}
+    }
+    if (current && state.playback === "ready") beginPlayback();
   }
 
   function dispose() {
@@ -263,5 +287,6 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
   }
 
   return { startListening, stopListening, endConversation, restoreStopped, permissionDenied, beginTurn, completeTurn, setVisible, stopPlayback, play, enqueue, setEnabled, configure, dispose,
+    unlockAudio, manualEdit: text => session.manualEdit(text), discardDictation: () => session.discard(),
     snapshot: () => ({ ...state }), clearError: () => update({ error: "", notice: "" }) };
 }

@@ -28,8 +28,8 @@ export default function useBymaxVoice(options) {
         window.dispatchEvent(new CustomEvent("bymax:voice-state", { detail: { ...next, actor } }));
       },
       generateVoice: (...args) => latest.current.generateVoice(...args),
-      onTranscript: text => latest.current.onTranscript(text),
-      onPartial: text => latest.current.onPartial(text),
+      onTranscript: (text, meta) => latest.current.onTranscript(text, meta),
+      onPartial: (text, view) => latest.current.onPartial(text, view),
       onWake: () => latest.current.onWake(),
       onEnd: () => latest.current.onEnd?.(),
       isBusy: () => latest.current.isBusy(),
@@ -44,6 +44,7 @@ export default function useBymaxVoice(options) {
       motor: saved.motor === "browser" ? "browser" : "neural",
       voiceURI: typeof saved.voiceURI === "string" ? saved.voiceURI : "",
       rate: Math.min(1.2, Math.max(0.75, Number(saved.rate) || 0.96)),
+      silencio: Math.min(4000, Math.max(800, Number(saved.silencio) || DEFAULT_VOICE.silencio)),
       pitch: Math.min(1.3, Math.max(0.75, Number(saved.pitch) || 1.02)),
       volume: Math.min(1, Math.max(0.2, Number(saved.volume) || 1)),
     } : DEFAULT_VOICE;
@@ -59,11 +60,14 @@ export default function useBymaxVoice(options) {
       preference.current = enabled;
       save("bymax_voice_responses", String(enabled));
       instance.setEnabled(enabled);
+      if (enabled) instance.unlockAudio(); // the click is a user gesture: later answers can play by themselves
       if (enabled) instance.startListening("wake"); // Synchronous click from Configuration preserves user activation.
     };
     const shutdown = () => { closed = true; instance.dispose(); controller.current = null; setState(initialState); window.dispatchEvent(new CustomEvent("bymax:voice-state", {detail:null})); };
     loadVoices();
     window.speechSynthesis?.addEventListener("voiceschanged", loadVoices);
+    const gesture = () => instance.unlockAudio();
+    for (const name of ["pointerdown", "keydown", "touchend"]) window.addEventListener(name, gesture, { capture: true, passive: true });
     const visibility = () => instance.setVisible(!document.hidden);
     const pageHide = () => instance.setVisible(false);
     document.addEventListener("visibilitychange", visibility);
@@ -76,6 +80,7 @@ export default function useBymaxVoice(options) {
     return () => {
       shutdown();
       window.speechSynthesis?.removeEventListener("voiceschanged", loadVoices);
+      for (const name of ["pointerdown", "keydown", "touchend"]) window.removeEventListener(name, gesture, { capture: true });
       document.removeEventListener("visibilitychange", visibility);
       window.removeEventListener("pagehide", pageHide);
       window.removeEventListener("pageshow", visibility);
@@ -96,9 +101,11 @@ export default function useBymaxVoice(options) {
   const play = useCallback((text, id) => controller.current?.play(text, id), []);
   const enqueue = useCallback((text, id) => controller.current?.enqueue(text, id), []);
   const clearError = useCallback(() => controller.current?.clearError(), []);
+  const manualEdit = useCallback(text => controller.current?.manualEdit(text), []);
+  const discardDictation = useCallback(() => controller.current?.discardDictation(), []);
   const updateConfig = useCallback(next => {
     controller.current?.stopPlayback();
     setConfig(previous => { const value = { ...previous, ...next }; save("bymax_configuracion_voz", JSON.stringify(value)); return value; });
   }, [save]);
-  return { ...state, config, voices, beginTurn, completeTurn, stopPlayback, play, enqueue, clearError, updateConfig };
+  return { ...state, config, voices, beginTurn, completeTurn, stopPlayback, play, enqueue, clearError, updateConfig, manualEdit, discardDictation };
 }

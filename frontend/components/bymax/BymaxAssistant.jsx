@@ -8,8 +8,8 @@ import BymaxLauncher from "./BymaxLauncher";
 import BymaxChatWindow from "./BymaxChatWindow";
 import BymaxDoctorContext from "./BymaxDoctorContext";
 import useBymaxIdentity from "./useBymaxIdentity";
-import { takeSpeechUnits } from "./bymaxSpeechUnits.mjs";
-import { matchesTurn, latencyTrace, recoverResponse } from "./bymaxTurn.mjs";
+import { takeSpeechUnits, flushSpeechBuffer, SPEECH_MAX_WAIT_MS } from "./bymaxSpeechUnits.mjs";
+import { matchesTurn, latencyTrace, recoverResponse, esAfirmacionDictada } from "./bymaxTurn.mjs";
 import { assistantState } from "./bymaxPresentation.mjs";
 
 const SALUDO = "Hola, soy Bymax, tu asistente virtual de DocSmart. ¿En qué puedo ayudarte el dia de hoy?";
@@ -53,14 +53,23 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
   const epochRef = useRef(0);
   const imageUrls = useRef(new Set());
   const voiceRef = useRef(null);
+  const confirmationRef = useRef(false);
   const abrirVentana = useCallback(() => { setVentanaAbierta(true); }, []);
   const voice = useBymaxVoice({
     actorKey,
     generateVoice: bymaxService.generarVoz,
     available: Boolean(chatId) && !cargando,
     onEnd: () => { setMensaje(""); setMensajes(previous => [...previous, normalizarMensaje({remitente:"bot", texto:"Conversación terminada. Di «Bymax» cuando quieras volver a conversar."})]); },
-    onTranscript: text => sendRef.current?.(text),
-    onPartial: setMensaje, onWake: abrirVentana,
+    onTranscript: text => {
+      if (confirmationRef.current && esAfirmacionDictada(text)) {
+        setMensaje(text);
+        setError("Por seguridad no confirmo operaciones por voz. Revisa los datos y usa el botón «Sí, confirmar».");
+        voiceRef.current?.completeTurn();
+        return;
+      }
+      sendRef.current?.(text);
+    },
+    onPartial: text => setMensaje(text), onWake: abrirVentana,
     isBusy: () => sendingRef.current || cargando || !chatId,
   });
   useEffect(() => { voiceRef.current = voice; }, [voice]);
@@ -110,6 +119,8 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
     sendingRef.current = false;
     setEnviando(false);
     setStreamingId(null);
+    // Dictation of the previous conversation must not reach the next one.
+    if (voiceRef.current?.discardDictation()) setMensaje("");
     voiceRef.current?.beginTurn();
   }, [cancelTurn]);
   const cargarChat = useCallback(async id => {
@@ -173,9 +184,19 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
       voiceRef.current?.completeTurn();
     }
     function speakFragments(turn, final = false) {
+      clearTimeout(turn.flushTimer);
       const { units, remaining } = takeSpeechUnits(turn.buffer, final);
       for (const unit of units) voiceRef.current?.enqueue(unit, turn.id);
       turn.buffer = remaining;
+      // Long stretches without punctuation are spoken after a bounded wait.
+      if (!final && remaining.trim()) {
+        turn.flushTimer = setTimeout(() => {
+          if (turnRef.current !== turn) return;
+          const flushed = flushSpeechBuffer(turn.buffer);
+          for (const unit of flushed.units) voiceRef.current?.enqueue(unit, turn.id);
+          turn.buffer = flushed.remaining;
+        }, SPEECH_MAX_WAIT_MS);
+      }
     }
     socket.onmessage = event => {
       const turn = turnRef.current;
@@ -313,6 +334,7 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
   };
   const ultimo = mensajes.at(-1);
   const confirmation = Boolean(ultimo?.remitente === "bot" && (ultimo.resultado?.requires_confirmation || ultimo.resultado?.data?.requires_confirmation));
+  confirmationRef.current = confirmation;
   const { status, label } = assistantState({ voice, sending: enviando, generating, loading: cargando, error, lastMessage: ultimo, connection });
   return <>
     <BymaxLauncher {...draggable} status={status} label={label} open={ventanaAbierta} buttonRef={launcherRef}/>

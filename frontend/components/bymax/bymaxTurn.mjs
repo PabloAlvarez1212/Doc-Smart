@@ -32,3 +32,11 @@ export async function recoverResponse({ requestId, signal, send, wait = recovery
     }
   }
 }
+
+// A dictated "sí" is never enough to confirm an operation: transcription errors
+// or the user's own surroundings could trigger it. Confirmations need a tap.
+const AFIRMACION = /^(?:si|confirmo|confirmar|acepto|de acuerdo|claro|dale|ok|okay|listo|yes|confirm)(?:\s|$)/;
+export function esAfirmacionDictada(texto) {
+  const limpio = String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+  return limpio.split(" ").length <= 4 && AFIRMACION.test(limpio);
+}

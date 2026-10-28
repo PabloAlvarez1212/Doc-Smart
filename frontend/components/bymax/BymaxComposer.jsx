@@ -23,7 +23,7 @@ export default function BymaxComposer({ message, setMessage, image, setImage, er
     <div className={styles.composer}>
       <button type="button" disabled={unavailable} onClick={() => fileRef.current?.click()} aria-label="Adjuntar imagen médica" title="Adjuntar imagen"><ImagePlus size={21}/></button>
       <input ref={fileRef} hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={onImage}/>
-      <textarea ref={inputRef} value={message} rows={1} placeholder="Escribe tu consulta…" aria-label="Mensaje para Bymax" onChange={e => setMessage(e.target.value)}
+      <textarea ref={inputRef} value={message} rows={1} placeholder="Escribe tu consulta…" aria-label="Mensaje para Bymax" onChange={e => { voice.manualEdit?.(e.target.value); setMessage(e.target.value); }}
         onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && !window.matchMedia("(pointer: coarse)").matches) { event.preventDefault(); onSend(); } }}/>
       <button type="button" className={styles.send} disabled={unavailable || (!message.trim() && !image)} onClick={() => onSend()} aria-label={sending ? "Enviar nuevo mensaje e interrumpir respuesta" : "Enviar mensaje"}>{sending ? <LoaderCircle className={styles.spin} size={20}/> : <Send size={20}/>}</button>
     </div>

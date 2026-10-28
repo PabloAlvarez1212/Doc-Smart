@@ -1,4 +1,27 @@
 // Keep abbreviations, decimals and numbered list markers attached to their text.
+export const SPEECH_MAX_CHARS = 220;
+export const SPEECH_MIN_FLUSH_CHARS = 50;
+export const SPEECH_MAX_WAIT_MS = 1200;
+
+// A long stretch without punctuation is cut at the last comma or word, so
+// voice never waits for the whole sentence.
+function cutLongStretch(text, limit = SPEECH_MAX_CHARS) {
+  if (text.length <= limit) return null;
+  const head = text.slice(0, limit);
+  const cut = Math.max(head.lastIndexOf(", "), head.lastIndexOf("; "), head.lastIndexOf(": "));
+  const at = cut >= 60 ? cut + 1 : head.lastIndexOf(" ");
+  return at > 0 ? at : null;
+}
+
+// Time-based flush: after SPEECH_MAX_WAIT_MS without a boundary, the words
+// received so far (up to the last complete word) are spoken.
+export function flushSpeechBuffer(buffer) {
+  if (buffer.trim().length < SPEECH_MIN_FLUSH_CHARS) return { units: [], remaining: buffer };
+  const at = buffer.lastIndexOf(" ");
+  if (at < SPEECH_MIN_FLUSH_CHARS) return { units: [], remaining: buffer };
+  return { units: [buffer.slice(0, at).trim()], remaining: buffer.slice(at) };
+}
+
 export function takeSpeechUnits(buffer, final = false) {
   const units = [];
   let start = 0;
@@ -12,7 +35,13 @@ export function takeSpeechUnits(buffer, final = false) {
     if (candidate.trim()) units.push(candidate.trim());
     start = end;
   }
-  const remaining = buffer.slice(start);
+  let remaining = buffer.slice(start);
+  if (!final) {
+    for (let at = cutLongStretch(remaining); at != null; at = cutLongStretch(remaining)) {
+      units.push(remaining.slice(0, at).trim());
+      remaining = remaining.slice(at);
+    }
+  }
   if (final && remaining.trim()) units.push(remaining.trim());
   return { units, remaining: final ? "" : remaining };
 }
