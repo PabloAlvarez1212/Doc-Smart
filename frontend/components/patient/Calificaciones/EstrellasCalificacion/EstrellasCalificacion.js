@@ -18,6 +18,9 @@ export default function EstrellasCalificacion({
     disabled = false,
     name = "puntuacion",
     labelledBy,
+    showDescription = true,
+    compact = false,
+    ariaLabel,
 }) {
     const groupId = useId();
     const [previewValue, setPreviewValue] = useState(0);
@@ -29,9 +32,9 @@ export default function EstrellasCalificacion({
         const displayRating = normalizeDisplayRating(value);
         return (
             <div
-                className={`${styles.root} ${styles.readOnly}`}
+                className={`${styles.root} ${styles.readOnly} ${compact ? styles.compact : ""}`}
                 role="img"
-                aria-label={`Puntuación registrada: ${displayRating} de 5 estrellas`}
+                aria-label={ariaLabel || `Puntuación registrada: ${displayRating} de 5 estrellas`}
             >
                 <div className={styles.stars} aria-hidden="true">
                     {[1, 2, 3, 4, 5].map((score) => (
@@ -46,7 +49,9 @@ export default function EstrellasCalificacion({
                         </span>
                     ))}
                 </div>
-                <span className={styles.description}>{displayRating.toFixed(1)} de 5 estrellas</span>
+                {showDescription && (
+                    <span className={styles.description}>{displayRating.toFixed(1)} de 5 estrellas</span>
+                )}
             </div>
         );
     }

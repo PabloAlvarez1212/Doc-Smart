@@ -11,16 +11,3 @@ export function getDoctorCalificacionPresentation(cita) {
         scoreLabel: `${puntuacion}/5`,
     };
 }
-
-export function buildDoctorCalificacionAction(cita, onVerCalificacion, icon) {
-    const presentation = getDoctorCalificacionPresentation(cita);
-    if (!presentation) return null;
-
-    return {
-        id: "ver-calificacion",
-        label: presentation.label,
-        icon,
-        tone: "rating",
-        onClick: () => onVerCalificacion?.(cita),
-    };
-}

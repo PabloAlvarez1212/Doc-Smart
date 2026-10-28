@@ -3,14 +3,12 @@ import calendar
 import logging
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
-from datetime import timedelta, date, datetime, time
-from django.db.models.functions import TruncWeek
+from datetime import timedelta
 from citas.models import Cita
 from calificaciones.models import Calificacion
 from notificaciones.models import Notificacion
 from medicos.models import Medico, Especialidad,SolicitudValidacionMedico, DisponibilidadMedico, ExcepcionDisponibilidadMedico
 from citas.models import Cita
-from users.models import Usuario
 from historial_medico.models import HistorialClinico
 from catalogos.models import Ciudad
 from medicos.serializers import (
@@ -29,8 +27,7 @@ from medicos.services_disponibilidad import (obtenerProximaDisponibilidad,)
 from users.serializers import MedicoSerializer
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, OuterRef, Q, Subquery, Value,Case,When,CharField,IntegerField,FloatField
-from django.db.models.functions import TruncMonth, Coalesce,TruncDay
-from django.db.models.functions import Concat
+from django.db.models.functions import TruncMonth, TruncDay,Coalesce, Cast,Concat
 from storage_app.services import guardar_archivo_medico,eliminar_archivo
 from django.db import transaction
 from storage_app.services import generar_url_firmada
@@ -102,8 +99,12 @@ def listarMedicosPublicosService(
             output_field=FloatField()
         ),
 
-        total_calificaciones=Subquery(
-            calificaciones.values("total")[:1],
+        total_calificaciones=Coalesce(
+            Subquery(
+                calificaciones.values("total")[:1],
+                output_field=IntegerField()
+            ),
+            Value(0),
             output_field=IntegerField()
         )
     )
@@ -148,7 +149,42 @@ def listarMedicosPublicosService(
         medicos = medicos.filter(
             promedio_calificacion__gte=calificacion_minima
         )
+        
+    # PARÁMETROS DEL ORDENAMIENTO
+    m = 10
+    promedio_general = Calificacion.objects.aggregate(promedio=Avg("puntuacion"))["promedio"]
 
+    C = float(promedio_general) if promedio_general is not None else 3.0
+    
+    medicos = medicos.annotate(
+        v=Cast(
+            F("total_calificaciones"),
+            FloatField()
+        ),
+        R=Coalesce(
+            F("promedio_calificacion"),
+            Value(C),
+            output_field=FloatField())
+    )
+
+    # CALCULAR PUNTUACIÓN AJUSTADA
+    medicos = medicos.annotate(
+        puntuacion_ajustada=ExpressionWrapper(
+            (
+                F("v") * F("R") + Value(float(m * C))
+            ) / (
+                F("v") + Value(float(m))
+            ),
+            output_field=FloatField()
+        )
+    )
+
+    # ORDENAR MÉDICOS
+    medicos = medicos.order_by(
+        "-puntuacion_ajustada",
+        "-total_calificaciones",
+        "id"
+    )
     medicos = list(medicos)
 
     for medico in medicos:
