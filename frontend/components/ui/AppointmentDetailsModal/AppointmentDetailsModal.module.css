@@ -56,7 +56,9 @@
 }
 
 .pendiente,
-.reprogramada {
+.reprogramada,
+.vencida,
+.inasistencia_paciente  {
     color: var(--ink-orange);
     background: var(--tone-orange);
 }
