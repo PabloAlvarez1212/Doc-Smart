@@ -16,6 +16,11 @@ FLOWS = {
                 "campo": "fecha",
                 "alternativas": ["fecha", "fecha_programada"],
                 "pregunta": "¿Qué fecha y hora prefieres?"
+            },
+
+            {
+                "campo": "motivo_consulta",
+                "pregunta": "¿Cuál es el motivo de tu consulta?",
             }
 
         ]

@@ -1,4 +1,10 @@
 from chatbot.ai.filters import (
+    FiltroPromesas,
+    dato_a_olvidar,
+    marca_antecedente_resuelto,
+    preferencia_memoria,
+    solicita_buscar_profesional,
+    solicita_cancelar_flujo,
     limpiar_mensaje,
     contiene_prompt_injection,
     es_saludo,
@@ -9,14 +15,18 @@ from chatbot.ai.filters import (
     solicita_edad_usuario,
     solicita_nombre_usuario,
     solicita_ver_memoria,
+    senales_alarma,
 )
 
 from chatbot.ai.memory import construir_historial
 
 from chatbot.ai.context_manager import (
+    contexto_para_ia,
     describir_contexto,
+    establecer_memoria_activa,
     limpiar_contexto,
-    obtener_contexto,
+    marcar_hecho,
+    olvidar_dato,
 )
 from chatbot.ai.memory_extractor import extraer_y_guardar_memoria
 
@@ -25,6 +35,7 @@ from chatbot.ai.router import PATRON_CONSULTA_MEDICA, PATRON_SOLICITUD_CITA, pro
 from chatbot.ai.tool_manager import ToolManager
 
 from chatbot.ai.conversation_state import ConversationState
+from chatbot.politicas import EDAD_MAYORIA
 
 from chatbot.ai.flow_manager import FlowManager
 
@@ -32,8 +43,13 @@ from chatbot.ai.conversation_flow import ConversationFlow
 from chatbot.ai.router_decision import RouterDecision
 from chatbot.services.perfil_usuario_service import PerfilUsuarioService
 from chatbot.ai.language import LanguageService, idioma_actual
+import logging
 import re
+from datetime import date
 from django.db import transaction
+from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationManager:
@@ -91,6 +107,35 @@ class ConversationManager:
                 "Eliminé la información que recordaba sobre ti.", state.mensaje
             )
 
+        preferencia = preferencia_memoria(state.mensaje)
+        if preferencia is not None:
+            establecer_memoria_activa(chat, preferencia)
+            return LanguageService.adaptar(
+                "Listo. Volveré a recordar lo que me indiques."
+                if preferencia else
+                "Entendido. No guardaré ni usaré información de tus conversaciones. "
+                "Lo que ya tenía sigue guardado hasta que me pidas olvidarlo.",
+                state.mensaje,
+            )
+
+        termino = dato_a_olvidar(state.mensaje)
+        if termino:
+            eliminados = olvidar_dato(chat, termino)
+            return LanguageService.adaptar(
+                "Olvidé ese dato de tu memoria."
+                if eliminados else
+                "No encontré ese dato en lo que recuerdo de ti.",
+                state.mensaje,
+            )
+
+        resuelto = marca_antecedente_resuelto(state.mensaje)
+        if resuelto and marcar_hecho(chat, resuelto, "resuelto"):
+            return LanguageService.adaptar(
+                "Gracias por avisarme. Lo registré como resuelto según tú; "
+                "sigue siendo un dato que declaraste, no una valoración médica.",
+                state.mensaje,
+            )
+
         if solicita_nombre_usuario(state.mensaje):
             respuesta = PerfilUsuarioService.responder_nombre(chat.id_usuario, idioma)
             perfil = PerfilUsuarioService.obtener_perfil(chat.id_usuario)
@@ -120,7 +165,8 @@ class ConversationManager:
             datos = PerfilUsuarioService.obtener_perfil(chat.id_usuario)
             return LanguageService.adaptar(respuesta, state.mensaje, datos.values())
 
-        extraer_y_guardar_memoria(chat, state.mensaje)
+        nuevos = extraer_y_guardar_memoria(chat, state.mensaje) or {}
+        state.aclaraciones = nuevos.get("_aclaraciones") or []
 
         if chat.estado_conversacion == "normal" and es_saludo(state.mensaje):
             perfil = PerfilUsuarioService.obtener_perfil(chat.id_usuario)
@@ -137,10 +183,27 @@ class ConversationManager:
         if chat.estado_conversacion == 'normal' and state.mensaje.strip().lower().rstrip('.!?') in FlowManager.RESPUESTAS_AFIRMATIVAS:
             return LanguageService.adaptar('No hay una operación pendiente de confirmación. Indícame qué deseas hacer.', state.mensaje)
 
+        alarma = senales_alarma(state.mensaje)
+
+        # Cambiar de rumbo no deja la operación anterior atrapada.
+        if chat.estado_conversacion != "normal" and (
+            solicita_cancelar_flujo(state.mensaje)
+            or ConversationManager._es_nueva_busqueda(state.mensaje)
+        ):
+            ConversationFlow.finalizar(chat)
+            if solicita_cancelar_flujo(state.mensaje):
+                return LanguageService.adaptar(
+                    "Entendido. Cancelé la operación actual y no hice cambios.",
+                    state.mensaje,
+                )
+
+        # Mientras el flujo espera un texto libre (p. ej. el motivo de la
+        # consulta), el mensaje es la respuesta aunque describa síntomas.
         if (
             chat.estado_conversacion != "normal"
             and PATRON_CONSULTA_MEDICA.search(state.mensaje)
             and not PATRON_SOLICITUD_CITA.search(state.mensaje)
+            and not FlowManager.campo_libre_pendiente(chat)
         ):
             ConversationFlow.finalizar(chat)
 
@@ -148,7 +211,9 @@ class ConversationManager:
             resultado = FlowManager.continuar(chat, state.mensaje)
 
             if isinstance(resultado, str):
-                return LanguageService.adaptar(resultado, state.mensaje)
+                return ConversationManager._con_alerta(
+                    LanguageService.adaptar(resultado, state.mensaje), alarma
+                )
 
             if resultado:
 
@@ -169,7 +234,19 @@ class ConversationManager:
                     state,
                 )
 
-                return state.respuesta
+                return ConversationManager._con_alerta(state.respuesta, alarma)
+
+        if chat.estado_conversacion == "normal":
+            referencia = FlowManager.resolver_referencia(chat, state.mensaje)
+            if isinstance(referencia, str):
+                return LanguageService.adaptar(referencia, state.mensaje)
+            decision = referencia or FlowManager.resolver_busqueda(chat, state.mensaje)
+            if decision is not None:
+                state.decision = decision
+                ConversationManager._resolver(chat, state)
+                ConversationManager._preparar_confirmacion(chat, state)
+                ConversationManager._preparar_seleccion(chat, state)
+                return ConversationManager._con_alerta(state.respuesta, alarma)
 
         ConversationManager._cargar_memoria(
             chat,
@@ -204,7 +281,10 @@ class ConversationManager:
             resultado_flujo = FlowManager.iniciar(
                 chat,
                 state.decision.iniciar_flujo,
-                state.decision.parametros,
+                FlowManager.completar_referencia_cita(
+                    chat, state.mensaje, state.decision.iniciar_flujo,
+                    state.decision.parametros,
+                ),
             )
 
             if isinstance(resultado_flujo, RouterDecision):
@@ -238,6 +318,87 @@ class ConversationManager:
         return state.respuesta
 
     @staticmethod
+    def _recordar_resultados(chat, state):
+        """Conserva resultados estructurados y referencias de citas, acotados."""
+        resultado = state.tool_result
+        if not isinstance(resultado, dict) or not isinstance(resultado.get("data"), dict):
+            return
+        datos = resultado["data"]
+        if state.decision.tool_name == "buscar_medico" or resultado.get("requires_selection"):
+            FlowManager.guardar_resultados(chat, datos)
+        codigos = [c["codigo_cita"] for c in datos.get("citas", []) if isinstance(c, dict) and c.get("codigo_cita")]
+        if datos.get("codigo_cita"):
+            codigos.append(datos["codigo_cita"])
+        if codigos and resultado.get("success", True):
+            FlowManager.guardar_referencia_citas(chat, codigos)
+
+    @staticmethod
+    def completar_promesa(chat, mensaje, texto=""):
+        """Sustituye una promesa de trabajo por una ejecución real.
+
+        Se ejecuta la búsqueda si hay criterios verificables; si no, se
+        piden los datos faltantes. Nunca se afirma trabajo en segundo plano.
+        """
+        decision = FlowManager.resolver_busqueda(chat, mensaje)
+        if decision is None:
+            return (
+                f"{texto}\n\nPara buscar médicos registrados en DocSmart necesito "
+                "al menos la especialidad o la ciudad. ¿Cuáles prefieres?"
+            ).strip()
+        state = ConversationState()
+        state.mensaje = mensaje
+        state.decision = decision
+        ConversationManager._resolver(chat, state)
+        resultado = state.respuesta
+        if isinstance(resultado, dict):
+            return {**resultado, "message": f"{texto}\n\n{resultado.get('message', '')}".strip()}
+        return f"{texto}\n\n{resultado}".strip()
+
+    @staticmethod
+    def _es_nueva_busqueda(mensaje):
+        """Búsqueda explícita con criterios del catálogo, no un motivo de consulta."""
+        from chatbot.services.medico_service import MedicoService
+        return (
+            solicita_buscar_profesional(mensaje)
+            and not PATRON_SOLICITUD_CITA.search(mensaje)
+            and bool(MedicoService.extraer_criterios(mensaje))
+        )
+
+    @staticmethod
+    def _nota_menor(usuario):
+        """Precauciones para menores sin exponer su fecha de nacimiento."""
+        nacimiento = PerfilUsuarioService.obtener_perfil(usuario).get("fecha_nacimiento")
+        if hasattr(nacimiento, "date"):
+            nacimiento = nacimiento.date()
+        if not isinstance(nacimiento, date):
+            return None
+        hoy = timezone.localdate()
+        edad = hoy.year - nacimiento.year - ((hoy.month, hoy.day) < (nacimiento.month, nacimiento.day))
+        if edad >= EDAD_MAYORIA:
+            return None
+        return (
+            f"El usuario es menor de edad ({edad} años). Usa lenguaje sencillo, "
+            "recomienda que lo acompañe un adulto responsable, no sugieras "
+            "medicamentos ni dosis y prioriza la valoración médica."
+        )
+
+    @staticmethod
+    def _con_alerta(respuesta, alarma):
+        """Antepone la orientación urgente; una cita futura no la sustituye."""
+        if not alarma:
+            return respuesta
+        aviso = (
+            "Lo que describes podría necesitar atención urgente: busca ayuda "
+            "médica de inmediato o contacta los servicios de emergencia "
+            "locales. Una cita futura no sustituye esa atención."
+        )
+        if isinstance(respuesta, dict) and isinstance(respuesta.get("message"), str):
+            return {**respuesta, "message": f"{aviso}\n\n{respuesta['message']}"}
+        if isinstance(respuesta, str):
+            return f"{aviso}\n\n{respuesta}"
+        return respuesta
+
+    @staticmethod
     def _cargar_memoria(chat, state):
 
         state.historial = construir_historial(chat)
@@ -247,7 +408,7 @@ class ConversationManager:
             f'Últimos filtros de cita (datos, no consentimiento): {contexto_cita}. '
             'Conserva los filtros pertinentes en seguimientos; una recomendación del asistente no autoriza agendar.'
         )}]})
-        state.contexto = obtener_contexto(chat)
+        state.contexto = contexto_para_ia(chat)
 
         perfil = PerfilUsuarioService.contexto_minimo_para_ia(
             chat.id_usuario
@@ -273,17 +434,22 @@ class ConversationManager:
 
             state.historial.insert(
                 0,
-                {
-                    "role": "user",
-                    "parts": [
-                        {
-                            "text":
-                            "Información conocida del usuario:\n"
-                            f"{state.contexto}"
-                        }
-                    ]
-                }
+                {"role": "user", "parts": [{"text": state.contexto}]},
             )
+
+        for antecedente, faltantes in state.aclaraciones:
+            fecha = timezone.localtime().date().isoformat()
+            state.historial.append({"role": "user", "parts": [{"text": (
+                f"El usuario acaba de declarar este antecedente: «{antecedente}». "
+                f"La fecha del mensaje es {fecha}; la fecha en que ocurrió es desconocida "
+                "salvo que él la haya dicho. Pregunta de forma breve por los datos "
+                f"pertinentes que faltan ({', '.join(faltantes)}) antes de recomendar "
+                "algo. No asumas respuestas."
+            )}]})
+
+        nota_menor = ConversationManager._nota_menor(chat.id_usuario)
+        if nota_menor:
+            state.historial.insert(0, {"role": "user", "parts": [{"text": nota_menor}]})
 
     @staticmethod
     def _consultar_ia(state, streaming=False):
@@ -312,19 +478,37 @@ class ConversationManager:
                     chat.contexto_temporal = {**contexto, '_ultima_cita': parametros}
                     chat.save(update_fields=['contexto_temporal'])
 
-            state.tool_result = ToolManager.ejecutar(
+            try:
+                state.tool_result = ToolManager.ejecutar(
 
-                nombre_tool=state.decision.tool_name,
+                    nombre_tool=state.decision.tool_name,
 
-                chat=chat,
+                    chat=chat,
 
-                mensaje=state.mensaje,
+                    mensaje=state.mensaje,
 
-                parametros=state.decision.parametros,
+                    parametros=state.decision.parametros,
 
-            )
+                )
+            except Exception as error:
+                # Sin datos clínicos en el log: solo etapa y tipo de error.
+                logger.error(
+                    "Falló la herramienta tool=%s tipo=%s",
+                    state.decision.tool_name,
+                    type(error).__name__,
+                )
+                state.tool_result = {
+                    "success": False,
+                    "message": (
+                        "No pude completar esa consulta por un problema "
+                        "temporal. No realicé cambios y conservo tus datos; "
+                        "inténtalo de nuevo en un momento."
+                    ),
+                    "data": {},
+                }
 
             state.respuesta = state.tool_result
+            ConversationManager._recordar_resultados(chat, state)
 
             # Un error de operación no pierde los datos que el paciente acaba
             # de aportar. Se reintentará la previsualización, nunca el consumo
@@ -338,7 +522,11 @@ class ConversationManager:
 
         else:
 
-            state.respuesta = state.decision.respuesta
+            texto, prometio = FiltroPromesas.limpiar(state.decision.respuesta or "")
+            state.respuesta = (
+                ConversationManager.completar_promesa(chat, state.mensaje, texto)
+                if prometio else state.decision.respuesta
+            )
 
     @staticmethod
     def _preparar_confirmacion(chat, state):

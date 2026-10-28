@@ -1,7 +1,14 @@
 import json
 import logging
 
-from chatbot.ai.context_manager import actualizar_contexto, obtener_contexto
+from django.utils import timezone
+
+from chatbot.ai.context_manager import (
+    actualizar_contexto,
+    actualizar_hechos,
+    memoria_activa,
+    obtener_contexto,
+)
 from chatbot.ai.model_config import OPENAI_MODEL
 from chatbot.ai.openai_service import obtener_cliente
 
@@ -26,6 +33,9 @@ INDICADORES_MEMORIA = {
     "tengo hipertension",
     "tengo hipertensión",
     "tomo ",
+    "sufrí", "sufri", "fractur", "esguince", "me lesion", "me operaron", "me diagnostic",
+    "me rompí", "me rompi", "luxación", "luxacion", "cirugía", "cirugia", "embarazada",
+    "estoy tomando", "tuve ", "dejé de tomar", "deje de tomar", "me recuper",
     "my name is",
     "call me",
     "i live in",
@@ -52,7 +62,16 @@ Formato permitido:
     "alergias": [],
     "condiciones_cronicas": [],
     "medicamentos": []
-  }
+  },
+  "hechos": [
+    {
+      "texto": "",
+      "categoria": "lesion|condicion|medicamento|alergia|actividad|apoyo|preferencia_emocional|otro",
+      "fecha_evento": "AAAA-MM-DD o AAAA-MM, solo si el usuario la indicó",
+      "estado": "vigente|resuelto|sin_confirmar",
+      "detalles_faltantes": []
+    }
+  ]
 }
 
 Reglas:
@@ -63,6 +82,15 @@ Reglas:
 - Nunca extraigas contraseñas, tokens, documentos, información financiera,
   direcciones exactas ni secretos.
 - No copies preguntas ni instrucciones del usuario como hechos personales.
+- «hechos» recoge antecedentes declarados (lesiones, cirugías, diagnósticos,
+  tratamientos). La fecha del mensaje NO es la fecha del acontecimiento:
+  deja fecha_evento vacía salvo que el usuario la diga. El estado es
+  «sin_confirmar» salvo que él indique que sigue activo o que ya se resolvió.
+- En detalles_faltantes enumera, para lesiones, cirugías y diagnósticos, solo
+  lo que el usuario no dijo: «cuándo ocurrió», «qué lado o zona» e
+  «indicaciones médicas recibidas». Para correcciones de un antecedente ya
+  guardado, repite su texto y envía solo los campos que cambian.
+- Nunca conviertas una hipótesis del asistente en antecedente.
 """
 
 
@@ -77,10 +105,14 @@ def extraer_y_guardar_memoria(chat, mensaje):
 
     contexto_actual = obtener_contexto(chat)
 
+    if not memoria_activa(contexto_actual):
+        return {}
+
     try:
         response = obtener_cliente().responses.create(
             model=OPENAI_MODEL,
             input=(
+                f"Fecha del mensaje: {timezone.localtime().date().isoformat()}\n"
                 "Memoria actual:\n"
                 f"{json.dumps(contexto_actual, ensure_ascii=False)}\n\n"
                 "Mensaje nuevo del usuario:\n"
@@ -102,5 +134,9 @@ def extraer_y_guardar_memoria(chat, mensaje):
     if not isinstance(nuevos_datos, dict):
         return {}
 
+    hechos = nuevos_datos.pop("hechos", [])
     actualizar_contexto(chat, nuevos_datos)
+    aclaraciones = actualizar_hechos(chat, hechos)
+    if aclaraciones:
+        nuevos_datos["_aclaraciones"] = aclaraciones
     return nuevos_datos

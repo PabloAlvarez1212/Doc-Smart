@@ -32,31 +32,3 @@ def construir_historial(chat):
         })
 
     return historial
-
-
-def obtener_contexto(chat):
-    """
-    Temporalmente no usamos contexto persistente.
-    """
-    return {}
-
-
-def guardar_contexto(chat, contexto):
-    """
-    Temporalmente deshabilitado.
-    """
-    return
-
-
-def actualizar_contexto(chat, nuevos_datos):
-    """
-    Temporalmente deshabilitado.
-    """
-    return
-
-
-def limpiar_contexto(chat):
-    """
-    Temporalmente deshabilitado.
-    """
-    return

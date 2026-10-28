@@ -1,7 +1,9 @@
 from difflib import SequenceMatcher
+import re
 import unicodedata
 
-from medicos.models import Medico
+from catalogos.models import Ciudad
+from medicos.models import Especialidad, Medico
 
 
 class MedicoService:
@@ -107,6 +109,60 @@ class MedicoService:
 
         puntuados.sort(key=lambda elemento: elemento[0], reverse=True)
         return [medico for _, medico in puntuados[:limite]]
+
+    # Equivalencias controladas: solo variantes de una misma especialidad.
+    ALIAS_ESPECIALIDAD = (
+        {"medicina general", "medico general", "medicos generales",
+         "doctor general", "general"},
+    )
+
+    @staticmethod
+    def _contiene(texto, termino):
+        return re.search(rf"(?<![a-z0-9]){re.escape(termino)}(?![a-z0-9])", texto) is not None
+
+    @staticmethod
+    def resolver_especialidad(texto):
+        """Nombre canónico de una especialidad registrada mencionada en el texto."""
+        texto = MedicoService._normalizar(texto)
+        registradas = [
+            (MedicoService._normalizar(nombre), nombre)
+            for nombre in Especialidad.objects.values_list("nombre", flat=True)
+        ]
+        for normalizado, nombre in sorted(registradas, key=lambda e: -len(e[0])):
+            if normalizado and MedicoService._contiene(texto, normalizado):
+                return nombre
+        for grupo in MedicoService.ALIAS_ESPECIALIDAD:
+            # «general» suelto no cuenta: «cirugía general» es otra especialidad.
+            if any(alias != "general" and MedicoService._contiene(texto, alias) for alias in grupo):
+                for normalizado, nombre in registradas:
+                    if normalizado in grupo:
+                        return nombre
+        return None
+
+    @staticmethod
+    def resolver_ciudad(texto):
+        """Ciudad registrada mencionada tras una preposición («en Medellín»)."""
+        texto = MedicoService._normalizar(texto)
+        nombres = [
+            (MedicoService._normalizar(nombre), nombre)
+            for nombre in Ciudad.objects.values_list("nombre", flat=True)
+        ]
+        for normalizado, nombre in sorted(nombres, key=lambda c: -len(c[0])):
+            if normalizado and re.search(
+                rf"\b(?:en|de|desde|por|cerca de)\s+(?:la\s+ciudad\s+de\s+)?"
+                rf"{re.escape(normalizado)}(?![a-z0-9])",
+                texto,
+            ):
+                return nombre
+        return None
+
+    @staticmethod
+    def extraer_criterios(texto):
+        criterios = {
+            "especialidad": MedicoService.resolver_especialidad(texto),
+            "ciudad": MedicoService.resolver_ciudad(texto),
+        }
+        return {clave: valor for clave, valor in criterios.items() if valor}
 
     @staticmethod
     def obtener_por_id(id_medico):

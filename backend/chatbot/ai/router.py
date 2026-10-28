@@ -4,7 +4,7 @@ import re
 
 from django.utils import timezone
 
-from chatbot.ai.filters import normalizar_intencion
+from chatbot.ai.filters import normalizar_intencion, solicita_buscar_profesional
 from chatbot.ai.model_config import OPENAI_MODEL
 from chatbot.ai.openai_service import (
     convertir_historial,
@@ -90,9 +90,15 @@ Reglas obligatorias:
   nunca vuelvas a preguntar la especialidad. Si falta fecha u hora, conserva
   el nombre en parametros, omite fecha e inicia agendar_cita para preguntar
   solamente la fecha y la hora.
-- Frases como "¿el doctor X está disponible el día Y?" son solicitudes de
-  disponibilidad para agendar: usa agendar_cita con el nombre y la fecha,
-  no buscar_medico ni openai.
+- Frases como "¿el doctor X está disponible el día Y?" o "¿hay algún médico
+  disponible mañana a las 10?" son consultas de disponibilidad: usa
+  buscar_medico con los datos y la fecha. No implican consentimiento para
+  crear la cita ni requieren motivo de consulta.
+- Usa agendar_cita solo cuando el usuario pida explícitamente agendar,
+  reservar o solicitar la cita.
+- Buscar médicos por especialidad y ciudad ("busca un médico en Medellín de
+  medicina general") siempre es buscar_medico, aunque el usuario mencione
+  síntomas.
 - Extrae en una sola respuesta todos los datos que el usuario haya escrito.
   Nunca descartes especialidad, médico, ciudad, fecha u hora ya mencionados.
 - Si quiere agendar pero falta algún dato necesario, inicia agendar_cita y
@@ -101,6 +107,8 @@ Reglas obligatorias:
   id_medico, nombre, apellido, especialidad, ciudad y fecha.
 - Convierte fechas como "24/08/2026 a las 10:00 am" al formato
   "2026-08-24 10:00" sin cambiar la hora indicada.
+- Un seguimiento como "¿ya conseguiste el médico?" conserva los filtros de
+  la búsqueda anterior: ejecuta buscar_medico con ellos.
 - Si quiere ver sus citas existentes, usa consultar_disponibilidad.
 - Si quiere buscar profesionales sin agendar, usa buscar_medico.
 - Si pregunta en cualquier idioma por su nombre, edad, nacimiento, datos
@@ -155,7 +163,8 @@ PATRON_CONSULTA_MEDICA = re.compile(
     r"diagn[oó]stico|medicamento|acetaminof[eé]n|paracetamol|"
     r"dosis|alergia|peso|edad|a[nñ]os|me siento|me duele|"
     r"tom[eé]|tomado|tomar|enfermedad|temperatura|"
-    r"mejorarme|sentirme mejor"
+    r"mejorarme|sentirme mejor|fractura|lesi[oó]n|esguince|cirug[ií]a|"
+    r"me lesion[eé]|me oper"
     r")\b",
     re.IGNORECASE,
 )
@@ -298,7 +307,13 @@ def procesar_mensaje(historial, mensaje, streaming=False):
 
     # Conserva el comportamiento anterior: las consultas médicas pasan
     # directamente al asistente conversacional, salvo que pidan una cita.
-    if es_consulta_medica and not solicita_cita_explicita:
+    # Pedir un médico no es una consulta clínica aunque mencione síntomas:
+    # debe pasar por el router para ejecutar una herramienta real.
+    if (
+        es_consulta_medica
+        and not solicita_cita_explicita
+        and not solicita_buscar_profesional(mensaje_actual)
+    ):
         return _respuesta_openai(contents, streaming=streaming)
 
     try:

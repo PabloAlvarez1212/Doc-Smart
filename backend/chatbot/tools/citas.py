@@ -69,7 +69,7 @@ class AgendarCitaTool(BaseTool):
     requires_confirmation = True
 
     @staticmethod
-    def _pedir_seleccion(candidatos, fecha):
+    def _pedir_seleccion(candidatos, fecha, motivo_consulta=None):
         disponibles = [
             medico for medico in candidatos
             if CitaService.horario_disponible(medico, fecha)
@@ -99,7 +99,11 @@ class AgendarCitaTool(BaseTool):
             "success": True,
             "requires_selection": True,
             "message": "\n".join(lineas),
-            "data": {"medicos": opciones, "fecha": fecha.isoformat()},
+            "data": {
+                "medicos": opciones,
+                "fecha": fecha.isoformat(),
+                "motivo_consulta": motivo_consulta,
+            },
         }
 
     def execute(self, chat, mensaje, parametros):
@@ -175,7 +179,7 @@ class AgendarCitaTool(BaseTool):
                 }
 
             if len(disponibles) > 1:
-                return self._pedir_seleccion(disponibles, fecha_normalizada)
+                return self._pedir_seleccion(disponibles, fecha_normalizada, parametros.get("motivo_consulta"))
 
             medico = disponibles[0]
 
@@ -202,7 +206,8 @@ class AgendarCitaTool(BaseTool):
 
             if len(candidatos) > 1:
                 seleccion = self._pedir_seleccion(
-                    candidatos, fecha_normalizada
+                    candidatos, fecha_normalizada,
+                    parametros.get("motivo_consulta")
                 )
                 if seleccion:
                     return seleccion
@@ -253,18 +258,27 @@ class AgendarCitaTool(BaseTool):
                 "message": (
                     f"Encontré disponibilidad con el Dr. "
                     f"{medico.nombre} {medico.apellido} para el "
-                    f"{fecha_local.strftime('%d/%m/%Y a las %H:%M')}. "
-                    "¿Confirmas que deseas agendarla?"
+                    f"{fecha_local.strftime('%d/%m/%Y a las %H:%M')}."
+                    + (
+                        f" Motivo de la consulta: {parametros['motivo_consulta']}."
+                        if parametros.get("motivo_consulta") else ""
+                    )
+                    + " ¿Confirmas que deseas agendarla?"
                 ),
                 "data": {
                     "id_medico": medico.id,
                     "fecha": fecha_normalizada.isoformat(),
+                    "motivo_consulta": parametros.get("motivo_consulta"),
                 },
             }
 
         if not self.consumir_confirmacion(chat, {
             'tool_name': self.name,
-            'parametros': {'id_medico': medico.pk, 'fecha': fecha_normalizada.isoformat()},
+            'parametros': {
+                'id_medico': medico.pk,
+                'fecha': fecha_normalizada.isoformat(),
+                'motivo_consulta': parametros.get('motivo_consulta'),
+            },
         }):
             return {'success': False, 'message': 'Solicita nuevamente la operación y confirma explícitamente.', 'data': {}}
 
@@ -272,6 +286,7 @@ class AgendarCitaTool(BaseTool):
             usuario=chat.id_usuario,
             medico=medico,
             fecha=fecha_normalizada,
+            motivo_consulta=parametros.get("motivo_consulta"),
         )
 
         if status != 201:

@@ -15,6 +15,7 @@ from chatbot.services.turn_service import iniciar_turno, completar_turno, json_s
 from chatbot.services.diagnostics import error_operativo
 
 from chatbot.ai.conversation_manager import ConversationManager
+from chatbot.ai.filters import FiltroPromesas
 from chatbot.ai.openai_service import preguntar_openai_stream
 from chatbot.models import Chat, Mensaje
 from chatbot.services.chat_service import ChatService
@@ -236,7 +237,8 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
                 respuesta_completa = await self._transmitir_openai(
                     resultado.get("contents", []), estado
                 )
-                resultado_estructurado = None
+                extra = estado.pop("resultado_extra", None)
+                resultado_estructurado = _normalizar_respuesta(extra)[1] if extra else None
                 if estado["cancel_event"].is_set():
                     if respuesta_completa:
                         await self._guardar_mensaje_bymax(respuesta_completa, turno, {"cancelado": True})
@@ -313,6 +315,13 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
         tarea_productora = asyncio.create_task(asyncio.to_thread(producir))
         self._retener_tarea(tarea_productora)
         partes = []
+        # Las promesas de trabajo sin ejecución no llegan al usuario: se
+        # filtran por frases y se sustituyen por una ejecución real.
+        filtro = None if es_medico else FiltroPromesas()
+
+        async def emitir(texto):
+            partes.append(texto)
+            await self.send_json({"tipo": "texto", "contenido": texto})
 
         try:
             while not cancel_event.is_set():
@@ -320,8 +329,8 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
                 if cancel_event.is_set():
                     break
                 if tipo == "texto":
-                    partes.append(valor)
-                    await self.send_json({"tipo": "texto", "contenido": valor})
+                    for parte in (filtro.alimentar(valor) if filtro else [valor]):
+                        await emitir(parte)
                 elif tipo == "error":
                     raise valor
                 else:
@@ -330,6 +339,18 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
             estado["cola"] = None
             if not cancel_event.is_set():
                 await tarea_productora
+
+        if filtro is not None and not cancel_event.is_set():
+            for parte in filtro.cerrar():
+                await emitir(parte)
+            if filtro.prometio:
+                extra = await database_sync_to_async(
+                    ConversationManager.completar_promesa, thread_sensitive=False
+                )(estado.get("chat", self.chat), estado.get("mensaje", ""), "")
+                if isinstance(extra, dict):
+                    estado["resultado_extra"] = extra
+                await emitir(("\n\n" if partes else "") + (
+                    extra.get("message", "") if isinstance(extra, dict) else str(extra)))
 
         return "".join(partes).strip()
 

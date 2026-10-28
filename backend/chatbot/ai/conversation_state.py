@@ -24,6 +24,9 @@ class ConversationState:
         # Respuesta final que recibirá el usuario
         self.respuesta = None
 
+        # Datos que faltan de un antecedente recién declarado
+        self.aclaraciones = []
+
     @property
     def usa_tool(self):
         return (

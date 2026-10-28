@@ -87,6 +87,33 @@ class CitaService:
         return fecha
 
     @staticmethod
+    def extraer_fecha_relativa(texto):
+        """«mañana a las 10 a.m.» → fecha local. Sin hora exacta no inventa un slot."""
+        texto = str(texto or "").lower()
+        dia = re.search(r"\b(pasado mañana|mañana|hoy)\b", texto)
+        if dia is None:
+            return None
+        hora = re.search(
+            r"(?:a\s+las\s+)?\b(\d{1,2})(?::(\d{2}))?\s*"
+            r"(a\.?\s?m\.?|p\.?\s?m\.?|de la mañana|de la tarde|de la noche)?",
+            texto[dia.end():],
+        )
+        if hora is None:
+            return None
+        periodo = (hora.group(3) or "").replace(".", "").replace(" ", "")
+        minuto = hora.group(2) or "00"
+        if periodo:
+            sufijo = "am" if periodo in ("am", "delamañana") else "pm"
+            return CitaService.normalizar_fecha(
+                f"{dia.group(1)} a las {hora.group(1)}:{minuto} {sufijo}"
+            )
+        if hora.group(2) or int(hora.group(1)) > 12:
+            return CitaService.normalizar_fecha(
+                f"{dia.group(1)} a las {hora.group(1)}:{minuto}"
+            )
+        return None
+
+    @staticmethod
     def horario_disponible(medico, fecha, excluir_cita_id=None):
         return esHorarioDisponible(medico, fecha, excluir_cita_id=excluir_cita_id)
     
@@ -386,12 +413,20 @@ class CitaService:
         )
 
     @staticmethod
-    def agendar(usuario, medico, fecha):
+    def agendar(usuario, medico, fecha, motivo_consulta=None):
+        from citas.serializers import CrearCitaSerializer
+
+        serializer = CrearCitaSerializer(data={
+            "id_medico": medico.id,
+            "fecha_programada": fecha,
+            "motivo_consulta": motivo_consulta,
+        })
+
+        if not serializer.is_valid():
+            return serializer.errors, 400
+
         return crearCitaService(
-            {
-                "id_medico": medico.id,
-                "fecha_programada": fecha,
-            },
+            serializer.validated_data,
             usuario.id,
         )
 
