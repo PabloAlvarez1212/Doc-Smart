@@ -1,15 +1,16 @@
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta, timezone as dt_timezone
-
+from notificaciones.services import enviarNotificacion
 from citas.models import Cita
 from medicos.models import Medico
 from users.models import Usuario
 from .models import Conversacion
 from django.db.models import Q
 from types import SimpleNamespace
-
-
+from functools import partial
+from django.db import transaction
+from chat_citas.emails import enviarCorreoChatHabilitado,enviarCorreoChatDeshabilitado
 def resolverConversacion(conversacion_id):
     conv = Conversacion.objects.select_related('canonica', 'cita__id_estado', 'cita__id_medico', 'cita__id_usuario').filter(pk=conversacion_id).first()
     if conv is not None and conv.canonica_id:
@@ -265,6 +266,33 @@ def habilitarConversacionAnticipadamenteService(conversacion_id, solicitante, *,
     from uuid import uuid4
     registrarEventoConversacionService(cita, clave=f'habilitada:{uuid4()}',
         evento='chat_habilitado', metadata={'actor': {'tipo': 'medico', 'id': solicitante.pk}}, instante=ahora)
+    
+    # NOTIFICACIÓN INTERNA AL PACIENTE
+
+    fecha_fmt = timezone.localtime(cita.fecha_programada).strftime("%d/%m/%Y a las %H:%M")
+
+    enviarNotificacion(
+        titulo="Tu chat médico ha sido habilitado",
+        mensaje=(
+            f"El Dr. {cita.id_medico.nombre} "
+            f"{cita.id_medico.apellido} "
+            f"ha habilitado anticipadamente el chat "
+            f"de tu cita del {fecha_fmt}. "
+            "Ya puedes comunicarte con tu médico."
+        ),
+        tipo="chat_habilitado",
+        id_usuario=cita.id_usuario_id,
+        conversacion_id=conversacion.pk,
+        cita_id=cita.pk
+    )
+    
+    transaction.on_commit(
+        lambda cita_id=cita.pk: enviarCorreoChatHabilitado(
+            cita_id=cita_id
+        ),
+        robust=True
+    )
+    
     return conversacion, 200
 
 
@@ -287,4 +315,33 @@ def deshabilitarConversacionService(conversacion_id, solicitante):
     from .event_services import registrarEventoConversacionService
     from uuid import uuid4
     registrarEventoConversacionService(cita, clave=f'deshabilitada:{uuid4()}', evento='chat_deshabilitado', metadata={}, instante=timezone.now())
+
+    enviarNotificacion(
+        titulo="Tu chat médico ha sido deshabilitado",
+        mensaje=(
+            f"El Dr. {cita.id_medico.nombre} "
+            f"{cita.id_medico.apellido} "
+            "ha deshabilitado el acceso anticipado "
+            "a tu conversación médica. "
+            "Podrás volver a comunicarte durante "
+            "el horario habitual de tus citas."
+        ),
+        tipo="chat_deshabilitado",
+        id_usuario=cita.id_usuario_id,
+        conversacion_id=conv.pk,
+        cita_id=cita.pk,
+        extra_data={
+            "tipo_evento": "CHAT_DESHABILITADO",
+            "conversacion_id": conv.pk,
+            "cita_id": cita.pk
+        }
+    )
+    
+    transaction.on_commit(
+        lambda cita_id=cita.pk: enviarCorreoChatDeshabilitado(
+            cita_id=cita_id
+        ),
+        robust=True
+    )
+        
     return conv, 200
