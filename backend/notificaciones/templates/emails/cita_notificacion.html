@@ -570,6 +570,32 @@
                                     </td>
                                 </tr>
                                 {% endif %}
+                                
+                                <!-- FECHA DE INASISTENCIA -->
+
+                                {% if fecha_inasistencia %}
+                                <tr>
+                                    <td style="
+                                        padding: 14px 12px 14px 18px;
+                                        font-size: 13px;
+                                        color: #64748b;
+                                        border-bottom: 1px solid #e2e8f0;
+                                    ">
+                                        Fecha de registro de inasistencia
+                                    </td>
+
+                                    <td style="
+                                        padding: 14px 18px 14px 8px;
+                                        font-size: 13px;
+                                        font-weight: 600;
+                                        color: #334155;
+                                        text-align: right;
+                                        border-bottom: 1px solid #e2e8f0;
+                                    ">
+                                        {{ fecha_inasistencia }}
+                                    </td>
+                                </tr>
+                                {% endif %}
 
                                 <!-- FECHA DE CANCELACIÓN -->
                                 {% if fecha_cancelacion %}

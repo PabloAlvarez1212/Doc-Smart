@@ -1588,3 +1588,116 @@ def enviarCorreoRecordatorioCita(cita, tipo_recordatorio):
         asunto=asunto,
         contexto=contexto
     )
+
+def enviarCorreoInasistenciaPaciente(cita_id):
+    """
+    Notifica al paciente cuando el médico
+    registra su inasistencia a una cita.
+    """
+
+    # OBTENER CITA Y RELACIONES
+    cita = (
+        Cita.objects
+        .select_related(
+            "id_usuario",
+            "id_medico",
+            "id_estado"
+        )
+        .filter(pk=cita_id)
+        .first()
+    )
+
+    if not cita:
+        logger.warning(
+            "No se envió correo de inasistencia: "
+            "la cita %s no existe.",
+            cita_id
+        )
+        return False
+
+    # VERIFICAR ESTADO
+    estado_actual = cita.id_estado.nombre.strip().lower()
+
+    if (
+        estado_actual != "inasistencia_paciente"
+        or cita.fecha_inasistencia is None
+    ):
+        logger.warning(
+            "No se envió correo: "
+            "la cita %s no está marcada "
+            "como inasistencia del paciente.",
+            cita_id
+        )
+        return False
+
+    # OBTENER PARTICIPANTES
+    paciente = cita.id_usuario
+    medico = cita.id_medico
+
+    nombre_medico = (
+        f"{medico.nombre} {medico.apellido}"
+    )
+
+    # FORMATEAR FECHA Y HORA
+    fecha_local = timezone.localtime(
+        cita.fecha_programada
+    )
+
+    fecha_cita = fecha_local.strftime("%d/%m/%Y")
+    hora_cita = fecha_local.strftime("%I:%M %p")
+
+    fecha_inasistencia = timezone.localtime(
+        cita.fecha_inasistencia
+    ).strftime("%d/%m/%Y a las %I:%M %p")
+
+    # URL DEL FRONTEND
+    frontend_url = os.getenv(
+        "FRONTEND_URL", ""
+    ).rstrip("/")
+
+    # CONTEXTO DEL CORREO
+    contexto = {
+        "titulo": "Se ha registrado una inasistencia a tu cita",
+
+        "nombre": paciente.nombre,
+
+        "mensaje": (
+            f"Te informamos que el Dr. {nombre_medico} "
+            "ha registrado tu inasistencia a una "
+            "cita médica programada en DocSmart. "
+            "El estado de esta consulta ha sido "
+            "actualizado en nuestra plataforma."
+        ),
+
+        "codigo_cita": cita.codigo_cita,
+
+        "profesional": nombre_medico,
+
+        "fecha": fecha_cita,
+
+        "hora": hora_cita,
+
+        "estado": "inasistencia_paciente",
+
+        "fecha_inasistencia": fecha_inasistencia,
+
+        "mensaje_adicional": (
+            "Si consideras que este registro es incorrecto, "
+            "te recomendamos comunicarte con el equipo "
+            "de soporte de DocSmart para revisar tu caso. "
+            "Puedes consultar los detalles de la cita "
+            "desde tu cuenta."
+        ),
+
+        "url_citas": (
+            f"{frontend_url}/patient/my-appointments"
+            if frontend_url else None
+        ),
+    }
+
+    # ENVIAR CORREO AL PACIENTE
+    return enviarCorreoCita(
+        destinatario=paciente.correo,
+        asunto="Inasistencia registrada en tu cita - DocSmart",
+        contexto=contexto
+    )

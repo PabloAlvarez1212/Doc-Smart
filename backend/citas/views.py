@@ -47,7 +47,7 @@ def respuesta_serializer_invalido(errors):
 # ─── CITAS ───────────────────────────────────────────────────────────────────
 
 class CitaInasistenciaView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsMedicoAprobado]
 
     def put(self, request, pk):
         if request.data:

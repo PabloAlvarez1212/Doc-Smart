@@ -10,10 +10,10 @@ from django.db.models import Count, Value, Q, Prefetch, Case, When, F, IntegerFi
 from django.db.models.functions import (Concat,TruncMonth,ExtractWeekDay,ExtractHour,TruncDay,)
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta, timezone as dt_timezone
-from functools import wraps
+from functools import wraps,partial
 from notificaciones.services import enviarNotificacion
 from medicos.services_disponibilidad import esHorarioDisponible
-from notificaciones.email_citas_services import enviarCorreosCitaProgramada,enviarCorreosCitaConfirmada, enviarCorreosCitaReprogramada,enviarCorreosCitaCancelada,enviarCorreosCitaVencida, enviarCorreosCitaCompletada
+from notificaciones.email_citas_services import enviarCorreosCitaProgramada,enviarCorreosCitaConfirmada, enviarCorreosCitaReprogramada,enviarCorreosCitaCancelada,enviarCorreosCitaVencida, enviarCorreosCitaCompletada,enviarCorreoInasistenciaPaciente
 from historial_medico.models import HistorialClinico
 import logging
 
@@ -1286,8 +1286,36 @@ def marcarInasistenciaPacienteService(id, solicitante):
         evento='inasistencia_paciente', instante=ahora, metadata={})
     from citas.realtime import programarActualizacionCitaRealtime
     programarActualizacionCitaRealtime(cita)
-    return CitaSerializer(cita).data, 200
 
+    fecha_fmt = timezone.localtime(cita.fecha_programada).strftime("%d/%m/%Y a las %H:%M")
+    cita_data = CitaSerializer(cita).data
+    enviarNotificacion(
+        cita_id=cita.pk,
+        titulo='Inasistencia registrada',
+        mensaje=(
+            f'El Dr. {cita.id_medico.nombre} '
+            f'{cita.id_medico.apellido} '
+            f'ha registrado una inasistencia correspondiente '
+            f'a tu cita del {fecha_fmt}. '
+            f'Puedes consultar los detalles desde Mis citas.'
+        ),
+        tipo='inasistencia_paciente',
+        id_usuario=cita.id_usuario_id,
+
+        extra_data={
+            "tipo_evento": "ACTUALIZACION_CITA",
+            "cita": cita_data
+        }
+    )
+    
+    transaction.on_commit(
+        partial(
+            enviarCorreoInasistenciaPaciente,
+            cita.pk
+        )
+    )
+    
+    return cita_data, 200
 
 @serializar_agenda
 def confirmarCitaService(id, medico_id):
