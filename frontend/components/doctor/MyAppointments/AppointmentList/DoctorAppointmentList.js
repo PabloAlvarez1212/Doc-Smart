@@ -187,7 +187,7 @@ export default function DoctorAppointmentList({
                             },
 
                             completar: {
-                                label: "Completar",
+                                label: "Cerrar cita",
                                 icon: ClipboardCheck,
                                 tone: "success",
                                 onClick: () =>
