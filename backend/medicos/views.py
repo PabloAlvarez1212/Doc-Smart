@@ -181,6 +181,16 @@ class HojaVidaSolicitudValidacionView(APIView):
                 status=500
             )
 
+#Vista admin: evidencia de identidad (selfie, foto del documento, similitud) de la solicitud.
+class IdentidadSolicitudValidacionView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    def get(self, request, solicitud_id):
+        from users.validacion_facial import identidadSolicitudService
+        data, status_code = identidadSolicitudService(solicitud_id, request.user.pk)
+        if status_code == 404:
+            return respuesta_error(mensaje="Solicitud de validación no encontrada", status=404)
+        return respuesta_ok(data=data, mensaje="Identidad obtenida correctamente", status=status_code)
+
 #Vista admin: Aprueba solicitudes de medicos.
 class AprobarSolicitudValidacionView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]

@@ -9,3 +9,5 @@ db.sqlite3
 
 # Pruebas locales de validación facial
 users/tests_validacion_facial.py
+
+users/tests_redis_conexiones.py

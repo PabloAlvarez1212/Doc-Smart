@@ -124,6 +124,7 @@ class ProcesoRegistroUsuario(models.Model):
     usuario=models.OneToOneField("users.Usuario",on_delete=models.SET_NULL,null=True,blank=True,related_name="proceso_registro")
     revision_posterior=models.CharField(max_length=12,blank=True,default="",choices=(("pendiente","Por confirmar"),("legitimo","Legítimo"),("bloqueado","Bloqueado")))
     capturas_facial=models.PositiveSmallIntegerField(default=0)
+    capturas_huellas=models.TextField(blank=True,default="")  # solo huellas SHA-256 de los fotogramas, nunca imágenes
     correo_contacto_facial=models.EmailField(blank=True,default="")
     correo_facial_enviado=models.BooleanField(default=False)
     token_reanudacion_hash=models.CharField(max_length=64,blank=True,default="")

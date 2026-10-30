@@ -65,7 +65,7 @@ export default function AppointmentsBySpecialtyChart({ data, variant = "schedule
                         />
                         <Tooltip
                             formatter={(value) => [value, chartVariant.seriesLabel]}
-                            contentStyle={{ borderRadius: 10, borderColor: "#e1e7f0", fontSize: 13 }}
+                            contentStyle={{ borderRadius: 10, borderColor: "var(--border)", fontSize: 13 }}
                         />
                         <Bar
                             dataKey="total_citas"

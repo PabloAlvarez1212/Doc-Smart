@@ -92,7 +92,7 @@ export default function AppointmentStatusChart({
                             innerRadius="58%"
                             outerRadius="82%"
                             paddingAngle={2}
-                            stroke="#fff"
+                            stroke="var(--surface)"
                             strokeWidth={2}
                         >
                             {distribution.map((item, index) => (

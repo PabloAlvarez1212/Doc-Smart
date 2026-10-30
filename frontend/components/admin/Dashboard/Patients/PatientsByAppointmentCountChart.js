@@ -101,7 +101,7 @@ export default function PatientsByAppointmentCountChart({ data }) {
                         width={42}
                     />
                     <Tooltip
-                        cursor={{ fill: "#f5f8fb" }}
+                        cursor={{ fill: "var(--surface-muted)" }}
                         content={<AppointmentCountTooltip />}
                     />
                     <Bar

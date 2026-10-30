@@ -51,6 +51,63 @@ def comparar_nombre_ocr(texto,valor):
     r=[max((similitud(e,d) for d in det),default=0) for e in esp]
     return all(x>=.72 for x in r),round(sum(r)/len(r),2)
 
+PARTICULAS={"DE","DEL","LA","LAS","LOS","Y","E","VAN","VON"}
+
+def _tokens_nombre(valor):
+    return [x for x in re.findall(r"[A-ZÑ]{3,}",normalizar_texto(valor)) if x not in PARTICULAS]
+
+def _segmentos_nombre(texto):
+    """Devuelve (apellidos, nombres) tal como aparecen entre las etiquetas del documento."""
+    t=normalizar_texto(texto)
+    m=re.search(r"APELLIDOS?\s+(.{3,70}?)\s+NOMBRES?\s+(.{3,70}?)\s+(?:NACIONALIDAD|ESTATURA|SEXO|FECHA|LUGAR|COL\b|G\.?\s?S\b)",t)
+    return (m.group(1),m.group(2)) if m else None
+
+# Palabras que el OCR lee junto a los nombres pero no lo son: etiquetas del documento, en español y en inglés.
+ETIQUETAS={"APELLIDO","APELLIDOS","NOMBRE","NOMBRES","SURNAME","SURNAMES","GIVEN","NAMES","NAME","FIRST","LAST","COLOMBIA",
+"REPUBLICA","NACIONALIDAD","NATIONALITY","ESTATURA","HEIGHT","SEXO","SEX","FECHA","DATE","NACIMIENTO","BIRTH","LUGAR","PLACE",
+"EXPEDICION","ISSUE","EXPIRACION","EXPIRY","NUIP","CEDULA","CIUDADANIA","IDENTIFICACION","REGISTRADURIA","NACIONAL","CIVIL",
+"FIRMA","SIGNATURE","DOCUMENTO","PASAPORTE","PASSPORT","TIPO","TYPE"}
+
+def _creible(t):
+    """¿Puede ser un nombre de verdad una palabra que el OCR leyó junto a los nombres?
+
+    Descarta etiquetas del documento y ruido de lectura (muy cortas, sin vocales, o con una letra repetida),
+    para que no se tome como "nombre que falta" algo que no es un nombre."""
+    vocales=len(re.findall(r"[AEIOU]",t))
+    return len(t)>=4 and t not in ETIQUETAS and vocales/len(t)>=.2 and not re.search(r"(.)",t)
+
+def _tokens_documento(valor):
+    return [x for x in _tokens_nombre(valor) if _creible(x)]
+
+def nombres_del_documento(textos,mrz=None):
+    """(apellidos, nombres, fuente): las palabras creíbles que muestra el documento, o None si no se leen con claridad."""
+    ap_doc=nom_doc=None
+    fuente=None
+    for texto in textos:
+        seg=_segmentos_nombre(texto or "")
+        if seg:
+            ap_doc,nom_doc=_tokens_documento(seg[0]),_tokens_documento(seg[1])
+            fuente="etiquetas"
+            break
+    if not ap_doc and mrz and mrz.get("apellidos") and mrz.get("nombres"):
+        ap_doc,nom_doc=_tokens_documento(mrz["apellidos"]),_tokens_documento(mrz["nombres"])
+        fuente="mrz"
+    return ap_doc,nom_doc,fuente
+
+def revisar_cantidad_nombres(textos,nombre,apellido,mrz=None):
+    """Detecta si el documento muestra más nombres o apellidos de los que escribió la persona.
+
+    Solo se marca cuando el documento trae palabras creíbles sin pareja en lo escrito; si las etiquetas
+    no se leen con claridad, o lo que sobra parece ruido de lectura o una etiqueta, no se hace ninguna afirmación."""
+    ap_doc,nom_doc,_=nombres_del_documento(textos,mrz)
+    r={"nombre_incompleto":None,"apellido_incompleto":None}
+    for clave,doc,declarado in (("nombre_incompleto",nom_doc,nombre),("apellido_incompleto",ap_doc,apellido)):
+        esp=_tokens_nombre(declarado)
+        if not doc or not esp or len(doc)>5:continue
+        if any(max(similitud(d,e) for e in esp)<.72 for d in doc):
+            r[clave]={"en_documento":len(doc),"escritos":len(esp)}
+    return r
+
 def preparar_imagen(contenido):
     try:
         img=_limitar(Image.open(io.BytesIO(contenido)).convert("RGB"))
@@ -248,7 +305,8 @@ def extraer_cc_vieja(contenido_frente,tf,tr,nombre,apellido):
         "numero_documento":numero,
         "nombre_coincide":nc,"confianza_nombre":cn,
         "apellido_coincide":ac,"confianza_apellido":ca,
-        "fecha_nacimiento":fecha
+        "fecha_nacimiento":fecha,
+        **revisar_cantidad_nombres([tf,tr],nombre,apellido)
     }
 
 
@@ -383,6 +441,7 @@ def extraer_cc_nueva(contenido_frente, contenido_reverso, tf, tr, nombre, apelli
         "apellido_coincide": ac,
         "confianza_apellido": ca,
         "fecha_nacimiento": fecha,
+        **revisar_cantidad_nombres([frente, reverso], nombre, apellido, mrz),
     }
 
 
@@ -506,5 +565,6 @@ def extraer_datos_documento(contenido_frente,tipo,contenido_reverso=None,nombre_
         "nombre_coincide":nc,"confianza_nombre":cn,
         "apellido_coincide":ac,"confianza_apellido":ca,
         "numero_documento":extraer_numero_pasaporte(texto) if tipo=="PASAPORTE" else extraer_numero_cc(texto),
-        "fecha_nacimiento":extraer_fecha(texto)
+        "fecha_nacimiento":extraer_fecha(texto),
+        **revisar_cantidad_nombres([texto],nombre_declarado,apellido_declarado)
     }

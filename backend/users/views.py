@@ -1,4 +1,5 @@
 from .login_attempts import TIEMPO_BLOQUEO
+import logging
 from rest_framework.views import APIView
 from django.middleware.csrf import get_token
 from rest_framework.response import Response
@@ -69,6 +70,8 @@ from users.serializers import (
 
 
 # ─── RESPUESTAS ESTANDARIZADAS ────────────────────────────────────────────────
+
+logger = logging.getLogger(__name__)
 
 def respuesta_ok(data=None, mensaje=None, status=200):
     return Response({
@@ -893,11 +896,13 @@ class InfoUserDetailView(generics.RetrieveUpdateDestroyAPIView):
 # ─── Verificación facial del registro ─────────────────────────────────────────
 
 from users.serializers import (
+    ActualizarDatosRegistroSerializer,
     ContactoFacialSerializer,
     ReanudarFacialSerializer,
     DesafioFacialSerializer,
     EstadoFacialSerializer,
     OmitirFacialSerializer,
+    PrevisualizarRostroSerializer,
     ResolverRevisionFacialSerializer,
     VerificarRostroSerializer,
 )
@@ -923,6 +928,8 @@ class FacialRegistroView(APIView):
             return respuesta_serializer_invalido(serializer.errors)
         resultado, status_code = self.ejecutar(serializer.validated_data)
         if status_code >= 400:
+            claves = sorted(k for k in resultado if k not in ("intentos_restantes",)) if isinstance(resultado, dict) else []
+            logger.info("%s -> %s (%s)", self.__class__.__name__, status_code, ",".join(claves))
             return respuesta_error(self.mensaje_error, errores=resultado, status=status_code)
         return respuesta_ok(data=resultado, status=status_code)
 
@@ -942,6 +949,16 @@ class VerificarRostroView(FacialRegistroView):
         return facial.verificarRostroService(d["proceso_id"], d["desafio"], d["fotogramas"], self.tipo_registro)
 
 
+class PrevisualizarRostroView(FacialRegistroView):
+    """Guía en vivo de la captura: una petición por fotograma, con un límite propio más alto."""
+    serializer_class = PrevisualizarRostroSerializer
+    throttle_scope = "facial_previsualizar"
+    mensaje_error = "No se pudo analizar la imagen"
+
+    def ejecutar(self, d):
+        return facial.previsualizarRostroService(d["proceso_id"], d["desafio"], d["fotograma"], self.tipo_registro)
+
+
 class OmitirFacialView(FacialRegistroView):
     serializer_class = OmitirFacialSerializer
 
@@ -954,6 +971,16 @@ class EstadoFacialView(FacialRegistroView):
 
     def ejecutar(self, d):
         return facial.estadoFacialService(d["proceso_id"], self.tipo_registro)
+
+
+class ActualizarDatosRegistroView(FacialRegistroView):
+    """Corrige los datos del primer paso mientras el documento no esté verificado."""
+    serializer_class = ActualizarDatosRegistroSerializer
+    mensaje_error = "No fue posible actualizar tus datos"
+
+    def ejecutar(self, d):
+        from users.services import actualizarDatosRegistroService
+        return actualizarDatosRegistroService(d, self.tipo_registro)
 
 
 class CancelarRegistroView(FacialRegistroView):

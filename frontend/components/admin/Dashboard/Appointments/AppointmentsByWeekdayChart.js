@@ -51,7 +51,7 @@ export default function AppointmentsByWeekdayChart({ data }) {
                     />
                     <Tooltip
                         formatter={(value) => [value, "Citas programadas"]}
-                        contentStyle={{ borderRadius: 10, borderColor: "#e1e7f0", fontSize: 13 }}
+                        contentStyle={{ borderRadius: 10, borderColor: "var(--border)", fontSize: 13 }}
                     />
                     <Bar dataKey="total_citas" name="Citas programadas" fill="#2563eb" radius={[5, 5, 0, 0]} maxBarSize={40}>
                         <LabelList dataKey="total_citas" position="top" fill="var(--text-secondary)" fontSize={11} />

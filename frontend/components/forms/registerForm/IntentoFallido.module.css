@@ -1,0 +1,142 @@
+.card {
+    --aviso: var(--ink-red);
+    --aviso-fondo: var(--tone-red);
+    /* Sin tarjeta: el contenido se apoya directamente en el paso del registro. */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    color: var(--color-text);
+}
+
+/* Mala calidad de imagen: tono azul tranquilo; el intento no se gasta. */
+.suave {
+    --aviso: var(--color-dark);
+    --aviso-fondo: var(--tone-blue);
+}
+
+.perdido {
+    --aviso: var(--ink-red);
+}
+
+/* ─── Escena ─── */
+.escena {
+    width: min(200px, 62%);
+    height: auto;
+}
+
+/* ─── Textos ─── */
+.textos {
+    text-align: center;
+}
+
+.textos h4 {
+    margin: 0;
+    color: var(--aviso);
+    font-size: 1.3rem;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+.textos p {
+    margin: 6px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+/* ─── Intentos ─── */
+.intentos {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px 8px 8px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-muted);
+}
+
+.intentos p {
+    margin: 0;
+    font-size: 0.84rem;
+}
+
+.escudos {
+    display: flex;
+    gap: 6px;
+}
+
+.escudo {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--color-dark) 14%, var(--surface));
+    color: var(--color-dark);
+}
+
+.escudoPerdido {
+    background: var(--aviso-fondo);
+    color: var(--ink-red);
+}
+
+.capa {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+}
+
+/* ─── Consejos ─── */
+.consejos {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.consejos li {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.consejos svg {
+    flex: none;
+    color: var(--aviso);
+}
+
+/* ─── Botón ─── */
+.reintentar {
+    width: 100%;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.reintentar:active {
+    transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .reintentar svg {
+        transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .reintentar:hover svg {
+        transform: rotate(180deg);
+    }
+}

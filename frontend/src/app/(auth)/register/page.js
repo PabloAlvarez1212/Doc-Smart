@@ -24,7 +24,7 @@ function RegisterContent() {
   }
 
   return (
-    <div className={styles.mainRegister}>
+    <div className={styles.mainRegister} data-role={role}>
       <AuthCard className={styles.container}>
         <div className={styles.logo}>
           <Image

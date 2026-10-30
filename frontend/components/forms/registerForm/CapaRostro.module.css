@@ -1,0 +1,72 @@
+.capa {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    color: rgba(255, 255, 255, 0.9);
+    --punto: 5px;
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.55));
+}
+
+/* Debe voltearse igual que el video para que cada punto quede sobre su parte del rostro. */
+.espejo {
+    transform: scaleX(-1);
+}
+
+.neutro { color: rgba(255, 255, 255, 0.85); }
+.ajusta { color: #ffb347; }
+.ok { color: #46d37a; }
+
+.mover {
+    transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.ovalo {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-dasharray: 6 5;
+    vector-effect: non-scaling-stroke;
+    transition: stroke 0.25s ease;
+}
+
+.ok .ovalo {
+    stroke-dasharray: none;
+}
+
+.union,
+.linea {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.2px;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.union {
+    opacity: 0.45;
+}
+
+.linea {
+    opacity: 0.7;
+}
+
+/* Cada punto es un segmento de largo cero con extremos redondos: su tamaño en pantalla no depende de la escala del viewBox. */
+.punto {
+    stroke: currentColor;
+    stroke-width: var(--punto);
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+    filter: none;
+}
+
+.malla {
+    --punto: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mover, .ovalo {
+        transition: none;
+    }
+}

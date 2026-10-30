@@ -4,6 +4,7 @@ import { Eye } from "lucide-react";
 import DataTable from "../../ui/DataTable/DataTable";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
 import styles from "./PatientVerification.module.css";
+import { formatearSimilitud } from "./similitud";
 
 const ESTADOS = {
     posterior: { label: "Por confirmar", tone: "revision" },
@@ -26,6 +27,9 @@ export const MOTIVOS = {
     pocos_fotogramas: "Pocos fotogramas válidos",
     sin_foto_documento: "Documento sin fotografía",
     revision_manual: "Decisión manual",
+    foto_documento_poco_nitida: "Foto del documento poco nítida",
+    alineacion_documento_dudosa: "Rostro del documento girado o poco claro",
+    captura_reutilizada: "Captura repetida",
 };
 
 export function EstadoFacial({ estado }) {
@@ -40,7 +44,7 @@ export default function PatientVerificationTable({ datos, cargando, error, onRei
         { key: "cedula", label: "Documento", render: (v, f) => `${f.tipo_documento} ${v}` },
         { key: "correo", label: "Correo de contacto", render: (v, f) => v || (f.estado_facial === "revision" ? "Pendiente" : "—") },
         { key: "motivo", label: "Motivo", render: (v) => MOTIVOS[v] ?? (v || "—") },
-        { key: "similitud", label: "Similitud", render: (v) => (v == null ? "—" : `${Math.round(v * 100)} %`) },
+        { key: "similitud", label: "Similitud", render: (v) => formatearSimilitud(v) ?? "—" },
         { key: "fecha", label: "Fecha", render: (v) => { const f = formatearFecha(v); return `${f.fecha}, ${f.hora}`; } },
         { key: "estado_facial", label: "Estado", render: (v, f) => <EstadoFacial estado={f.revision_posterior === "pendiente" ? "posterior" : v} /> },
         {

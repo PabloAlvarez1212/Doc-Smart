@@ -52,8 +52,8 @@ export const cambiarContraseñaAuthService = async (data) => {
 };
 
 // Las dos familias mantienen la misma secuencia; el backend valida cada transición.
-export const registroService = (role, fase, datos) => {
+export const registroService = (role, fase, datos, config) => {
     if (!['paciente', 'medico'].includes(role)) throw new Error('Selecciona un rol válido')
     const familia = role === 'medico' ? 'medicos' : 'usuarios'
-    return api.post(`/${familia}/registro/${fase ? fase + '/' : ''}`, datos).then(response => response.data)
+    return api.post(`/${familia}/registro/${fase ? fase + '/' : ''}`, datos, config).then(response => response.data)
 }

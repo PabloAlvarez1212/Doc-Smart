@@ -133,3 +133,6 @@ export const detalleRevisionFacialService = async (procesoId) =>
 
 export const resolverRevisionFacialService = async (procesoId, decision, motivo) =>
     (await api.post(`/usuarios/facial/revisiones/${procesoId}/`, { decision, ...(motivo ? { motivo } : {}) })).data
+
+export const obtenerIdentidadSolicitudService = async (solicitudId) =>
+    (await api.get(`/medicos/solicitudes-validacion/${solicitudId}/identidad/`)).data

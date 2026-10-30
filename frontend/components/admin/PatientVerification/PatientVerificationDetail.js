@@ -5,6 +5,7 @@ import Button from "../../ui/Button/Button";
 import Modal from "../../ui/Modal/Modal";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
 import { EstadoFacial, MOTIVOS } from "./PatientVerificationTable";
+import { describirSimilitud } from "./similitud";
 import styles from "./PatientVerification.module.css";
 
 function Campo({ label, value }) {
@@ -69,7 +70,7 @@ export default function PatientVerificationDetail({ detalle, onClose, onResolver
                             <Imagen titulo="Selfie tomada con la cámara" src={detalle.imagen_selfie} vacio="La persona no tomó selfie" />
                         </div>
                         <dl className={styles.fieldsGrid}>
-                            <Campo label="Similitud calculada" value={detalle.similitud == null ? null : `${Math.round(detalle.similitud * 100)} %`} />
+                            <Campo label="Similitud calculada" value={describirSimilitud(detalle.similitud, detalle.umbrales)} />
                             <Campo label="Motivo de la revisión" value={MOTIVOS[detalle.motivo] ?? detalle.motivo} />
                             <Campo label="Intentos realizados" value={String(detalle.intentos)} />
                             <Campo label="Consentimiento" value={consentimiento ? `${consentimiento.fecha}, ${consentimiento.hora}` : "No registrado"} />

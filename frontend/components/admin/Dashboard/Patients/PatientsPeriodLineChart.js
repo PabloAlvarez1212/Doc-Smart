@@ -110,13 +110,13 @@ export default function PatientsPeriodLineChart({ data, grouping, kind }) {
                         strokeWidth={2.75}
                         dot={{
                             r: hasSinglePeriod ? 5.5 : 3.75,
-                            fill: "#ffffff",
+                            fill: "var(--surface)",
                             stroke: config.color,
                             strokeWidth: 2.5,
                         }}
                         activeDot={{
                             r: 5.75,
-                            fill: "#ffffff",
+                            fill: "var(--surface)",
                             stroke: config.color,
                             strokeWidth: 2.5,
                         }}

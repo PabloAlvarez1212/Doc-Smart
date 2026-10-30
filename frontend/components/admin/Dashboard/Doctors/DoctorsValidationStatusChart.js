@@ -99,7 +99,7 @@ export default function DoctorsValidationStatusChart({ data }) {
                             innerRadius="58%"
                             outerRadius="82%"
                             paddingAngle={2}
-                            stroke="#fff"
+                            stroke="var(--surface)"
                             strokeWidth={2}
                         >
                             {displayData.map((item, index) => (

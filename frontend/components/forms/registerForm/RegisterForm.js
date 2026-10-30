@@ -2,11 +2,13 @@
 
 import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { CreditCard, FileUp, FileText, RefreshCw, CheckCircle2, MailCheck, Check, X } from 'lucide-react'
+import { CreditCard, FileUp, FileText, RefreshCw, CheckCircle2, MailCheck } from 'lucide-react'
 import VerificationStatus from '../../ui/VerificationStatus/VerificationStatus'
 import Input from '../../ui/Input/Input'
 import Button from '../../ui/Button/Button'
 import ValidacionFacial from './ValidacionFacial'
+import OtpInput from './OtpInput'
+import DocumentoBuzon from './DocumentoBuzon'
 import { useRegister } from './UseRegister'
 import styles from './RegisterForm.module.css'
 
@@ -63,16 +65,19 @@ const sangre=['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v=>[v,v])
 export default function RegisterForm({role,setRole}) {
     const state=useRegister(role,setRole)
     const {form,feedback,step,loading,errors,especialidades,departamentos,ciudades,handleChange,
-        handleSubmit,handleBack,handleReenviarOtp,otp,setOtp,documentoFrente,setDocumentoFrente,
-        documentoReverso,setDocumentoReverso,procesoId,documentoVerificado,facialListo,handleFacialListo,handleUbicacion,correoConfigurado,correoVerificado,comparaciones}=state
+        handleSubmit,handleBack,handleReenviarOtp,otp,setOtp,limpiarOtp,documentoFrente,setDocumentoFrente,
+        documentoReverso,setDocumentoReverso,procesoId,documentoVerificado,facialListo,handleFacialListo,handleUbicacion,correoConfigurado,correoVerificado,erroresDocumento}=state
     const reduced=useReducedMotion()
     const titleRef=useRef(null)
     const previousStep=useRef(step)
     useEffect(()=>{if(previousStep.current!==step){previousStep.current=step;titleRef.current?.focus()}},[step])
     const medical=role==='medico'
     const faseFacial=step===2&&documentoVerificado&&!facialListo
+    // Estado de las imágenes: el haz láser corre mientras se valida; el resultado las sella o las marca.
+    const estadoDocumento=documentoVerificado?'verificado':loading?'validando':Object.keys(erroresDocumento).length>0?'error':'idle'
     const labels=['Datos personales','Documento y verificación facial',medical?'Datos profesionales':'Datos adicionales','Correo y contraseña','Verificación de correo']
-    const locked=loading || (step===1?Boolean(procesoId):correoConfigurado)
+    // Se puede corregir todo hasta que el dato se verifique: el documento en el paso 1 y el correo en los siguientes.
+    const locked=loading || (step===1?documentoVerificado:correoVerificado)
     const field=(name,label,props={})=><Field key={name} {...{name,label,form,errors,handleChange,locked,feedback}} {...props} />
     return <form className={styles.form} onSubmit={handleSubmit} aria-busy={loading} noValidate>
         <VerificationStatus state={feedback} />
@@ -82,7 +87,7 @@ export default function RegisterForm({role,setRole}) {
         <AnimatePresence initial={false} mode="wait" onExitComplete={()=>titleRef.current?.focus()}>
             <motion.div className={styles.inputs} key={step} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-4}} transition={{duration:reduced?0:.18}} onAnimationComplete={()=>{if(step>1)titleRef.current?.focus()}}>
                 <h3 ref={titleRef} tabIndex={-1} className={styles.stepTitle}>Paso {step} de 5 · {labels[step-1]}</h3>
-                {((step===1&&procesoId)||([3,4].includes(step)&&correoConfigurado))&&<p className={styles.savedNotice}>Estos datos ya están guardados y se muestran solo para consulta.</p>}
+                {((step===1&&documentoVerificado)||([3,4].includes(step)&&correoVerificado))&&<p className={styles.savedNotice}>Estos datos ya fueron verificados y no se pueden modificar.</p>}
                 {step===1&&<>
                     {field('nombre','Nombre',{autoComplete:'given-name'})}
                     {field('apellido','Apellido',{autoComplete:'family-name'})}
@@ -93,9 +98,9 @@ export default function RegisterForm({role,setRole}) {
                 </>}
                 {step===2&&<>
                     <VerificationHeader Icon={CreditCard} title="Verifica tu identidad">Carga imágenes claras de tu documento.</VerificationHeader>
-                    <Upload id="documento-frente" label="Frente del documento" file={documentoFrente} onChange={e=>setDocumentoFrente(e.target.files?.[0]??null)} accept="image/jpeg,image/png,image/webp" disabled={loading||documentoVerificado} verified={documentoVerificado} help="JPG, PNG o WEBP · máximo 8 MB · imagen completa y legible" error={errors.documento_frente||errors.documento} />
-                    {form.tipo_documento==='CC'&&<Upload id="documento-reverso" label="Reverso del documento" file={documentoReverso} onChange={e=>setDocumentoReverso(e.target.files?.[0]??null)} accept="image/jpeg,image/png,image/webp" disabled={loading||documentoVerificado} verified={documentoVerificado} help="JPG, PNG o WEBP · máximo 8 MB" error={errors.documento_reverso} />}
-                    {comparaciones&&<ul className={styles.comparisons} aria-label="Comparación de los datos del documento" aria-live="polite">{[['nombre','Nombre'],['apellido','Apellido'],['numero_documento','Número de documento'],['fecha_nacimiento','Fecha de nacimiento']].map(([key,label])=><li key={key}><span>{label}</span><span data-match={comparaciones[key]}>{comparaciones[key]?<Check size={16}/>:<X size={16}/>} {comparaciones[key]?'Coincide':'No coincide'}</span></li>)}</ul>}
+                    <DocumentoBuzon conReverso={form.tipo_documento==='CC'} frente={documentoFrente} reverso={documentoReverso}
+                        onFrente={setDocumentoFrente} onReverso={setDocumentoReverso} estado={estadoDocumento}
+                        deshabilitado={loading||documentoVerificado} errorFrente={errors.documento_frente||errors.documento} errorReverso={errors.documento_reverso} />
                     {['nombre','apellido','numero_documento','fecha_nacimiento'].filter(key=>errors[key]).map(key=><p key={key} className={styles.error}>{errors[key]}</p>)}
                     {faseFacial&&<ValidacionFacial role={role} procesoId={procesoId} onListo={handleFacialListo} />}
                 </>}
@@ -121,9 +126,11 @@ export default function RegisterForm({role,setRole}) {
                 {step===5&&<>
                     <VerificationHeader Icon={MailCheck} title="Verifica tu correo">Ingresa el código enviado a {form.correo}</VerificationHeader>
                     <Button type="button" variant="secondary" onClick={handleReenviarOtp} disabled={loading||correoVerificado}>Reenviar código</Button>
-                    <label htmlFor="register-codigo" className={styles.fieldLabel}>Código de verificación</label>
-                    <Input placeholder="Código de verificación" id="register-codigo" aria-label="Código de verificación" name="codigo" value={otp} onChange={e=>setOtp(e.target.value)} inputMode="numeric" autoComplete="one-time-code" maxLength={6} readOnly={loading||correoVerificado} aria-invalid={Boolean(errors.codigo)} aria-describedby={errors.codigo?'register-codigo-error':undefined} validationAttempt={feedback.kind==='error'?feedback.revision:0}/>
-                    {errors.codigo&&<p id="register-codigo-error" className={styles.error}>{errors.codigo}</p>}
+                    <div className={styles.otpBlock}>
+                        <span id="register-codigo-etiqueta" className={styles.fieldLabel}>Código de verificación</span>
+                        <OtpInput value={otp} onChange={setOtp} onLimpiar={limpiarOtp} exito={correoVerificado} disabled={loading||correoVerificado} invalid={Boolean(errors.codigo)} labelledBy="register-codigo-etiqueta" describedBy={errors.codigo?'register-codigo-error':undefined}/>
+                        {errors.codigo&&<p id="register-codigo-error" className={styles.error} role="alert">{errors.codigo}</p>}
+                    </div>
 
                 </>}
                 {errors.general&&<p className={styles.error} role="alert">{errors.general}</p>}

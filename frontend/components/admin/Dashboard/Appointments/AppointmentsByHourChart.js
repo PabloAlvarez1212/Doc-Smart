@@ -41,7 +41,7 @@ export default function AppointmentsByHourChart({ data }) {
                         <Tooltip
                             labelFormatter={(value) => `${formatHour(value)} h`}
                             formatter={(value) => [value, "Citas programadas"]}
-                            contentStyle={{ borderRadius: 10, borderColor: "#e1e7f0", fontSize: 13 }}
+                            contentStyle={{ borderRadius: 10, borderColor: "var(--border)", fontSize: 13 }}
                         />
                         <Bar dataKey="total_citas" name="Citas programadas" fill="#13796f" radius={[5, 5, 0, 0]} maxBarSize={34} />
                     </BarChart>

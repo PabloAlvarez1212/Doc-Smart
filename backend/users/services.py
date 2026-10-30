@@ -13,7 +13,7 @@ from medicos.models import Medico,SolicitudValidacionMedico
 from users.serializers import UsuarioSerializer, MedicoSerializer,UsuarioPerfilSerializer
 from users.documento_identidad import DocumentoError,extraer_datos_documento
 from users.validacion_facial import facial_cumplida,marcar_revision_posterior
-from users.registros_abandonados import proceso_en_revision,purgar_abandonados,proceso_reanudable
+from users.registros_abandonados import proceso_en_revision,purgar_abandonados,proceso_reanudable,_borrar_archivo
 import secrets
 from django.utils import timezone
 from datetime import timedelta
@@ -688,6 +688,12 @@ def registrarUsuarioService(datos, tipo_registro="paciente"):
     return {"proceso_id":str(proceso.id)},201
 
 
+def eliminar_archivo_registro(archivo):
+    """Quita del almacenamiento y de la base de datos una imagen que dejó de usarse."""
+    _borrar_archivo(archivo)
+    archivo.delete()
+
+
 def validarProcesoRegistro(proceso, tipo_registro="paciente"):
     if not proceso:return {"general":["Proceso de registro inválido"]},400
     if proceso.tipo_registro != tipo_registro:return {"general":["El proceso no corresponde a este registro"]},403
@@ -706,7 +712,7 @@ def guardarDatosAdicionalesRegistroService(datos):
     error=validarProcesoRegistro(proceso)
     if error:return error
     if not proceso.documento_verificado:return {"documento":["Primero debes verificar el documento"]},403
-    if proceso.contraseña_hash:return {"general":["Los datos ya están fijados para la verificación de correo"]},400
+    if proceso.correo_verificado:return {"general":["Tus datos ya fueron confirmados y no se pueden modificar"]},400
     proceso.telefono=datos["telefono"]
     proceso.estatura=datos["estatura"]
     proceso.peso=datos["peso"]
@@ -722,7 +728,7 @@ def configurarCredencialesRegistroService(datos, tipo_registro="paciente"):
     error=validarProcesoRegistro(proceso,tipo_registro)
     if error:return error
     if not proceso.documento_verificado:return {"documento":["Primero debes verificar el documento"]},403
-    if not facial_cumplida(proceso):return {"validacion_facial":["Primero debes completar la verificación facial"]},403
+    if not facial_cumplida(proceso,permitir_revision=tipo_registro=="medico"):return {"validacion_facial":["Primero debes completar la verificación facial"]},403
     if tipo_registro == "medico" and not all([proceso.telefono,proceso.ciudad_profesional_id,proceso.especialidad_id,proceso.hoja_vida_id]):
         return {"general":["Primero debes guardar los datos profesionales y la hoja de vida"]},403
     if tipo_registro == "paciente" and (
@@ -735,22 +741,34 @@ def configurarCredencialesRegistroService(datos, tipo_registro="paciente"):
         return {"general":["Primero debes guardar los datos adicionales"]},403
     # No reiniciar intentos ni cambiar credenciales de un OTP ya emitido.
     correo=datos["correo"].strip().lower()
-    if proceso.contraseña_hash:
+    ahora=timezone.now()
+    cambio=bool(proceso.contraseña_hash)
+    if cambio:
+        if proceso.correo_verificado:
+            return {"general":["Tu correo ya fue verificado y no se puede modificar"]},400
         if proceso.correo==correo and bcrypt.checkpw(datos["contraseña"].encode(),proceso.contraseña_hash.encode()):
             return {"correo_configurado":True},200
-        return {"correo":["El correo ya está configurado; utiliza reenviar código"]},400
+        # Corregir el correo o la contraseña antes de verificar cuenta como un reenvío:
+        # mismos límites y sin reiniciar los intentos del código.
+        if proceso.reenvios_otp>=MAX_REENVIOS_OTP:
+            return {"general":["Se alcanzó el máximo de cambios y reenvíos del código"]},429
+        if proceso.ultimo_envio_otp and (ahora-proceso.ultimo_envio_otp).total_seconds()<TIEMPO_REENVIO_SEGUNDOS:
+            restantes=int(TIEMPO_REENVIO_SEGUNDOS-(ahora-proceso.ultimo_envio_otp).total_seconds())
+            return {"general":[f"Espera {restantes} segundos para cambiar tus datos"]},429
     if Usuario.objects.filter(correo__iexact=correo).exists() or Medico.objects.filter(correo__iexact=correo).exists():
         return {"correo":["No fue posible utilizar este correo"]},400
 
     codigo=generarCodigoOTP()
-    ahora=timezone.now()
     proceso.correo=correo
     proceso.contraseña_hash=bcrypt.hashpw(datos["contraseña"].encode(),bcrypt.gensalt()).decode()
     proceso.otp_hash=make_password(codigo)
     proceso.otp_expira_en=ahora+timedelta(minutes=DURACION_OTP_MINUTOS)
     proceso.ultimo_envio_otp=ahora
-    proceso.intentos_otp=0
-    proceso.reenvios_otp=0
+    if cambio:
+        proceso.reenvios_otp+=1
+    else:
+        proceso.intentos_otp=0
+        proceso.reenvios_otp=0
 
     try:
         resend.Emails.send({
@@ -766,6 +784,47 @@ def configurarCredencialesRegistroService(datos, tipo_registro="paciente"):
 
     proceso.save(update_fields=["correo","contraseña_hash","otp_hash","otp_expira_en","ultimo_envio_otp","intentos_otp","reenvios_otp"])
     return {"correo_configurado":True},200
+
+
+@transaction.atomic
+def actualizarDatosRegistroService(datos, tipo_registro="paciente"):
+    """Corrige los datos del primer paso mientras el documento no esté verificado."""
+    proceso=ProcesoRegistroUsuario.objects.select_for_update().filter(id=datos["proceso_id"]).first()
+    error=validarProcesoRegistro(proceso,tipo_registro)
+    if error:return error
+    if proceso.documento_verificado:
+        return {"general":["Tus datos ya fueron verificados y no se pueden modificar"]},400
+    tipo=datos["tipo_documento"]
+    numero=datos["numero_documento"].strip().upper()
+    if Usuario.objects.filter(cedula=numero).exists() or Medico.objects.filter(cedula=numero).exists():
+        return {"numero_documento":["Este documento ya está registrado"]},400
+    otro=proceso_en_revision(tipo_registro,tipo,numero)
+    if otro and otro.pk!=proceso.pk:
+        return {"en_revision":True,"general":["Ya existe un registro con estos datos pendiente de revisión."]},409
+
+    proceso.nombre_declarado=datos["nombre"]
+    proceso.apellido_declarado=datos["apellido"]
+    proceso.fecha_nacimiento_declarada=datos["fecha_nacimiento"]
+    campos=["nombre_declarado","apellido_declarado","fecha_nacimiento_declarada","tipo_documento","numero_documento_declarado"]
+    reiniciados=False
+    anteriores=[]
+    if tipo!=proceso.tipo_documento and (proceso.documento_id or proceso.documento_reverso_id):
+        # Las imágenes cargadas corresponden al tipo anterior: hay que subirlas de nuevo.
+        anteriores=[a for a in (proceso.documento,proceso.documento_reverso) if a]
+        proceso.documento=None
+        proceso.documento_sha256=None
+        proceso.documento_reverso=None
+        proceso.documento_reverso_sha256=None
+        proceso.estado=ProcesoRegistroUsuario.Estado.INICIADO
+        proceso.intentos_documento=0
+        campos+=["documento","documento_sha256","documento_reverso","documento_reverso_sha256","estado","intentos_documento"]
+        reiniciados=True
+    proceso.tipo_documento=tipo
+    proceso.numero_documento_declarado=numero
+    proceso.save(update_fields=campos)
+    for archivo in anteriores:
+        eliminar_archivo_registro(archivo)
+    return {"proceso_id":str(proceso.id),"documentos_reiniciados":reiniciados},200
 
 
 def validarArchivoDocumentoService(archivo):
@@ -831,6 +890,7 @@ def subirDocumentoRegistroService(
     if proceso.documento_verificado:
         return {"documento":["El documento ya fue verificado"]},400
 
+    reemplazados=[a for a,nuevo in ((proceso.documento,documento_frente),(proceso.documento_reverso,documento_reverso)) if a and nuevo]
     validados={}
     for cara,archivo in (("frente",documento_frente),("reverso",documento_reverso)):
         if archivo:
@@ -906,6 +966,8 @@ def subirDocumentoRegistroService(
 
     if campos:
         proceso.save(update_fields=list(set(campos)))
+        for archivo in reemplazados:
+            eliminar_archivo_registro(archivo)
 
     return {
         "frente_cargado":bool(proceso.documento),
@@ -1203,9 +1265,13 @@ def verificarDocumentoRegistroService(proceso_id,tipo_registro="paciente"):
 
     if datos.get("nombre_coincide") is not True:
         errores["nombre"]=["El nombre no coincide con el documento"]
+    elif datos.get("nombre_incompleto"):
+        errores["nombre"]=["El campo Nombre está incompleto"]
 
     if datos.get("apellido_coincide") is not True:
         errores["apellido"]=["El apellido no coincide con el documento"]
+    elif datos.get("apellido_incompleto"):
+        errores["apellido"]=["El campo Apellido está incompleto"]
 
     if not fecha:
         errores["fecha_nacimiento"]=["No fue posible leer la fecha de nacimiento"]

@@ -31,3 +31,8 @@
 @media(max-width:640px) { .main { padding:20px 20px 32px; } .header { margin:40px 0 30px; } .header p { font-size:15px; } .cards { grid-template-columns:1fr; gap:18px; } .card { padding:26px; } .description { min-height:0; } .brand { font-size:16px; } .back { font-size:12px; } }
 @media(prefers-reduced-motion:reduce) { .cardWrap { transform:none!important; } .card,.icon,.action,.action svg { transition:none; } .card:hover,.card:active,.card:hover .icon,.card:hover .action svg { transform:none; } }
 .brand img { background:var(--on-accent); border-radius:8px; padding:3px; }
+
+/* La tarjeta del médico lleva el verde que lo identifica en toda la plataforma. */
+.card[data-role="medico"] { --accent:#10813d; --brand-solid:#10813d; --focus:#10813d; --tone-blue:var(--tone-green); }
+:global(:root[data-theme="dark"]) .card[data-role="medico"] { --accent:#43dc6b; --focus:#43dc6b; }
+@media(hover:hover) { .card[data-role="medico"]:hover .action { box-shadow:0 5px 12px rgb(16 129 61 / .28); } }

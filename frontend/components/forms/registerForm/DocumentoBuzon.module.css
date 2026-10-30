@@ -1,0 +1,262 @@
+.buzon {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.casillas {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+}
+
+.buzon[data-dos="true"] .casillas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 460px) {
+    .buzon[data-dos="true"] .casillas {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.casilla {
+    --tono: var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.casilla[data-estado="validando"] { --tono: var(--color-dark); }
+.casilla[data-estado="verificado"] { --tono: var(--ink-green); }
+.casilla[data-estado="error"] { --tono: var(--ink-red); }
+.casilla[data-error="true"] { --tono: var(--ink-red); }
+
+.entrada {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.entrada:focus-visible ~ .marco {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+}
+
+/* Casilla: aspecto de cédula */
+.marco {
+    position: relative;
+    aspect-ratio: 1.586;
+    border-radius: 14px;
+}
+
+.vacio,
+.tarjeta {
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+}
+
+.vacio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px;
+    border: 2px dashed color-mix(in srgb, var(--tono) 70%, var(--border));
+    background: var(--surface-muted);
+    color: var(--text-secondary);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+}
+
+.vacio svg {
+    color: var(--tono);
+    transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.vacio strong {
+    color: var(--color-text);
+    font-size: 0.92rem;
+}
+
+.vacio small {
+    font-size: 0.72rem;
+    line-height: 1.3;
+}
+
+.casilla[data-estado="verificado"] .vacio {
+    border-style: solid;
+    background: var(--tone-green);
+    cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .vacio:hover {
+        border-color: var(--color-dark);
+        background: color-mix(in srgb, var(--color-dark) 6%, var(--surface-muted));
+    }
+
+    .vacio:hover svg {
+        transform: translateY(-3px);
+    }
+}
+
+.vacio:active {
+    transform: scale(0.98);
+}
+
+.tarjeta {
+    overflow: hidden;
+    border: 2px solid var(--tono);
+    background: var(--surface-muted);
+    transition: border-color 0.25s ease;
+}
+
+.tarjeta img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ─── Escáner láser ─── */
+.escaner {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.escaner::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        transparent 55%,
+        color-mix(in srgb, var(--color-dark) 22%, transparent) 97%,
+        var(--color-dark) 97%,
+        var(--color-dark) 100%
+    );
+    animation: barrer 1.7s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes barrer {
+    0% { transform: translateY(-100%); }
+    50% { transform: translateY(0); }
+    100% { transform: translateY(-100%); }
+}
+
+.esquina {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 3px solid var(--color-dark);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.sa { top: 6px; left: 6px; border-right: 0; border-bottom: 0; }
+.sb { top: 6px; right: 6px; border-left: 0; border-bottom: 0; }
+.ia { bottom: 6px; left: 6px; border-right: 0; border-top: 0; }
+.ib { bottom: 6px; right: 6px; border-left: 0; border-top: 0; }
+
+/* ─── Resultado ─── */
+.insignia {
+    position: absolute;
+    right: -8px;
+    bottom: -8px;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 3px solid var(--surface);
+    border-radius: 50%;
+    background: var(--ink-green);
+    color: var(--surface);
+}
+
+.insignia[data-tipo="error"] {
+    background: var(--ink-red);
+}
+
+.onda {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--ink-green);
+    border-radius: 14px;
+    pointer-events: none;
+    animation: onda 0.8s cubic-bezier(0.23, 1, 0.32, 1) 0.25s both;
+}
+
+@keyframes onda {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(1.18); opacity: 0; }
+}
+
+/* ─── Pie ─── */
+.pie {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 2px;
+    font-size: 0.76rem;
+}
+
+.nombre {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cambiar {
+    flex: none;
+    color: var(--color-dark);
+    font-weight: 650;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.error {
+    margin: 0;
+    color: var(--ink-red);
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+.estado {
+    min-height: 1.2em;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .escaner::before {
+        animation: none;
+        transform: translateY(-40%);
+    }
+
+    .onda {
+        display: none;
+    }
+
+    .vacio,
+    .vacio svg {
+        transition: none;
+    }
+}

@@ -1,0 +1,136 @@
+.marcas {
+    --c: var(--text-secondary);
+    display: block;
+    overflow: visible;
+}
+
+.marcas[data-estado="escaneando"],
+.marcas[data-estado="calidad"] {
+    --c: var(--color-dark);
+}
+
+.marcas[data-estado="ok"] {
+    --c: var(--ink-green);
+}
+
+.marcas[data-estado="bad"] {
+    --c: var(--ink-red);
+}
+
+.marcas[data-estado="ultimo"] {
+    --c: var(--ink-orange);
+}
+
+/* ─── Marcas ─── */
+.marca {
+    stroke: var(--border);
+    stroke-width: 3;
+    stroke-linecap: round;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: stroke 0.22s ease;
+}
+
+.marcas:not([data-estado="idle"]) .marca {
+    stroke: var(--c);
+}
+
+/* Escaneo: las marcas se encienden en sentido horario, una sola vuelta. */
+.marcas[data-estado="escaneando"] .marca {
+    transition-delay: calc(var(--i) * 22ms);
+}
+
+/* Éxito: ola verde que crece y vuelve. */
+.marcas[data-estado="ok"] .marca {
+    transition-delay: calc(var(--i) * 10ms);
+    animation: pulso 0.34s cubic-bezier(0.23, 1, 0.32, 1) both;
+    animation-delay: calc(var(--i) * 10ms);
+}
+
+/* Intento perdido: salen disparadas y regresan. */
+.marcas[data-estado="bad"] .marca {
+    animation: volar 0.9s cubic-bezier(0.23, 1, 0.32, 1) both;
+    animation-delay: calc(var(--i) * 6ms);
+}
+
+/* Mala imagen: parpadeo suave en tandas. */
+.marcas[data-estado="calidad"] .marca {
+    animation: parpadeo 1s ease-in-out both;
+    animation-delay: calc(var(--g) * 30ms);
+}
+
+/* Último intento: se contraen, como cerrándose. */
+.marcas[data-estado="ultimo"] .marca {
+    animation: encoger 0.6s ease-in-out both;
+    animation-delay: calc(var(--i) * 8ms);
+}
+
+@keyframes pulso {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+}
+
+@keyframes volar {
+    0% { transform: translate(0, 0); opacity: 1; }
+    45% { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+    100% { transform: translate(0, 0); opacity: 1; }
+}
+
+@keyframes parpadeo {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.15; }
+}
+
+@keyframes encoger {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(0.7); }
+}
+
+/* ─── Rostro y detalles ─── */
+.persona {
+    fill: none;
+    stroke: var(--c);
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    transition: stroke 0.25s ease;
+}
+
+.marcas[data-estado="bad"] .persona,
+.marcas[data-estado="ultimo"] .persona {
+    animation: vibrar 0.5s ease-out 0.3s both;
+}
+
+@keyframes vibrar {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-9px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(3px); }
+}
+
+.onda {
+    fill: none;
+    stroke: var(--c);
+    stroke-width: 2;
+}
+
+.particula {
+    fill: var(--c);
+}
+
+.signo {
+    fill: none;
+    stroke: var(--surface);
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .marca,
+    .persona {
+        animation: none !important;
+        transition-delay: 0ms !important;
+    }
+}

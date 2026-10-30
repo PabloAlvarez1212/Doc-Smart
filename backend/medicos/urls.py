@@ -11,6 +11,7 @@ from .views import (
     ListarSolicitudesValidacionView,
     MetricasValidacionMedicosView,
     HojaVidaSolicitudValidacionView,
+    IdentidadSolicitudValidacionView,
     AprobarSolicitudValidacionView,
     RechazarSolicitudValidacionView,
     MiValidacionMedicoView,
@@ -47,6 +48,8 @@ urlpatterns = [
     #!Genera url de la hoja de vida
     path("solicitudes-validacion/<int:solicitud_id>/hoja-vida/",HojaVidaSolicitudValidacionView.as_view(),name="hoja-vida-solicitud-validacion"),
     #!Aprueba medicos
+    path("solicitudes-validacion/<int:solicitud_id>/identidad/",IdentidadSolicitudValidacionView.as_view(),name="identidad-solicitud-validacion"),
+
     path("solicitudes-validacion/<int:solicitud_id>/aprobar/",AprobarSolicitudValidacionView.as_view(),name="aprobar-solicitud-validacion"),
     #!Rechazar medicos
     path("solicitudes-validacion/<int:solicitud_id>/rechazar/",RechazarSolicitudValidacionView.as_view(),name="rechazar-solicitud-validacion"),
@@ -68,14 +71,16 @@ urlpatterns = [
 
 urlpatterns += [path(f"registro/{fase}/", RegistroMedicoView.as_view(fase=fase), name="registro-medico-"+fase.replace("/","-")) for fase in ("datos-profesionales","credenciales","subir-documento","documento/verificar","documento/extraer","verificar-correo","reenviar-codigo","completar")]
 
-from users.views import DesafioFacialView, VerificarRostroView, OmitirFacialView, EstadoFacialView, ContactoFacialView, ReanudarFacialView, CancelarRegistroView
-from .registro import IniciarRegistroMedicoSerializer
+from users.views import DesafioFacialView, VerificarRostroView, PrevisualizarRostroView, OmitirFacialView, EstadoFacialView, ContactoFacialView, ReanudarFacialView, CancelarRegistroView, ActualizarDatosRegistroView
+from .registro import IniciarRegistroMedicoSerializer, ActualizarDatosRegistroMedicoSerializer
 urlpatterns += [
     path("registro/facial/desafio/", DesafioFacialView.as_view(tipo_registro="medico")),
     path("registro/facial/verificar/", VerificarRostroView.as_view(tipo_registro="medico")),
+    path("registro/facial/previsualizar/", PrevisualizarRostroView.as_view(tipo_registro="medico")),
     path("registro/facial/omitir/", OmitirFacialView.as_view(tipo_registro="medico")),
     path("registro/facial/estado/", EstadoFacialView.as_view(tipo_registro="medico")),
     path("registro/facial/contacto/", ContactoFacialView.as_view(tipo_registro="medico")),
+    path("registro/actualizar-datos/", ActualizarDatosRegistroView.as_view(tipo_registro="medico", serializer_class=ActualizarDatosRegistroMedicoSerializer)),
     path("registro/cancelar/", CancelarRegistroView.as_view(tipo_registro="medico", serializer_class=IniciarRegistroMedicoSerializer)),
     path("registro/facial/reanudar/", ReanudarFacialView.as_view(tipo_registro="medico")),
 ]

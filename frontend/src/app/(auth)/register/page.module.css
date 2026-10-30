@@ -51,3 +51,26 @@
 .logo{gap:8px}.logo h1{font-size:26px;letter-spacing:-.045em;font-weight:700}.logo img{width:56px;height:56px;object-fit:contain;background:#fff;border-radius:16px;padding:5px}
 .container h2{font-size:24px;line-height:1.2;letter-spacing:-.035em;font-weight:650}.formWrapper,.form{width:100%}.containerLinks{margin-top:4px;gap:6px;width:100%}.link,.link:hover{font-size:14px;min-height:40px;color:var(--accent);opacity:1;transition:color var(--motion-fast);text-decoration:none}.link:hover{text-decoration:underline}
 @media(max-width:480px){.container{border-radius:22px;padding:24px 20px}}
+
+/* El registro del médico usa el verde que lo identifica en la tarjeta del rol y en su espacio de trabajo. */
+.mainRegister[data-role="medico"] {
+    --brand-solid: #10813d;
+    --color-dark: #10813d;
+    --accent: #10813d;
+    --focus: #10813d;
+    --tone-blue: var(--tone-green);
+    --upload-hover: #4fae74;
+    --upload-focus: #10813d;
+    --upload-focus-ring: rgba(16, 129, 61, 0.16);
+    --change-hover: #8fd0a8;
+}
+
+:global(:root[data-theme="dark"]) .mainRegister[data-role="medico"] {
+    --color-dark: #43dc6b;
+    --accent: #43dc6b;
+    --focus: #43dc6b;
+    --upload-hover: #2f8f52;
+    --upload-focus: #43dc6b;
+    --upload-focus-ring: rgba(67, 220, 107, 0.18);
+    --change-hover: #2f8f52;
+}

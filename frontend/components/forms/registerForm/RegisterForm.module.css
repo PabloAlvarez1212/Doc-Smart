@@ -302,14 +302,14 @@
 }
 
 .resumeUpload:hover .uploadSurface {
-    border-color: #5e91d7;
+    border-color: var(--upload-hover, #5e91d7);
     background: var(--surface-muted);
 }
 
 .fileInput:focus-visible + .uploadSurface {
-    border-color: #2b7fff;
+    border-color: var(--upload-focus, #2b7fff);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(43, 127, 255, 0.14);
+    box-shadow: 0 0 0 3px var(--upload-focus-ring, rgba(43, 127, 255, 0.14));
 }
 
 .uploadIcon,
@@ -473,7 +473,7 @@
 }
 
 .changeFile:hover {
-    border-color: #8eb2df;
+    border-color: var(--change-hover, #8eb2df);
     background: var(--surface-muted);
 }
 
@@ -562,3 +562,16 @@
 @media(prefers-reduced-motion:reduce) { .selectFile:hover { transform:none; } }
 
 .fileRole { display:block; margin-bottom:4px; color:var(--text-secondary); font-size:12px; line-height:1.4; }
+
+.otpBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: center;
+}
+
+.otpBlock .error {
+    text-align: center;
+}

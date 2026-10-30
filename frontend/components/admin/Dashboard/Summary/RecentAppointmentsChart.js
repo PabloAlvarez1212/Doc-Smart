@@ -79,13 +79,13 @@ export default function RecentAppointmentsChart({ data }) {
                         strokeWidth={2.75}
                         dot={{
                             r: hasSingleMonth ? 5.5 : 3.75,
-                            fill: "#fff",
+                            fill: "var(--surface)",
                             stroke: "#2563eb",
                             strokeWidth: 2.5,
                         }}
                         activeDot={{
                             r: 5.75,
-                            fill: "#fff",
+                            fill: "var(--surface)",
                             stroke: "#2563eb",
                             strokeWidth: 2.5,
                         }}

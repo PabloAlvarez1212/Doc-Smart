@@ -69,7 +69,7 @@ export default function AppointmentsCreatedByPeriodChart({ data, grouping }) {
                     <Tooltip
                         labelFormatter={formatPeriodLong}
                         formatter={(value) => [value, "Citas creadas"]}
-                        contentStyle={{ borderRadius: 10, borderColor: "#e1e7f0", fontSize: 13 }}
+                        contentStyle={{ borderRadius: 10, borderColor: "var(--border)", fontSize: 13 }}
                     />
                     <Line
                         type="monotone"
@@ -77,7 +77,7 @@ export default function AppointmentsCreatedByPeriodChart({ data, grouping }) {
                         name="Citas creadas"
                         stroke="#2563eb"
                         strokeWidth={2.5}
-                        dot={{ r: hasSinglePeriod ? 5 : 3, fill: "#fff", strokeWidth: 2 }}
+                        dot={{ r: hasSinglePeriod ? 5 : 3, fill: "var(--surface)", strokeWidth: 2 }}
                         activeDot={{ r: 5 }}
                         connectNulls={false}
                     >

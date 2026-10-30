@@ -229,7 +229,7 @@
 .field input:hover,
 .field select:hover,
 .field textarea:hover{
-  border-color:#aebdcd;
+  border-color:color-mix(in srgb,var(--text-secondary) 55%,var(--border));
 }
 
 .field input:focus,
@@ -313,10 +313,10 @@
   align-items:flex-start;
   gap:10px;
   padding:12px 14px;
-  border:1px solid #efc7cb;
+  border:1px solid color-mix(in srgb,var(--ink-red) 32%,var(--border));
   border-radius:11px;
-  background:#fff6f7;
-  color:#9c2836;
+  background:var(--tone-red);
+  color:var(--ink-red);
   font-size:.9rem;
   line-height:1.45;
 }
@@ -327,9 +327,9 @@
 }
 
 .success{
-  border-color:#b9dec7;
-  background:#f3fbf6;
-  color:#21643a;
+  border-color:color-mix(in srgb,var(--ink-green) 32%,var(--border));
+  background:var(--tone-green);
+  color:var(--ink-green);
 }
 
 .success p{

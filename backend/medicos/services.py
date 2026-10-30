@@ -221,6 +221,7 @@ def listarSolicitudesValidacionService(
             "medico__ciudad",
             "medico__ciudad__departamento",
             "hoja_vida",
+            "medico__proceso_registro",
         )
         .annotate(
             nombre_completo=Concat(
@@ -330,6 +331,15 @@ def obtenerHojaVidaSolicitudService(solicitud_id):
     except SolicitudValidacionMedico.DoesNotExist:
         return None, 404
 
+def _cerrar_identidad(medico, aprobada):
+    """Resuelve la verificación de identidad junto con la solicitud; un fallo no debe impedir la decisión."""
+    try:
+        from users.validacion_facial import cerrar_identidad_medico
+        cerrar_identidad_medico(medico, aprobada)
+    except Exception:
+        logging.getLogger(__name__).exception("No se pudo cerrar la identidad del médico %s", medico.pk)
+
+
 def aprobarSolicitudValidacionService(solicitud_id):
     try:
         solicitud = (
@@ -355,6 +365,7 @@ def aprobarSolicitudValidacionService(solicitud_id):
             ]
         )
 
+        _cerrar_identidad(solicitud.medico, True)
         enviarCorreoMedicoAprobado(solicitud.medico)
 
         return {
@@ -394,6 +405,7 @@ def rechazarSolicitudValidacionService(solicitud_id, motivo_rechazo):
             ]
         )
 
+        _cerrar_identidad(solicitud.medico, False)
         enviarCorreoMedicoRechazado(
             solicitud.medico,
             solicitud.motivo_rechazo,

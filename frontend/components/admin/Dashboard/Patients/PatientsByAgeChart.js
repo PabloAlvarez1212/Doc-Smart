@@ -63,7 +63,7 @@ export default function PatientsByAgeChart({ data }) {
                         axisLine={false}
                         width={42}
                     />
-                    <Tooltip cursor={{ fill: "#f5f8fb" }} content={<AgeTooltip />} />
+                    <Tooltip cursor={{ fill: "var(--surface-muted)" }} content={<AgeTooltip />} />
                     <Bar
                         dataKey="total_pacientes"
                         name="Total de pacientes"

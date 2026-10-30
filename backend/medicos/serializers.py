@@ -57,6 +57,20 @@ class SolicitudValidacionMedicoSerializer(serializers.ModelSerializer):
     departamento = serializers.CharField(source="medico.ciudad.departamento.nombre",read_only=True)
     hoja_vida_id = serializers.IntegerField(source="hoja_vida.id",read_only=True)
     hoja_vida_nombre = serializers.CharField(source="hoja_vida.nombre_original",read_only=True)
+    identidad_estado = serializers.SerializerMethodField()
+    identidad_pendiente = serializers.SerializerMethodField()
+
+    def _proceso(self, obj):
+        # Relación inversa uno a uno: no existe para médicos creados antes de la verificación facial.
+        return getattr(obj.medico, "proceso_registro", None)
+
+    def get_identidad_estado(self, obj):
+        proceso = self._proceso(obj)
+        return proceso.estado_facial if proceso else None
+
+    def get_identidad_pendiente(self, obj):
+        proceso = self._proceso(obj)
+        return bool(proceso and (proceso.estado_facial == "revision" or proceso.revision_posterior == "pendiente"))
 
     class Meta:
         model = SolicitudValidacionMedico
@@ -82,6 +96,8 @@ class SolicitudValidacionMedicoSerializer(serializers.ModelSerializer):
             "motivo_rechazo",
             "hoja_vida_id",
             "hoja_vida_nombre",
+            "identidad_estado",
+            "identidad_pendiente",
         ]
 
 class ReintentarSolicitudValidacionSerializer(

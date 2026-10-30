@@ -27,7 +27,10 @@ export const useRegister = (role, setRole) => {
     const report = (kind,message) => setFeedback(prev => ({kind,message,revision:prev.revision+1}))
 
     const [procesoId, setProcesoId] = useState('')
-    const [comparaciones, setComparaciones] = useState(null)
+    // Lo guardado en el servidor: permite saber si la persona corrigió algo antes de verificar.
+    const [datosPaso1, setDatosPaso1] = useState(null)
+    const [credencialesEnviadas, setCredencialesEnviadas] = useState(null)
+    const [erroresDocumento, setErroresDocumento] = useState({})
     const [otp, setOtp] = useState('')
     const [documentoFrente, setDocumentoFrente] = useState(null)
     const [documentoReverso, setDocumentoReverso] = useState(null)
@@ -89,8 +92,8 @@ export const useRegister = (role, setRole) => {
         const { name, value, files } = e.target
         if (loading) return
         {
-            if (procesoId && ['nombre', 'apellido', 'tipo_documento', 'numero_documento', 'fecha_nacimiento'].includes(name)) return
-            if (correoConfigurado) return
+            if (documentoVerificado && ['nombre', 'apellido', 'tipo_documento', 'numero_documento', 'fecha_nacimiento'].includes(name)) return
+            if (correoVerificado) return
             if (['telefono','estatura','peso','genero','tipo_sangre','departamento_filtro','id_ciudad','id_especialidad','hoja_vida'].includes(name)) {setDatosGuardados(false)}
         }
 
@@ -128,7 +131,6 @@ export const useRegister = (role, setRole) => {
         } catch (error) {
             const errores = error.response?.data?.errores
             setErrors(errores || {})
-            setComparaciones(error.response?.data?.data?.comparaciones || null)
             report('error', obtenerPrimerError(errores) || error.response?.data?.mensaje || error.message || 'No fue posible continuar. Reintenta; tus datos se conservan.')
         } finally {
             ocupado.current = false
@@ -166,7 +168,7 @@ export const useRegister = (role, setRole) => {
 
     const handleBack = () => {
         if (ocupado.current || loading) return
-        setErrors({})
+        setErrors(step === 2 ? erroresDocumento : {})
         if (step === 1) setRole(null)
         else setStep((prev) => prev - 1)
     }
@@ -199,6 +201,11 @@ export const useRegister = (role, setRole) => {
         }
     }
 
+    const datosPaso1Actual = () => {
+        const { nombre, apellido, tipo_documento, numero_documento, fecha_nacimiento } = form
+        return { nombre, apellido, tipo_documento, numero_documento, fecha_nacimiento }
+    }
+
     const handleNextStep = async () => {
         if (ocupado.current || loading) return
         if (step === 2) return handleDocumento()
@@ -222,6 +229,7 @@ export const useRegister = (role, setRole) => {
                     const id = response.data?.proceso_id
                     if (!id) throw new Error('La API no devolvió el proceso de registro')
                     setProcesoId(id)
+                    setDatosPaso1(datosPaso1)
                     if (response.data?.reanudado) {
                         // Su identidad ya fue verificada: se omiten el documento y el reconocimiento facial.
                         setDocumentoCargado(true)
@@ -231,6 +239,28 @@ export const useRegister = (role, setRole) => {
                         setStep(3)
                         return
                     }
+                }
+                if (procesoId && !documentoVerificado && JSON.stringify(datosPaso1Actual()) !== JSON.stringify(datosPaso1)) {
+                    // Corrige lo ya guardado: no hace falta empezar el registro de nuevo.
+                    let response
+                    try {
+                        response = await registroService(role, 'actualizar-datos', { proceso_id: procesoId, ...datosPaso1Actual() })
+                    } catch (error) {
+                        if (error.response?.status === 409 && error.response.data?.errores?.en_revision) {
+                            setFeedback({kind:'idle', message:'', revision:0})
+                            await avisarRegistroEnRevision(datosPaso1Actual())
+                            return
+                        }
+                        throw error
+                    }
+                    if (response.data?.documentos_reiniciados) {
+                        // El tipo de documento cambió: las imágenes anteriores ya no sirven.
+                        setDocumentoFrente(null)
+                        setDocumentoReverso(null)
+                        setDocumentoCargado(false)
+                    }
+                    setErroresDocumento({})
+                    setDatosPaso1(datosPaso1Actual())
                 }
                 setStep(2)
             })
@@ -271,27 +301,37 @@ export const useRegister = (role, setRole) => {
         if (step < 4) return handleNextStep()
         if (step === 5) return handleVerificarOtp()
         if (!procesoId || !documentoVerificado || !datosGuardados) return
-        if (correoConfigurado) return setStep(5)
+        const credenciales = { correo: form.correo.trim().toLowerCase(), contraseña: form.contraseña }
+        if (correoConfigurado && JSON.stringify(credenciales) === JSON.stringify(credencialesEnviadas)) return setStep(5)
         if (mostrarValidacion(validateRegisterStep3(form))) return
         return ejecutarPaso(async () => {
             const response = await registroService(role, 'credenciales', {proceso_id:procesoId, correo:form.correo, contraseña:form.contraseña})
             if (response.data?.correo_configurado !== true) throw new Error('No se confirmó el envío del código')
+            setCredencialesEnviadas(credenciales)
             setCorreoConfigurado(true)
+            if (otp) setOtp('')
             setStep(5)
-        }, 'Preparando tu correo y enviando el código…')
+        }, correoConfigurado ? 'Actualizando tus datos y enviando un nuevo código…' : 'Preparando tu correo y enviando el código…')
     }
 
     const handleVerificarOtp = async () => {
         if (step !== 5 || !procesoId || !documentoVerificado || !datosGuardados || !correoConfigurado) return
         if (!correoVerificado && mostrarValidacion(validateRegisterOtp(otp))) return
+        let recienVerificado = false
         return ejecutarPaso(async () => {
             if (!correoVerificado) {
                 const response = await registroService(role, 'verificar-correo', { proceso_id: procesoId, codigo: otp.trim() })
                 if (response.data?.correo_verificado !== true) throw new Error('El correo todavía no está verificado')
                 setCorreoVerificado(true)
+                recienVerificado = true
                 report("pending","Correo confirmado. Completando tu registro…")
             }
-            await registroService(role, 'completar', { proceso_id: procesoId })
+            // El registro se completa mientras el candado se abre; el aviso final espera a que termine.
+            const animacion = recienVerificado ? (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 250 : 1700) : 0
+            await Promise.all([
+                registroService(role, 'completar', { proceso_id: procesoId }),
+                new Promise(resolve => setTimeout(resolve, animacion)),
+            ])
             report("success",role === "medico" ? "Solicitud recibida. Tu perfil requiere aprobación profesional." : "Registro completado. Tu identidad y correo están verificados.")
             await Swal.fire({ icon: 'success', title: '¡Registro exitoso!', text: role === 'medico' ? `${form.nombre}, tu identidad y correo están verificados. Tu solicitud profesional está pendiente de aprobación.` : `Bienvenido ${form.nombre}, tu registro está completo.`, confirmButtonText: 'Aceptar' })
             router.push('/login')
@@ -311,12 +351,29 @@ export const useRegister = (role, setRole) => {
                 await registroService(role, 'subir-documento', formData)
                 setDocumentoCargado(true)
             }
-            const response = await registroService(role, 'documento/verificar', { proceso_id: procesoId })
+            let response
+            try {
+                response = await registroService(role, 'documento/verificar', { proceso_id: procesoId })
+            } catch (error) {
+                const detalle = error.response?.data?.errores || {}
+                setErroresDocumento(Object.fromEntries(['nombre', 'apellido', 'numero_documento', 'fecha_nacimiento'].filter(k => detalle[k]).map(k => [k, detalle[k]])))
+                throw error
+            }
             if (response.data?.documento_verificado !== true) throw new Error('La identidad todavía no está verificada')
             setDocumentoVerificado(true)
-            setComparaciones(response.data?.comparaciones || null)
-            const facial = await registroService(role, 'facial/estado', { proceso_id: procesoId })
-            if (facial.data?.obligatoria === false || ['aprobado', 'alternativa'].includes(facial.data?.estado)) {
+            setErroresDocumento({})
+            // Consulta única con a lo sumo un reintento si el servicio no responde; si no hay respuesta se
+            // continúa con la verificación facial, que vuelve a validar todo en el servidor.
+            let facial = null
+            for (let intento = 0; intento < 2 && !facial; intento++) {
+                try {
+                    facial = await registroService(role, 'facial/estado', { proceso_id: procesoId })
+                } catch (error) {
+                    if (![502, 503, 504, undefined].includes(error.response?.status)) throw error
+                    if (intento === 0) await new Promise(resolve => setTimeout(resolve, 1200))
+                }
+            }
+            if (facial?.data?.obligatoria === false || ['aprobado', 'alternativa'].includes(facial?.data?.estado)) {
                 setFacialListo(true)
                 report("success","Los datos del documento coinciden. Continúa con el siguiente paso.")
                 setStep(3)
@@ -331,13 +388,17 @@ export const useRegister = (role, setRole) => {
         if (cara === 'frente') setDocumentoFrente(archivo)
         else setDocumentoReverso(archivo)
         setDocumentoCargado(false)
-        setComparaciones(null)
+        setErroresDocumento({})
         setErrors({})
     }
 
     const handleFacialListo = (estado) => {
         setFacialListo(true)
-        report("success", estado === 'alternativa' ? "Verificación alternativa registrada. Continúa con el siguiente paso." : "Rostro verificado. Continúa con el siguiente paso.")
+        report("success", estado === 'alternativa'
+            ? "Verificación alternativa registrada. Continúa con el siguiente paso."
+            : estado === 'revision'
+                ? "Tu identidad se revisará junto con tu solicitud profesional. Continúa con tu registro."
+                : "Rostro verificado. Continúa con el siguiente paso.")
         setStep(3)
     }
 
@@ -352,7 +413,7 @@ export const useRegister = (role, setRole) => {
         form,
         feedback,
         step,
-        comparaciones,
+        erroresDocumento,
         loading,
         errors,
         especialidades,
@@ -364,7 +425,12 @@ export const useRegister = (role, setRole) => {
         setRole,
         procesoId,
         otp,
-        setOtp,
+        // Al escribir de nuevo desaparece el error del código anterior.
+        setOtp: (valor) => {
+            setOtp(valor)
+            setErrors(prev => prev.codigo ? { ...prev, codigo: '' } : prev)
+        },
+        limpiarOtp: () => setOtp(''),
         documentoFrente,
         setDocumentoFrente: (archivo) => handleArchivoDocumento('frente', archivo),
         documentoReverso,

@@ -250,15 +250,35 @@ ASGI_APPLICATION = "core.asgi.application"
 
 REDIS_URL = os.getenv("REDIS_URL")
 
+
+def _entero_env(nombre, defecto):
+    try:
+        return max(1, int(os.getenv(nombre, defecto)))
+    except ValueError:
+        return defecto
+
+
+# Tope de conexiones por proceso y por uso. El servidor Redis admite un número limitado de clientes
+# y lo comparten todos los procesos (local, producción, cron); por eso cada pool está acotado.
+REDIS_CACHE_MAX_CONNECTIONS = _entero_env("REDIS_CACHE_MAX_CONNECTIONS", 10)
+REDIS_INTENTOS_MAX_CONNECTIONS = _entero_env("REDIS_INTENTOS_MAX_CONNECTIONS", 5)
+REDIS_CHANNELS_MAX_CONNECTIONS = _entero_env("REDIS_CHANNELS_MAX_CONNECTIONS", 20)
+
 if REDIS_URL:
     CACHES = {
         "default": {
-            "BACKEND": (
-                "django.core.cache.backends.redis."
-                "RedisCache"
-            ),
+            "BACKEND": "core.cache.RedisCache",
             "LOCATION": REDIS_URL,
             "KEY_PREFIX": "docsmart",
+            "OPTIONS": {
+                # Si el pool se agota, la petición espera unos segundos en vez de abrir otra conexión.
+                "pool_class": "redis.BlockingConnectionPool",
+                "max_connections": REDIS_CACHE_MAX_CONNECTIONS,
+                "timeout": 3,
+                "socket_connect_timeout": 3,
+                "socket_timeout": 3,
+                "health_check_interval": 30,
+            },
         },
     }
 
@@ -270,7 +290,12 @@ if REDIS_URL:
             ),
             "CONFIG": {
                 "hosts": [
-                    REDIS_URL,
+                    {
+                        "address": REDIS_URL,
+                        "max_connections": REDIS_CHANNELS_MAX_CONNECTIONS,
+                        "socket_connect_timeout": 3,
+                        "health_check_interval": 30,
+                    },
                 ],
             },
         },
@@ -327,6 +352,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "utils.CustomJWTAuthentication",
     ],
+    "EXCEPTION_HANDLER": "core.excepciones.manejador_excepciones",
     "DEFAULT_PERMISSION_CLASSES": [
         (
             "rest_framework.permissions."
@@ -340,6 +366,8 @@ REST_FRAMEWORK = {
         "historial_read": "60/min",
         "historial_write": "10/min",
         "facial_registro": "40/hour",
+        # La guía en vivo envía unos 2 fotogramas por segundo durante la captura.
+        "facial_previsualizar": "900/hour",
     },
 }
 
@@ -534,6 +562,8 @@ FACIAL_OBLIGATORIA = os.getenv("FACIAL_OBLIGATORIA", "true").lower() != "false"
 # Similitud coseno de SFace: >= APROBADO aprueba, entre REVISION y APROBADO pasa a revisión manual.
 FACIAL_UMBRAL_APROBADO = float(os.getenv("FACIAL_UMBRAL_APROBADO", "0.45"))
 FACIAL_UMBRAL_REVISION = float(os.getenv("FACIAL_UMBRAL_REVISION", "0.363"))
+# Por debajo de este parecido se rechaza siempre: ninguna imperfección de la captura lo explica.
+FACIAL_UMBRAL_DESCARTE = float(os.getenv("FACIAL_UMBRAL_DESCARTE", "0.30"))
 FACIAL_MAX_INTENTOS = int(os.getenv("FACIAL_MAX_INTENTOS", "3"))
 # Capturas totales, incluidas las repetidas por mala calidad de imagen.
 FACIAL_MAX_CAPTURAS = int(os.getenv("FACIAL_MAX_CAPTURAS", "8"))
@@ -542,4 +572,4 @@ FACIAL_REVISION_DIAS = int(os.getenv("FACIAL_REVISION_DIAS", "7"))
 FACIAL_DESAFIO_SEGUNDOS = int(os.getenv("FACIAL_DESAFIO_SEGUNDOS", "300"))
 FACIAL_RETENCION_DIAS = int(os.getenv("FACIAL_RETENCION_DIAS", "30"))
 FACIAL_CARPETA = "validacionFacial"
-FACIAL_CONSENTIMIENTO_VERSION = "2026-10"
+FACIAL_CONSENTIMIENTO_VERSION = "2026-10.2"

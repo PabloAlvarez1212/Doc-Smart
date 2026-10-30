@@ -429,8 +429,14 @@ class VerificarRostroSerializer(serializers.Serializer):
     proceso_id = serializers.UUIDField()
     desafio = serializers.CharField(max_length=100)
     fotogramas = serializers.ListField(
-        child=serializers.ImageField(allow_empty_file=False), min_length=2, max_length=4,
+        child=serializers.ImageField(allow_empty_file=False), min_length=2, max_length=6,
     )
+
+
+class PrevisualizarRostroSerializer(serializers.Serializer):
+    proceso_id = serializers.UUIDField()
+    desafio = serializers.CharField(max_length=100)
+    fotograma = serializers.ImageField(allow_empty_file=False)
 
 
 class OmitirFacialSerializer(serializers.Serializer):
@@ -457,3 +463,7 @@ class ContactoFacialSerializer(serializers.Serializer):
 class ReanudarFacialSerializer(serializers.Serializer):
     proceso_id = serializers.UUIDField()
     token = serializers.CharField(max_length=100)
+
+
+class ActualizarDatosRegistroSerializer(IniciarRegistroUsuarioSerializer):
+    proceso_id = serializers.UUIDField()

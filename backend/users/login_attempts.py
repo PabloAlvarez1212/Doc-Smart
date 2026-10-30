@@ -5,7 +5,7 @@ from functools import lru_cache
 
 from django.conf import settings
 from django.core.cache import cache
-from redis import Redis
+from redis import BlockingConnectionPool, Redis
 
 
 MAX_INTENTOS = 5
@@ -24,12 +24,16 @@ def obtenerRedis():
     if not redis_url:
         return None
 
-    return Redis.from_url(
+    # Un solo cliente por proceso y con el pool acotado: no abre conexiones sin límite.
+    return Redis(connection_pool=BlockingConnectionPool.from_url(
         redis_url,
         decode_responses=True,
+        max_connections=getattr(settings, "REDIS_INTENTOS_MAX_CONNECTIONS", 5),
+        timeout=3,
         socket_connect_timeout=2,
         socket_timeout=2,
-    )
+        health_check_interval=30,
+    ))
 
 
 def obtenerClaves(correo):

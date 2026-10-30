@@ -29,6 +29,10 @@ class IniciarRegistroMedicoSerializer(IniciarRegistroUsuarioSerializer):
         return valor
 
 
+class ActualizarDatosRegistroMedicoSerializer(IniciarRegistroMedicoSerializer):
+    proceso_id=serializers.UUIDField()
+
+
 class DatosProfesionalesSerializer(serializers.Serializer):
     proceso_id=serializers.UUIDField()
     telefono=serializers.CharField(max_length=10)
@@ -57,10 +61,12 @@ def guardar_profesionales(datos):
             "documento": ["Primero verifica tu documento"]
         }, 403
 
-    if proceso.contraseña_hash:
+    if proceso.correo_verificado:
         return {
-            "general": ["Los datos profesionales ya están fijados"]
+            "general": ["Tus datos ya fueron confirmados y no se pueden modificar"]
         }, 400
+
+    hoja_anterior = proceso.hoja_vida
 
     metadata = subir_archivo(
         datos["hoja_vida"],
@@ -90,6 +96,11 @@ def guardar_profesionales(datos):
         "hoja_vida",
     ])
 
+    if hoja_anterior:
+        # Al corregir los datos se sube de nuevo la hoja de vida: no se conserva la anterior.
+        from users.services import eliminar_archivo_registro
+        eliminar_archivo_registro(hoja_anterior)
+
     return {"datos_guardados": True}, 200
 
 @transaction.atomic
@@ -97,7 +108,7 @@ def completar_medico(proceso_id):
     proceso=ProcesoRegistroUsuario.objects.select_for_update().filter(pk=proceso_id).first()
     error=services.validarProcesoRegistro(proceso,'medico')
     if error:return error
-    if not facial_cumplida(proceso):return {'validacion_facial':['Completa la verificación facial']},403
+    if not facial_cumplida(proceso,permitir_revision=True):return {'validacion_facial':['Completa la verificación facial']},403
     if not all([proceso.documento_verificado,proceso.correo_verificado,proceso.documento_verificado_en,proceso.correo_verificado_en,proceso.nombre_verificado,proceso.apellido_verificado,proceso.numero_documento_verificado,proceso.fecha_nacimiento_verificada,proceso.telefono,proceso.ciudad_profesional_id,proceso.especialidad_id,proceso.hoja_vida_id,proceso.correo,proceso.contraseña_hash]):
         return {'general':['Completa la identidad, datos profesionales y verificación del correo']},403
     if not es_mayor(proceso.fecha_nacimiento_verificada):return {'fecha_nacimiento':['Debes ser mayor de edad']},400
