@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificación de identidad - DocSmart</title>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: Arial, Helvetica, sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+                    style="max-width: 600px; background-color: #ffffff; border-radius: 10px; overflow: hidden;">
+
+                    <tr>
+                        <td style="padding: 28px 32px; text-align: center; border-bottom: 1px solid #e8e8e8;">
+                            <h1 style="margin: 0; font-size: 26px; color: #222222;">DocSmart</h1>
+                            <p style="margin: 8px 0 0; font-size: 14px; color: #777777;">Verificación de identidad</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 32px; color: #333333; font-size: 15px; line-height: 1.6;">
+                            {% if aprobada %}
+                            <h2 style="margin: 0 0 20px; font-size: 22px; color: #222222;">Tu identidad fue verificada</h2>
+
+                            <p>Hola <strong>{{ nombre }}</strong>,</p>
+
+                            <p>
+                                Un integrante del equipo de DocSmart revisó tu documento y la imagen capturada
+                                durante tu registro, y confirmó tu identidad.
+                            </p>
+
+                            <div style="margin: 24px 0; padding: 18px; background-color: #f5f7f8; border-radius: 8px;">
+                                <strong>Estado de la verificación:</strong> Aprobada
+                            </div>
+
+                            <p>
+                                Puedes terminar tu registro desde el paso siguiente: tus datos anteriores
+                                ya están guardados.
+                            </p>
+
+                            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 28px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{ enlace }}" target="_blank"
+                                            style="display: inline-block; padding: 13px 26px; background-color: #222222; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: bold; border-radius: 8px;">
+                                            Terminar proceso de registro
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="font-size: 13px; color: #777777;">
+                                El enlace es personal y estará disponible durante {{ dias }} días.
+                                Si no iniciaste este registro, ignora este mensaje.
+                            </p>
+                            {% else %}
+                            <h2 style="margin: 0 0 20px; font-size: 22px; color: #222222;">No pudimos verificar tu identidad</h2>
+
+                            <p>Hola <strong>{{ nombre }}</strong>,</p>
+
+                            <p>
+                                Un integrante del equipo de DocSmart revisó tu documento y la imagen capturada
+                                durante tu registro, y no fue posible confirmar tu identidad.
+                            </p>
+
+                            <div style="margin: 24px 0; padding: 18px; background-color: #f5f7f8; border-radius: 8px;">
+                                <strong>Estado de la verificación:</strong> No aprobada
+                            </div>
+
+                            <p>
+                                Por esta razón el registro no puede continuar. Si crees que se trata de un error,
+                                comunícate con el soporte de DocSmart.
+                            </p>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 20px 32px; text-align: center; background-color: #fafafa; border-top: 1px solid #e8e8e8; font-size: 12px; color: #999999;">
+                            Este es un mensaje automático de DocSmart. No respondas a este correo.
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

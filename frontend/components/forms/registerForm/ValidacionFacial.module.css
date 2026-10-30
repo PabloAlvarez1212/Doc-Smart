@@ -1,0 +1,198 @@
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    color: var(--color-text);
+}
+
+.encabezado {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.encabezado strong {
+    color: var(--color-dark);
+    font-size: 1rem;
+}
+
+.encabezado p {
+    margin: 2px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.icono {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: var(--tone-blue);
+    color: var(--color-dark);
+}
+
+.texto {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.texto p {
+    margin: 0 0 8px;
+}
+
+.texto ul {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding-left: 18px;
+}
+
+.texto strong {
+    color: var(--color-text);
+}
+
+.consentimiento {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.88rem;
+    cursor: pointer;
+}
+
+.consentimiento input {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    accent-color: var(--focus);
+}
+
+.fila {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.fila > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.visor {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #000;
+    aspect-ratio: 4 / 3;
+}
+
+.visor video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+}
+
+.guia {
+    position: absolute;
+    inset: 12% 28%;
+    border: 3px solid rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.ayuda,
+.nota {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.mensaje {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--tone-red);
+    color: var(--ink-red);
+    font-size: 0.85rem;
+}
+
+.revision {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--tone-orange);
+    color: var(--ink-orange);
+}
+
+.revision p {
+    margin: 2px 0 0;
+    font-size: 0.85rem;
+}
+
+.alternativas {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.alternativas > p:first-child {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.correoForm {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.correoForm label {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.correoForm input {
+    min-height: 44px;
+    border: 1px solid var(--control-border);
+    border-radius: 10px;
+    padding: 0 12px;
+    background: var(--surface);
+    color: var(--color-text);
+    font: inherit;
+}
+
+.correoForm input:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+.correoForm small {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.correoForm button {
+    align-self: flex-start;
+}

@@ -3,3 +3,7 @@
 .agents/
 .impeccable/
 skills-lock.json
+
+# Documentación de validación facial
+docs/Implementacion/validacion-facial.md
+backend/users/modelos_faciales/LICENCIAS.md
