@@ -13,7 +13,7 @@ import { obtenerPrimerError } from "@/app/utils/errrorUtils"
 export const useNotificaciones = () => {
 
     const [eventoCita, setEventoCita] = useState(null)
-
+    const [versionConexion, setVersionConexion] = useState(0)
     const [notificaciones, setNotificaciones] = useState([])
     const [noLeidas, setNoLeidas] = useState(0)
     const [loading, setLoading] = useState(true)
@@ -132,6 +132,7 @@ export const useNotificaciones = () => {
             // Conexión exitosa
             socket.onopen = () => {
                 intentos = 0
+                setVersionConexion((version) => version + 1)
             }
 
             // Mensajes recibidos
@@ -147,8 +148,12 @@ export const useNotificaciones = () => {
                     }
 
                     // Actualizacion de citas en tienpo real
-                    if (data.type === "appointment_update"){
-                        setEventoCita({tipo_evento: data.tipoEvento, cita: data.cita,});
+                    if (data.type === "appointment_update") {
+                        setEventoCita({
+                            tipo_evento: data.tipo_evento,
+                            cita: data.cita,
+                            recibidoEn: Date.now(),
+                        });
                         return;
                     }
 
@@ -458,6 +463,7 @@ export const useNotificaciones = () => {
         paginaActual,
         totalPaginas,
         totalRegistros,
-        error
+        error,
+        versionConexion,
     }
 }
