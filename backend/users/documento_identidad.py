@@ -1,13 +1,37 @@
-import io,re,unicodedata,os,pytesseract
+import io,re,unicodedata,os,threading,pytesseract
 from datetime import date
 from difflib import SequenceMatcher
 from PIL import Image,ImageOps,ImageEnhance,ImageFilter
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 
 if os.name=="nt":
     pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
+# Un hilo por proceso de Tesseract; el paralelismo lo da la cantidad de procesos.
+os.environ.setdefault("OMP_THREAD_LIMIT","1")
+MAX_LADO_OCR=1600
+_cpus=max(1,min(4,os.cpu_count() or 1))
+_cupo=threading.BoundedSemaphore(_cpus)
+
 class DocumentoError(Exception):pass
+
+def _tesseract(img,**kw):
+    with _cupo:return pytesseract.image_to_string(img,**kw)
+
+def _paralelo(tareas):
+    """Ejecuta callables sin argumentos y devuelve sus resultados en orden."""
+    tareas=list(tareas)
+    if len(tareas)==1:return [tareas[0]()]
+    with ThreadPoolExecutor(max_workers=min(len(tareas),_cpus)) as ex:
+        return [f.result() for f in [ex.submit(t) for t in tareas]]
+
+def _limitar(img,maximo=MAX_LADO_OCR):
+    """Reduce fotos de cámara enormes antes de ampliar; no agranda imágenes pequeñas."""
+    m=max(img.size)
+    if m<=maximo:return img
+    f=maximo/m
+    return img.resize((max(1,int(img.width*f)),max(1,int(img.height*f))),Image.Resampling.LANCZOS)
 
 MESES={"ENE":1,"FEB":2,"MAR":3,"ABR":4,"MAY":5,"JUN":6,"JUL":7,"AGO":8,"SEP":9,"SEPT":9,"OCT":10,"NOV":11,"DIC":12}
 
@@ -29,7 +53,7 @@ def comparar_nombre_ocr(texto,valor):
 
 def preparar_imagen(contenido):
     try:
-        img=Image.open(io.BytesIO(contenido)).convert("RGB")
+        img=_limitar(Image.open(io.BytesIO(contenido)).convert("RGB"))
         if img.height>img.width:img=img.rotate(90,expand=True)
         w,h=img.size
         img=img.resize((w*2,h*2),Image.Resampling.LANCZOS)
@@ -39,7 +63,7 @@ def preparar_imagen(contenido):
 
 def ejecutar_ocr(contenido):
     img=preparar_imagen(contenido)
-    try:r=[pytesseract.image_to_string(img,lang="spa+eng",config=f"--oem 3 --psm {p}").strip() for p in (6,11)]
+    try:r=[x.strip() for x in _paralelo([lambda p=p:_tesseract(img,lang="spa+eng",config=f"--oem 3 --psm {p}") for p in (6,11)])]
     except pytesseract.TesseractNotFoundError:raise DocumentoError("Tesseract no está instalado o configurado")
     except pytesseract.TesseractError:raise DocumentoError("No fue posible ejecutar el OCR")
     r=[x for x in r if x]
@@ -49,7 +73,7 @@ def ejecutar_ocr(contenido):
 
 def ejecutar_ocr_region(contenido, region, psm=6):
     try:
-        img = Image.open(io.BytesIO(contenido)).convert("RGB")
+        img = _limitar(Image.open(io.BytesIO(contenido)).convert("RGB"))
         if img.height > img.width:
             img = img.rotate(90, expand=True)
 
@@ -70,7 +94,7 @@ def ejecutar_ocr_region(contenido, region, psm=6):
         img = ImageOps.autocontrast(ImageOps.grayscale(img))
         img = ImageEnhance.Contrast(img).enhance(1.8)
 
-        return pytesseract.image_to_string(
+        return _tesseract(
             img,
             lang="spa+eng",
             config=f"--oem 3 --psm {psm}"
@@ -127,19 +151,14 @@ def extraer_fecha(texto):
 
 def ejecutar_ocr_mrz(contenido):
     try:
-        img=Image.open(io.BytesIO(contenido)).convert("RGB")
+        img=_limitar(Image.open(io.BytesIO(contenido)).convert("RGB"))
         if img.height>img.width:img=img.rotate(90,expand=True)
         img=ImageOps.autocontrast(ImageOps.grayscale(img))
         w,h=img.size
         regiones=[img.crop((0,int(h*.55),w,h)),img]
-        textos=[]
-        for r in regiones:
-            rw,rh=r.size
-            r=r.resize((rw*2,rh*2),Image.Resampling.LANCZOS)
-            for p in (6,11):
-                t=pytesseract.image_to_string(r,lang="eng",config=f"--oem 3 --psm {p}").strip()
-                if t:textos.append(t)
-        return "\n".join(textos)
+        ampliadas=[r.resize((r.width*2,r.height*2),Image.Resampling.LANCZOS) for r in regiones]
+        textos=[t.strip() for t in _paralelo([lambda r=r,p=p:_tesseract(r,lang="eng",config=f"--oem 3 --psm {p}") for r in ampliadas for p in (6,11)])]
+        return "\n".join(t for t in textos if t)
     except Exception:return ""
 
 def extraer_mrz(texto):
@@ -177,13 +196,14 @@ def extraer_mrz(texto):
 
 def extraer_numero_cc_imagen(contenido):
     try:
-        img=Image.open(io.BytesIO(contenido)).convert("RGB")
+        img=_limitar(Image.open(io.BytesIO(contenido)).convert("RGB"))
         if img.height>img.width:img=img.rotate(90,expand=True)
 
         w,h=img.size
         img=img.crop((0,0,w,int(h*.55)))
-        candidatos=[]
+        conteo=Counter()
 
+        # Escala 2 primero; la 3 solo si no hay consenso claro (>=3 lecturas iguales).
         for escala in (2,3):
             base=img.resize((img.width*escala,img.height*escala),Image.Resampling.LANCZOS)
             gris=ImageOps.autocontrast(ImageOps.grayscale(base))
@@ -195,19 +215,23 @@ def extraer_numero_cc_imagen(contenido):
                 ImageEnhance.Contrast(gris).enhance(2)
             )
 
-            for v in versiones:
-                for psm in (6,11):
-                    texto=pytesseract.image_to_string(
-                        v,
-                        lang="eng",
-                        config=f"--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789."
-                    )
-                    for linea in texto.splitlines():
-                        n=normalizar_numero(linea)
-                        if 6<=len(n)<=12:candidatos.append(n)
+            trabajos=[
+                lambda v=v,psm=psm:_tesseract(
+                    v,
+                    lang="eng",
+                    config=f"--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789."
+                )
+                for v in versiones for psm in (6,11)
+            ]
 
-        if not candidatos:return None
-        conteo=Counter(candidatos)
+            for texto in _paralelo(trabajos):
+                for linea in texto.splitlines():
+                    n=normalizar_numero(linea)
+                    if 6<=len(n)<=12:conteo[n]+=1
+
+            if conteo and max(conteo.values())>=3:break
+
+        if not conteo:return None
         return max(conteo,key=lambda n:(conteo[n],len(n)))
     except Exception:
         return None
@@ -310,23 +334,23 @@ def extraer_cc_nueva(contenido_frente, contenido_reverso, tf, tr, nombre, apelli
     frente = tf if es_frente_cc_nueva(tf) else tr
     reverso = tr if frente == tf else tf
 
-    datos_region = extraer_datos_frente_cc_nueva(contenido_frente)
-    numero = extraer_nuip_nueva(frente) or datos_region["numero_documento"]
-    fecha = extraer_fecha_nacimiento_nueva(frente) or datos_region["fecha_nacimiento"]
-
     # El MRZ solo se consulta en la imagen identificada como reverso.
     contenido_mrz = contenido_reverso
 
-    mrz = (
-        extraer_mrz(ejecutar_ocr_mrz(contenido_mrz))
-        if contenido_mrz
-        else {
-            "numero_documento": None,
-            "fecha_nacimiento": None,
-            "nombres": None,
-            "apellidos": None,
-        }
-    )
+    # Región del frente y MRZ del reverso son independientes: se leen a la vez.
+    numero = extraer_nuip_nueva(frente)
+    fecha = extraer_fecha_nacimiento_nueva(frente)
+    # La lectura por regiones solo hace falta si el texto completo no dio número o fecha.
+    tareas = [lambda: ejecutar_ocr_mrz(contenido_mrz) if contenido_mrz else ""]
+    if not (numero and fecha):
+        tareas.append(lambda: extraer_datos_frente_cc_nueva(contenido_frente))
+    resultados = _paralelo(tareas)
+    texto_mrz = resultados[0]
+    if len(resultados) > 1:
+        numero = numero or resultados[1]["numero_documento"]
+        fecha = fecha or resultados[1]["fecha_nacimiento"]
+
+    mrz = extraer_mrz(texto_mrz)
 
     if not numero:
         numero = mrz["numero_documento"]
@@ -402,8 +426,13 @@ def extraer_datos_cc(
     nombre_declarado=None,
     apellido_declarado=None,
 ):
-    tf = ejecutar_ocr(contenido_frente)
-    tr = ejecutar_ocr(contenido_reverso) if contenido_reverso else ""
+    if contenido_reverso:
+        tf, tr = _paralelo([
+            lambda: ejecutar_ocr(contenido_frente),
+            lambda: ejecutar_ocr(contenido_reverso),
+        ])
+    else:
+        tf, tr = ejecutar_ocr(contenido_frente), ""
 
     formato = detectar_formato_cc(tf, tr)
 

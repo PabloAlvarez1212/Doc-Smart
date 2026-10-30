@@ -68,6 +68,18 @@ urlpatterns = [
 
 urlpatterns += [path(f"registro/{fase}/", RegistroMedicoView.as_view(fase=fase), name="registro-medico-"+fase.replace("/","-")) for fase in ("datos-profesionales","credenciales","subir-documento","documento/verificar","documento/extraer","verificar-correo","reenviar-codigo","completar")]
 
+from users.views import DesafioFacialView, VerificarRostroView, OmitirFacialView, EstadoFacialView, ContactoFacialView, ReanudarFacialView, CancelarRegistroView
+from .registro import IniciarRegistroMedicoSerializer
+urlpatterns += [
+    path("registro/facial/desafio/", DesafioFacialView.as_view(tipo_registro="medico")),
+    path("registro/facial/verificar/", VerificarRostroView.as_view(tipo_registro="medico")),
+    path("registro/facial/omitir/", OmitirFacialView.as_view(tipo_registro="medico")),
+    path("registro/facial/estado/", EstadoFacialView.as_view(tipo_registro="medico")),
+    path("registro/facial/contacto/", ContactoFacialView.as_view(tipo_registro="medico")),
+    path("registro/cancelar/", CancelarRegistroView.as_view(tipo_registro="medico", serializer_class=IniciarRegistroMedicoSerializer)),
+    path("registro/facial/reanudar/", ReanudarFacialView.as_view(tipo_registro="medico")),
+]
+
 from .views import SolicitarCambioCorreoMedicoView, ConfirmarCambioCorreoMedicoView
 urlpatterns += [
     path("perfil/correo/solicitar-cambio/", SolicitarCambioCorreoMedicoView.as_view()),

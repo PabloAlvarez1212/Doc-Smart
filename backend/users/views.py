@@ -5,7 +5,9 @@ from rest_framework.response import Response
 from citas import serializers
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated,AllowAny
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.throttling import ScopedRateThrottle
+from users import validacion_facial as facial
 from utils import IsAdmin,IsPaciente,FiltroPeriodoSerializer
 from django.conf import settings
 from users.services import (
@@ -886,3 +888,130 @@ class InfoUserDetailView(generics.RetrieveUpdateDestroyAPIView):
         registro = self.get_object()
         eliminarInfoUserService(request.user, registro.pk)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ─── Verificación facial del registro ─────────────────────────────────────────
+
+from users.serializers import (
+    ContactoFacialSerializer,
+    ReanudarFacialSerializer,
+    DesafioFacialSerializer,
+    EstadoFacialSerializer,
+    OmitirFacialSerializer,
+    ResolverRevisionFacialSerializer,
+    VerificarRostroSerializer,
+)
+
+
+class FacialRegistroView(APIView):
+    """Base de las fases faciales del registro. El resultado lo decide siempre el servicio."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "facial_registro"
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    serializer_class = None
+    tipo_registro = "paciente"
+    mensaje_error = "No fue posible completar la verificación facial"
+
+    def ejecutar(self, datos):
+        raise NotImplementedError
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+        resultado, status_code = self.ejecutar(serializer.validated_data)
+        if status_code >= 400:
+            return respuesta_error(self.mensaje_error, errores=resultado, status=status_code)
+        return respuesta_ok(data=resultado, status=status_code)
+
+
+class DesafioFacialView(FacialRegistroView):
+    serializer_class = DesafioFacialSerializer
+
+    def ejecutar(self, d):
+        return facial.iniciarDesafioFacialService(d["proceso_id"], d["consentimiento"], self.tipo_registro)
+
+
+class VerificarRostroView(FacialRegistroView):
+    serializer_class = VerificarRostroSerializer
+    mensaje_error = "No se pudo verificar el rostro"
+
+    def ejecutar(self, d):
+        return facial.verificarRostroService(d["proceso_id"], d["desafio"], d["fotogramas"], self.tipo_registro)
+
+
+class OmitirFacialView(FacialRegistroView):
+    serializer_class = OmitirFacialSerializer
+
+    def ejecutar(self, d):
+        return facial.omitirValidacionFacialService(d["proceso_id"], d["motivo"], self.tipo_registro)
+
+
+class EstadoFacialView(FacialRegistroView):
+    serializer_class = EstadoFacialSerializer
+
+    def ejecutar(self, d):
+        return facial.estadoFacialService(d["proceso_id"], self.tipo_registro)
+
+
+class CancelarRegistroView(FacialRegistroView):
+    """Cancela un registro en revisión; recibe los mismos datos del primer paso."""
+    serializer_class = IniciarRegistroUsuarioSerializer
+    mensaje_error = "No fue posible cancelar el proceso"
+
+    def ejecutar(self, d):
+        return facial.cancelarRegistroEnRevisionService(d, self.tipo_registro)
+
+
+class ContactoFacialView(FacialRegistroView):
+    serializer_class = ContactoFacialSerializer
+
+    def ejecutar(self, d):
+        return facial.registrarCorreoContactoFacialService(d["proceso_id"], d["correo"], self.tipo_registro)
+
+
+class ReanudarFacialView(FacialRegistroView):
+    serializer_class = ReanudarFacialSerializer
+    mensaje_error = "No fue posible retomar el registro"
+
+    def ejecutar(self, d):
+        return facial.reanudarRegistroFacialService(d["proceso_id"], d["token"], self.tipo_registro)
+
+
+# ─── Revisión manual: solo administrador ─────────────────────────────────────
+
+class RevisionesFacialesView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        resultado, status_code = facial.listarRevisionesFacialesService(request.query_params.get("estado", "revision"))
+        return respuesta_ok(data=resultado, status=status_code)
+
+
+class RevisionFacialDetalleView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request, proceso_id):
+        resultado, status_code = facial.detalleRevisionFacialService(proceso_id, request.user.pk)
+        if status_code != 200:
+            return respuesta_error("No fue posible consultar la revisión", errores=resultado, status=status_code)
+        return respuesta_ok(data=resultado)
+
+    def post(self, request, proceso_id):
+        serializer = ResolverRevisionFacialSerializer(data=request.data)
+        if not serializer.is_valid():
+            return respuesta_serializer_invalido(serializer.errors)
+        datos = serializer.validated_data
+        if datos["decision"] in ("legitimo", "bloquear"):
+            resultado, status_code = facial.resolverRevisionPosteriorService(
+                proceso_id, datos["decision"], datos.get("motivo", ""), request.user.pk
+            )
+        else:
+            resultado, status_code = facial.resolverRevisionFacialService(
+                proceso_id, datos["decision"], request.user.pk
+            )
+        if status_code != 200:
+            return respuesta_error("No fue posible resolver la revisión", errores=resultado, status=status_code)
+        return respuesta_ok(data=resultado, mensaje="Revisión registrada")

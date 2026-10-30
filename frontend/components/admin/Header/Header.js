@@ -15,6 +15,7 @@ const sectionNames = {
   "/admin/patients": "Pacientes",
   "/admin/doctors": "Médicos",
   "/admin/doctor-requests": "Solicitudes médicas",
+  "/admin/patient-verification": "Verificación de pacientes",
   "/admin/specialties": "Especialidades",
   "/admin/cities": "Ciudades",
   "/admin/departments": "Departamentos",

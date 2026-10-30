@@ -6,6 +6,7 @@ import { CreditCard, FileUp, FileText, RefreshCw, CheckCircle2, MailCheck, Check
 import VerificationStatus from '../../ui/VerificationStatus/VerificationStatus'
 import Input from '../../ui/Input/Input'
 import Button from '../../ui/Button/Button'
+import ValidacionFacial from './ValidacionFacial'
 import { useRegister } from './UseRegister'
 import styles from './RegisterForm.module.css'
 
@@ -63,13 +64,14 @@ export default function RegisterForm({role,setRole}) {
     const state=useRegister(role,setRole)
     const {form,feedback,step,loading,errors,especialidades,departamentos,ciudades,handleChange,
         handleSubmit,handleBack,handleReenviarOtp,otp,setOtp,documentoFrente,setDocumentoFrente,
-        documentoReverso,setDocumentoReverso,procesoId,documentoVerificado,handleUbicacion,correoConfigurado,correoVerificado,comparaciones}=state
+        documentoReverso,setDocumentoReverso,procesoId,documentoVerificado,facialListo,handleFacialListo,handleUbicacion,correoConfigurado,correoVerificado,comparaciones}=state
     const reduced=useReducedMotion()
     const titleRef=useRef(null)
     const previousStep=useRef(step)
     useEffect(()=>{if(previousStep.current!==step){previousStep.current=step;titleRef.current?.focus()}},[step])
     const medical=role==='medico'
-    const labels=['Datos personales','Documento de identidad',medical?'Datos profesionales':'Datos adicionales','Correo y contraseña','Verificación de correo']
+    const faseFacial=step===2&&documentoVerificado&&!facialListo
+    const labels=['Datos personales','Documento y verificación facial',medical?'Datos profesionales':'Datos adicionales','Correo y contraseña','Verificación de correo']
     const locked=loading || (step===1?Boolean(procesoId):correoConfigurado)
     const field=(name,label,props={})=><Field key={name} {...{name,label,form,errors,handleChange,locked,feedback}} {...props} />
     return <form className={styles.form} onSubmit={handleSubmit} aria-busy={loading} noValidate>
@@ -95,6 +97,7 @@ export default function RegisterForm({role,setRole}) {
                     {form.tipo_documento==='CC'&&<Upload id="documento-reverso" label="Reverso del documento" file={documentoReverso} onChange={e=>setDocumentoReverso(e.target.files?.[0]??null)} accept="image/jpeg,image/png,image/webp" disabled={loading||documentoVerificado} verified={documentoVerificado} help="JPG, PNG o WEBP · máximo 8 MB" error={errors.documento_reverso} />}
                     {comparaciones&&<ul className={styles.comparisons} aria-label="Comparación de los datos del documento" aria-live="polite">{[['nombre','Nombre'],['apellido','Apellido'],['numero_documento','Número de documento'],['fecha_nacimiento','Fecha de nacimiento']].map(([key,label])=><li key={key}><span>{label}</span><span data-match={comparaciones[key]}>{comparaciones[key]?<Check size={16}/>:<X size={16}/>} {comparaciones[key]?'Coincide':'No coincide'}</span></li>)}</ul>}
                     {['nombre','apellido','numero_documento','fecha_nacimiento'].filter(key=>errors[key]).map(key=><p key={key} className={styles.error}>{errors[key]}</p>)}
+                    {faseFacial&&<ValidacionFacial role={role} procesoId={procesoId} onListo={handleFacialListo} />}
                 </>}
                 {step===3&&<>
                     {field('telefono','Teléfono celular',{type:'tel',autoComplete:'tel'})}
@@ -126,7 +129,7 @@ export default function RegisterForm({role,setRole}) {
                 {errors.general&&<p className={styles.error} role="alert">{errors.general}</p>}
                 <div className={styles.buttons}>
                     <Button type="button" variant="secondary" onClick={handleBack} disabled={loading}>Atrás</Button>
-                    <Button type="submit" variant="primary" disabled={loading}>{loading?'Verificando…':step===2?(documentoVerificado?'Continuar':'Verificar documento'):step===4?'Enviar código':step===5?(correoVerificado?'Completar registro':'Verificar y completar'):'Continuar'}</Button>
+                    {!faseFacial&&<Button type="submit" variant="primary" disabled={loading}>{loading?'Verificando…':step===2?(documentoVerificado?'Continuar':'Verificar documento'):step===4?'Enviar código':step===5?(correoVerificado?'Completar registro':'Verificar y completar'):'Continuar'}</Button>}
                 </div>
             </motion.div>
         </AnimatePresence>

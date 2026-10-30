@@ -12,6 +12,8 @@ from users.models import Usuario,ProcesoRegistroUsuario,InfoUser, TipoInfoUser
 from medicos.models import Medico,SolicitudValidacionMedico
 from users.serializers import UsuarioSerializer, MedicoSerializer,UsuarioPerfilSerializer
 from users.documento_identidad import DocumentoError,extraer_datos_documento
+from users.validacion_facial import facial_cumplida,marcar_revision_posterior
+from users.registros_abandonados import proceso_en_revision,purgar_abandonados,proceso_reanudable
 import secrets
 from django.utils import timezone
 from datetime import timedelta
@@ -34,7 +36,8 @@ import logging
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.exceptions import NotFound, PermissionDenied
-from utils import filtrarMedicosAprobados
+from utils import filtrarMedicosAprobados, CustomJWTAuthentication, mensaje_bloqueo
+from rest_framework_simplejwt.exceptions import InvalidToken
 from django.db.models import Count,Case, When, Value, CharField,Q
 from django.db.models.functions import TruncMonth, TruncDay
 from dateutil.relativedelta import relativedelta
@@ -110,6 +113,9 @@ def loginService(correo, contraseña):
 
             reiniciarIntentos(correo)
 
+            if usuario.acceso_bloqueado:
+                return None, {"general": [mensaje_bloqueo(usuario)], "cuenta_bloqueada": True}, 403
+
             token = RefreshToken.for_user(usuario)
 
             token["tipo"] = "usuario"
@@ -125,6 +131,9 @@ def loginService(correo, contraseña):
         ):
 
             reiniciarIntentos(correo)
+
+            if medico.acceso_bloqueado:
+                return None, {"general": [mensaje_bloqueo(medico)], "cuenta_bloqueada": True}, 403
 
             ultima_solicitud = medico.ultima_solicitud_validacion
 
@@ -207,6 +216,11 @@ def loginService(correo, contraseña):
 def refreshTokenService(refresh_token):
     try:
         refresh = RefreshToken(refresh_token)
+
+        try:
+            CustomJWTAuthentication().get_user(refresh)
+        except InvalidToken as bloqueo:
+            return None, {"general": [str(bloqueo.detail)], "cuenta_bloqueada": True}, 401
 
         nuevo_access_token = refresh.access_token
 
@@ -651,6 +665,16 @@ def registrarUsuarioService(datos, tipo_registro="paciente"):
     if Usuario.objects.filter(cedula=numero).exists() or Medico.objects.filter(cedula=numero).exists():
         return {"numero_documento":["Este documento ya está registrado"]},400
 
+    en_revision=proceso_en_revision(tipo_registro,tipo,numero)
+    if en_revision:
+        return {"en_revision":True,"general":["Tu verificación de identidad está en revisión. Te avisaremos por correo cuando el equipo de DocSmart termine de revisarla."]},409
+    # Ya fue verificada por el administrador: retoma en el paso 3 sin repetir documento ni cámara.
+    reanudable=proceso_reanudable(tipo_registro,tipo,numero,datos)
+    if reanudable:
+        return {"proceso_id":str(reanudable.id),"reanudado":True,"documento_verificado":True,"validacion_facial":reanudable.validacion_facial},201
+    # Un registro anterior sin terminar de la misma persona no se conserva.
+    purgar_abandonados((tipo_registro,tipo,numero),solo_vencidos=False)
+
     ahora=timezone.now()
     proceso=ProcesoRegistroUsuario.objects.create(
         tipo_registro=tipo_registro,
@@ -698,6 +722,7 @@ def configurarCredencialesRegistroService(datos, tipo_registro="paciente"):
     error=validarProcesoRegistro(proceso,tipo_registro)
     if error:return error
     if not proceso.documento_verificado:return {"documento":["Primero debes verificar el documento"]},403
+    if not facial_cumplida(proceso):return {"validacion_facial":["Primero debes completar la verificación facial"]},403
     if tipo_registro == "medico" and not all([proceso.telefono,proceso.ciudad_profesional_id,proceso.especialidad_id,proceso.hoja_vida_id]):
         return {"general":["Primero debes guardar los datos profesionales y la hoja de vida"]},403
     if tipo_registro == "paciente" and (
@@ -1241,6 +1266,8 @@ def completarRegistroUsuarioService(proceso_id):
         return {"correo":["El correo no ha sido verificado"]},400
     if not proceso.documento_verificado:
         return {"documento":["El documento no ha sido verificado"]},400
+    if not facial_cumplida(proceso):
+        return {"validacion_facial":["La verificación facial no ha sido completada"]},403
 
     if (
         not proceso.telefono
@@ -1292,7 +1319,9 @@ def completarRegistroUsuarioService(proceso_id):
 
     proceso.estado = (ProcesoRegistroUsuario.Estado.COMPLETADO)
     proceso.completado_en = timezone.now()
-    proceso.save(update_fields=["estado","completado_en",])
+    proceso.usuario = usuario
+    marcar_revision_posterior(proceso)
+    proceso.save(update_fields=["estado","completado_en","usuario","revision_posterior"])
 
     serializer = UsuarioSerializer(usuario)
     return serializer.data, 201

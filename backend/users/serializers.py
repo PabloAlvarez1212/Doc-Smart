@@ -419,3 +419,41 @@ class InfoUserSerializer(serializers.ModelSerializer):
 
                     datos[campo] = ""
         return datos
+
+class DesafioFacialSerializer(serializers.Serializer):
+    proceso_id = serializers.UUIDField()
+    consentimiento = serializers.BooleanField()
+
+
+class VerificarRostroSerializer(serializers.Serializer):
+    proceso_id = serializers.UUIDField()
+    desafio = serializers.CharField(max_length=100)
+    fotogramas = serializers.ListField(
+        child=serializers.ImageField(allow_empty_file=False), min_length=2, max_length=4,
+    )
+
+
+class OmitirFacialSerializer(serializers.Serializer):
+    proceso_id = serializers.UUIDField()
+    motivo = serializers.ChoiceField(
+        choices=["sin_foto_documento", "camara_no_disponible", "accesibilidad", "sin_consentimiento"]
+    )
+
+
+class EstadoFacialSerializer(serializers.Serializer):
+    proceso_id = serializers.UUIDField()
+
+
+class ResolverRevisionFacialSerializer(serializers.Serializer):
+    decision = serializers.ChoiceField(choices=["aprobar", "rechazar", "legitimo", "bloquear"])
+    motivo = serializers.CharField(required=False, allow_blank=True, max_length=500)
+
+
+class ContactoFacialSerializer(serializers.Serializer):
+    proceso_id = serializers.UUIDField()
+    correo = serializers.EmailField(max_length=254)
+
+
+class ReanudarFacialSerializer(serializers.Serializer):
+    proceso_id = serializers.UUIDField()
+    token = serializers.CharField(max_length=100)

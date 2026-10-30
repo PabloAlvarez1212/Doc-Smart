@@ -26,6 +26,9 @@ class Usuario(models.Model):
     ultimo_envio = models.DateTimeField(null=True, blank=True)
     foto_perfil = models.ImageField(upload_to="perfiles/pacientes/",null=True,blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    acceso_bloqueado = models.BooleanField(default=False)
+    motivo_bloqueo = models.TextField(blank=True, default="")
+    bloqueado_en = models.DateTimeField(null=True, blank=True)
     
     @property
     def numero_documento(self): return self.cedula
@@ -94,6 +97,37 @@ class ProcesoRegistroUsuario(models.Model):
     nombre_verificado=models.CharField(max_length=100,null=True,blank=True)
     apellido_verificado=models.CharField(max_length=100,null=True,blank=True)
     fecha_nacimiento_verificada=models.DateField(null=True,blank=True)
+
+    class EstadoFacial(models.TextChoices):
+        PENDIENTE="pendiente","Pendiente"
+        APROBADO="aprobado","Aprobado"
+        REVISION="revision","En revisión manual"
+        ALTERNATIVA="alternativa","Verificación alternativa"
+        RECHAZADO="rechazado","Rechazado"
+
+    # Solo lo escribe el backend tras comparar las imágenes; nunca se recibe del cliente.
+    validacion_facial=models.BooleanField(default=False)
+    validacion_facial_en=models.DateTimeField(null=True,blank=True)
+    estado_facial=models.CharField(max_length=20,choices=EstadoFacial.choices,default=EstadoFacial.PENDIENTE)
+    motivo_facial=models.CharField(max_length=40,blank=True,default="")
+    similitud_facial=models.FloatField(null=True,blank=True)
+    intentos_facial=models.PositiveSmallIntegerField(default=0)
+    consentimiento_facial_version=models.CharField(max_length=20,blank=True,default="")
+    consentimiento_facial_en=models.DateTimeField(null=True,blank=True)
+    desafio_facial_hash=models.CharField(max_length=64,blank=True,default="")
+    desafio_facial_expira_en=models.DateTimeField(null=True,blank=True)
+    foto_documento_facial=models.ForeignKey("storage_app.Archivo",on_delete=models.SET_NULL,null=True,blank=True,related_name="procesos_facial_documento")
+    selfie_facial=models.ForeignKey("storage_app.Archivo",on_delete=models.SET_NULL,null=True,blank=True,related_name="procesos_facial_selfie")
+    revisado_facial_por=models.CharField(max_length=150,blank=True,default="")
+    revisado_facial_en=models.DateTimeField(null=True,blank=True)
+    # Cuenta creada con este registro y revisión posterior del administrador cuando el sistema aprobó solo.
+    usuario=models.OneToOneField("users.Usuario",on_delete=models.SET_NULL,null=True,blank=True,related_name="proceso_registro")
+    revision_posterior=models.CharField(max_length=12,blank=True,default="",choices=(("pendiente","Por confirmar"),("legitimo","Legítimo"),("bloqueado","Bloqueado")))
+    capturas_facial=models.PositiveSmallIntegerField(default=0)
+    correo_contacto_facial=models.EmailField(blank=True,default="")
+    correo_facial_enviado=models.BooleanField(default=False)
+    token_reanudacion_hash=models.CharField(max_length=64,blank=True,default="")
+    token_reanudacion_expira_en=models.DateTimeField(null=True,blank=True)
 
     estado=models.CharField(max_length=30,choices=Estado.choices,default=Estado.INICIADO)
     creado_en=models.DateTimeField(auto_now_add=True)

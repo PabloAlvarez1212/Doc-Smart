@@ -39,6 +39,8 @@ Incremental==24.11.0
 jiter==0.17.0
 jmespath==1.1.0
 msgpack==1.2.1
+numpy==2.5.4
+opencv-python-headless==5.0.0.93
 mysqlclient==2.2.8
 openai==3.23.0
 packaging==26.2

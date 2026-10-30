@@ -1,7 +1,7 @@
 'use client'
 import { obtenerPrimerError } from '@/app/utils/errrorUtils'
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Swal from 'sweetalert2'
 import {
     validateRegisterStep1,
@@ -17,6 +17,8 @@ import { getEspecialidadesService } from '@/app/services/doctorServices'
 
 export const useRegister = (role, setRole) => {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const reanudado = useRef(false)
 
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
@@ -31,6 +33,7 @@ export const useRegister = (role, setRole) => {
     const [documentoReverso, setDocumentoReverso] = useState(null)
     const [documentoVerificado, setDocumentoVerificado] = useState(false)
     const [documentoCargado, setDocumentoCargado] = useState(false)
+    const [facialListo, setFacialListo] = useState(false)
     const [datosGuardados, setDatosGuardados] = useState(false)
     const [correoConfigurado, setCorreoConfigurado] = useState(false)
     const [correoVerificado, setCorreoVerificado] = useState(false)
@@ -133,11 +136,67 @@ export const useRegister = (role, setRole) => {
         }
     }
 
+    // Enlace del correo de aprobación: retoma el registro en el paso siguiente a la verificación facial.
+    useEffect(() => {
+        const id = searchParams.get('reanudar')
+        const token = searchParams.get('token')
+        if (!id || !token || reanudado.current) return
+        reanudado.current = true
+        window.history.replaceState(null, '', `${window.location.pathname}?role=${role}`)
+        ejecutarPaso(async () => {
+            const response = await registroService(role, 'facial/reanudar', { proceso_id: id, token })
+            const datos = response.data
+            setProcesoId(datos.proceso_id)
+            setForm(prev => ({
+                ...prev,
+                nombre: datos.nombre,
+                apellido: datos.apellido,
+                tipo_documento: datos.tipo_documento,
+                numero_documento: datos.numero_documento,
+                fecha_nacimiento: datos.fecha_nacimiento,
+            }))
+            setDocumentoCargado(true)
+            setDocumentoVerificado(true)
+            setFacialListo(true)
+            setStep(3)
+            report('success', 'Tu identidad fue verificada. Completa los datos que faltan para terminar tu registro.')
+        }, 'Retomando tu registro…')
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
     const handleBack = () => {
         if (ocupado.current || loading) return
         setErrors({})
         if (step === 1) setRole(null)
         else setStep((prev) => prev - 1)
+    }
+
+    // Ya existe un registro con estos datos esperando la decisión del administrador.
+    const avisarRegistroEnRevision = async (datosPaso1) => {
+        const aviso = await Swal.fire({
+            icon: 'info',
+            title: 'Tu verificación está en revisión',
+            text: 'Ya existe un registro con estos datos pendiente de revisión por el equipo de DocSmart. Te avisaremos por correo cuando termine; no necesitas hacer nada más.',
+            showDenyButton: true,
+            confirmButtonText: 'Entendido',
+            denyButtonText: 'Cancelar proceso',
+        })
+        if (!aviso.isDenied) return
+        const confirmacion = await Swal.fire({
+            icon: 'warning',
+            title: '¿Seguro que deseas cancelar el proceso?',
+            text: 'Se eliminará tu registro en revisión y las imágenes cargadas. Si quieres registrarte, tendrás que empezar de nuevo.',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, cancelar proceso',
+            cancelButtonText: 'No, mantenerlo',
+        })
+        if (!confirmacion.isConfirmed) return
+        try {
+            await registroService(role, 'cancelar', datosPaso1)
+            await Swal.fire({ icon: 'success', title: 'Proceso cancelado', text: 'Puedes iniciar un registro nuevo cuando quieras.', confirmButtonText: 'Aceptar' })
+        } catch (error) {
+            await Swal.fire({ icon: 'error', title: 'No se pudo cancelar el proceso', text: obtenerPrimerError(error.response?.data?.errores) || 'Inténtalo de nuevo en unos minutos.', confirmButtonText: 'Aceptar' })
+        }
     }
 
     const handleNextStep = async () => {
@@ -148,10 +207,30 @@ export const useRegister = (role, setRole) => {
             return ejecutarPaso(async () => {
                 if (!procesoId) {
                     const { nombre, apellido, tipo_documento, numero_documento, fecha_nacimiento } = form
-                    const response = await registroService(role, '', {nombre, apellido, tipo_documento, numero_documento, fecha_nacimiento})
+                    const datosPaso1 = {nombre, apellido, tipo_documento, numero_documento, fecha_nacimiento}
+                    let response
+                    try {
+                        response = await registroService(role, '', datosPaso1)
+                    } catch (error) {
+                        if (error.response?.status === 409 && error.response.data?.errores?.en_revision) {
+                            setFeedback({kind:'idle', message:'', revision:0})
+                            await avisarRegistroEnRevision(datosPaso1)
+                            return
+                        }
+                        throw error
+                    }
                     const id = response.data?.proceso_id
                     if (!id) throw new Error('La API no devolvió el proceso de registro')
                     setProcesoId(id)
+                    if (response.data?.reanudado) {
+                        // Su identidad ya fue verificada: se omiten el documento y el reconocimiento facial.
+                        setDocumentoCargado(true)
+                        setDocumentoVerificado(true)
+                        setFacialListo(true)
+                        report('success', 'Tu identidad ya fue verificada. Completa los datos que faltan para terminar tu registro.')
+                        setStep(3)
+                        return
+                    }
                 }
                 setStep(2)
             })
@@ -221,7 +300,7 @@ export const useRegister = (role, setRole) => {
 
     const handleDocumento = async () => {
         if (step !== 2 || !procesoId) return
-        if (documentoVerificado) return setStep(3)
+        if (documentoVerificado) return facialListo ? setStep(3) : undefined
         if (mostrarValidacion(validateRegisterDocumento(form.tipo_documento, documentoFrente, documentoReverso))) return
         return ejecutarPaso(async () => {
             if (!documentoCargado) {
@@ -236,8 +315,14 @@ export const useRegister = (role, setRole) => {
             if (response.data?.documento_verificado !== true) throw new Error('La identidad todavía no está verificada')
             setDocumentoVerificado(true)
             setComparaciones(response.data?.comparaciones || null)
-            report("success","Los datos del documento coinciden. Continúa con el siguiente paso.")
-            setStep(3)
+            const facial = await registroService(role, 'facial/estado', { proceso_id: procesoId })
+            if (facial.data?.obligatoria === false || ['aprobado', 'alternativa'].includes(facial.data?.estado)) {
+                setFacialListo(true)
+                report("success","Los datos del documento coinciden. Continúa con el siguiente paso.")
+                setStep(3)
+            } else {
+                report("success","Documento verificado. Completa la verificación facial para continuar.")
+            }
         }, "Verificando tu documento de identidad…")
     }
 
@@ -248,6 +333,12 @@ export const useRegister = (role, setRole) => {
         setDocumentoCargado(false)
         setComparaciones(null)
         setErrors({})
+    }
+
+    const handleFacialListo = (estado) => {
+        setFacialListo(true)
+        report("success", estado === 'alternativa' ? "Verificación alternativa registrada. Continúa con el siguiente paso." : "Rostro verificado. Continúa con el siguiente paso.")
+        setStep(3)
     }
 
     const handleReenviarOtp = () => {
@@ -283,6 +374,8 @@ export const useRegister = (role, setRole) => {
         handleBack,
         handleReenviarOtp,
         documentoVerificado,
+        facialListo,
+        handleFacialListo,
         correoConfigurado,
         correoVerificado,
     }

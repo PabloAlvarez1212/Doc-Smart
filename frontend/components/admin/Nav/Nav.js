@@ -15,6 +15,7 @@ import {
     Shield,
     Stethoscope,
     UserRoundCheck,
+    ScanFace,
 } from "lucide-react";
 import { useState } from "react";
 import styles from "./Nav.module.css";
@@ -36,6 +37,7 @@ const catalogItems = [
 
 const validationItems = [
     { href: "/admin/doctor-requests", label: "Solicitudes médicas", icon: UserRoundCheck },
+    { href: "/admin/patient-verification", label: "Verificación de pacientes", icon: ScanFace },
 ];
 
 export default function Nav() {

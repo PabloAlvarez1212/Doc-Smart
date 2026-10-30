@@ -124,3 +124,12 @@ export const obtenerEstadisticasPacientesService = async (anio, mes, signal) =>{
     });
     return response.data
 }
+
+export const listarRevisionesFacialesService = async (estado = "revision") =>
+    (await api.get("/usuarios/facial/revisiones/", { params: { estado } })).data
+
+export const detalleRevisionFacialService = async (procesoId) =>
+    (await api.get(`/usuarios/facial/revisiones/${procesoId}/`)).data
+
+export const resolverRevisionFacialService = async (procesoId, decision, motivo) =>
+    (await api.post(`/usuarios/facial/revisiones/${procesoId}/`, { decision, ...(motivo ? { motivo } : {}) })).data

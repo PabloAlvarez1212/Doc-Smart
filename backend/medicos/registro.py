@@ -11,6 +11,7 @@ from storage_app.models import Archivo
 from storage_app.services import subir_archivo
 from users.models import ProcesoRegistroUsuario, Usuario
 from users import services
+from users.validacion_facial import facial_cumplida, marcar_revision_posterior
 from users.serializers import IniciarRegistroUsuarioSerializer, DatosAdicionalesRegistroSerializer, CredencialesRegistroSerializer, SubirDocumentoRegistroSerializer, VerificarCorreoRegistroSerializer, ReenviarCodigoRegistroSerializer
 from .models import Medico, Especialidad, SolicitudValidacionMedico
 from .serializers import validar_hoja_vida_pdf
@@ -96,6 +97,7 @@ def completar_medico(proceso_id):
     proceso=ProcesoRegistroUsuario.objects.select_for_update().filter(pk=proceso_id).first()
     error=services.validarProcesoRegistro(proceso,'medico')
     if error:return error
+    if not facial_cumplida(proceso):return {'validacion_facial':['Completa la verificación facial']},403
     if not all([proceso.documento_verificado,proceso.correo_verificado,proceso.documento_verificado_en,proceso.correo_verificado_en,proceso.nombre_verificado,proceso.apellido_verificado,proceso.numero_documento_verificado,proceso.fecha_nacimiento_verificada,proceso.telefono,proceso.ciudad_profesional_id,proceso.especialidad_id,proceso.hoja_vida_id,proceso.correo,proceso.contraseña_hash]):
         return {'general':['Completa la identidad, datos profesionales y verificación del correo']},403
     if not es_mayor(proceso.fecha_nacimiento_verificada):return {'fecha_nacimiento':['Debes ser mayor de edad']},400
@@ -110,7 +112,8 @@ def completar_medico(proceso_id):
     proceso.medico=medico
     proceso.estado=ProcesoRegistroUsuario.Estado.COMPLETADO
     proceso.completado_en=timezone.now()
-    proceso.save(update_fields=['medico','estado','completado_en'])
+    marcar_revision_posterior(proceso)
+    proceso.save(update_fields=['medico','estado','completado_en','revision_posterior'])
     return {'id':medico.pk,'estado_validacion':solicitud.estado},201
 
 

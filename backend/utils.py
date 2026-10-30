@@ -15,6 +15,16 @@ from django.utils import timezone
 from rest_framework.response import Response
 from django.template.loader import render_to_string
 
+MENSAJE_CUENTA_BLOQUEADA = (
+    "Tu acceso a DocSmart fue bloqueado tras la revisión de tu verificación de identidad."
+)
+
+
+def mensaje_bloqueo(cuenta):
+    motivo = (getattr(cuenta, "motivo_bloqueo", "") or "").strip()
+    return f"{MENSAJE_CUENTA_BLOQUEADA} Motivo: {motivo}" if motivo else MENSAJE_CUENTA_BLOQUEADA
+
+
 def validarContraseña(contraseña):
     if len(contraseña) < 8:
         return 'La contraseña debe tener mínimo 8 caracteres'
@@ -81,6 +91,8 @@ class CustomJWTAuthentication(JWTAuthentication):
             ).first()
 
             if medico:
+                if medico.acceso_bloqueado:
+                    raise InvalidToken(mensaje_bloqueo(medico))
                 return medico
 
         elif tipo == "usuario":
@@ -89,6 +101,8 @@ class CustomJWTAuthentication(JWTAuthentication):
             ).first()
 
             if usuario:
+                if usuario.acceso_bloqueado:
+                    raise InvalidToken(mensaje_bloqueo(usuario))
                 return usuario
 
         raise InvalidToken("User not found")

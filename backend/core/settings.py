@@ -339,6 +339,7 @@ REST_FRAMEWORK = {
         "bymax_diagnostics": "10/min",
         "historial_read": "60/min",
         "historial_write": "10/min",
+        "facial_registro": "40/hour",
     },
 }
 
@@ -523,3 +524,22 @@ USE_TZ = True
 STATIC_URL = "/static/"
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# VALIDACIÓN FACIAL DEL REGISTRO
+# ──────────────────────────────────────────────────────────────────────────────
+
+FACIAL_OBLIGATORIA = os.getenv("FACIAL_OBLIGATORIA", "true").lower() != "false"
+# Similitud coseno de SFace: >= APROBADO aprueba, entre REVISION y APROBADO pasa a revisión manual.
+FACIAL_UMBRAL_APROBADO = float(os.getenv("FACIAL_UMBRAL_APROBADO", "0.45"))
+FACIAL_UMBRAL_REVISION = float(os.getenv("FACIAL_UMBRAL_REVISION", "0.363"))
+FACIAL_MAX_INTENTOS = int(os.getenv("FACIAL_MAX_INTENTOS", "3"))
+# Capturas totales, incluidas las repetidas por mala calidad de imagen.
+FACIAL_MAX_CAPTURAS = int(os.getenv("FACIAL_MAX_CAPTURAS", "8"))
+# Vigencia del registro mientras un administrador revisa y la persona retoma con el enlace.
+FACIAL_REVISION_DIAS = int(os.getenv("FACIAL_REVISION_DIAS", "7"))
+FACIAL_DESAFIO_SEGUNDOS = int(os.getenv("FACIAL_DESAFIO_SEGUNDOS", "300"))
+FACIAL_RETENCION_DIAS = int(os.getenv("FACIAL_RETENCION_DIAS", "30"))
+FACIAL_CARPETA = "validacionFacial"
+FACIAL_CONSENTIMIENTO_VERSION = "2026-10"

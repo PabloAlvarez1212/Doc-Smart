@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { createPortal } from "react-dom";
 import { useEffect, useId, useRef, useState } from "react";
 import styles from "./Modal.module.css";
+import { bloquearScroll } from "./scrollLock";
 
 export default function Modal({
   abierto,
@@ -31,12 +32,11 @@ export default function Modal({
   useEffect(() => {
     if (!abierto || !mounted) return;
     const previousFocus = document.activeElement;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const liberarScroll = bloquearScroll();
     (initialFocusRef?.current || closeRef.current)?.focus({ preventScroll: true });
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      liberarScroll();
       if (previousFocus?.isConnected) previousFocus.focus();
     };
   }, [abierto, mounted, initialFocusRef]);
