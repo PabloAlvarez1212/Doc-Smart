@@ -9,6 +9,7 @@ import ResponsiveNav from "../../../components/ui/ResponsiveNav/ResponsiveNav";
 import BymaxDiagnostics from "../../../components/bymax/BymaxDiagnostics";
 import useProfile from "../../../components/admin/Profile/useProfile";
 import useInactivityLogout from "../../../components/hooks/useInactivityLogout";
+import { NotificationsProvider } from "../../../components/contex/NotificationsContext";
 
 import Styles from "./layout.module.css";
 
@@ -45,7 +46,8 @@ export default function AdminLayout({ children }) {
   }
 
   return (
-    <div className={Styles.containerMain}>
+    <NotificationsProvider cargarBandeja={false}>
+      <div className={Styles.containerMain}>
       <BymaxDiagnostics />
 
       <header className={Styles.header}>
@@ -68,6 +70,7 @@ export default function AdminLayout({ children }) {
           </div>
         </main>
       </div>
-    </div>
+      </div>
+    </NotificationsProvider>
   );
 }

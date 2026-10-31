@@ -1388,6 +1388,8 @@ def completarRegistroUsuarioService(proceso_id):
     proceso.usuario = usuario
     marcar_revision_posterior(proceso)
     proceso.save(update_fields=["estado","completado_en","usuario","revision_posterior"])
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
+    programarActualizacionDashboardRealtime('PACIENTE_REGISTRADO', ('resumen', 'pacientes'))
 
     serializer = UsuarioSerializer(usuario)
     return serializer.data, 201
@@ -1495,7 +1497,11 @@ def eliminarUsuarioService(id):
     usuario = Usuario.objects.filter(id=id).first()
     if not usuario:
         return 'Usuario no encontrado', 404
+    es_paciente = usuario.id_rol.nombre == 'paciente'
     usuario.delete()
+    if es_paciente:
+        from notificaciones.realtime import programarActualizacionDashboardRealtime
+        programarActualizacionDashboardRealtime('PACIENTE_ELIMINADO', ('resumen', 'pacientes'))
     return 'Usuario eliminado correctamente', 200
 
 def obtenerDashboardPacienteInicioService(id):
@@ -1708,7 +1714,7 @@ def obtenerEstadisticasPacientesService(anio=None, mes=None):
             id_usuario__id_rol__nombre__iexact="paciente"
         )
         .dates(
-            "fecha_programada",
+            "fecha_creacion",
             "year",
             order="DESC"
         )
@@ -1725,7 +1731,7 @@ def obtenerEstadisticasPacientesService(anio=None, mes=None):
         reverse=True
     )
 
-    citasPeriodo = Cita.objects.filter(id_usuario__id_rol__nombre__iexact="paciente",fecha_programada__gte=inicioPeriodo,fecha_programada__lt=finPeriodo)
+    citasPeriodo = Cita.objects.filter(id_usuario__id_rol__nombre__iexact="paciente",fecha_creacion__gte=inicioPeriodo,fecha_creacion__lt=finPeriodo)
 
     pacientesRegistradosPeriodo = Usuario.objects.filter(id_rol__nombre__iexact="paciente",fecha_creacion__gte=inicioPeriodo,fecha_creacion__lt=finPeriodo)
 
@@ -1793,12 +1799,12 @@ def obtenerEstadisticasPacientesService(anio=None, mes=None):
         rangosCitas[paciente["rango_citas"]] += 1
 
     if mes is not None:
-        pacientesActivosPorPeriodo = (citasPeriodo.annotate(periodo=TruncDay("fecha_programada")).values("periodo").annotate(total_pacientes=Count("id_usuario",distinct=True)).order_by("periodo"))
+        pacientesActivosPorPeriodo = (citasPeriodo.annotate(periodo=TruncDay("fecha_creacion")).values("periodo").annotate(total_pacientes=Count("id_usuario",distinct=True)).order_by("periodo"))
 
         agrupacionActivos = "dia"
 
     else:
-        pacientesActivosPorPeriodo = (citasPeriodo.annotate(periodo=TruncMonth("fecha_programada")).values("periodo").annotate(total_pacientes=Count("id_usuario",distinct=True)).order_by("periodo"))
+        pacientesActivosPorPeriodo = (citasPeriodo.annotate(periodo=TruncMonth("fecha_creacion")).values("periodo").annotate(total_pacientes=Count("id_usuario",distinct=True)).order_by("periodo"))
 
         agrupacionActivos = "mes"
 

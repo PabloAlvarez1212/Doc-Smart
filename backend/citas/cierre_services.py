@@ -139,6 +139,8 @@ def _procesarCitaCierre(id):
         cita.id_estado = Estado.objects.get(nombre__iexact='vencida')
         cita.fecha_vencimiento = ahora
         cita.save(update_fields=['id_estado', 'fecha_vencimiento'])
+        from notificaciones.realtime import programarActualizacionDashboardRealtime
+        programarActualizacionDashboardRealtime('CITA_VENCIDA_CIERRE', ('citas',))
         from chat_citas.event_services import registrarEventoConversacionService
         from chat_citas.services import _cerrar_ventana_cita
         _cerrar_ventana_cita(cita, ahora)

@@ -7,6 +7,8 @@ import {
     obtenerMetricasSistemaService,
 } from "@/app/services/adminServices";
 import { useEffect, useRef, useState } from "react";
+import { useNotificationsContext } from "../../contex/NotificationsContext";
+import { sectionsAfterConnection, splitDashboardRefresh, validDashboardSections } from "./dashboardRealtime.mjs";
 
 /** @typedef {"mes"|"dia"} AgrupacionPeriodo */
 /** @typedef {{periodo: string, total: number}} CitaPeriodo */
@@ -57,6 +59,21 @@ const EMPTY_PATIENT_FILTERS = {
 };
 
 export function useDashboard() {
+    const { eventoDashboard, versionConexion } = useNotificationsContext();
+    const metricsRequestRef = useRef(null);
+    const mountedRef = useRef(false);
+    const refreshTimerRef = useRef(null);
+    const pendingSectionsRef = useRef(new Set());
+    const seenEventsRef = useRef(new Set());
+    const initialConnectionRef = useRef(false);
+    const dayRef = useRef(new Date().toDateString());
+    const appliedFiltersRef = useRef({
+        citas: { anio: null, mes: null },
+        medicos: { anio: null, mes: null },
+        pacientes: { anio: null, mes: null },
+    });
+    const hasDataRef = useRef({ resumen: false, citas: false, medicos: false, pacientes: false });
+    const manualPendingRef = useRef(new Set());
     const [metricasTarjetas, setMetricasTarjetas] = useState(null);
     const [loadingMetricas, setLoadingMetricas] = useState(true);
     const [errorMetricas, setErrorMetricas] = useState(false);
@@ -118,12 +135,16 @@ export function useDashboard() {
     const patientRequestRef = useRef(null);
 
     useEffect(() => {
+        mountedRef.current = true;
         cargarMetricasTarjetas();
         cargarEstadisticasPacientes();
         cargarEstadisticasCitas();
         cargarEstadisticasMedicos();
 
         return () => {
+            mountedRef.current = false;
+            clearTimeout(refreshTimerRef.current);
+            metricsRequestRef.current?.abort();
             appointmentRequestRef.current?.abort();
             doctorRequestRef.current?.abort();
             patientRequestRef.current?.abort();
@@ -131,37 +152,31 @@ export function useDashboard() {
     }, []);
 
     const cargarMetricasTarjetas = async () => {
+        metricsRequestRef.current?.abort();
+        const controller = new AbortController();
+        metricsRequestRef.current = controller;
         try {
             setErrorMetricas(false);
-            const data = await obtenerMetricasSistemaService();
+            const data = await obtenerMetricasSistemaService(controller.signal);
+            if (controller.signal.aborted || !mountedRef.current) return;
             setMetricasTarjetas(data.data);
+            hasDataRef.current.resumen = true;
         } catch {
-            setMetricasTarjetas(null);
-            setErrorMetricas(true);
+            if (!controller.signal.aborted && mountedRef.current) setErrorMetricas(true);
         } finally {
-            setLoadingMetricas(false);
+            if (!controller.signal.aborted && mountedRef.current) setLoadingMetricas(false);
         }
     };
 
-    const limpiarDatosCitas = () => {
-        setCitasPorEstado([]);
-        setCitasCreadasPorEstado([]);
-        setCitasCreadasPorPeriodo(EMPTY_APPOINTMENT_ACTIVITY);
-        setCitasPorEspecialidad([]);
-        setCitasCreadasPorEspecialidad([]);
-        setCitasPorDiaSemana([]);
-        setCitasPorHora([]);
-    };
-
-    const cargarEstadisticasCitas = async (anio, mes) => {
+    const cargarEstadisticasCitas = async (anio, mes, manual = false) => {
         appointmentRequestRef.current?.abort();
         const controller = new AbortController();
         appointmentRequestRef.current = controller;
+        if (manual) manualPendingRef.current.add("citas");
 
         try {
-            setLoadingCitas(true);
+            if (!hasDataRef.current.citas) setLoadingCitas(true);
             setErrorCitas(false);
-            limpiarDatosCitas();
 
             const data = await obtenerEstadisticasCitasService(
                 anio,
@@ -208,9 +223,10 @@ export function useDashboard() {
                     ? filters.anios_disponibles
                     : [],
             });
+            hasDataRef.current.citas = true;
         } catch {
             if (!controller.signal.aborted) {
-                setErrorCitas(true);
+                if (!hasDataRef.current.citas) setErrorCitas(true);
             }
         } finally {
             if (
@@ -218,6 +234,7 @@ export function useDashboard() {
                 && appointmentRequestRef.current === controller
             ) {
                 setLoadingCitas(false);
+                manualPendingRef.current.delete("citas");
             }
         }
     };
@@ -227,8 +244,10 @@ export function useDashboard() {
         if (!Number.isInteger(anio)) return;
 
         const mes = filtrosCitas.mes;
+        pendingSectionsRef.current.delete("citas");
+        appliedFiltersRef.current.citas = { anio, mes };
         setFiltrosCitas((current) => ({ ...current, anio }));
-        cargarEstadisticasCitas(anio, mes);
+        cargarEstadisticasCitas(anio, mes, true);
     };
 
     const cambiarMesCitas = (value) => {
@@ -236,28 +255,22 @@ export function useDashboard() {
         if (mes !== null && (!Number.isInteger(mes) || mes < 1 || mes > 12)) return;
         if (!Number.isInteger(filtrosCitas.anio)) return;
 
+        pendingSectionsRef.current.delete("citas");
+        appliedFiltersRef.current.citas = { anio: filtrosCitas.anio, mes };
+
         setFiltrosCitas((current) => ({ ...current, mes }));
-        cargarEstadisticasCitas(filtrosCitas.anio, mes);
+        cargarEstadisticasCitas(filtrosCitas.anio, mes, true);
     };
 
-    const limpiarDatosMedicos = () => {
-        setMedicosPorEspecialidad([]);
-        setMedicosNoAprobadosPorEspecialidad([]);
-        setMedicosPorEstadoValidacion([]);
-        setSolicitudesValidacionPorPeriodo(EMPTY_VALIDATION_REQUESTS);
-        setMedicosQueMasAtienden([]);
-        setTiempoPromedioValidacion(null);
-    };
-
-    const cargarEstadisticasMedicos = async (anio, mes) => {
+    const cargarEstadisticasMedicos = async (anio, mes, manual = false) => {
         doctorRequestRef.current?.abort();
         const controller = new AbortController();
         doctorRequestRef.current = controller;
+        if (manual) manualPendingRef.current.add("medicos");
 
         try {
-            setLoadingMedicos(true);
+            if (!hasDataRef.current.medicos) setLoadingMedicos(true);
             setErrorMedicos(false);
-            limpiarDatosMedicos();
 
             const data = await obtenerEstadisticasMedicosService(
                 anio,
@@ -293,9 +306,10 @@ export function useDashboard() {
                     ? filters.anios_disponibles
                     : [],
             });
+            hasDataRef.current.medicos = true;
         } catch {
             if (!controller.signal.aborted) {
-                setErrorMedicos(true);
+                if (!hasDataRef.current.medicos) setErrorMedicos(true);
             }
         } finally {
             if (
@@ -303,6 +317,7 @@ export function useDashboard() {
                 && doctorRequestRef.current === controller
             ) {
                 setLoadingMedicos(false);
+                manualPendingRef.current.delete("medicos");
             }
         }
     };
@@ -312,8 +327,10 @@ export function useDashboard() {
         if (!Number.isInteger(anio)) return;
 
         const mes = filtrosMedicos.mes;
+        pendingSectionsRef.current.delete("medicos");
+        appliedFiltersRef.current.medicos = { anio, mes };
         setFiltrosMedicos((current) => ({ ...current, anio }));
-        cargarEstadisticasMedicos(anio, mes);
+        cargarEstadisticasMedicos(anio, mes, true);
     };
 
     const cambiarMesMedicos = (value) => {
@@ -321,26 +338,22 @@ export function useDashboard() {
         if (mes !== null && (!Number.isInteger(mes) || mes < 1 || mes > 12)) return;
         if (!Number.isInteger(filtrosMedicos.anio)) return;
 
+        pendingSectionsRef.current.delete("medicos");
+        appliedFiltersRef.current.medicos = { anio: filtrosMedicos.anio, mes };
+
         setFiltrosMedicos((current) => ({ ...current, mes }));
-        cargarEstadisticasMedicos(filtrosMedicos.anio, mes);
+        cargarEstadisticasMedicos(filtrosMedicos.anio, mes, true);
     };
 
-    const limpiarDatosPacientes = () => {
-        setPacientesPorEdad([]);
-        setPacientesRegistradosPorPeriodo(EMPTY_PATIENT_PERIOD);
-        setPacientesPorCantidadCitas([]);
-        setPacientesActivosPorPeriodo(EMPTY_PATIENT_PERIOD);
-    };
-
-    const cargarEstadisticasPacientes = async (anio, mes) => {
+    const cargarEstadisticasPacientes = async (anio, mes, manual = false) => {
         patientRequestRef.current?.abort();
         const controller = new AbortController();
         patientRequestRef.current = controller;
+        if (manual) manualPendingRef.current.add("pacientes");
 
         try {
-            setLoadingPacientes(true);
+            if (!hasDataRef.current.pacientes) setLoadingPacientes(true);
             setErrorPacientes(false);
-            limpiarDatosPacientes();
 
             const data = await obtenerEstadisticasPacientesService(
                 anio,
@@ -376,9 +389,10 @@ export function useDashboard() {
                     ? filters.anios_disponibles
                     : [],
             });
+            hasDataRef.current.pacientes = true;
         } catch {
             if (!controller.signal.aborted) {
-                setErrorPacientes(true);
+                if (!hasDataRef.current.pacientes) setErrorPacientes(true);
             }
         } finally {
             if (
@@ -386,6 +400,7 @@ export function useDashboard() {
                 && patientRequestRef.current === controller
             ) {
                 setLoadingPacientes(false);
+                manualPendingRef.current.delete("pacientes");
             }
         }
     };
@@ -395,8 +410,10 @@ export function useDashboard() {
         if (!Number.isInteger(anio)) return;
 
         const mes = filtrosPacientes.mes;
+        pendingSectionsRef.current.delete("pacientes");
+        appliedFiltersRef.current.pacientes = { anio, mes };
         setFiltrosPacientes((current) => ({ ...current, anio }));
-        cargarEstadisticasPacientes(anio, mes);
+        cargarEstadisticasPacientes(anio, mes, true);
     };
 
     const cambiarMesPacientes = (value) => {
@@ -404,9 +421,90 @@ export function useDashboard() {
         if (mes !== null && (!Number.isInteger(mes) || mes < 1 || mes > 12)) return;
         if (!Number.isInteger(filtrosPacientes.anio)) return;
 
+        pendingSectionsRef.current.delete("pacientes");
+        appliedFiltersRef.current.pacientes = { anio: filtrosPacientes.anio, mes };
+
         setFiltrosPacientes((current) => ({ ...current, mes }));
-        cargarEstadisticasPacientes(filtrosPacientes.anio, mes);
+        cargarEstadisticasPacientes(filtrosPacientes.anio, mes, true);
     };
+
+    const refreshFunctionsRef = useRef(null);
+    refreshFunctionsRef.current = {
+        resumen: () => cargarMetricasTarjetas(),
+        citas: () => cargarEstadisticasCitas(
+            appliedFiltersRef.current.citas.anio,
+            appliedFiltersRef.current.citas.mes
+        ),
+        medicos: () => cargarEstadisticasMedicos(
+            appliedFiltersRef.current.medicos.anio,
+            appliedFiltersRef.current.medicos.mes
+        ),
+        pacientes: () => cargarEstadisticasPacientes(
+            appliedFiltersRef.current.pacientes.anio,
+            appliedFiltersRef.current.pacientes.mes
+        ),
+    };
+
+    const scheduleRefreshRef = useRef(null);
+    scheduleRefreshRef.current = (secciones) => {
+        validDashboardSections(secciones).forEach((seccion) => {
+            pendingSectionsRef.current.add(seccion);
+        });
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = setTimeout(() => {
+            const pendientes = [...pendingSectionsRef.current];
+            pendingSectionsRef.current.clear();
+            const { ready, deferred } = splitDashboardRefresh(pendientes, manualPendingRef.current);
+            ready.forEach((seccion) => refreshFunctionsRef.current[seccion]());
+            deferred.forEach((seccion) => pendingSectionsRef.current.add(seccion));
+            if (pendingSectionsRef.current.size) scheduleRefreshRef.current([]);
+        }, 500);
+    };
+
+    useEffect(() => {
+        if (!eventoDashboard || seenEventsRef.current.has(eventoDashboard.event_id)) return;
+        seenEventsRef.current.add(eventoDashboard.event_id);
+        if (seenEventsRef.current.size > 100) seenEventsRef.current.clear();
+        scheduleRefreshRef.current(eventoDashboard.secciones);
+    }, [eventoDashboard]);
+
+    useEffect(() => {
+        if (versionConexion === 0) return;
+        if (!initialConnectionRef.current) {
+            initialConnectionRef.current = true;
+            return;
+        }
+        scheduleRefreshRef.current(sectionsAfterConnection(versionConexion, initialConnectionRef.current));
+    }, [versionConexion]);
+
+    useEffect(() => {
+        let midnightTimer;
+        const programarMedianoche = () => {
+            const now = new Date();
+            const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+            midnightTimer = setTimeout(() => {
+                dayRef.current = new Date().toDateString();
+                scheduleRefreshRef.current(["resumen"]);
+                programarMedianoche();
+            }, tomorrow.getTime() - now.getTime() + 1000);
+        };
+        const actualizarAlVolver = () => {
+            if (document.visibilityState !== "visible") return;
+            const hoy = new Date().toDateString();
+            if (hoy !== dayRef.current) {
+                dayRef.current = hoy;
+                scheduleRefreshRef.current(["resumen"]);
+            }
+        };
+        document.addEventListener("visibilitychange", actualizarAlVolver);
+        window.addEventListener("focus", actualizarAlVolver);
+        programarMedianoche();
+        return () => {
+            clearTimeout(midnightTimer);
+            document.removeEventListener("visibilitychange", actualizarAlVolver);
+            window.removeEventListener("focus", actualizarAlVolver);
+        };
+    }, []);
 
     return {
         metricasTarjetas,

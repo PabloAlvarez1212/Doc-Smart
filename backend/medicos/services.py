@@ -366,6 +366,8 @@ def aprobarSolicitudValidacionService(solicitud_id):
         )
 
         _cerrar_identidad(solicitud.medico, True)
+        from notificaciones.realtime import programarActualizacionDashboardRealtime
+        programarActualizacionDashboardRealtime('MEDICO_APROBADO', ('resumen', 'medicos'))
         enviarCorreoMedicoAprobado(solicitud.medico)
 
         return {
@@ -406,6 +408,8 @@ def rechazarSolicitudValidacionService(solicitud_id, motivo_rechazo):
         )
 
         _cerrar_identidad(solicitud.medico, False)
+        from notificaciones.realtime import programarActualizacionDashboardRealtime
+        programarActualizacionDashboardRealtime('MEDICO_RECHAZADO', ('resumen', 'medicos'))
         enviarCorreoMedicoRechazado(
             solicitud.medico,
             solicitud.motivo_rechazo,
@@ -542,6 +546,8 @@ def reintentarSolicitudValidacionService(
                     ),
                 )
             )
+            from notificaciones.realtime import programarActualizacionDashboardRealtime
+            programarActualizacionDashboardRealtime('SOLICITUD_REINTENTADA', ('resumen', 'medicos'))
 
         return {
             "id": nueva_solicitud.id,
@@ -596,6 +602,7 @@ def actualizarMedicoService(id_medico, data):
         return serializer.errors, 400
 
     data_validada = serializer.validated_data
+    especialidad_anterior = medico.id_especialidad_id
     if medico.documento_verificado_en:
         errores_identidad={campo:["La identidad verificada no puede modificarse desde el perfil"]
             for campo in ("nombre","apellido","fecha_nacimiento")
@@ -666,6 +673,9 @@ def actualizarMedicoService(id_medico, data):
             )
 
     medico.save()
+    if medico.id_especialidad_id != especialidad_anterior:
+        from notificaciones.realtime import programarActualizacionDashboardRealtime
+        programarActualizacionDashboardRealtime('ESPECIALIDAD_MEDICO_ACTUALIZADA', ('resumen', 'citas', 'medicos'))
 
     return MedicoPerfilSerializer(medico).data, 200
 
@@ -681,6 +691,8 @@ def eliminarMedicoService(id_medico):
         return 'Médico no encontrado', 404
 
     medico.delete()
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
+    programarActualizacionDashboardRealtime('MEDICO_ELIMINADO', ('resumen', 'medicos'))
 
     return 'Médico eliminado correctamente', 200
 
@@ -819,9 +831,13 @@ def editarEspecialidadService(id_especialidad, data):
             ]
         }, 400
 
+    nombre_anterior = especialidad.nombre
     especialidad.nombre = data_validada['nombre']
 
     especialidad.save()
+    if especialidad.nombre != nombre_anterior:
+        from notificaciones.realtime import programarActualizacionDashboardRealtime
+        programarActualizacionDashboardRealtime('ESPECIALIDAD_RENOMBRADA', ('resumen', 'citas', 'medicos'))
 
     return EspecialidadSerializer(
         especialidad
@@ -1080,6 +1096,7 @@ def editarPerfilMedicoService(id_medico, data):
         return serializer.errors, 400
 
     data_validada = serializer.validated_data
+    especialidad_anterior = medico.id_especialidad_id
     if medico.documento_verificado_en:
         errores_identidad={campo:["La identidad verificada no puede modificarse desde el perfil"]
             for campo in ("nombre","apellido","fecha_nacimiento")
@@ -1153,6 +1170,10 @@ def editarPerfilMedicoService(id_medico, data):
             )
 
     medico.save()
+
+    if medico.id_especialidad_id != especialidad_anterior:
+        from notificaciones.realtime import programarActualizacionDashboardRealtime
+        programarActualizacionDashboardRealtime('ESPECIALIDAD_MEDICO_ACTUALIZADA', ('resumen', 'citas', 'medicos'))
 
     return MedicoPerfilSerializer(
         medico

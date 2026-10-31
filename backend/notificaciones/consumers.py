@@ -28,9 +28,10 @@ class NotificacionConsumer(AsyncWebsocketConsumer):
         self.usuario = usuario
 
         if isinstance(usuario, Usuario):
-            self.tipo_usuario = "paciente"
+            es_admin = await self.es_administrador(usuario.pk)
+            self.tipo_usuario = "admin" if es_admin else "paciente"
             self.user_id = usuario.id
-            self.room_group_name = f"user_{usuario.id}"
+            self.room_group_name = "admin_dashboard" if es_admin else f"user_{usuario.id}"
 
         elif isinstance(usuario, Medico):
             self.tipo_usuario = "medico"
@@ -106,6 +107,25 @@ class NotificacionConsumer(AsyncWebsocketConsumer):
                 "cita": event["cita"],
             })
         )
+
+    async def send_dashboard_update(self, event):
+        if self.tipo_usuario != "admin":
+            return
+        if not await self.es_administrador(self.user_id):
+            await self.close(code=4403)
+            return
+        await self.send(text_data=json.dumps({
+            "type": "dashboard_update",
+            "event_id": event["event_id"],
+            "tipo_evento": event["tipo_evento"],
+            "secciones": event["secciones"],
+        }))
+
+    @database_sync_to_async
+    def es_administrador(self, usuario_id):
+        return Usuario.objects.filter(
+            pk=usuario_id, id_rol__nombre="admin"
+        ).exists()
 
     @database_sync_to_async
     def get_unread_count(self):

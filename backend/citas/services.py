@@ -15,6 +15,7 @@ from notificaciones.services import enviarNotificacion
 from medicos.services_disponibilidad import esHorarioDisponible
 from notificaciones.email_citas_services import enviarCorreosCitaProgramada,enviarCorreosCitaConfirmada, enviarCorreosCitaReprogramada,enviarCorreosCitaCancelada,enviarCorreosCitaVencida, enviarCorreosCitaCompletada,enviarCorreoInasistenciaPaciente
 from historial_medico.models import HistorialClinico
+from notificaciones.realtime import programarActualizacionDashboardRealtime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -801,6 +802,7 @@ def crearCitaService(
         robust=True,
     )
     
+    programarActualizacionDashboardRealtime('CITA_CREADA', ('resumen', 'citas', 'pacientes'))
     return cita_data, 201
 
 
@@ -998,6 +1000,7 @@ def editarCitaService(id, datos, solicitante):
             robust=True,
         )
         
+    programarActualizacionDashboardRealtime('CITA_REPROGRAMADA', ('resumen', 'citas', 'pacientes'))
     return CitaSerializer(cita).data, 200
 
 @serializar_agenda
@@ -1138,6 +1141,7 @@ def cancelarCitaService(id, solicitante, motivo_cancelacion=None):
         robust=True,
     )
 
+    programarActualizacionDashboardRealtime('CITA_CANCELADA', ('resumen', 'citas'))
     return 'Cita cancelada correctamente', 200
 
 @serializar_agenda
@@ -1234,6 +1238,7 @@ def completarCitaService(id, medico_id, datos_historial):
         robust=True,
     )
 
+    programarActualizacionDashboardRealtime('CITA_COMPLETADA', ('citas', 'medicos'))
     return cita_data, 200
 
 @serializar_agenda
@@ -1315,6 +1320,7 @@ def marcarInasistenciaPacienteService(id, solicitante):
         )
     )
     
+    programarActualizacionDashboardRealtime('INASISTENCIA_PACIENTE', ('citas',))
     return cita_data, 200
 
 @serializar_agenda
@@ -1495,6 +1501,7 @@ def confirmarCitaService(id, medico_id):
         robust=True,
     )
 
+    programarActualizacionDashboardRealtime('CITA_CONFIRMADA', ('citas',))
     return cita_data, 200
 # ─── RECORDATORIOS ────────────────────────────────────────────────────────────
 
@@ -1835,6 +1842,7 @@ def vencerCitaPorFaltaConfirmacionService(id):
         robust=True,
     )
 
+    programarActualizacionDashboardRealtime('CITA_VENCIDA', ('citas',))
     return cita_data, 200
 
 

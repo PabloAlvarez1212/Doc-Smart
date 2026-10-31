@@ -6,9 +6,10 @@ import { useNotificaciones } from "../hooks/useNotificaciones"
 const NotificationsContext = createContext(null)
 
 export function NotificationsProvider({
-    children
+    children,
+    cargarBandeja = true,
 }) {
-    const notificacionesData = useNotificaciones()
+    const notificacionesData = useNotificaciones({ cargarBandeja })
 
     return (
         <NotificationsContext.Provider

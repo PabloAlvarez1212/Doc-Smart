@@ -10,9 +10,10 @@ import {
 } from "@/app/services/notificationsServices"
 import { obtenerPrimerError } from "@/app/utils/errrorUtils"
 
-export const useNotificaciones = () => {
+export const useNotificaciones = ({ cargarBandeja = true } = {}) => {
 
     const [eventoCita, setEventoCita] = useState(null)
+    const [eventoDashboard, setEventoDashboard] = useState(null)
     const [versionConexion, setVersionConexion] = useState(0)
     const [notificaciones, setNotificaciones] = useState([])
     const [noLeidas, setNoLeidas] = useState(0)
@@ -87,8 +88,8 @@ export const useNotificaciones = () => {
     };
 
     useEffect(() => {
-        cargarNotificaciones()
-    }, [paginaActual])
+        if (cargarBandeja) cargarNotificaciones()
+    }, [paginaActual, cargarBandeja])
 
     useEffect(() => {
         const WS_URL = process.env.NEXT_PUBLIC_WS_URL
@@ -140,8 +141,16 @@ export const useNotificaciones = () => {
                 try {
                     const data = JSON.parse(event.data)
 
+                    if (data.type === "dashboard_update") {
+                        if (typeof data.event_id === "string" && Array.isArray(data.secciones)) {
+                            setEventoDashboard(data)
+                        }
+                        return
+                    }
+
                     // Cantidad inicial
                     if (data.type === "count_initial") {
+                        if (!cargarBandeja) return
                         countVersion.current += 1
                         setNoLeidas(data.count)
                         return
@@ -159,6 +168,7 @@ export const useNotificaciones = () => {
 
                     // Nueva notificación o actualización
                     if (data.type === "notification_update") {
+                        if (!cargarBandeja) return
                         countVersion.current += 1
                         setNoLeidas(data.count)
 
@@ -266,7 +276,7 @@ export const useNotificaciones = () => {
             }
         }
 
-    }, [])
+    }, [cargarBandeja])
 
     const marcarLeida = async (idNotificacion) => {
 
@@ -458,6 +468,7 @@ export const useNotificaciones = () => {
         eliminarTodasNotificaciones,
         cargarNotificaciones,
         eventoCita,
+        eventoDashboard,
         loading,
         cambiarPagina,
         paginaActual,

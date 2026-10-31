@@ -125,6 +125,8 @@ def completar_medico(proceso_id):
     proceso.completado_en=timezone.now()
     marcar_revision_posterior(proceso)
     proceso.save(update_fields=['medico','estado','completado_en','revision_posterior'])
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
+    programarActualizacionDashboardRealtime('MEDICO_REGISTRADO', ('resumen', 'medicos'))
     return {'id':medico.pk,'estado_validacion':solicitud.estado},201
 
 
