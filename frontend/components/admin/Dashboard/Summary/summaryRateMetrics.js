@@ -1,35 +1,49 @@
-function safeCount(value) {
+export function safeCount(value) {
     const number = Number(value);
     return Number.isFinite(number) && number >= 0 ? number : 0;
 }
 
-function formatDecimal(value) {
+export function formatDecimal(value) {
     return Number(value).toLocaleString("es-CO", {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
     });
 }
 
-export function buildCancellationRateMetric(rate) {
-    if (!rate) return { value: null, supportingText: undefined };
+const EMPTY = "—";
+
+export function buildCancellationRatioMetric(rate) {
+    if (!rate) return { value: EMPTY, canceled: 0, base: 0, context: undefined };
 
     const base = safeCount(rate.base);
-    const hasRate = base > 0 && rate.tasa !== null && rate.tasa !== undefined;
+    if (base === 0) {
+        return { value: EMPTY, canceled: 0, base: 0, context: "Sin citas programadas este mes" };
+    }
+
+    const canceled = Math.min(safeCount(rate.canceladas), base);
+    const percentage = rate.tasa ?? (canceled / base) * 100;
 
     return {
-        value: hasRate ? `${formatDecimal(rate.tasa)}%` : "Sin citas",
-        supportingText: `${safeCount(rate.canceladas)} de ${base} ${base === 1 ? "cita programada" : "citas programadas"} este mes`,
+        value: `${canceled} de ${base}`,
+        canceled,
+        base,
+        context: `${formatDecimal(percentage)} % de las programadas del mes`,
     };
 }
 
 export function buildRatingMetric(rating) {
-    if (!rating) return { value: null, supportingText: undefined };
+    if (!rating) return { value: EMPTY, average: null, context: undefined };
 
     const total = safeCount(rating.total);
     const hasRating = total > 0 && rating.promedio !== null && rating.promedio !== undefined;
 
+    if (!hasRating) {
+        return { value: EMPTY, average: null, context: "Aún sin calificaciones este mes" };
+    }
+
     return {
-        value: hasRating ? `${formatDecimal(rating.promedio)} / 5` : "Sin calificaciones",
-        supportingText: `${total} ${total === 1 ? "calificación" : "calificaciones"} este mes`,
+        value: `${formatDecimal(rating.promedio)} / 5`,
+        average: Number(rating.promedio),
+        context: `${total} ${total === 1 ? "calificación" : "calificaciones"}`,
     };
 }

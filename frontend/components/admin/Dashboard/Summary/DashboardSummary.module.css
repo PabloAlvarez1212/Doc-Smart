@@ -1,267 +1,253 @@
 .summary {
+    /* Variables propias del Resumen, con valores para modo claro y oscuro. */
+    --sum-blue: #2f5fe3;
+    --sum-blue-hatch: #9db6f5;
+    --sum-amber: #c9741a;
+    container-type: inline-size;
     display: grid;
-    gap: 18px;
+    gap: 16px;
     min-width: 0;
     padding-top: 20px;
 }
 
-.metricsGrid {
+:global(:root[data-theme="dark"]) .summary {
+    --sum-blue: #6f95ff;
+    --sum-blue-hatch: #3e558f;
+    --sum-amber: #f0a850;
+}
+
+.grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
     min-width: 0;
 }
 
-.overviewGrid,
-.loadingLayout {
-    display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(280px, .85fr);
-    gap: 18px;
-    min-width: 0;
-}
+/* En una columna, "Este mes" va justo después de "Ahora". */
+.leftColumn { display: contents; }
+.now { order: 1; }
+.monthPanel { order: 2; }
+.chartPanel { order: 3; }
+.totalsPanel { order: 4; }
 
-.overviewGrid { align-items: start; }
-.loadingLayout { align-items: stretch; }
+.now,
+.panel { min-width: 0; }
 
-.activityCard,
-.attentionCard,
-.demandCard {
-    min-width: 0;
+.panel {
+    padding: 18px 20px;
     border: 1px solid var(--border);
     border-radius: 14px;
     background: var(--surface);
-    box-shadow: 0 8px 24px rgba(28, 54, 92, .045);
 }
 
-.activityCard {
-    display: flex;
-    min-height: 370px;
-    flex-direction: column;
-    padding: 22px 24px 20px;
-}
-
-.cardHeader {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 14px;
-}
-
-.cardHeader > div { min-width: 0; }
-.cardHeader > div > span,
-.demandContent > span {
-    display: block;
-    margin-bottom: 4px;
-    color: var(--color-dark);
-    font-size: .62rem;
-    font-weight: 750;
-    letter-spacing: .085em;
-    text-transform: uppercase;
-}
-
-.cardHeader h3,
-.demandContent h3 {
+.panelTitle {
     margin: 0;
     color: var(--color-text);
-    font-size: .92rem;
-    font-weight: 720;
+    font-size: 15px;
+    font-weight: 650;
     line-height: 1.35;
 }
 
-.cardHeader p {
-    margin: 4px 0 0;
+.panelSubtitle {
+    margin: 2px 0 0;
     color: var(--text-secondary);
-    font-size: .75rem;
-    line-height: 1.45;
+    font-size: 12.5px;
+    line-height: 1.4;
 }
 
-.headerIcon,
-.demandIcon {
+.nowTiles {
     display: grid;
-    width: 40px;
-    height: 40px;
-    flex: 0 0 auto;
-    place-items: center;
-    border-radius: 11px;
-    background: var(--surface-muted);
-    color: var(--color-dark);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 10px;
 }
 
+/* Gráfico */
 .chartArea {
     width: 100%;
     min-width: 0;
-    height: 276px;
+    height: 190px;
+    margin-top: 8px;
+}
+
+.chartArea :global(.recharts-wrapper):focus-visible,
+.chartArea :global(.recharts-surface):focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
 }
 
 .chartTooltip {
     display: grid;
-    gap: 4px;
+    gap: 3px;
     max-width: min(230px, 72vw);
-    padding: 10px 12px;
+    padding: 8px 10px;
     border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--glass);
-    box-shadow: 0 10px 26px rgba(28, 54, 92, .12);
+    border-radius: 8px;
+    background: var(--surface);
     color: var(--text-secondary);
-    font-size: .71rem;
+    font-size: 12px;
     line-height: 1.4;
 }
 
-.chartTooltip strong { color: var(--color-text); font-size: .76rem; }
+.chartTooltip strong { color: var(--color-text); font-weight: 600; }
 
-.sideColumn {
-    display: grid;
-    grid-template-rows: auto repeat(2, minmax(0, 1fr));
-    gap: 18px;
-    min-width: 0;
-}
-
-.attentionCard { padding: 20px; }
-
-.attentionList {
-    display: grid;
-    gap: 0;
+.emptyState {
     margin: 0;
+    padding: 24px 0;
+    color: var(--text-secondary);
+    font-size: 13px;
 }
 
-.attentionList > div {
+/* Totales */
+.totals {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    margin: 12px 0 0;
+}
+
+.totalStat { min-width: 0; padding: 10px 0; border-top: 1px solid var(--border); }
+.totalStat:first-child { padding-top: 0; border-top: 0; }
+
+.totalStat dt {
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    line-height: 1.4;
+}
+
+.totalStat dd {
+    margin: 2px 0 0;
+    color: var(--color-text);
+    font-size: 26px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.02em;
+    line-height: 1.2;
+}
+
+.totalStat dd.totalEmpty { color: var(--text-secondary); font-weight: 400; }
+
+/* Este mes */
+.monthList { margin: 8px 0 0; }
+
+.monthRow {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 14px;
-    padding: 10px 0;
+    column-gap: 16px;
+    align-items: baseline;
+    padding: 12px 0;
     border-top: 1px solid var(--border);
 }
 
-.attentionList dt {
-    display: flex;
+.monthRow:first-child { padding-top: 4px; border-top: 0; }
+
+.monthLabel {
     min-width: 0;
-    align-items: center;
-    gap: 9px;
-    color: var(--text-secondary);
-    font-size: .73rem;
-    font-weight: 650;
+    color: var(--color-text);
+    font-size: 13.5px;
     line-height: 1.4;
-}
-
-.attentionList dt svg { flex: 0 0 auto; color: var(--text-secondary); }
-.attentionHint { display: block; margin-top: 2px; font-size: .66rem; font-weight: 500; line-height: 1.4; }
-.attentionList dd {
-    margin: 0;
-    color: var(--color-text);
-    font-size: .78rem;
-    font-weight: 780;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.35;
-    text-align: right;
-}
-
-.demandCard {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 20px;
-}
-
-.demandIcon { background: var(--surface-muted); color: var(--ink-green); }
-.scheduleIcon { background: var(--surface-muted); color: var(--color-dark); }
-.demandContent { min-width: 0; }
-.demandDescription {
-    margin: 5px 0 0;
-    color: var(--text-secondary);
-    font-size: .72rem;
-    line-height: 1.45;
-}
-.demandMetric { margin-top: 13px; }
-.demandMetric strong {
-    display: block;
-    color: var(--color-text);
-    font-size: clamp(1.05rem, 2.2vw, 1.25rem);
-    font-weight: 780;
-    letter-spacing: -.035em;
-    line-height: 1.15;
     overflow-wrap: anywhere;
 }
 
-.demandMetric p,
-.demandEmpty {
-    margin: 6px 0 0;
-    color: var(--text-secondary);
-    font-size: .74rem;
-    line-height: 1.45;
-}
-
-.demandEmpty { margin-top: 13px; }
-
-.emptyState {
-    display: grid;
-    flex: 1;
-    min-height: 250px;
-    place-items: center;
+.monthValue {
+    max-width: 13rem;
     margin: 0;
-    padding: 20px;
-    border: 1px dashed var(--border);
-    border-radius: 10px;
-    background: var(--surface);
-    color: var(--text-secondary);
-    font-size: .8rem;
-    text-align: center;
+    color: var(--color-text);
+    font-size: 13.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+    text-align: right;
+    overflow-wrap: anywhere;
 }
 
-.loadingChart,
-.loadingPanel {
+.monthValue.monthEmpty { color: var(--text-secondary); font-weight: 400; }
+
+.monthContext {
+    grid-column: 1 / -1;
+    margin: 2px 0 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.monthMeter { grid-column: 1 / -1; margin: 8px 0 0; }
+
+/* Esqueletos */
+.skeleton,
+.chartSkeleton {
     display: block;
-    min-height: 370px;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    background: linear-gradient(90deg, var(--surface-muted) 25%, var(--surface-muted) 50%, var(--surface-muted) 75%);
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--surface-muted) 25%, var(--border) 50%, var(--surface-muted) 75%);
     background-size: 200% 100%;
     animation: summary-shimmer 1.35s ease-in-out infinite;
 }
+
+.skeleton { width: 3rem; height: 16px; }
+.skeletonWide { width: 8rem; height: 12px; }
+.monthRow:has(.skeleton) { min-height: 44px; }
+.chartSkeleton { height: 190px; margin-top: 8px; }
 
 @keyframes summary-shimmer {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
 }
 
-@container (max-width: 980px) {
-    .metricsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Cómo se calcula */
+.definitions {
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    line-height: 1.5;
 }
 
-@container (max-width: 760px) {
-    .overviewGrid,
-    .loadingLayout { grid-template-columns: minmax(0, 1fr); }
-    .sideColumn { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }
-    .attentionCard { grid-column: 1 / -1; }
-    .loadingChart,
-    .loadingPanel { min-height: 300px; }
+.definitions summary {
+    color: var(--color-text);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.definitions summary:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+.definitions ul {
+    display: grid;
+    gap: 6px;
+    margin: 10px 0 2px;
+    padding-left: 18px;
+}
+
+.definitions strong { color: var(--color-text); font-weight: 600; }
+
+@container (min-width: 760px) {
+    .grid {
+        grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .leftColumn { display: grid; gap: 16px; min-width: 0; }
+    .now,
+    .monthPanel,
+    .chartPanel,
+    .totalsPanel { order: 0; }
+
+    .totals { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .totalStat { padding: 0 18px; border-top: 0; border-left: 1px solid var(--border); }
+    .totalStat:first-child { padding-left: 0; border-left: 0; }
 }
 
 @media (max-width: 620px) {
-    .summary { gap: 14px; padding-top: 16px; }
-    .metricsGrid,
-    .sideColumn { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-    .attentionCard { grid-column: auto; }
-    .overviewGrid,
-    .loadingLayout { gap: 14px; }
-    .activityCard { min-height: 330px; padding: 18px 16px; }
-    .attentionCard,
-    .demandCard { padding: 17px 16px; }
-    .chartArea { height: 240px; }
-    .emptyState { min-height: 220px; }
-    .attentionList > div { align-items: start; }
-    .attentionList dd { max-width: 145px; }
-    .loadingChart,
-    .loadingPanel { min-height: 260px; }
-}
-
-@media (max-width: 360px) {
-    .attentionList > div { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-    .attentionList dd { max-width: none; padding-left: 26px; text-align: left; }
+    .summary { padding-top: 16px; }
+    .panel { padding: 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .loadingChart,
-    .loadingPanel { animation: none; }
+    .skeleton,
+    .chartSkeleton { animation: none; }
 }

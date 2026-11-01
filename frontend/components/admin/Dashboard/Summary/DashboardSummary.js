@@ -1,22 +1,10 @@
 "use client";
 
-import {
-    CalendarCheck2,
-    CalendarDays,
-    CalendarX2,
-    CircleUserRound,
-    ClipboardClock,
-    Clock3,
-    Star,
-    Stethoscope,
-    UserRound,
-    UsersRound,
-} from "lucide-react";
-import AdminMetricCard from "../AdminMetricCard/AdminMetricCard";
 import DashboardModuleState from "../DashboardModuleState/DashboardModuleState";
+import MonthPanel from "./MonthPanel";
+import NowTile from "./NowTile";
 import RecentAppointmentsChart from "./RecentAppointmentsChart";
-import { buildCancellationRateMetric, buildRatingMetric } from "./summaryRateMetrics";
-import { buildSpecialtyMetric } from "./summarySpecialtyMetrics";
+import { buildPendingRequests, buildTodayAppointments, formatCount } from "./summaryRegistryData";
 import styles from "./DashboardSummary.module.css";
 
 /**
@@ -36,55 +24,30 @@ import styles from "./DashboardSummary.module.css";
  * @property {{promedio: number|null, total: number}} calificacion_promedio_mes
  */
 
-const summaryMetrics = [
-    {
-        key: "total_medicos_aprobados",
-        label: "Médicos aprobados",
-        supportingText: "Disponibles actualmente en el sistema",
-        icon: Stethoscope,
-        tone: "blue",
-    },
-    {
-        key: "total_pacientes",
-        label: "Pacientes registrados",
-        supportingText: "Pacientes registrados, sin cuentas bloqueadas",
-        icon: UserRound,
-        tone: "teal",
-    },
-    {
-        key: "total_citas",
-        label: "Total de citas",
-        supportingText: "Excluye citas canceladas y vencidas",
-        icon: CalendarDays,
-        tone: "violet",
-    },
-    {
-        key: "citas_hoy",
-        label: "Citas de hoy",
-        supportingText: "Programadas para hoy, sin canceladas ni vencidas",
-        icon: CalendarCheck2,
-        tone: "blue",
-    },
-    {
-        key: "pacientes_activos_mes",
-        label: "Pacientes activos este mes",
-        supportingText: "Pacientes únicos con citas válidas programadas este mes",
-        icon: UsersRound,
-        tone: "teal",
-    },
-    {
-        key: "total_solicitudes_pendientes",
-        label: "Solicitudes pendientes",
-        supportingText: "Pendientes de revisión administrativa",
-        icon: ClipboardClock,
-        tone: "violet",
-    },
-];
+const EMPTY = "—";
 
-function safeCount(value) {
-    const number = Number(value);
-    return Number.isFinite(number) && number >= 0 ? number : 0;
-}
+const PENDING_TILE = {
+    ok: { tone: "ok", pill: "Al día" },
+    alert: { tone: "alert", pill: "Requiere revisión" },
+    unknown: { tone: "info", pill: undefined },
+};
+
+const metricDefinitions = [
+    ["Cita válida", "no está cancelada ni vencida."],
+    ["Citas de hoy", "citas válidas programadas para hoy."],
+    [
+        "Pacientes activos",
+        "pacientes únicos con al menos una cita válida este mes, sobre los registrados sin cuentas bloqueadas.",
+    ],
+    [
+        "Canceladas (C de B)",
+        "citas programadas este mes que están canceladas, sobre todas las programadas del mes.",
+    ],
+    ["Canceladas durante el mes", "cancelaciones hechas este mes, sin importar la fecha de la cita."],
+    ["Calificación promedio", "promedio de las calificaciones recibidas este mes."],
+    ["Especialidad más solicitada", "la que más citas recibió al crearse este mes."],
+    ["Especialidad más programada", "la que más citas tiene con fecha de atención este mes."],
+];
 
 /**
  * @param {{
@@ -94,173 +57,95 @@ function safeCount(value) {
  * }} props
  */
 export default function DashboardSummary({ metrics, loading = false, error = false }) {
-    const metricStatus = loading ? "loading" : error ? "unavailable" : "available";
-    const pendingRequests = safeCount(metrics?.total_solicitudes_pendientes);
-    const cancellations = safeCount(metrics?.cancelaciones_mes);
-    const cancellationRate = buildCancellationRateMetric(metrics?.tasa_cancelacion_mes);
-    const ratingMetric = buildRatingMetric(metrics?.calificacion_promedio_mes);
-    const oldestRequestDays = metrics?.antiguedad_solicitud_pendiente_dias;
+    if (error && !loading) {
+        return (
+            <section className={styles.summary} aria-label="Resumen operativo del sistema">
+                <DashboardModuleState error moduleName="resumen" />
+            </section>
+        );
+    }
+
+    const hasMetrics = Boolean(metrics);
+    const today = buildTodayAppointments(metrics);
+    const pending = buildPendingRequests(metrics);
+    const pendingTile = PENDING_TILE[pending.status];
     const recentActivity = Array.isArray(metrics?.citas_creadas_ultimos_3_meses)
         ? metrics.citas_creadas_ultimos_3_meses
         : [];
-    const requestedSpecialty = buildSpecialtyMetric(
-        metrics?.especialidad_mas_solicitada_mes,
-        "creada"
-    );
-    const scheduledSpecialty = buildSpecialtyMetric(
-        metrics?.especialidad_mas_programada_mes,
-        "programada"
-    );
+    const count = (value) => (hasMetrics ? formatCount(value) : EMPTY);
+    const totals = [
+        ["Médicos aprobados", count(metrics?.total_medicos_aprobados)],
+        ["Pacientes registrados", count(metrics?.total_pacientes)],
+        ["Citas válidas", count(metrics?.total_citas)],
+    ];
 
     return (
-        <section className={styles.summary} aria-label="Resumen operativo del sistema">
-            <div className={styles.metricsGrid}>
-                {summaryMetrics.map(({ key, ...definition }) => (
-                    <AdminMetricCard
-                        key={key}
-                        {...definition}
-                        value={metrics?.[key]}
-                        status={metricStatus}
-                    />
-                ))}
-                <AdminMetricCard
-                    label="Tasa de cancelación del mes"
-                    value={cancellationRate.value}
-                    supportingText={cancellationRate.supportingText}
-                    icon={CalendarX2}
-                    tone="violet"
-                    status={metricStatus}
-                />
-                <AdminMetricCard
-                    label="Calificación promedio del mes"
-                    value={ratingMetric.value}
-                    supportingText={ratingMetric.supportingText}
-                    icon={Star}
-                    tone="amber"
-                    status={metricStatus}
-                />
-            </div>
-
-            {loading ? (
-                <div className={styles.loadingLayout} role="status" aria-label="Cargando resumen operativo">
-                    <span className={styles.loadingChart} aria-hidden="true" />
-                    <span className={styles.loadingPanel} aria-hidden="true" />
-                </div>
-            ) : error ? (
-                <DashboardModuleState error moduleName="resumen" />
-            ) : (
-                <div className={styles.overviewGrid}>
-                    <article className={styles.activityCard}>
-                        <div className={styles.cardHeader}>
-                            <div>
-                                <span>Últimos meses disponibles</span>
-                                <h3>Actividad reciente</h3>
-                                <p>Citas creadas en los últimos 3 meses.</p>
-                            </div>
-                            <span className={styles.headerIcon} aria-hidden="true">
-                                <CalendarCheck2 size={20} strokeWidth={1.9} />
-                            </span>
+        <section
+            className={styles.summary}
+            aria-label="Resumen operativo del sistema"
+            aria-busy={loading}
+        >
+            <div className={styles.grid}>
+                <div className={styles.leftColumn}>
+                    <section className={styles.now} aria-labelledby="resumen-ahora">
+                        <h3 id="resumen-ahora" className={styles.panelTitle}>Ahora</h3>
+                        <div className={styles.nowTiles}>
+                            <NowTile
+                                label="Citas de hoy"
+                                value={today.value}
+                                context={today.context}
+                                tone="info"
+                                loading={loading}
+                            />
+                            <NowTile
+                                label="Solicitudes pendientes"
+                                value={pending.value}
+                                tone={pendingTile.tone}
+                                pill={pendingTile.pill}
+                                context={pending.context}
+                                loading={loading}
+                            />
                         </div>
+                    </section>
 
-                        {recentActivity.length ? (
-                            <RecentAppointmentsChart data={recentActivity} />
+                    <section className={`${styles.panel} ${styles.chartPanel}`} aria-labelledby="resumen-citas-por-mes">
+                        <h3 id="resumen-citas-por-mes" className={styles.panelTitle}>Citas creadas por mes</h3>
+                        <p className={styles.panelSubtitle}>Se cuentan al crearse, no por su fecha de atención.</p>
+                        {loading ? (
+                            <span className={styles.chartSkeleton} role="status" aria-label="Cargando gráfico" />
                         ) : (
-                            <p className={styles.emptyState}>Aún no hay actividad reciente para mostrar.</p>
+                            <RecentAppointmentsChart data={recentActivity} />
                         )}
-                    </article>
+                    </section>
 
-                    <div className={styles.sideColumn}>
-                        <article className={styles.attentionCard}>
-                            <div className={styles.cardHeader}>
-                                <div>
-                                    <span>Seguimiento administrativo</span>
-                                    <h3>Requiere atención</h3>
-                                    <p>Indicadores que conviene revisar.</p>
-                                </div>
-                            </div>
-
-                            <dl className={styles.attentionList}>
-                                {/**
-                                 * <div>
-                                        <dt>
-                                            <ClipboardClock size={17} aria-hidden="true" />
-                                            Solicitudes pendientes
-                                        </dt>
-                                        <dd>{pendingRequests}</dd>
-                                    </div>
-                                 *
-                                 */}
-
-                                <div>
-                                    <dt>
-                                        <Clock3 size={17} aria-hidden="true" />
-                                        Solicitud médica pendiente más antigua
-                                    </dt>
-                                    <dd>
-                                        {oldestRequestDays === null || oldestRequestDays === undefined
-                                            ? "Sin solicitudes pendientes"
-                                            : `${safeCount(oldestRequestDays)} ${safeCount(oldestRequestDays) === 1 ? "día" : "días"}`}
+                    <section className={`${styles.panel} ${styles.totalsPanel}`} aria-labelledby="resumen-totales">
+                        <h3 id="resumen-totales" className={styles.panelTitle}>Totales</h3>
+                        <dl className={styles.totals}>
+                            {totals.map(([label, value]) => (
+                                <div key={label} className={styles.totalStat}>
+                                    <dt>{label}</dt>
+                                    <dd className={value === EMPTY ? styles.totalEmpty : ""}>
+                                        {loading ? <span className={styles.skeleton} aria-hidden="true" /> : value}
                                     </dd>
                                 </div>
-                                <div>
-                                    <dt>
-                                        <CalendarX2 size={17} aria-hidden="true" />
-                                        <span>
-                                            Citas canceladas este mes
-                                            <small className={styles.attentionHint}>
-                                                Canceladas durante este mes, sin importar la fecha de la cita
-                                            </small>
-                                        </span>
-                                    </dt>
-                                    <dd>{cancellations}</dd>
-                                </div>
-                            </dl>
-                        </article>
-
-                        <article className={styles.demandCard}>
-                            <div className={styles.demandIcon} aria-hidden="true">
-                                <CircleUserRound size={22} strokeWidth={1.9} />
-                            </div>
-                            <div className={styles.demandContent}>
-                                <span>Demanda generada</span>
-                                <h3>Especialidad más solicitada este mes</h3>
-                                <p className={styles.demandDescription}>
-                                    Especialidad con mayor cantidad de citas creadas durante el mes actual.
-                                </p>
-                                {requestedSpecialty ? (
-                                    <div className={styles.demandMetric}>
-                                        <strong>{requestedSpecialty.especialidad}</strong>
-                                        <p>{requestedSpecialty.textoTotal}</p>
-                                    </div>
-                                ) : (
-                                    <p className={styles.demandEmpty}>No hay citas creadas este mes.</p>
-                                )}
-                            </div>
-                        </article>
-
-                        <article className={styles.demandCard}>
-                            <div className={`${styles.demandIcon} ${styles.scheduleIcon}`} aria-hidden="true">
-                                <CalendarCheck2 size={22} strokeWidth={1.9} />
-                            </div>
-                            <div className={styles.demandContent}>
-                                <span>Carga de agenda</span>
-                                <h3>Especialidad con más citas programadas este mes</h3>
-                                <p className={styles.demandDescription}>
-                                    Especialidad con mayor cantidad de citas cuya fecha de atención está programada durante el mes actual.
-                                </p>
-                                {scheduledSpecialty ? (
-                                    <div className={styles.demandMetric}>
-                                        <strong>{scheduledSpecialty.especialidad}</strong>
-                                        <p>{scheduledSpecialty.textoTotal}</p>
-                                    </div>
-                                ) : (
-                                    <p className={styles.demandEmpty}>No hay citas programadas este mes.</p>
-                                )}
-                            </div>
-                        </article>
-                    </div>
+                            ))}
+                        </dl>
+                    </section>
                 </div>
-            )}
+
+                <MonthPanel metrics={metrics} loading={loading} />
+            </div>
+
+            <details className={styles.definitions}>
+                <summary>Cómo se calcula cada métrica</summary>
+                <ul>
+                    {metricDefinitions.map(([term, definition]) => (
+                        <li key={term}>
+                            <strong>{term}:</strong> {definition}
+                        </li>
+                    ))}
+                </ul>
+            </details>
         </section>
     );
 }
