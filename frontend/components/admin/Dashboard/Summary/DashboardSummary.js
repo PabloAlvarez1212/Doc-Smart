@@ -7,6 +7,7 @@ import {
     CircleUserRound,
     ClipboardClock,
     Clock3,
+    Star,
     Stethoscope,
     UserRound,
     UsersRound,
@@ -14,6 +15,7 @@ import {
 import AdminMetricCard from "../AdminMetricCard/AdminMetricCard";
 import DashboardModuleState from "../DashboardModuleState/DashboardModuleState";
 import RecentAppointmentsChart from "./RecentAppointmentsChart";
+import { buildCancellationRateMetric, buildRatingMetric } from "./summaryRateMetrics";
 import { buildSpecialtyMetric } from "./summarySpecialtyMetrics";
 import styles from "./DashboardSummary.module.css";
 
@@ -30,6 +32,8 @@ import styles from "./DashboardSummary.module.css";
  * @property {{especialidad: string|null, total_citas: number}|null} especialidad_mas_solicitada_mes
  * @property {{especialidad: string|null, total_citas: number}|null} especialidad_mas_programada_mes
  * @property {number} cancelaciones_mes
+ * @property {{canceladas: number, base: number, tasa: number|null}} tasa_cancelacion_mes
+ * @property {{promedio: number|null, total: number}} calificacion_promedio_mes
  */
 
 const summaryMetrics = [
@@ -43,28 +47,28 @@ const summaryMetrics = [
     {
         key: "total_pacientes",
         label: "Pacientes registrados",
-        supportingText: "Pacientes registrados en el sistema",
+        supportingText: "Pacientes registrados, sin cuentas bloqueadas",
         icon: UserRound,
         tone: "teal",
     },
     {
         key: "total_citas",
         label: "Total de citas",
-        supportingText: "Citas registradas en el sistema",
+        supportingText: "Excluye citas canceladas y vencidas",
         icon: CalendarDays,
         tone: "violet",
     },
     {
         key: "citas_hoy",
         label: "Citas de hoy",
-        supportingText: "Programadas para hoy",
+        supportingText: "Programadas para hoy, sin canceladas ni vencidas",
         icon: CalendarCheck2,
         tone: "blue",
     },
     {
         key: "pacientes_activos_mes",
         label: "Pacientes activos este mes",
-        supportingText: "Pacientes únicos con citas programadas",
+        supportingText: "Pacientes únicos con citas válidas programadas este mes",
         icon: UsersRound,
         tone: "teal",
     },
@@ -93,6 +97,8 @@ export default function DashboardSummary({ metrics, loading = false, error = fal
     const metricStatus = loading ? "loading" : error ? "unavailable" : "available";
     const pendingRequests = safeCount(metrics?.total_solicitudes_pendientes);
     const cancellations = safeCount(metrics?.cancelaciones_mes);
+    const cancellationRate = buildCancellationRateMetric(metrics?.tasa_cancelacion_mes);
+    const ratingMetric = buildRatingMetric(metrics?.calificacion_promedio_mes);
     const oldestRequestDays = metrics?.antiguedad_solicitud_pendiente_dias;
     const recentActivity = Array.isArray(metrics?.citas_creadas_ultimos_3_meses)
         ? metrics.citas_creadas_ultimos_3_meses
@@ -117,6 +123,22 @@ export default function DashboardSummary({ metrics, loading = false, error = fal
                         status={metricStatus}
                     />
                 ))}
+                <AdminMetricCard
+                    label="Tasa de cancelación del mes"
+                    value={cancellationRate.value}
+                    supportingText={cancellationRate.supportingText}
+                    icon={CalendarX2}
+                    tone="violet"
+                    status={metricStatus}
+                />
+                <AdminMetricCard
+                    label="Calificación promedio del mes"
+                    value={ratingMetric.value}
+                    supportingText={ratingMetric.supportingText}
+                    icon={Star}
+                    tone="amber"
+                    status={metricStatus}
+                />
             </div>
 
             {loading ? (
@@ -183,7 +205,12 @@ export default function DashboardSummary({ metrics, loading = false, error = fal
                                 <div>
                                     <dt>
                                         <CalendarX2 size={17} aria-hidden="true" />
-                                        Citas canceladas este mes
+                                        <span>
+                                            Citas canceladas este mes
+                                            <small className={styles.attentionHint}>
+                                                Canceladas durante este mes, sin importar la fecha de la cita
+                                            </small>
+                                        </span>
                                     </dt>
                                     <dd>{cancellations}</dd>
                                 </div>

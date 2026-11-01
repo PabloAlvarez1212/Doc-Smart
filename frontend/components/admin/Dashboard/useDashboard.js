@@ -98,6 +98,7 @@ export function useDashboard() {
     );
     const [citasPorDiaSemana, setCitasPorDiaSemana] = useState([]);
     const [citasPorHora, setCitasPorHora] = useState([]);
+    const [calidadAgenda, setCalidadAgenda] = useState(null);
     const [loadingCitas, setLoadingCitas] = useState(true);
     const [errorCitas, setErrorCitas] = useState(false);
     const appointmentRequestRef = useRef(null);
@@ -216,6 +217,7 @@ export function useDashboard() {
             );
             setCitasPorDiaSemana(citas.citas_por_dia_semana ?? []);
             setCitasPorHora(citas.citas_por_hora ?? []);
+            setCalidadAgenda(citas.calidad_agenda ?? null);
             setFiltrosCitas({
                 anio: Number.isInteger(filters?.anio) ? filters.anio : null,
                 mes: Number.isInteger(filters?.mes) ? filters.mes : null,
@@ -520,6 +522,7 @@ export function useDashboard() {
         citasCreadasPorEspecialidad,
         citasPorDiaSemana,
         citasPorHora,
+        calidadAgenda,
         loadingCitas,
         errorCitas,
         medicosPorEspecialidad,

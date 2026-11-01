@@ -8,12 +8,14 @@ const stateLabels = {
     pendiente: "Pendiente",
     rechazado: "Rechazado",
     sin_solicitud: "Sin solicitud",
+    bloqueado: "Bloqueado",
 };
 const stateColors = {
     aprobado: "#13796f",
     pendiente: "#a8640b",
     rechazado: "#b42335",
     sin_solicitud: "#64748b",
+    bloqueado: "#7f1d1d",
 };
 const percentageFormatter = new Intl.NumberFormat("es-CO", {
     minimumFractionDigits: 1,

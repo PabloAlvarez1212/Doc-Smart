@@ -61,7 +61,7 @@ export default function PatientStats({
                     <article className={styles.chartCard}>
                         <div className={styles.chartHeader}>
                             <h3>Pacientes por edad</h3>
-                            <p>Distribución por edad de los pacientes al cierre del período seleccionado.</p>
+                            <p>Edad calculada a hoy si el período aún está en curso, o al último día del período si ya finalizó.</p>
                         </div>
 
                         {hasAgeData ? (
@@ -74,7 +74,7 @@ export default function PatientStats({
                     <article className={styles.chartCard}>
                         <div className={styles.chartHeader}>
                             <h3>Distribución por cantidad de citas</h3>
-                            <p>Distribución de pacientes según la cantidad de citas programadas en el período seleccionado.</p>
+                            <p>Distribución de pacientes según la cantidad de citas válidas (no canceladas ni vencidas) programadas en el período seleccionado.</p>
                         </div>
 
                         {hasAppointmentCountData ? (
@@ -104,7 +104,7 @@ export default function PatientStats({
                     <article className={styles.chartCard}>
                         <div className={styles.chartHeader}>
                             <h3>{`Pacientes activos por ${activeGrouping === "dia" ? "día" : "mes"}`}</h3>
-                            <p>Pacientes con citas programadas durante el período seleccionado.</p>
+                            <p>Pacientes con citas válidas (no canceladas ni vencidas) programadas durante el período seleccionado.</p>
                         </div>
 
                         {activePatients.length ? (

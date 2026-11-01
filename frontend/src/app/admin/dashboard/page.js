@@ -26,6 +26,7 @@ export default function Dashboard() {
         citasCreadasPorEspecialidad,
         citasPorDiaSemana,
         citasPorHora,
+        calidadAgenda,
         loadingCitas,
         errorCitas,
         medicosPorEspecialidad,
@@ -83,6 +84,7 @@ export default function Dashboard() {
                         citasCreadasPorEspecialidad={citasCreadasPorEspecialidad}
                         citasPorDiaSemana={citasPorDiaSemana}
                         citasPorHora={citasPorHora}
+                        calidadAgenda={calidadAgenda}
                         loading={loadingCitas}
                         error={errorCitas}
                     />

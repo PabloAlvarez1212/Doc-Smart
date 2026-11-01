@@ -1,7 +1,15 @@
 "use client";
 
+import { CalendarX2, UserX } from "lucide-react";
+import AdminMetricCard from "../../AdminMetricCard/AdminMetricCard";
 import DashboardModuleState from "../../DashboardModuleState/DashboardModuleState";
 import AppointmentsByHourChart from "../AppointmentsByHourChart";
+import CancellationsByResponsibleChart from "../CancellationsByResponsibleChart";
+import {
+    buildResponsibleData,
+    formatCountOfBase,
+    formatRate,
+} from "../appointmentQualityData";
 import AppointmentsBySpecialtyChart from "../AppointmentsBySpecialtyChart";
 import AppointmentsByWeekdayChart from "../AppointmentsByWeekdayChart";
 import AppointmentsCreatedByPeriodChart from "../AppointmentsCreatedByPeriodChart";
@@ -21,6 +29,7 @@ export default function AppointmentStats({
     citasCreadasPorEspecialidad,
     citasPorDiaSemana,
     citasPorHora,
+    calidadAgenda,
     loading = false,
     error = false,
 }) {
@@ -29,6 +38,7 @@ export default function AppointmentStats({
         ? citasCreadasPorPeriodo.datos
         : [];
     const hasWeekdayData = hasAppointmentsByWeekday(citasPorDiaSemana);
+    const cancellationsByResponsible = buildResponsibleData(calidadAgenda?.canceladas_por_responsable);
 
     return (
         <section className={styles.appointments} aria-label="Estadísticas de citas">
@@ -52,6 +62,7 @@ export default function AppointmentStats({
                         <span>Creación / demanda</span>
                         <h3>Cuándo se generan las citas</h3>
                         <p>Estas métricas utilizan la fecha en que la cita fue creada.</p>
+                        <p>Cita válida: excluye estados cancelada y vencida.</p>
                     </div>
 
                     <article className={styles.chartCard}>
@@ -163,6 +174,41 @@ export default function AppointmentStats({
                             <AppointmentsByHourChart data={citasPorHora} />
                         ) : (
                             <p className={styles.empty}>No hay citas programadas por hora en el período seleccionado.</p>
+                        )}
+                    </article>
+
+                    <div className={`${styles.groupHeading} ${styles.scheduleHeading}`}>
+                        <span>Calidad de la agenda</span>
+                        <h3>Qué tanto se cumple la agenda programada</h3>
+                        <p>Estas métricas utilizan la fecha programada e incluyen todas las citas del período, también las canceladas.</p>
+                    </div>
+
+                    <AdminMetricCard
+                        label="Tasa de cancelación"
+                        value={formatRate(calidadAgenda?.tasa_cancelacion, calidadAgenda?.base_programadas)}
+                        supportingText={formatCountOfBase(calidadAgenda?.canceladas, calidadAgenda?.base_programadas)}
+                        icon={CalendarX2}
+                        tone="violet"
+                    />
+
+                    <AdminMetricCard
+                        label="Tasa de inasistencia"
+                        value={formatRate(calidadAgenda?.tasa_inasistencia, calidadAgenda?.base_inasistencia)}
+                        supportingText={formatCountOfBase(calidadAgenda?.inasistencias, calidadAgenda?.base_inasistencia)}
+                        icon={UserX}
+                        tone="blue"
+                    />
+
+                    <article className={`${styles.chartCard} ${styles.fullWidth}`}>
+                        <div className={styles.chartHeader}>
+                            <h3>Cancelaciones por responsable</h3>
+                            <p>Quién canceló las citas programadas dentro del período seleccionado.</p>
+                        </div>
+
+                        {cancellationsByResponsible.length ? (
+                            <CancellationsByResponsibleChart data={cancellationsByResponsible} />
+                        ) : (
+                            <p className={styles.empty}>No hay citas canceladas en el período seleccionado.</p>
                         )}
                     </article>
                 </div>

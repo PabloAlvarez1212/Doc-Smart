@@ -2,6 +2,7 @@ const SUPPORTED_STATES = new Set([
     "pendiente",
     "rechazado",
     "sin_solicitud",
+    "bloqueado",
 ]);
 
 export function buildNonApprovedSpecialtyData(data) {
@@ -19,6 +20,7 @@ export function buildNonApprovedSpecialtyData(data) {
                 pendiente: 0,
                 rechazado: 0,
                 sin_solicitud: 0,
+                bloqueado: 0,
             });
         }
 

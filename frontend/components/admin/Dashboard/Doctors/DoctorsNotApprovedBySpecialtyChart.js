@@ -19,6 +19,7 @@ const STATUS_SERIES = [
     { key: "pendiente", label: "Pendiente", color: "#a8640b" },
     { key: "rechazado", label: "Rechazado", color: "#b42335" },
     { key: "sin_solicitud", label: "Sin solicitud", color: "var(--text-secondary)" },
+    { key: "bloqueado", label: "Bloqueado", color: "#7f1d1d" },
 ];
 
 function getChartLayout(data) {
@@ -29,7 +30,7 @@ function getChartLayout(data) {
     const rowHeight = Math.max(48, maxLines * 14 + 18);
     const chartHeight = Math.max(190, data.length * rowHeight + 82);
     const maxTotal = Math.max(1, ...data.map((item) => (
-        item.pendiente + item.rechazado + item.sin_solicitud
+        item.pendiente + item.rechazado + item.sin_solicitud + item.bloqueado
     )));
     const targetMax = Math.max(2, Math.ceil(maxTotal * 1.15));
     const tickStep = Math.max(1, Math.ceil(targetMax / 4));

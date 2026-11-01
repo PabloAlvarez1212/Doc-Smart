@@ -10,6 +10,9 @@ const stateColors = {
     confirmada: "#2563eb",
     cancelada: "#b42335",
     cancelado: "#b42335",
+    reprogramada: "#0891b2",
+    vencida: "#6b7280",
+    inasistencia_paciente: "#d97706",
 };
 const fallbackColors = ["#7257b5", "#4e789b", "#64748b"];
 const percentageFormatter = new Intl.NumberFormat("es-CO", {
@@ -23,7 +26,7 @@ function colorForState(state, index) {
 }
 
 function formatState(state) {
-    const label = String(state ?? "Sin estado").trim();
+    const label = String(state ?? "Sin estado").trim().replace(/_/g, " ");
     return label.charAt(0).toLocaleUpperCase("es-CO") + label.slice(1).toLocaleLowerCase("es-CO");
 }
 
