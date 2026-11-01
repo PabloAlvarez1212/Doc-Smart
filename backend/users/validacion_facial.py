@@ -1475,6 +1475,11 @@ def resolverRevisionPosteriorService(proceso_id, decision, motivo, revisor):
             cuenta.motivo_bloqueo = motivo
             cuenta.bloqueado_en = timezone.now()
             cuenta.save(update_fields=["acceso_bloqueado", "motivo_bloqueo", "bloqueado_en"])
+            from notificaciones.realtime import programarActualizacionDashboardRealtime
+            programarActualizacionDashboardRealtime(
+                'CUENTA_BLOQUEADA',
+                ('resumen', 'medicos') if p.tipo_registro == "medico" else ('resumen', 'pacientes'),
+            )
             p.revision_posterior = "bloqueado"
         else:
             p.revision_posterior = "legitimo"

@@ -32,7 +32,7 @@ from storage_app.services import guardar_archivo_medico,eliminar_archivo
 from django.db import transaction
 from storage_app.services import generar_url_firmada
 from medicos.paginacion import PaginacionSolicitudesValidacion
-from utils import enviarCorreoMedicoAprobado,enviarCorreoMedicoRechazado,filtrarMedicosAprobados
+from utils import enviarCorreoMedicoAprobado,enviarCorreoMedicoRechazado,filtrarMedicosAprobados,rellenarSerie,medicosAprobadosActivos,ESTADO_CITA_COMPLETADA
 
 
 logger = logging.getLogger(__name__)
@@ -1768,6 +1768,9 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
 
     medicosConEstadoPeriodo = (
         Medico.objects
+        .filter(
+            Q(fecha_creacion__lt=finPeriodo) | Q(fecha_creacion__isnull=True)
+        )
         .annotate(
             ultimo_estado=ultimoEstado,
             ultima_fecha_solicitud=ultimaFechaSolicitud,
@@ -1775,6 +1778,10 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
         )
         .annotate(
             estado_periodo=Case(
+                When(
+                    Q(acceso_bloqueado=True) & Q(bloqueado_en__isnull=False) & Q(bloqueado_en__lt=fechaCorte),
+                    then=Value("bloqueado")
+                ),
                 When(
                     ultima_fecha_solicitud__isnull=True,
                     then=Value("sin_solicitud")
@@ -1844,10 +1851,12 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
             "total_solicitudes": item["total"]
         })
 
+    solicitudesValidacionData = rellenarSerie(solicitudesValidacionData, inicioPeriodo, finPeriodo, agrupacionSolicitudes, "total_solicitudes")
+
     medicosQueMasAtienden = (
         Cita.objects
         .filter(
-            id_estado__nombre__iexact="completada",
+            id_estado__nombre__iexact=ESTADO_CITA_COMPLETADA,
             fecha_completada__isnull=False,
             fecha_completada__gte=inicioPeriodo,
             fecha_completada__lt=finPeriodo
@@ -1860,7 +1869,7 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
         .annotate(
             total=Count("id")
         )
-        .order_by("-total")[:5]
+        .order_by("-total", "id_medico__apellido", "id_medico__nombre")[:5]
     )
 
     duracionValidacion = ExpressionWrapper(
@@ -1898,7 +1907,7 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
     )
 
     aniosCitas = Cita.objects.filter(
-        id_estado__nombre__iexact="completada"
+        id_estado__nombre__iexact=ESTADO_CITA_COMPLETADA
     ).dates(
         "fecha_completada",
         "year",

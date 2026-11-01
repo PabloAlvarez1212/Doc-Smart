@@ -496,7 +496,7 @@ class DashboardInicioMedicoView(APIView):
             )
 
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo obtener el dashboard de inicio del médico")
             return respuesta_error(
                 "Error interno del servidor",
                 status=500

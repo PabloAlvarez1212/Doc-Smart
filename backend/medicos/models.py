@@ -28,6 +28,7 @@ class Medico(models.Model):
     acceso_bloqueado = models.BooleanField(default=False)
     motivo_bloqueo = models.TextField(blank=True, default="")
     bloqueado_en = models.DateTimeField(null=True, blank=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True, null=True)
     token_reset = models.CharField(max_length=100, null=True, blank=True)        # Token para recuperar contraseña
     token_reset_expira = models.DateTimeField(null=True, blank=True)             # Expiración del token de reset
     ultimo_envio = models.DateTimeField(null=True, blank=True)   # Control de frecuencia de envío de correos

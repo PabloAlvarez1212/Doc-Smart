@@ -31,14 +31,15 @@ from django.template.loader import render_to_string
 from urllib.parse import urlencode
 from django.core.paginator import Paginator
 from citas.models import Cita
+from calificaciones.models import Calificacion
 import calendar
 import logging
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.exceptions import NotFound, PermissionDenied
-from utils import filtrarMedicosAprobados, CustomJWTAuthentication, mensaje_bloqueo
+from utils import filtrarMedicosAprobados, CustomJWTAuthentication, mensaje_bloqueo, citasValidas, pacientesActivos, pacientesNoBloqueados, ESTADOS_INVALIDOS_CITA, ESTADO_CITA_CANCELADA, porcentajeUnDecimal, rellenarSerie, medicosAprobadosActivos
 from rest_framework_simplejwt.exceptions import InvalidToken
-from django.db.models import Count,Case, When, Value, CharField,Q
+from django.db.models import Avg,Count,Case, When, Value, CharField,Q
 from django.db.models.functions import TruncMonth, TruncDay
 from dateutil.relativedelta import relativedelta
 from django.contrib.auth.hashers import (
@@ -1585,9 +1586,8 @@ def obtenerDashboardPacienteInicioService(id):
 
 def obtenerMetricasSistema():
     medicos = Medico.objects.all()
-    totalMedicosAprobados = filtrarMedicosAprobados(medicos).count()
-    totalPacientes = Usuario.objects.filter(id_rol__nombre__iexact = "paciente").count()
-    totalCitas = Cita.objects.all().count()
+    totalMedicosAprobados = medicosAprobadosActivos(medicos).count()
+    totalPacientes = pacientesNoBloqueados().count()
     totalSolicitudesPendientes = SolicitudValidacionMedico.objects.filter(estado=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE).count()
     solicitudPendienteMasAntigua = (SolicitudValidacionMedico.objects.filter(estado=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE).order_by("fecha_solicitud").first())
 
@@ -1604,8 +1604,6 @@ def obtenerMetricasSistema():
     hoy = timezone.localdate()
     ahora = timezone.localtime()
 
-    totalCitasHoy = Cita.objects.filter(fecha_programada__date=hoy).count()
-
     inicioMes = ahora.replace(
         day=1,
         hour=0,
@@ -1617,11 +1615,24 @@ def obtenerMetricasSistema():
     finMes = inicioMes + relativedelta(months=1)
 
     inicioPeriodo = inicioMes - relativedelta(months=2)
-    citasCreadasUltimosMeses = (Cita.objects.filter(fecha_creacion__gte=inicioPeriodo).annotate(mes=TruncMonth("fecha_creacion")).values("mes").annotate(total=Count("id")).order_by("mes"))
-    totalPacientesActivosMes = (Cita.objects.filter(fecha_programada__gte=inicioMes,fecha_programada__lt=finMes,id_usuario__id_rol__nombre__iexact="paciente").values("id_usuario").distinct().count())
-    especialidadMasSolicitada = (Cita.objects.filter(fecha_creacion__gte=inicioMes,fecha_creacion__lt=finMes).values("id_medico__id_especialidad__nombre").annotate(total=Count("id")).order_by("-total").first())
-    especialidadMasProgramada = (Cita.objects.filter(fecha_programada__gte=inicioMes,fecha_programada__lt=finMes).values("id_medico__id_especialidad__nombre").annotate(total=Count("id")).order_by("-total").first())
+    citasCreadasUltimosMeses = (citasValidas(Cita.objects.filter(fecha_creacion__gte=inicioPeriodo)).annotate(mes=TruncMonth("fecha_creacion")).values("mes").annotate(total=Count("id")).order_by("mes"))
+    totalPacientesActivosMes = pacientesActivos(inicioMes, finMes)
+    especialidadMasSolicitada = (citasValidas(Cita.objects.filter(fecha_creacion__gte=inicioMes,fecha_creacion__lt=finMes)).values("id_medico__id_especialidad__nombre").annotate(total=Count("id")).order_by("-total","id_medico__id_especialidad__nombre").first())
+    especialidadMasProgramada = (citasValidas(Cita.objects.filter(fecha_programada__gte=inicioMes,fecha_programada__lt=finMes)).values("id_medico__id_especialidad__nombre").annotate(total=Count("id")).order_by("-total","id_medico__id_especialidad__nombre").first())
     totalCancelacionesMes = Cita.objects.filter(fecha_cancelacion__gte=inicioMes,fecha_cancelacion__lt=finMes).count()
+    esValida = ~Q(id_estado__nombre__in=ESTADOS_INVALIDOS_CITA)
+    esDelMes = Q(fecha_programada__gte=inicioMes,fecha_programada__lt=finMes)
+    conteoCitas = Cita.objects.aggregate(
+        total=Count("id", filter=esValida),
+        hoy=Count("id", filter=esValida & Q(fecha_programada__date=hoy)),
+        programadas_mes=Count("id", filter=esDelMes),
+        canceladas_mes=Count("id", filter=esDelMes & Q(id_estado__nombre=ESTADO_CITA_CANCELADA)),
+    )
+    totalCitas = conteoCitas["total"]
+    totalCitasHoy = conteoCitas["hoy"]
+    baseCancelacionMes = conteoCitas["programadas_mes"]
+    canceladasMes = conteoCitas["canceladas_mes"]
+    calificacionesMes = Calificacion.objects.filter(fecha_creacion__gte=inicioMes,fecha_creacion__lt=finMes).aggregate(promedio=Avg("puntuacion"),total=Count("id"))
 
     data = {
         "total_medicos_aprobados" : totalMedicosAprobados,
@@ -1645,6 +1656,15 @@ def obtenerMetricasSistema():
             )
         },
         "cancelaciones_mes": totalCancelacionesMes,
+        "tasa_cancelacion_mes": {
+            "canceladas": canceladasMes,
+            "base": baseCancelacionMes,
+            "tasa": porcentajeUnDecimal(canceladasMes, baseCancelacionMes),
+        },
+        "calificacion_promedio_mes": {
+            "promedio": round(calificacionesMes["promedio"], 1) if calificacionesMes["total"] else None,
+            "total": calificacionesMes["total"],
+        },
         "especialidad_mas_programada_mes": {
             "especialidad": (
                 especialidadMasProgramada["id_medico__id_especialidad__nombre"]
@@ -1665,6 +1685,15 @@ def obtenerMetricasSistema():
             "mes": item["mes"].strftime("%Y-%m"),
             "total": item["total"],
         })
+    data["citas_creadas_ultimos_3_meses"] = rellenarSerie(
+        data["citas_creadas_ultimos_3_meses"],
+        inicioPeriodo,
+        finMes,
+        "mes",
+        "total",
+        clave_periodo="mes",
+        siempre_rellenar=True,
+    )
 
     return data,200
 
@@ -1709,12 +1738,11 @@ def obtenerEstadisticasPacientesService(anio=None, mes=None):
     )
 
     aniosCitas = (
-        Cita.objects
-        .filter(
+        citasValidas(Cita.objects.filter(
             id_usuario__id_rol__nombre__iexact="paciente"
-        )
+        ))
         .dates(
-            "fecha_creacion",
+            "fecha_programada",
             "year",
             order="DESC"
         )
@@ -1731,9 +1759,9 @@ def obtenerEstadisticasPacientesService(anio=None, mes=None):
         reverse=True
     )
 
-    citasPeriodo = Cita.objects.filter(id_usuario__id_rol__nombre__iexact="paciente",fecha_creacion__gte=inicioPeriodo,fecha_creacion__lt=finPeriodo)
+    citasPeriodo = citasValidas(Cita.objects.filter(id_usuario__id_rol__nombre__iexact="paciente",fecha_programada__gte=inicioPeriodo,fecha_programada__lt=finPeriodo))
 
-    pacientesRegistradosPeriodo = Usuario.objects.filter(id_rol__nombre__iexact="paciente",fecha_creacion__gte=inicioPeriodo,fecha_creacion__lt=finPeriodo)
+    pacientesRegistradosPeriodo = pacientesNoBloqueados().filter(fecha_creacion__gte=inicioPeriodo,fecha_creacion__lt=finPeriodo)
 
     if mes is not None:
         pacientesPorPeriodo = (pacientesRegistradosPeriodo.annotate(periodo=TruncDay("fecha_creacion")).values("periodo").annotate(total=Count("id")).order_by("periodo"))
@@ -1746,19 +1774,17 @@ def obtenerEstadisticasPacientesService(anio=None, mes=None):
         agrupacionPacientes = "mes"
 
     pacientesCantidadCitas = (
-        Usuario.objects
-        .filter(
-            id_rol__nombre__iexact="paciente",
-            fecha_creacion__lt=finPeriodo
-        )
+        pacientesNoBloqueados()
+        .filter(fecha_creacion__lt=finPeriodo)
         .annotate(
             total_citas=Count(
                 "cita",
                 filter=Q(
                     cita__fecha_programada__gte=inicioPeriodo,
                     cita__fecha_programada__lt=finPeriodo
-                )
+                ) & ~Q(cita__id_estado__nombre__in=ESTADOS_INVALIDOS_CITA)
             )
+            
         )
         .annotate(
             rango_citas=Case(
@@ -1799,33 +1825,36 @@ def obtenerEstadisticasPacientesService(anio=None, mes=None):
         rangosCitas[paciente["rango_citas"]] += 1
 
     if mes is not None:
-        pacientesActivosPorPeriodo = (citasPeriodo.annotate(periodo=TruncDay("fecha_creacion")).values("periodo").annotate(total_pacientes=Count("id_usuario",distinct=True)).order_by("periodo"))
+        pacientesActivosPorPeriodo = (citasPeriodo.annotate(periodo=TruncDay("fecha_programada")).values("periodo").annotate(total_pacientes=Count("id_usuario",distinct=True)).order_by("periodo"))
 
         agrupacionActivos = "dia"
 
     else:
-        pacientesActivosPorPeriodo = (citasPeriodo.annotate(periodo=TruncMonth("fecha_creacion")).values("periodo").annotate(total_pacientes=Count("id_usuario",distinct=True)).order_by("periodo"))
+        pacientesActivosPorPeriodo = (citasPeriodo.annotate(periodo=TruncMonth("fecha_programada")).values("periodo").annotate(total_pacientes=Count("id_usuario",distinct=True)).order_by("periodo"))
 
         agrupacionActivos = "mes"
 
-    fechaCorte = (finPeriodo - relativedelta(days=1)).date()
+    fechaCorte = min((finPeriodo - relativedelta(days=1)).date(), timezone.localdate())
 
-    pacientesExistentes = Usuario.objects.filter(id_rol__nombre__iexact="paciente",fecha_creacion__lt=finPeriodo)
+    pacientesExistentes = pacientesNoBloqueados().filter(fecha_creacion__lt=finPeriodo)
 
     hace18 = fechaCorte - relativedelta(years=18)
     hace30 = fechaCorte - relativedelta(years=30)
     hace45 = fechaCorte - relativedelta(years=45)
     hace60 = fechaCorte - relativedelta(years=60)
 
-    menores18 = pacientesExistentes.filter(fecha_nacimiento__gt=hace18).count()
-
-    entre18y29 = pacientesExistentes.filter(fecha_nacimiento__lte=hace18,fecha_nacimiento__gt=hace30).count()
-
-    entre30y44 = pacientesExistentes.filter(fecha_nacimiento__lte=hace30,fecha_nacimiento__gt=hace45).count()
-
-    entre45y59 = pacientesExistentes.filter(fecha_nacimiento__lte=hace45,fecha_nacimiento__gt=hace60).count()
-
-    mayores60 = pacientesExistentes.filter(fecha_nacimiento__lte=hace60).count()
+    conteoEdades = pacientesExistentes.aggregate(
+        menores18=Count("id", filter=Q(fecha_nacimiento__gt=hace18)),
+        entre18y29=Count("id", filter=Q(fecha_nacimiento__lte=hace18, fecha_nacimiento__gt=hace30)),
+        entre30y44=Count("id", filter=Q(fecha_nacimiento__lte=hace30, fecha_nacimiento__gt=hace45)),
+        entre45y59=Count("id", filter=Q(fecha_nacimiento__lte=hace45, fecha_nacimiento__gt=hace60)),
+        mayores60=Count("id", filter=Q(fecha_nacimiento__lte=hace60)),
+    )
+    menores18 = conteoEdades["menores18"]
+    entre18y29 = conteoEdades["entre18y29"]
+    entre30y44 = conteoEdades["entre30y44"]
+    entre45y59 = conteoEdades["entre45y59"]
+    mayores60 = conteoEdades["mayores60"]
 
     pacientesRegistradosData = []
 
@@ -1852,6 +1881,9 @@ def obtenerEstadisticasPacientesService(anio=None, mes=None):
             "periodo": periodo,
             "total_pacientes": item["total_pacientes"]
         })
+
+    pacientesRegistradosData = rellenarSerie(pacientesRegistradosData, inicioPeriodo, finPeriodo, agrupacionPacientes, "total_pacientes")
+    pacientesActivosData = rellenarSerie(pacientesActivosData, inicioPeriodo, finPeriodo, agrupacionActivos, "total_pacientes")
 
     data = {
         "pacientes_por_edad": [

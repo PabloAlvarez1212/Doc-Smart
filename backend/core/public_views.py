@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from users.models import Usuario
 from medicos.models import Medico
 from citas.models import Cita
-from utils import filtrarMedicosAprobados
+from utils import filtrarMedicosAprobados, citasValidas, medicosAprobadosActivos, pacientesNoBloqueados
 
 logger = logging.getLogger(__name__)
 
@@ -22,11 +22,11 @@ class PublicMetricsView(APIView):
 
     def get(self, request):
         try:
-            approved = filtrarMedicosAprobados(Medico.objects.all())
+            approved = medicosAprobadosActivos(Medico.objects.all())
             data = {
-                'pacientes_registrados': Usuario.objects.filter(id_rol__nombre__iexact='paciente').count(),
+                'pacientes_registrados': pacientesNoBloqueados().count(),
                 'medicos_aprobados': approved.count(),
-                'citas_registradas': Cita.objects.count(),
+                'citas_registradas': citasValidas(Cita.objects.all()).count(),
                 'actualizado_en': timezone.now().isoformat(),
             }
             return Response({'ok': True, 'data': data}, headers={'Cache-Control': 'public, max-age=60'})

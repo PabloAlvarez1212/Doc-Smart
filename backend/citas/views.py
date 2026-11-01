@@ -66,7 +66,7 @@ class CitaListView(APIView):
             resultado, status_code = listarCitasService()
             return respuesta_ok(data=resultado)
         except Exception as e:
-            print(e)
+            logger.exception("No se pudieron listar las citas")
             return respuesta_error('Error interno del servidor', status=500)
 
 #!Metodo para crear cita - paciente
@@ -87,7 +87,7 @@ class RegistroCitaView(APIView):
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(data=resultado, mensaje='Cita creada correctamente', status=201)
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo registrar la cita")
             return respuesta_error('Error interno del servidor', status=500)
 
 
@@ -112,7 +112,7 @@ class CitaPacienteView(APIView):
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(data=resultado,status=status_code)
         except Exception as e:
-            print(e)
+            logger.exception("No se pudieron obtener las citas del paciente")
             return respuesta_error('Error interno del servidor', status=500)
 
 
@@ -238,7 +238,7 @@ class CitaDetailView(APIView):
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(data=resultado)
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo obtener la cita")
             return respuesta_error('Error interno del servidor', status=500)
     #!Medico o usuario actualizan una cita por id
     def put(self, request, pk):
@@ -257,7 +257,7 @@ class CitaDetailView(APIView):
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(data=resultado, mensaje='Cita actualizada correctamente')
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo actualizar la cita")
             return respuesta_error('Error interno del servidor', status=500)
 
 
@@ -397,7 +397,7 @@ class CitaConfirmarView(APIView):
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(data=resultado, mensaje='Cita confirmada correctamente')
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo confirmar la cita")
             return respuesta_error('Error interno del servidor', status=500)
 
 # ─── RECORDATORIOS ───────────────────────────────────────────────────────────

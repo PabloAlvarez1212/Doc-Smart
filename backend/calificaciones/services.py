@@ -5,8 +5,10 @@ from calificaciones.models import Calificacion
 from django.db import IntegrityError
 from datetime import timedelta
 from django.utils import timezone
+from utils import ESTADO_CITA_COMPLETADA
 from django.db.models import Avg, Count, Q
 from notificaciones.services import enviarNotificacion
+from notificaciones.realtime import programarActualizacionDashboardRealtime
 
 
 def crearCalificacionesServices(data,usuario):
@@ -22,7 +24,7 @@ def crearCalificacionesServices(data,usuario):
     if not cita:
         return "La cita no existe o no te pertenece.", 404
         
-    if cita.id_estado.nombre.lower() != "completada":
+    if cita.id_estado.nombre.lower() != ESTADO_CITA_COMPLETADA:
         return "Solo puedes calificar citas completadas.",400
     
     if Calificacion.objects.filter(id_cita=cita).exists():
@@ -40,7 +42,7 @@ def crearCalificacionesServices(data,usuario):
     except IntegrityError:
         return "Esta cita ya tiene una calificación registrada.", 409
 
-    
+    programarActualizacionDashboardRealtime("CALIFICACION_CREADA", ("resumen",))
     return "Calificación creada correctamente.",201
 
 def actualizarCalificacionServices(data,id_calificacion,usuario):
@@ -65,7 +67,8 @@ def actualizarCalificacionServices(data,id_calificacion,usuario):
     calificacion.comentario = data.get("comentario",calificacion.comentario)
     
     calificacion.save()
-    
+    programarActualizacionDashboardRealtime("CALIFICACION_ACTUALIZADA", ("resumen",))
+
     return "Campos actualizados correctamente.",200
 
 #Listar las calificaciones que son públicas de cada médico

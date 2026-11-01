@@ -301,7 +301,7 @@ class SolicitarCambioView(APIView):
             return respuesta_ok(mensaje=mensaje)
 
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo solicitar el cambio de contraseña")
             return respuesta_error('Error interno del servidor', status=500)
 
 class SolicitarCambioCorreoView(APIView):
@@ -400,7 +400,7 @@ class CambiarContraseñaView(APIView):
             return response
 
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo cambiar la contraseña")
             return respuesta_error('Error interno del servidor', status=500)
 
 class CambiarContraseñaAutenticadoView(APIView):
@@ -418,7 +418,7 @@ class CambiarContraseñaAutenticadoView(APIView):
                 return respuesta_error(respuesta,status=status)
             return respuesta_ok(mensaje=respuesta,status=status)
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo cambiar la contraseña del usuario autenticado")
             return respuesta_error("Error en el servidor",status=500)
 
 #!Registro - publico - NO REQUIERE TOKEN
@@ -442,7 +442,7 @@ class RegistroView(APIView):
             return respuesta_ok(data=respuesta,mensaje="Proceso de registro iniciado",status=201)
 
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo registrar al paciente")
             return respuesta_error("Error interno del servidor",status=500)
 
 
@@ -638,7 +638,7 @@ class PerfilPacienteView(APIView):
             response.delete_cookie('user_id',path='/')
             return response
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo eliminar el perfil del paciente")
             return respuesta_error('Error interno del servidor',status=500)
 
 class PerfilAdminView(APIView):
@@ -689,7 +689,7 @@ class FotoPerfilPacienteView(APIView):
 
         except Exception as e:
 
-            print(e)
+            logger.exception("No se pudo actualizar la foto de perfil del paciente")
 
             return respuesta_error(
                 "Error interno del servidor",
@@ -712,7 +712,7 @@ class FotoPerfilPacienteView(APIView):
 
         except Exception as e:
 
-            print(e)
+            logger.exception("No se pudo eliminar la foto de perfil del paciente")
 
             return respuesta_error(
                 "Error interno del servidor",
@@ -733,7 +733,7 @@ class UsuarioListView(APIView):
             )
             return respuesta_ok(data=resultado, status=status_code)
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo listar los usuarios")
             return respuesta_error('Error interno del servidor', status=500)
 
 class UsuarioDetailView(APIView):
@@ -745,7 +745,7 @@ class UsuarioDetailView(APIView):
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(data=resultado)
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo obtener el usuario")
             return respuesta_error('Error interno del servidor', status=500)
 
     def put(self, request, pk):
@@ -766,7 +766,7 @@ class UsuarioDetailView(APIView):
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(data=resultado, mensaje='Usuario actualizado correctamente')
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo actualizar el usuario")
             return respuesta_error('Error interno del servidor', status=500)
 
     def delete(self, request, pk):
@@ -776,7 +776,7 @@ class UsuarioDetailView(APIView):
                 return respuesta_error(resultado, status=status_code)
             return respuesta_ok(mensaje=resultado)
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo eliminar el usuario")
             return respuesta_error('Error interno del servidor', status=500)
 
 class DashboardInicioPacienteView(APIView):
@@ -788,7 +788,7 @@ class DashboardInicioPacienteView(APIView):
                 return respuesta_error(resultado,status=statusCode)
             return respuesta_ok(data=resultado,mensaje="Datos traidos exitosamente")
         except Exception as e:
-            print(e)
+            logger.exception("No se pudo obtener el dashboard de inicio del paciente")
             return respuesta_error('Error interno del servidor',status=500)
 
 #vista admin: lista metricas necesarias para el dashboard del admin
@@ -801,7 +801,7 @@ class MetricasSistemaView(APIView):
                 return respuesta_error('Error al cargar las metricas: ', status=status_code)
             return respuesta_ok(data=data,mensaje='metricas traidas exitosamente',status=status_code)
         except Exception as e:
-            print(e)
+            logger.exception("No se pudieron obtener las métricas del sistema")
             return respuesta_error('Error en el servidor: ',status=500)
         
 class EstadisticasPacienteView(APIView):
@@ -831,7 +831,7 @@ class EstadisticasPacienteView(APIView):
             )
 
         except Exception as e:
-            print(e)
+            logger.exception("No se pudieron obtener las estadísticas del paciente")
             return respuesta_error(
                 "Error interno del servidor",
                 status=500

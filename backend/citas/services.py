@@ -16,6 +16,8 @@ from medicos.services_disponibilidad import esHorarioDisponible
 from notificaciones.email_citas_services import enviarCorreosCitaProgramada,enviarCorreosCitaConfirmada, enviarCorreosCitaReprogramada,enviarCorreosCitaCancelada,enviarCorreosCitaVencida, enviarCorreosCitaCompletada,enviarCorreoInasistenciaPaciente
 from historial_medico.models import HistorialClinico
 from notificaciones.realtime import programarActualizacionDashboardRealtime
+from dateutil.relativedelta import relativedelta as _relativedelta
+from utils import citasValidas, rellenarSerie, rellenarHoras, calidadAgenda
 import logging
 
 logger = logging.getLogger(__name__)
@@ -1508,13 +1510,8 @@ def confirmarCitaService(id, medico_id):
 #!Service para estadisticas del modulo citas
 
 def obtenerEstadisticasCitas(anio=None, mes=None):
-    cancelacion_invalida = Q(
-        id_estado__nombre__iexact="cancelada",
-        fecha_cancelacion__isnull=True,
-    )
-
-    citas = Cita.objects.exclude(cancelacion_invalida)
-    citasCreadas = Cita.objects.exclude(cancelacion_invalida)
+    citas = citasValidas(Cita.objects.all())
+    citasCreadas = citasValidas(Cita.objects.all())
     
     if anio is not None:
         citas = citas.filter(fecha_programada__year=anio)
@@ -1528,12 +1525,12 @@ def obtenerEstadisticasCitas(anio=None, mes=None):
     citasCreadasPorEstado = (citasCreadas.values("id_estado__nombre").annotate(total=Count("id")).order_by("-total"))
     
     if mes is not None:
-        citaPorPeriodo = (Cita.objects.filter(fecha_creacion__year=anio,fecha_creacion__month=mes).annotate(dia=TruncDay("fecha_creacion")).values("dia").annotate(total=Count("id")).order_by("dia"))
+        citaPorPeriodo = (citasValidas(Cita.objects.filter(fecha_creacion__year=anio,fecha_creacion__month=mes)).annotate(dia=TruncDay("fecha_creacion")).values("dia").annotate(total=Count("id")).order_by("dia"))
         
         agrupacion = "dia"
         
     else:
-        citaPorPeriodo = (Cita.objects.filter(fecha_creacion__year=anio).annotate(mes=TruncMonth("fecha_creacion")).values("mes").annotate(total=Count("id")).order_by("mes"))
+        citaPorPeriodo = (citasValidas(Cita.objects.filter(fecha_creacion__year=anio)).annotate(mes=TruncMonth("fecha_creacion")).values("mes").annotate(total=Count("id")).order_by("mes"))
 
         agrupacion = "mes"
         
@@ -1570,8 +1567,23 @@ def obtenerEstadisticasCitas(anio=None, mes=None):
                 "total": item["total"]
             })
             
+    if anio is not None:
+        if mes is not None:
+            _inicio_relleno = timezone.localtime().replace(year=anio, month=mes, day=1, hour=0, minute=0, second=0, microsecond=0)
+            _fin_relleno = _inicio_relleno + _relativedelta(months=1)
+        else:
+            _inicio_relleno = timezone.localtime().replace(year=anio, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            _fin_relleno = _inicio_relleno + _relativedelta(years=1)
+        citasPorPeriodoData = rellenarSerie(citasPorPeriodoData, _inicio_relleno, _fin_relleno, agrupacion, "total")
+
+    programadasPeriodo = Cita.objects.all()
+    if anio is not None:
+        programadasPeriodo = programadasPeriodo.filter(fecha_programada__year=anio)
+    if mes is not None:
+        programadasPeriodo = programadasPeriodo.filter(fecha_programada__month=mes)
+
     aniosDisponibles = (Cita.objects.dates("fecha_programada", "year", order="DESC"))
-    
+
     aniosDisponibles = [
         fecha.year
         for fecha in aniosDisponibles
@@ -1585,6 +1597,7 @@ def obtenerEstadisticasCitas(anio=None, mes=None):
         "citas_creadas_por_especialidad": [],
         "citas_por_dia_semana" : [],
         "citas_por_hora": [],
+        "calidad_agenda": calidadAgenda(programadasPeriodo),
         "citas_creadas_por_periodo": {
             "agrupacion": agrupacion,
             "datos": citasPorPeriodoData
@@ -1632,7 +1645,8 @@ def obtenerEstadisticasCitas(anio=None, mes=None):
             "hora": f"{item['hora']:02d}:00",
             "total_citas": item["total"]
         })
-        
+    data["citas_por_hora"] = rellenarHoras(data["citas_por_hora"])
+
     return data,200
 
 
