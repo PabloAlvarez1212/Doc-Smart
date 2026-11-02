@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Swal from "sweetalert2";
 import { LockKeyhole } from "lucide-react";
 import DoctorRequestDetail from "../../../../components/admin/DoctorValidation/DoctorRequestDetail/DoctorRequestDetail";
@@ -13,7 +14,10 @@ import styles from "./doctorRequests.module.css";
 import useDoctorValidation from "../../../../components/admin/DoctorValidation/useDoctorValidation";
 import { completeReviewAfterSuccess } from "../../../../components/admin/DoctorValidation/requestReviewFlow";
 
-export default function DoctorRequestsPage() {
+const INITIAL_STATES = ["pendiente", "rechazado"];
+
+function DoctorRequestsContent() {
+    const requestedState = useSearchParams().get("estado");
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const resolvingRequestRef = useRef(false);
@@ -48,7 +52,10 @@ export default function DoctorRequestsPage() {
         aprobarSolicitud,
         rechazarSolicitud,
         procesandoSolicitud,
-    } = useDoctorValidation({ pausarRefrescoRealtime: isRejectModalOpen });
+    } = useDoctorValidation({
+        pausarRefrescoRealtime: isRejectModalOpen,
+        estadoInicial: INITIAL_STATES.includes(requestedState) ? requestedState : "",
+    });
 
     const openRejectModal = (request) => {
         if (request?.estado !== "pendiente" || procesandoSolicitud) return;
@@ -174,5 +181,13 @@ export default function DoctorRequestsPage() {
                 onConfirm={handleRejectRequest}
             />
         </div>
+    );
+}
+
+export default function DoctorRequestsPage() {
+    return (
+        <Suspense fallback={null}>
+            <DoctorRequestsContent />
+        </Suspense>
     );
 }

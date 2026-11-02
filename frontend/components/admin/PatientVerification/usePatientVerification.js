@@ -18,8 +18,10 @@ export const FILTROS = [
     { key: "alternativa", label: "Alternativa" },
 ];
 
-export default function usePatientVerification() {
-    const [estado, setEstado] = useState("revision");
+export default function usePatientVerification({ estadoInicial } = {}) {
+    const [estado, setEstado] = useState(
+        FILTROS.some(({ key }) => key === estadoInicial) ? estadoInicial : "revision"
+    );
     const [busqueda, setBusqueda] = useState("");
     const [resultados, setResultados] = useState([]);
     const [conteos, setConteos] = useState({});

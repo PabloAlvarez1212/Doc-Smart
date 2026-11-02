@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import Header from "../../../components/admin/Header/Header";
 import Nav from "../../../components/admin/Nav/Nav";
+import ConnectionStatus from "../../../components/admin/ConnectionStatus/ConnectionStatus";
 import ResponsiveNav from "../../../components/ui/ResponsiveNav/ResponsiveNav";
 import BymaxDiagnostics from "../../../components/bymax/BymaxDiagnostics";
 import useProfile from "../../../components/admin/Profile/useProfile";
@@ -66,6 +67,7 @@ export default function AdminLayout({ children }) {
 
         <main className={Styles.main}>
           <div className={Styles.content}>
+            <ConnectionStatus />
             {children}
           </div>
         </main>

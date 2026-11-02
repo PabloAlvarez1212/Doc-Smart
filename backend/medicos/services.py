@@ -685,9 +685,11 @@ def actualizarMedicoService(id_medico, data):
             )
 
     medico.save()
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
     if medico.id_especialidad_id != especialidad_anterior:
-        from notificaciones.realtime import programarActualizacionDashboardRealtime
         programarActualizacionDashboardRealtime('ESPECIALIDAD_MEDICO_ACTUALIZADA', ('resumen', 'citas', 'medicos'))
+    else:
+        programarActualizacionDashboardRealtime('MEDICO_ACTUALIZADO', ('medicos',))
 
     return MedicoPerfilSerializer(medico).data, 200
 
@@ -1183,9 +1185,11 @@ def editarPerfilMedicoService(id_medico, data):
 
     medico.save()
 
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
     if medico.id_especialidad_id != especialidad_anterior:
-        from notificaciones.realtime import programarActualizacionDashboardRealtime
         programarActualizacionDashboardRealtime('ESPECIALIDAD_MEDICO_ACTUALIZADA', ('resumen', 'citas', 'medicos'))
+    else:
+        programarActualizacionDashboardRealtime('MEDICO_ACTUALIZADO', ('medicos',))
 
     return MedicoPerfilSerializer(
         medico

@@ -10,8 +10,8 @@ import { createSingleFlight } from "./requestReviewFlow"
 import useAdminRealtimeRefresh from "../useAdminRealtimeRefresh"
 const consultaInicial = { page: 1, page_size: 10, busqueda: "", estado: "", especialidad: "", departamento: "", ciudad: "" }
 
-export default function useDoctorValidation({ pausarRefrescoRealtime = false } = {}) {
-    const [consulta, setConsulta] = useState(consultaInicial)
+export default function useDoctorValidation({ pausarRefrescoRealtime = false, estadoInicial = "" } = {}) {
+    const [consulta, setConsulta] = useState(() => ({ ...consultaInicial, estado: estadoInicial }))
     const consultaActual = useRef(consulta)
     const peticionActual = useRef(null)
     const ultimaConsulta = useRef(null)

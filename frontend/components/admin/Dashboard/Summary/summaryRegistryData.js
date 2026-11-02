@@ -40,6 +40,15 @@ export function buildPendingRequests(metrics) {
     };
 }
 
+/** status: "neutral" sin casos (se muestra 0), "alert" con casos por confirmar, "unknown" sin datos. */
+export function buildPendingVerifications(metrics) {
+    if (!metrics) return { value: EMPTY, status: "unknown" };
+
+    const count = safeCount(metrics.verificaciones_por_confirmar);
+
+    return { value: formatCount(count), status: count > 0 ? "alert" : "neutral" };
+}
+
 export function buildActivePatients(metrics) {
     if (!metrics) return { value: EMPTY, active: 0, total: 0 };
 

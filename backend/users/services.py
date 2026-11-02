@@ -12,7 +12,7 @@ from users.models import Usuario,ProcesoRegistroUsuario,InfoUser, TipoInfoUser
 from medicos.models import Medico,SolicitudValidacionMedico
 from users.serializers import UsuarioSerializer, MedicoSerializer,UsuarioPerfilSerializer
 from users.documento_identidad import DocumentoError,extraer_datos_documento
-from users.validacion_facial import facial_cumplida,marcar_revision_posterior
+from users.validacion_facial import contarVerificacionesPorConfirmar,facial_cumplida,marcar_revision_posterior
 from users.registros_abandonados import proceso_en_revision,purgar_abandonados,proceso_reanudable,_borrar_archivo
 import secrets
 from django.utils import timezone
@@ -609,6 +609,12 @@ def confirmarCambioCorreoService(usuario,cambio_id,codigo):
             "estado",
             "completado_en",
         ]
+    )
+
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
+    programarActualizacionDashboardRealtime(
+        'CORREO_ACTUALIZADO',
+        ('medicos',) if isinstance(usuario, Medico) else ('pacientes',),
     )
 
     return {"correo": usuario.correo}, 200
@@ -1392,7 +1398,7 @@ def completarRegistroUsuarioService(proceso_id):
     from notificaciones.realtime import programarActualizacionDashboardRealtime
     programarActualizacionDashboardRealtime('PACIENTE_REGISTRADO', ('resumen', 'pacientes'))
     if proceso.revision_posterior == "pendiente":
-        programarActualizacionDashboardRealtime('VERIFICACION_PENDIENTE', ('verificaciones',))
+        programarActualizacionDashboardRealtime('VERIFICACION_PENDIENTE', ('resumen', 'verificaciones'))
 
     serializer = UsuarioSerializer(usuario)
     return serializer.data, 201
@@ -1493,6 +1499,9 @@ def editarUsuarioService(id,datos):
         "tipo_sangre",
     ])
 
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
+    programarActualizacionDashboardRealtime('PACIENTE_ACTUALIZADO', ('pacientes',))
+
     serializer=UsuarioPerfilSerializer(usuario)
     return serializer.data,200
 
@@ -1590,6 +1599,7 @@ def obtenerMetricasSistema():
     medicos = Medico.objects.all()
     totalMedicosAprobados = medicosAprobadosActivos(medicos).count()
     totalPacientes = pacientesNoBloqueados().count()
+    verificacionesPorConfirmar = contarVerificacionesPorConfirmar()
     totalSolicitudesPendientes = SolicitudValidacionMedico.objects.filter(estado=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE).count()
     solicitudPendienteMasAntigua = (SolicitudValidacionMedico.objects.filter(estado=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE).order_by("fecha_solicitud").first())
 
@@ -1639,6 +1649,7 @@ def obtenerMetricasSistema():
     data = {
         "total_medicos_aprobados" : totalMedicosAprobados,
         "total_pacientes" : totalPacientes,
+        "verificaciones_por_confirmar": verificacionesPorConfirmar,
         "total_citas" : totalCitas,
         "total_solicitudes_pendientes": totalSolicitudesPendientes,
         "citas_hoy": totalCitasHoy,

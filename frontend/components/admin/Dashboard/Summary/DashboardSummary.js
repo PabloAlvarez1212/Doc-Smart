@@ -4,7 +4,12 @@ import DashboardModuleState from "../DashboardModuleState/DashboardModuleState";
 import MonthPanel from "./MonthPanel";
 import NowTile from "./NowTile";
 import RecentAppointmentsChart from "./RecentAppointmentsChart";
-import { buildPendingRequests, buildTodayAppointments, formatCount } from "./summaryRegistryData";
+import {
+    buildPendingRequests,
+    buildPendingVerifications,
+    buildTodayAppointments,
+    formatCount,
+} from "./summaryRegistryData";
 import styles from "./DashboardSummary.module.css";
 
 /**
@@ -32,9 +37,19 @@ const PENDING_TILE = {
     unknown: { tone: "info", pill: undefined },
 };
 
+const VERIFICATION_TILE = {
+    alert: { tone: "alert", pill: "Por confirmar" },
+    neutral: { tone: "neutral", pill: undefined },
+    unknown: { tone: "info", pill: undefined },
+};
+
 const metricDefinitions = [
     ["Cita válida", "no está cancelada ni vencida."],
     ["Citas de hoy", "citas válidas programadas para hoy."],
+    [
+        "Verificaciones por confirmar",
+        "pacientes que el sistema dejó pasar y que un administrador aún debe confirmar.",
+    ],
     [
         "Pacientes activos",
         "pacientes únicos con al menos una cita válida este mes, sobre los registrados sin cuentas bloqueadas.",
@@ -69,6 +84,8 @@ export default function DashboardSummary({ metrics, loading = false, error = fal
     const today = buildTodayAppointments(metrics);
     const pending = buildPendingRequests(metrics);
     const pendingTile = PENDING_TILE[pending.status];
+    const verifications = buildPendingVerifications(metrics);
+    const verificationTile = VERIFICATION_TILE[verifications.status];
     const recentActivity = Array.isArray(metrics?.citas_creadas_ultimos_3_meses)
         ? metrics.citas_creadas_ultimos_3_meses
         : [];
@@ -104,6 +121,17 @@ export default function DashboardSummary({ metrics, loading = false, error = fal
                                 pill={pendingTile.pill}
                                 context={pending.context}
                                 loading={loading}
+                                href="/admin/doctor-requests?estado=pendiente"
+                                linkLabel="Ir a las solicitudes médicas pendientes"
+                            />
+                            <NowTile
+                                label="Verificaciones por confirmar"
+                                value={verifications.value}
+                                tone={verificationTile.tone}
+                                pill={verificationTile.pill}
+                                loading={loading}
+                                href="/admin/patient-verification?estado=posterior"
+                                linkLabel="Ir a las verificaciones de pacientes por confirmar"
                             />
                         </div>
                     </section>

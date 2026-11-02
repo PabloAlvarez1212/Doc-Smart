@@ -59,7 +59,10 @@ const EMPTY_PATIENT_FILTERS = {
 };
 
 export function useDashboard() {
-    const { eventoDashboard, versionConexion } = useNotificationsContext();
+    const { eventosDashboard, versionConexion } = useNotificationsContext();
+    // Los eventos que ya estaban en la cola al montar no son novedades.
+    const [secuenciaInicial] = useState(() => eventosDashboard.at(-1)?.secuencia ?? 0);
+    const ultimaSecuenciaRef = useRef(secuenciaInicial);
     const metricsRequestRef = useRef(null);
     const mountedRef = useRef(false);
     const refreshTimerRef = useRef(null);
@@ -464,11 +467,19 @@ export function useDashboard() {
     };
 
     useEffect(() => {
-        if (!eventoDashboard || seenEventsRef.current.has(eventoDashboard.event_id)) return;
-        seenEventsRef.current.add(eventoDashboard.event_id);
-        if (seenEventsRef.current.size > 100) seenEventsRef.current.clear();
-        scheduleRefreshRef.current(eventoDashboard.secciones);
-    }, [eventoDashboard]);
+        const nuevos = eventosDashboard.filter((evento) => evento.secuencia > ultimaSecuenciaRef.current);
+        if (!nuevos.length) return;
+
+        ultimaSecuenciaRef.current = nuevos[nuevos.length - 1].secuencia;
+        const secciones = [];
+        nuevos.forEach((evento) => {
+            if (seenEventsRef.current.has(evento.event_id)) return;
+            seenEventsRef.current.add(evento.event_id);
+            if (seenEventsRef.current.size > 100) seenEventsRef.current.clear();
+            secciones.push(...evento.secciones);
+        });
+        if (secciones.length) scheduleRefreshRef.current(secciones);
+    }, [eventosDashboard]);
 
     useEffect(() => {
         if (versionConexion === 0) return;

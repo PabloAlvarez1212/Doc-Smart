@@ -973,7 +973,7 @@ def _emitir_verificaciones(tipo_evento, proceso):
     if proceso.tipo_registro != "paciente":
         return
     from notificaciones.realtime import programarActualizacionDashboardRealtime
-    programarActualizacionDashboardRealtime(tipo_evento, ("verificaciones",))
+    programarActualizacionDashboardRealtime(tipo_evento, ("resumen", "verificaciones"))
 
 
 def _fijar(proceso, estado, motivo="", similitud=None, validada=False):
@@ -1303,6 +1303,13 @@ def _datos_documento(archivo, lado=1100):
         return None
 
 
+def contarVerificacionesPorConfirmar():
+    """Casos "Por confirmar" de la pantalla de verificación de pacientes (también lo usa el Resumen)."""
+    return ProcesoRegistroUsuario.objects.filter(
+        tipo_registro="paciente", revision_posterior="pendiente"
+    ).count()
+
+
 def listarRevisionesFacialesService(estado=Estado.REVISION):
     from django.db.models import Count
     if estado not in ESTADOS_REVISION and estado != "posterior":
@@ -1324,7 +1331,7 @@ def listarRevisionesFacialesService(estado=Estado.REVISION):
         for f in pacientes.filter(estado_facial__in=ESTADOS_REVISION)
         .values("estado_facial").annotate(n=Count("id"))
     })
-    conteos["posterior"] = pacientes.filter(revision_posterior="pendiente").count()
+    conteos["posterior"] = contarVerificacionesPorConfirmar()
     return {
         "resultados": [{
             "proceso_id": str(p.id), "tipo_registro": p.tipo_registro,
