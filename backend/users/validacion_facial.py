@@ -968,6 +968,14 @@ def _fijar_sin_rostro(proceso):
         _a_revision(proceso, "rostro_documento_no_detectado")
 
 
+def _emitir_verificaciones(tipo_evento, proceso):
+    """Avisa al panel admin que la lista de verificación de pacientes cambió (los médicos no aparecen allí)."""
+    if proceso.tipo_registro != "paciente":
+        return
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
+    programarActualizacionDashboardRealtime(tipo_evento, ("verificaciones",))
+
+
 def _fijar(proceso, estado, motivo="", similitud=None, validada=False):
     proceso.estado_facial = estado
     proceso.motivo_facial = motivo
@@ -975,6 +983,11 @@ def _fijar(proceso, estado, motivo="", similitud=None, validada=False):
         proceso.similitud_facial = similitud
     proceso.validacion_facial = validada
     proceso.validacion_facial_en = timezone.now() if validada else None
+    if estado in ESTADOS_REVISION:
+        _emitir_verificaciones(
+            "VERIFICACION_PENDIENTE" if estado == Estado.REVISION else "VERIFICACION_ACTUALIZADA",
+            proceso,
+        )
 
 
 # ─── Servicios del registro ──────────────────────────────────────────────────
@@ -1226,6 +1239,7 @@ def registrarCorreoContactoFacialService(proceso_id, correo, tipo_registro="paci
     limite = timezone.now() + timedelta(days=settings.FACIAL_REVISION_DIAS)
     proceso.expira_en = max(proceso.expira_en, limite)
     proceso.save(update_fields=["correo_contacto_facial", "expira_en"])
+    _emitir_verificaciones("VERIFICACION_ACTUALIZADA", proceso)
     return _estado(proceso, {"correo_contacto": correo}), 200
 
 
@@ -1429,6 +1443,7 @@ def cancelarRegistroEnRevisionService(datos, tipo_registro="paciente"):
         return {"general": ["No encontramos un registro en revisión con esos datos"]}, 404
     logger.info("Registro %s cancelado por la persona mientras estaba en revisión", proceso.id)
     eliminar_proceso(proceso)
+    _emitir_verificaciones("VERIFICACION_RESUELTA", proceso)
     return {"cancelado": True}, 200
 
 
@@ -1460,7 +1475,6 @@ def resolverRevisionPosteriorService(proceso_id, decision, motivo, revisor):
     cuenta = None
     with transaction.atomic():
         p = (ProcesoRegistroUsuario.objects.select_for_update()
-             .select_related("usuario", "medico")
              .filter(id=proceso_id, revision_posterior="pendiente").first())
         if not p:
             return {"general": ["Revisión no encontrada o ya resuelta"]}, 404
@@ -1478,11 +1492,12 @@ def resolverRevisionPosteriorService(proceso_id, decision, motivo, revisor):
             from notificaciones.realtime import programarActualizacionDashboardRealtime
             programarActualizacionDashboardRealtime(
                 'CUENTA_BLOQUEADA',
-                ('resumen', 'medicos') if p.tipo_registro == "medico" else ('resumen', 'pacientes'),
+                ('resumen', 'medicos') if p.tipo_registro == "medico" else ('resumen', 'pacientes', 'verificaciones'),
             )
             p.revision_posterior = "bloqueado"
         else:
             p.revision_posterior = "legitimo"
+            _emitir_verificaciones("VERIFICACION_RESUELTA", p)
         p.revisado_facial_por = str(revisor)[:150]
         p.revisado_facial_en = timezone.now()
         p.save(update_fields=["revision_posterior", "revisado_facial_por", "revisado_facial_en"])

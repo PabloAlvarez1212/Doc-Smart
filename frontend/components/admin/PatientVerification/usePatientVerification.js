@@ -8,6 +8,7 @@ import {
     listarRevisionesFacialesService,
     resolverRevisionFacialService,
 } from "@/app/services/adminServices";
+import useAdminRealtimeRefresh from "../useAdminRealtimeRefresh";
 
 export const FILTROS = [
     { key: "posterior", label: "Por confirmar" },
@@ -27,22 +28,30 @@ export default function usePatientVerification() {
     const [detalle, setDetalle] = useState(null);
     const [procesando, setProcesando] = useState(false);
     const ocupado = useRef(false);
+    const ultimaPeticion = useRef(0);
 
-    const cargar = useCallback(async () => {
-        setCargando(true);
-        setError("");
+    const cargar = useCallback(async ({ silencioso = false } = {}) => {
+        const peticion = ++ultimaPeticion.current;
+        if (!silencioso) {
+            setCargando(true);
+            setError("");
+        }
         try {
             const respuesta = await listarRevisionesFacialesService(estado);
+            if (peticion !== ultimaPeticion.current) return;
             setResultados(respuesta.data?.resultados ?? []);
             setConteos(respuesta.data?.conteos ?? {});
         } catch (e) {
+            if (peticion !== ultimaPeticion.current || silencioso) return;
             setError(obtenerPrimerError(e.response?.data?.errores) || "No fue posible cargar las verificaciones.");
         } finally {
-            setCargando(false);
+            if (peticion === ultimaPeticion.current) setCargando(false);
         }
     }, [estado]);
 
     useEffect(() => { cargar(); }, [cargar]);
+
+    useAdminRealtimeRefresh("verificaciones", () => cargar({ silencioso: true }), { pausado: procesando });
 
     const abrir = async (fila) => {
         setDetalle({ ...fila, cargando: true });
@@ -151,6 +160,6 @@ export default function usePatientVerification() {
 
     return {
         estado, setEstado, busqueda, setBusqueda, resultados: filtrados, conteos, cargando, error,
-        recargar: cargar, detalle, abrir, cerrar: () => setDetalle(null), resolver, procesando,
+        recargar: () => cargar(), detalle, abrir, cerrar: () => setDetalle(null), resolver, procesando,
     };
 }

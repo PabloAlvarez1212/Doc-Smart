@@ -208,7 +208,7 @@ class AprobarSolicitudValidacionView(APIView):
 
             if status_code == 400:
                 return respuesta_error(
-                    mensaje="Solo se pueden aprobar solicitudes pendientes",
+                    mensaje="Esta solicitud ya fue resuelta por otro administrador.",
                     status=400
                 )
 
@@ -253,7 +253,7 @@ class RechazarSolicitudValidacionView(APIView):
 
             if status_code == 400:
                 return respuesta_error(
-                    mensaje="Solo se pueden rechazar solicitudes pendientes",
+                    mensaje="Esta solicitud ya fue resuelta por otro administrador.",
                     status=400
                 )
 

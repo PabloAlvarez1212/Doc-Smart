@@ -1391,6 +1391,8 @@ def completarRegistroUsuarioService(proceso_id):
     proceso.save(update_fields=["estado","completado_en","usuario","revision_posterior"])
     from notificaciones.realtime import programarActualizacionDashboardRealtime
     programarActualizacionDashboardRealtime('PACIENTE_REGISTRADO', ('resumen', 'pacientes'))
+    if proceso.revision_posterior == "pendiente":
+        programarActualizacionDashboardRealtime('VERIFICACION_PENDIENTE', ('verificaciones',))
 
     serializer = UsuarioSerializer(usuario)
     return serializer.data, 201

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Swal from "sweetalert2";
 import { LockKeyhole } from "lucide-react";
 import DoctorRequestDetail from "../../../../components/admin/DoctorValidation/DoctorRequestDetail/DoctorRequestDetail";
 import DoctorRequestsTable from "../../../../components/admin/DoctorValidation/DoctorRequestsTable/DoctorRequestsTable";
@@ -15,6 +16,7 @@ import { completeReviewAfterSuccess } from "../../../../components/admin/DoctorV
 export default function DoctorRequestsPage() {
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+    const resolvingRequestRef = useRef(false);
     const {
         estados,
         especialidades,
@@ -46,7 +48,7 @@ export default function DoctorRequestsPage() {
         aprobarSolicitud,
         rechazarSolicitud,
         procesandoSolicitud,
-    } = useDoctorValidation();
+    } = useDoctorValidation({ pausarRefrescoRealtime: isRejectModalOpen });
 
     const openRejectModal = (request) => {
         if (request?.estado !== "pendiente" || procesandoSolicitud) return;
@@ -64,21 +66,45 @@ export default function DoctorRequestsPage() {
         setSelectedRequest(null);
     };
 
+    const resolveOwnRequest = async (operation) => {
+        resolvingRequestRef.current = true;
+
+        try {
+            return await completeReviewAfterSuccess(operation, closeProcessedReview);
+        } finally {
+            resolvingRequestRef.current = false;
+        }
+    };
+
     const handleApproveRequest = (solicitudId) => (
-        completeReviewAfterSuccess(
-            () => aprobarSolicitud(solicitudId),
-            closeProcessedReview
-        )
+        resolveOwnRequest(() => aprobarSolicitud(solicitudId))
     );
 
     const handleRejectRequest = async ({ solicitudId, motivo }) => {
         if (solicitudId == null || !motivo.trim()) return false;
 
-        return completeReviewAfterSuccess(
-            () => rechazarSolicitud({ solicitudId, motivo }),
-            closeProcessedReview
-        );
+        return resolveOwnRequest(() => rechazarSolicitud({ solicitudId, motivo }));
     };
+
+    // Si otro administrador resuelve la solicitud abierta, se cierra el detalle con un aviso.
+    useEffect(() => {
+        if (!selectedRequest || selectedRequest.estado !== "pendiente") return;
+        if (cargando || procesandoSolicitud || resolvingRequestRef.current) return;
+
+        const current = solicitudesDoctores.find((request) => request.id === selectedRequest.id);
+        if (current?.estado === "pendiente") return;
+
+        setIsRejectModalOpen(false);
+        setSelectedRequest(null);
+        Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "info",
+            title: "Esta solicitud ya fue resuelta",
+            showConfirmButton: false,
+            timer: 3500,
+        });
+    }, [solicitudesDoctores, selectedRequest, cargando, procesandoSolicitud]);
 
     return (
         <div className={styles.page}>
