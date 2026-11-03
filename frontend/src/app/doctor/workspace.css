@@ -18,8 +18,6 @@ html[data-theme="dark"] body:has([data-doctor-workspace]) {
 [data-doctor-workspace] :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 [data-doctor-workspace] ::selection { background: var(--doctor-button); color: var(--doctor-on-primary); }
 body:has([data-doctor-workspace]) [role="dialog"] {--modal-ink:var(--color-text);--modal-muted:var(--text-secondary);--modal-accent:var(--doctor-primary);--modal-line:var(--border);color:var(--color-text)}
-/* The existing assistant launcher docks away from medical page controls on phones. */
-@media(max-width:760px){body:has([data-doctor-workspace]) button[aria-controls="bymax-chat"]{position:fixed!important;left:auto!important;right:128px!important;top:22px!important;bottom:auto!important;width:34px!important;height:38px!important;transform:none!important;translate:none!important;z-index:101!important}body:has([data-doctor-workspace]) button[aria-controls="bymax-chat"]>span:last-child{display:none}}
 /* Shared chart semantics stay distinct and readable on either ground. */
 body:has([data-doctor-workspace]) {
  --accent:var(--doctor-primary);

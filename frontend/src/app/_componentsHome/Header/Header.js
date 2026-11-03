@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Activity, House, LifeBuoy, Route, Sparkles, Users } from "lucide-react";
 import DocSmartNav from "../../../../components/ui/DocSmartNav/DocSmartNav";
 import { getPublicSession } from "../../services/publicServices";
 
@@ -8,22 +9,38 @@ const links = [
     {
         href: "/",
         label: "Inicio",
+        icon: House,
     },
     {
         href: "/#funcionalidades",
         label: "Funcionalidades",
+        icon: Sparkles,
+        group: "Producto",
+    },
+    {
+        href: "/#como-funciona",
+        label: "Cómo funciona",
+        icon: Route,
+        group: "Producto",
     },
     {
         href: "/#comunidad",
         label: "DocSmart en cifras",
+        short: "Cifras",
+        icon: Activity,
+        group: "Producto",
     },
     {
         href: "/#quienes-somos",
         label: "Quiénes somos",
+        icon: Users,
+        group: "Nosotros",
     },
     {
         href: "/#ayuda",
         label: "Ayuda",
+        icon: LifeBuoy,
+        group: "Nosotros",
     },
 ];
 

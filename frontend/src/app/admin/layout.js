@@ -4,8 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import Header from "../../../components/admin/Header/Header";
-import Nav from "../../../components/admin/Nav/Nav";
-import ResponsiveNav from "../../../components/ui/ResponsiveNav/ResponsiveNav";
+import { AdminCrumbs } from "../../../components/admin/Nav/Nav";
 import BymaxDiagnostics from "../../../components/bymax/BymaxDiagnostics";
 import useProfile from "../../../components/admin/Profile/useProfile";
 import useInactivityLogout from "../../../components/hooks/useInactivityLogout";
@@ -50,22 +49,12 @@ export default function AdminLayout({ children }) {
       <div className={Styles.containerMain}>
       <BymaxDiagnostics />
 
-      <header className={Styles.header}>
-        <Header />
-      </header>
-
       <div className={Styles.workspace}>
-        <aside className={Styles.nav}>
-          <ResponsiveNav
-            id="admin-navigation"
-            label="Menú de administración"
-          >
-            <Nav />
-          </ResponsiveNav>
-        </aside>
+        <Header />
 
         <main className={Styles.main}>
           <div className={Styles.content}>
+            <AdminCrumbs />
             {children}
           </div>
         </main>

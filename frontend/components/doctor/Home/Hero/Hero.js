@@ -1,9 +1,10 @@
 import ProfilePhoto from '../../../ui/ProfilePhoto/ProfilePhoto';
-import { Bell, CalendarDays, ChevronRight } from 'lucide-react';
+import { Bell, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import RollingNumber from '../../../ui/Motion/RollingNumber';
 import styles from '../Home.module.css';
 
-export default function Hero({ nombre, especialidad, foto_perfil, date, noLeidas = 0 }) {
+export default function Hero({ nombre, especialidad, foto_perfil, noLeidas = 0 }) {
   const unread = Number.isFinite(Number(noLeidas)) ? Math.max(0, Number(noLeidas)) : 0;
   return (
     <header className={styles.hero}>
@@ -15,12 +16,11 @@ export default function Hero({ nombre, especialidad, foto_perfil, date, noLeidas
         </div>
       </div>
       <div className={styles.heroActions}>
-        <Link href="/doctor/notifications" className={styles.notificationLink}>
+        <Link href="/doctor/notifications" className={`${styles.notificationLink} ${unread > 0 ? styles.hasUnread : ''}`}>
           <span aria-hidden="true"><Bell size={19} /></span>
-          <span><strong>{unread}</strong><small>{unread === 1 ? 'notificación sin leer' : 'notificaciones sin leer'}</small></span>
+          <span><RollingNumber className={styles.unreadCount} value={unread} /><small>{unread === 1 ? 'notificación sin leer' : 'notificaciones sin leer'}</small></span>
           <ChevronRight size={17} aria-hidden="true" />
         </Link>
-        <p className={styles.date}><CalendarDays size={17} aria-hidden="true" />{date || 'Tu agenda médica'}</p>
       </div>
     </header>
   );

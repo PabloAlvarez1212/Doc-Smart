@@ -1,0 +1,291 @@
+.section {
+    --n-ac: var(--color-dark);
+    --n-soft: var(--tone-blue);
+    --n-on: var(--surface);
+    --n-ease: cubic-bezier(.16, 1, .3, 1);
+    --n-spring: cubic-bezier(.34, 1.3, .5, 1);
+    min-width: 0;
+    padding: 24px 22px 20px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+}
+
+.doctor {
+    --n-ac: var(--doctor-primary);
+    --n-soft: var(--doctor-positive-bg);
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+
+.header h2 {
+    margin: 0;
+    color: var(--color-text);
+    font-size: 1.18rem;
+    font-weight: 650;
+    letter-spacing: -.02em;
+    line-height: 1.3;
+}
+
+.header p { margin: 5px 0 0; color: var(--text-secondary); font-size: .87rem; line-height: 1.5; }
+
+.count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 9px;
+    border-radius: 12px;
+    background: var(--n-soft);
+    color: var(--n-ac);
+    font-size: 12px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.more {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 5px;
+    min-height: 40px;
+    padding: 0 10px;
+    border-radius: 10px;
+    color: var(--n-ac);
+    font-size: .86rem;
+    font-weight: 650;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color .2s var(--n-ease);
+}
+
+.more svg { transition: transform .28s var(--n-ease); }
+
+.list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+
+.item {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    align-items: center;
+    gap: 12px;
+    min-height: 72px;
+    padding: 10px 6px 10px 10px;
+    border-radius: 12px;
+    transition: background-color .4s var(--n-ease);
+}
+
+.unread { background: var(--n-soft); }
+
+.icon {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: var(--surface-muted);
+    color: var(--text-secondary);
+    transition: background-color .3s var(--n-ease), color .3s var(--n-ease);
+}
+
+.icon svg { transition: transform .45s var(--n-spring); }
+.unread .icon { background: var(--surface); color: var(--n-ac); }
+
+/* Punto de "sin leer" que aparece y se va con un rebote corto. */
+.icon::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 11px;
+    height: 11px;
+    border: 2px solid var(--surface);
+    border-radius: 50%;
+    background: var(--n-ac);
+    transform: scale(0);
+    transition: transform .3s var(--n-spring);
+}
+
+.unread .icon::after { transform: scale(1); }
+
+.copy { display: grid; gap: 3px; min-width: 0; }
+.copy strong { color: var(--color-text); font-size: .86rem; font-weight: 650; line-height: 1.4; }
+.copy span { color: var(--color-text); font-size: .88rem; line-height: 1.45; overflow-wrap: anywhere; transition: color .2s; }
+.copy small { color: var(--text-secondary); font-size: .76rem; line-height: 1.4; }
+.item:not(.unread) .copy span { color: var(--text-secondary); }
+
+.open {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.open:disabled { cursor: wait; }
+.open:focus-visible { outline: 2px solid var(--n-ac); outline-offset: 4px; }
+
+.slot { display: grid; place-items: center; width: 40px; height: 40px; }
+
+.read {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background-color .22s var(--n-ease), border-color .22s var(--n-ease), color .22s var(--n-ease);
+}
+
+/* Área táctil de 44 px sin agrandar el círculo. */
+.read::before { content: ""; position: absolute; inset: -4px; border-radius: 50%; }
+
+.read svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    overflow: visible;
+}
+
+.read path { stroke-dasharray: 24; stroke-dashoffset: 0; }
+.read:focus-visible { outline: 2px solid var(--n-ac); outline-offset: 3px; }
+
+.done { border-color: var(--n-ac); background: var(--n-ac); color: var(--n-on); cursor: default; }
+.done path { animation: draw .42s .04s var(--n-ease) both; }
+
+/* Ondas que salen del check al marcar. */
+.done::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--n-ac) 45%, transparent);
+    animation: burst .6s var(--n-ease) both;
+}
+
+.shake { animation: shake .42s var(--n-ease); }
+
+@keyframes draw { from { stroke-dashoffset: 24; } }
+@keyframes burst { to { box-shadow: 0 0 0 12px transparent; } }
+
+@keyframes shake {
+    25% { translate: -4px 0; }
+    50% { translate: 4px 0; }
+    75% { translate: -2px 0; }
+}
+
+.feedback {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    min-height: 160px;
+    padding: 20px 8px;
+}
+
+.feedbackIcon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: var(--n-soft);
+    color: var(--n-ac);
+}
+
+.feedback strong { color: var(--color-text); font-size: .92rem; }
+.feedback p { margin: 4px 0 0; color: var(--text-secondary); font-size: .84rem; line-height: 1.5; }
+
+.feedback button {
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--n-ac);
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background-color .2s, transform .16s var(--n-ease);
+}
+
+.feedback button:active { transform: scale(.96); }
+
+.float { animation: float 3.2s ease-in-out infinite alternate; }
+@keyframes float { from { translate: 0 -3px; } to { translate: 0 3px; } }
+
+.loading { display: grid; gap: 6px; }
+
+.loading span {
+    display: block;
+    height: 68px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, var(--surface-muted) 30%, color-mix(in srgb, var(--surface-muted) 55%, var(--border)) 50%, var(--surface-muted) 70%);
+    background-size: 220% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.loading span:nth-child(2) { animation-delay: .12s; }
+.loading span:nth-child(3) { animation-delay: .24s; }
+
+@keyframes shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .more:hover { background: var(--n-soft); }
+    .more:hover svg { transform: translateX(3px); }
+    .item:not(.unread):hover { background: var(--surface-muted); }
+    .item:hover .icon svg { transform: rotate(-12deg) scale(1.1); }
+    .read:not(:disabled):hover { border-color: var(--n-ac); color: var(--n-ac); }
+    .open:hover span { color: var(--n-ac); }
+    .feedback button:hover { background: var(--n-soft); }
+}
+
+@media (max-width: 560px) {
+    .section { padding: 20px 14px 16px; }
+    .header { gap: 10px; }
+    .more { padding: 0 6px; }
+    .item { gap: 10px; padding-left: 8px; }
+    .feedback { grid-template-columns: auto minmax(0, 1fr); }
+    .feedback button { grid-column: 1 / -1; width: 100%; }
+}
+
+@media (max-width: 380px) {
+    .header { flex-direction: column; gap: 2px; }
+    .more { min-height: 34px; padding: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .float, .loading span, .done path, .done::after, .shake { animation: none; }
+    .icon svg, .icon::after, .more svg { transition: none; }
+}

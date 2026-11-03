@@ -9,6 +9,11 @@
 .actions { display: grid; gap: 8px; }
 
 .primary {
+    --spring: cubic-bezier(.34, 1.3, .5, 1);
+    --ease: cubic-bezier(.16, 1, .3, 1);
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
@@ -20,9 +25,24 @@
     background: var(--blue-action);
     box-shadow: 0 14px 30px rgba(31, 85, 183, .19);
     text-decoration: none;
-    transition: background-color 180ms cubic-bezier(.23, 1, .32, 1), transform 140ms cubic-bezier(.23, 1, .32, 1), box-shadow 180ms cubic-bezier(.23, 1, .32, 1);
+    transition: background-color 180ms, transform 160ms var(--ease), box-shadow 200ms;
 }
+
+/* Luz que sigue al cursor sobre el botón principal. */
+.primary::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(140px circle at var(--x, 50%) var(--y, 50%), rgba(255, 255, 255, .24), transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+}
+
 .primaryIcon { display: grid; width: 43px; height: 43px; place-items: center; border-radius: 12px; color: var(--color-dark); background: var(--surface); }
+.primaryIcon svg { transition: transform .45s var(--spring); }
+.primary > svg { transition: transform .28s var(--ease); }
 .primary > span:nth-child(2) { display: grid; min-width: 0; gap: 3px; }
 .primary strong { font-size: .95rem; line-height: 1.35; }
 .primary small { color: var(--blue-card-secondary); font-size: .79rem; line-height: 1.4; }
@@ -40,18 +60,36 @@
     text-decoration: none;
     transition: color 180ms cubic-bezier(.23, 1, .32, 1), background-color 180ms cubic-bezier(.23, 1, .32, 1), transform 140ms cubic-bezier(.23, 1, .32, 1);
 }
-.secondary a > span { display: grid; width: 35px; height: 35px; place-items: center; border-radius: 10px; color: var(--color-dark); background: var(--surface-muted); }
+.secondary a > span { display: grid; width: 35px; height: 35px; place-items: center; border-radius: 10px; color: var(--color-dark); background: var(--surface-muted); transition: background-color .2s, color .2s; }
+.secondary a > span svg { transition: transform .45s cubic-bezier(.34, 1.3, .5, 1); }
 .secondary strong { font-size: .89rem; line-height: 1.35; }
-.secondary a > svg { color: var(--text-secondary); }
+.secondary a > svg { color: var(--text-secondary); transition: transform .25s cubic-bezier(.16, 1, .3, 1), color .2s; }
 
 .primary:focus-visible,
 .secondary a:focus-visible { position: relative; z-index: 1; }
-.primary:active,
+.primary:active { transform: scale(.985); }
 .secondary a:active { transform: scale(.985); }
+.primary:focus-visible .primaryIcon svg { transform: rotate(-12deg) scale(1.08); }
 
 @media (hover: hover) and (pointer: fine) {
-    .primary:hover { background: var(--blue-action-hover); box-shadow: 0 18px 34px rgba(31, 85, 183, .24); transform: translateY(-2px); }
-    .secondary a:hover { color: var(--text-secondary); background: var(--surface-muted); transform: translateX(3px); }
+    .primary:hover { background: var(--blue-action-hover); box-shadow: 0 18px 34px rgba(31, 85, 183, .24); }
+    .primary:hover::before { opacity: 1; }
+    .primary:hover .primaryIcon svg { transform: rotate(-12deg) scale(1.08); }
+    .primary:hover > svg { transform: translateX(3px); }
+    .secondary a:hover { background: var(--surface-muted); }
+    .secondary a:hover > span { background: var(--tone-blue); color: var(--color-dark); }
+    .secondary a:hover > span svg { transform: rotate(-10deg) scale(1.1); }
+    .secondary a:hover > svg { color: var(--color-dark); transform: translateX(3px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .secondary a { animation: actionIn .5s calc(var(--i, 0) * 70ms + 200ms) cubic-bezier(.16, 1, .3, 1) both; }
+}
+
+@keyframes actionIn { from { opacity: 0; translate: 10px 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .primary, .primary > svg, .primaryIcon svg, .secondary a, .secondary a > span svg, .secondary a > svg { transition: none; transform: none !important; }
 }
 
 @media (max-width: 1020px) and (min-width: 621px) {

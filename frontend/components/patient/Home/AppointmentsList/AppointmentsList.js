@@ -7,6 +7,7 @@ import Link from "next/link";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
 import { getNextAppointment } from "../patientHomeData";
 import { getContentTransition } from "../patientHomeMotion";
+import seguirCursor from "../../../ui/Motion/seguirCursor";
 import styles from "./AppointmentsList.module.css";
 
 function capitalize(value) {
@@ -19,7 +20,7 @@ export default function AppointmentsList({ appointments = [] }) {
     const reduceMotion = useReducedMotion();
 
     return (
-        <section className={styles.section} aria-labelledby="next-appointment-title">
+        <section className={styles.section} aria-labelledby="next-appointment-title" onPointerMove={seguirCursor}>
             <div className={styles.heading}>
                 <div>
                     <h2 id="next-appointment-title">Tu próxima cita</h2>

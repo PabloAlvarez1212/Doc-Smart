@@ -1,0 +1,82 @@
+.steps {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.line {
+    position: absolute;
+    top: 30px;
+    left: 16.66%;
+    right: 16.66%;
+    height: 2px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: var(--home-line-2);
+}
+
+/* Crece en ambos ejes; en cada orientación solo se nota el largo. */
+.line i {
+    position: absolute;
+    inset: 0;
+    transform-origin: left;
+    background: linear-gradient(90deg, var(--home-ac), var(--home-sky));
+}
+
+.step {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    text-align: center;
+}
+
+.number {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--home-ac);
+    box-shadow: 0 0 0 1px var(--home-line), var(--home-shadow-sm);
+    transition: transform .4s var(--home-spring);
+}
+
+.badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--home-ac);
+    color: var(--home-on-ac);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.step h3 { margin: 6px 0 0; font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
+.step p { margin: 0; max-width: 32ch; color: var(--text-secondary); font-size: 14.5px; line-height: 1.6; }
+
+@media (hover: hover) and (pointer: fine) {
+    .step:hover .number { transform: translateY(-3px) scale(1.05); }
+}
+
+@media (max-width: 520px) {
+    .steps { grid-template-columns: 1fr; gap: 26px; }
+    .line { top: 30px; bottom: 30px; left: 29px; right: auto; width: 2px; height: auto; }
+    .line i { transform-origin: top; background: linear-gradient(180deg, var(--home-ac), var(--home-sky)); }
+    .step { grid-template-columns: 60px 1fr; justify-items: start; gap: 4px 16px; padding: 0; text-align: left; }
+    .number { grid-row: span 2; }
+    .step h3 { margin: 4px 0 0; }
+}
