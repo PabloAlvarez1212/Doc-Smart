@@ -170,6 +170,8 @@
     line-height: 1.4;
 }
 
+.monthDelta { grid-column: 1 / -1; margin: 2px 0 0; }
+
 .monthMeter { grid-column: 1 / -1; margin: 8px 0 0; }
 
 /* Esqueletos */

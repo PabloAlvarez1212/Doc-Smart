@@ -60,6 +60,22 @@ const metricDefinitions = [
     ],
     ["Canceladas durante el mes", "cancelaciones hechas este mes, sin importar la fecha de la cita."],
     ["Calificación promedio", "promedio de las calificaciones recibidas este mes."],
+    [
+        "Comparación con el mes anterior",
+        "se compara del día 1 a hoy contra el mismo tramo del mes anterior (si ese mes tiene menos días, hasta su último día). Las citas y los pacientes activos varían en %; las tasas de cancelación e inasistencia, en puntos porcentuales (de 10 % a 12 % son +2,0 pts, no +20 %); la calificación, en puntos de calificación. La variación de citas se calcula con citas válidas, aunque la fila muestre todas las programadas del mes.",
+    ],
+    [
+        "Base mínima",
+        "si el tramo anterior tiene menos de 5 citas (cancelación, inasistencia) o menos de 5 calificaciones, o la cifra anterior es 0, se muestra «sin comparación» para no exagerar variaciones.",
+    ],
+    [
+        "Inasistencias",
+        "citas válidas del tramo que ya ocurrieron y quedaron como inasistencia del paciente, sobre todas las válidas que ya ocurrieron.",
+    ],
+    [
+        "Pacientes bloqueados",
+        "se excluyen según su estado de hoy, sin historial: el mes anterior se calcula con ese mismo criterio.",
+    ],
     ["Especialidad más solicitada", "la que más citas recibió al crearse este mes."],
     ["Especialidad más programada", "la que más citas tiene con fecha de atención este mes."],
 ];
