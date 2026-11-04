@@ -335,40 +335,45 @@ def _cerrar_identidad(medico, aprobada):
     """Resuelve la verificación de identidad junto con la solicitud; un fallo no debe impedir la decisión."""
     try:
         from users.validacion_facial import cerrar_identidad_medico
-        cerrar_identidad_medico(medico, aprobada)
+        with transaction.atomic():
+            cerrar_identidad_medico(medico, aprobada)
     except Exception:
         logging.getLogger(__name__).exception("No se pudo cerrar la identidad del médico %s", medico.pk)
 
 
 def aprobarSolicitudValidacionService(solicitud_id):
     try:
-        solicitud = (
-            SolicitudValidacionMedico.objects
-            .select_related("medico")
-            .get(id=solicitud_id)
-        )
+        # Se bloquea solo la fila de la solicitud: dos administradores no pueden resolverla a la vez.
+        with transaction.atomic():
+            solicitud = (
+                SolicitudValidacionMedico.objects
+                .select_for_update()
+                .get(id=solicitud_id)
+            )
 
-        if solicitud.estado != SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE:
-            return None, 400
+            if solicitud.estado != SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE:
+                return None, 400
 
-        solicitud.estado = SolicitudValidacionMedico.EstadoSolicitud.APROBADO
-        solicitud.fecha_revision = timezone.now()
-        solicitud.motivo_rechazo = None
-        solicitud.puede_reintentar_desde = None
+            solicitud.estado = SolicitudValidacionMedico.EstadoSolicitud.APROBADO
+            solicitud.fecha_revision = timezone.now()
+            solicitud.motivo_rechazo = None
+            solicitud.puede_reintentar_desde = None
 
-        solicitud.save(
-            update_fields=[
-                "estado",
-                "fecha_revision",
-                "motivo_rechazo",
-                "puede_reintentar_desde",
-            ]
-        )
+            solicitud.save(
+                update_fields=[
+                    "estado",
+                    "fecha_revision",
+                    "motivo_rechazo",
+                    "puede_reintentar_desde",
+                ]
+            )
 
-        _cerrar_identidad(solicitud.medico, True)
-        from notificaciones.realtime import programarActualizacionDashboardRealtime
-        programarActualizacionDashboardRealtime('MEDICO_APROBADO', ('resumen', 'medicos'))
-        enviarCorreoMedicoAprobado(solicitud.medico)
+            medico = solicitud.medico
+            _cerrar_identidad(medico, True)
+            from notificaciones.realtime import programarActualizacionDashboardRealtime
+            programarActualizacionDashboardRealtime('MEDICO_APROBADO', ('resumen', 'medicos', 'solicitudes_medicos'))
+
+        enviarCorreoMedicoAprobado(medico)
 
         return {
             "id": solicitud.id,
@@ -377,41 +382,48 @@ def aprobarSolicitudValidacionService(solicitud_id):
             "fecha_revision": solicitud.fecha_revision,
         }, 200
 
+    except SolicitudValidacionMedico.DoesNotExist:
+        return None, 404
+
     except Exception as e:
         print("ERROR APROBANDO SOLICITUD")
 
 def rechazarSolicitudValidacionService(solicitud_id, motivo_rechazo):
     try:
-        solicitud = (
-            SolicitudValidacionMedico.objects
-            .select_related("medico")
-            .get(id=solicitud_id)
-        )
+        # Se bloquea solo la fila de la solicitud: dos administradores no pueden resolverla a la vez.
+        with transaction.atomic():
+            solicitud = (
+                SolicitudValidacionMedico.objects
+                .select_for_update()
+                .get(id=solicitud_id)
+            )
 
-        if solicitud.estado != SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE:
-            return None, 400
+            if solicitud.estado != SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE:
+                return None, 400
 
-        ahora = timezone.now()
+            ahora = timezone.now()
 
-        solicitud.estado = SolicitudValidacionMedico.EstadoSolicitud.RECHAZADO
-        solicitud.motivo_rechazo = motivo_rechazo
-        solicitud.fecha_revision = ahora
-        solicitud.puede_reintentar_desde = ahora + timedelta(days=30)
+            solicitud.estado = SolicitudValidacionMedico.EstadoSolicitud.RECHAZADO
+            solicitud.motivo_rechazo = motivo_rechazo
+            solicitud.fecha_revision = ahora
+            solicitud.puede_reintentar_desde = ahora + timedelta(days=30)
 
-        solicitud.save(
-            update_fields=[
-                "estado",
-                "motivo_rechazo",
-                "fecha_revision",
-                "puede_reintentar_desde",
-            ]
-        )
+            solicitud.save(
+                update_fields=[
+                    "estado",
+                    "motivo_rechazo",
+                    "fecha_revision",
+                    "puede_reintentar_desde",
+                ]
+            )
 
-        _cerrar_identidad(solicitud.medico, False)
-        from notificaciones.realtime import programarActualizacionDashboardRealtime
-        programarActualizacionDashboardRealtime('MEDICO_RECHAZADO', ('resumen', 'medicos'))
+            medico = solicitud.medico
+            _cerrar_identidad(medico, False)
+            from notificaciones.realtime import programarActualizacionDashboardRealtime
+            programarActualizacionDashboardRealtime('MEDICO_RECHAZADO', ('resumen', 'medicos', 'solicitudes_medicos'))
+
         enviarCorreoMedicoRechazado(
-            solicitud.medico,
+            medico,
             solicitud.motivo_rechazo,
             solicitud.puede_reintentar_desde,
         )
@@ -547,7 +559,7 @@ def reintentarSolicitudValidacionService(
                 )
             )
             from notificaciones.realtime import programarActualizacionDashboardRealtime
-            programarActualizacionDashboardRealtime('SOLICITUD_REINTENTADA', ('resumen', 'medicos'))
+            programarActualizacionDashboardRealtime('SOLICITUD_REINTENTADA', ('resumen', 'medicos', 'solicitudes_medicos'))
 
         return {
             "id": nueva_solicitud.id,
@@ -673,9 +685,11 @@ def actualizarMedicoService(id_medico, data):
             )
 
     medico.save()
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
     if medico.id_especialidad_id != especialidad_anterior:
-        from notificaciones.realtime import programarActualizacionDashboardRealtime
         programarActualizacionDashboardRealtime('ESPECIALIDAD_MEDICO_ACTUALIZADA', ('resumen', 'citas', 'medicos'))
+    else:
+        programarActualizacionDashboardRealtime('MEDICO_ACTUALIZADO', ('medicos',))
 
     return MedicoPerfilSerializer(medico).data, 200
 
@@ -692,7 +706,7 @@ def eliminarMedicoService(id_medico):
 
     medico.delete()
     from notificaciones.realtime import programarActualizacionDashboardRealtime
-    programarActualizacionDashboardRealtime('MEDICO_ELIMINADO', ('resumen', 'medicos'))
+    programarActualizacionDashboardRealtime('MEDICO_ELIMINADO', ('resumen', 'medicos', 'solicitudes_medicos'))
 
     return 'Médico eliminado correctamente', 200
 
@@ -1171,9 +1185,11 @@ def editarPerfilMedicoService(id_medico, data):
 
     medico.save()
 
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
     if medico.id_especialidad_id != especialidad_anterior:
-        from notificaciones.realtime import programarActualizacionDashboardRealtime
         programarActualizacionDashboardRealtime('ESPECIALIDAD_MEDICO_ACTUALIZADA', ('resumen', 'citas', 'medicos'))
+    else:
+        programarActualizacionDashboardRealtime('MEDICO_ACTUALIZADO', ('medicos',))
 
     return MedicoPerfilSerializer(
         medico

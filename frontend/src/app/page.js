@@ -1,3 +1,5 @@
+
+
 import Features from "./_componentsHome/Features/Features";
 import Header from "./_componentsHome/Header/Header";
 import Hero from "./_componentsHome/Hero/Hero";
@@ -5,25 +7,31 @@ import Footer from "./_componentsHome/Footer/Footer";
 import Metrics from "./_componentsHome/Metrics/Metrics";
 import About from "./_componentsHome/About/About";
 import Help from "./_componentsHome/Help/Help"
+import Steps from "./_componentsHome/Steps/Steps";
+import { HomeMotion } from "./_componentsHome/Reveal";
+import home from "./_componentsHome/home.module.css";
 
 export default function Home() {
     return (
-        <>
+        <HomeMotion>
             <a className="skip-link" href="#main-content">
                 Saltar al contenido
             </a>
 
             <Header />
 
-            <main id="main-content" tabIndex={-1}>
-                <Hero />
-                <Features />
-                <Metrics />
-                <About />
-                <Help />
-            </main>
+            <div className={home.page}>
+                <main id="main-content" tabIndex={-1}>
+                    <Hero />
+                    <Features />
+                    <Steps />
+                    <Metrics />
+                    <About />
+                    <Help />
+                </main>
 
-            <Footer />
-        </>
+                <Footer />
+            </div>
+        </HomeMotion>
     );
 }

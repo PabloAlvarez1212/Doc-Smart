@@ -1,7 +1,6 @@
 "use client";
 
 import {useCallback,useEffect,useRef,useState} from "react";
-import Swal from "sweetalert2";
 import { useNotificationsContext } from '../../contex/NotificationsContext';
 import { obtenerPrimerError } from "@/app/utils/errrorUtils";
 import {
@@ -13,7 +12,8 @@ import {
     marcarInasistenciaPacienteService,
     reprogramarCitaService,
 } from "@/app/services/appointmentsServices";
-const PAGE_SIZE = 6;
+// Nueve citas llenan tres filas de tres en escritorio.
+const PAGE_SIZE = 9;
 
 export default function useAppointments() {
     const { eventoCita } = useNotificationsContext();
@@ -22,6 +22,8 @@ export default function useAppointments() {
     // ==========================================
 
     const [citas, setCitas] = useState([]);
+    // Conteos por estado con los mismos filtros de la lista (sin sección ni estado).
+    const [conteos, setConteos] = useState({});
     const [resumen, setResumen] =
         useState(null);
 
@@ -96,6 +98,7 @@ export default function useAppointments() {
                     ? data.data
                     : []
             );
+            setConteos(data?.conteos ?? {});
             setPaginaActual(data?.paginacion?.current_page ?? 1);
             setTotalPaginas(data?.paginacion?.total_pages ?? 1);
             setTotalRegistros(data?.paginacion?.count ?? 0);
@@ -338,70 +341,15 @@ export default function useAppointments() {
     // CANCELAR CITA
     // ==========================================
 
-    const cancelarCita = async (id_cita) => {
-        const confirmacion = await Swal.fire({
-                title: "¿Cancelar cita?",
-                text: "Indica el motivo por el cual deseas cancelar la consulta.",
-                icon: "warning",
-                input: "textarea",
-                inputPlaceholder: "Escribe el motivo de la cancelación.",
-                inputAttributes: {
-                    max_length: "500",
-                    "aria-label": "Motivo de cancelación"
-                },
-                showCancelButton: true,
-                confirmButtonText: "Confirmar Cancelación",
-                cancelButtonText: "Volver",
-                inputValidator: (value) => {
-                    const motivo = value?.trim();
-                    if (!motivo) {
-                        return "Debes indicar el motivo de cancelación.";
-                    }
-                    if (motivo.length > 500) {
-                        return "El motivo no puede superar los 500 caracteres."
-                    }
-                }
-            });
-
-        if (!confirmacion.isConfirmed) {
-            return;
-        }
+    // El motivo llega desde la tarjeta; el error se lanza para que la tarjeta deshaga su animación.
+    const cancelarCita = async (id_cita, motivo) => {
         try {
-            await cancelarCitaService(
-                id_cita,
-                confirmacion.value.trim()
-            );
-            await actualizarDatos();
-
-            await Swal.fire({
-                title:"Cita cancelada",
-                text:"La cita fue cancelada correctamente.",
-                icon:"success",
-            });
-
+            await cancelarCitaService(id_cita, motivo);
         } catch (error) {
-
-            console.error(
-                "Error al cancelar cita:",
-                error
-            );
-
-
-            Swal.fire({
-
-                title:
-                    "Error",
-
-                text:
-                    "No se pudo cancelar la cita.",
-
-                icon:
-                    "error",
-
-            });
-
+            console.error("Error al cancelar cita:", error);
+            throw error;
         }
-
+        await actualizarDatos();
     };
 
 
@@ -409,56 +357,14 @@ export default function useAppointments() {
     // CONFIRMAR CITA
     // ==========================================
 
-    const confirmarCita = async (
-        id_cita
-    ) => {
-
+    const confirmarCita = async (id_cita) => {
         try {
-
-            await confirmarCitaService(
-                id_cita
-            );
-
-
-            await actualizarDatos();
-
-
-            await Swal.fire({
-
-                title:
-                    "Cita confirmada",
-
-                text:
-                    "La cita fue confirmada correctamente.",
-
-                icon:
-                    "success",
-
-            });
-
+            await confirmarCitaService(id_cita);
         } catch (error) {
-
-            console.error(
-                "Error al confirmar cita:",
-                error
-            );
-
-
-            Swal.fire({
-
-                title:
-                    "Error",
-
-                text:
-                    "No se pudo confirmar la cita.",
-
-                icon:
-                    "error",
-
-            });
-
+            console.error("Error al confirmar cita:", error);
+            throw error;
         }
-
+        await actualizarDatos();
     };
 
 
@@ -474,14 +380,6 @@ export default function useAppointments() {
                 );
 
             await actualizarDatos();
-            await Swal.fire({
-                title:
-                    datosClinicos === null ? "Documentos guardados" : "Cita completada",
-                text:
-                    datosClinicos === null ? "La documentación de seguimiento fue actualizada." : "La consulta fue cerrada correctamente.",
-                icon:
-                    "success",
-            });
 
             return resultado;
         } catch (error) {
@@ -513,34 +411,12 @@ export default function useAppointments() {
         fecha_programada
     ) => {
 
-        try {
+        await reprogramarCitaService(
+            id_cita,
+            fecha_programada
+        );
 
-            await reprogramarCitaService(
-                id_cita,
-                fecha_programada
-            );
-
-
-            await actualizarDatos();
-
-
-            await Swal.fire({
-
-                title:
-                    "Cita reprogramada",
-
-                text:
-                    "La cita fue reprogramada correctamente.",
-
-                icon:
-                    "success",
-
-            });
-
-        } catch (error) {
-            throw error;
-        }
-
+        await actualizarDatos();
     };
 
 
@@ -552,6 +428,7 @@ export default function useAppointments() {
 
         // Datos
         citas,
+        conteos,
         resumen,
 
         // Agenda / Historial

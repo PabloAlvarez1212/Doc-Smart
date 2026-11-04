@@ -2,7 +2,7 @@
 
 import ResetPasswordFormComponent from "../../../ui/ResetPasswordComponent/ResetPasswordComponent";
 import DocSmartNav from "../../../ui/DocSmartNav/DocSmartNav";
-import { KeyRound } from "lucide-react";
+import { CalendarDays, Clock, House, KeyRound, LayoutDashboard, MessagesSquare, UserRound } from "lucide-react";
 import { useState } from "react";
 
 import useLogout from "../../../hooks/useLogout";
@@ -22,27 +22,38 @@ export default function Header() {
     logoutUser
   } = useLogout();
   return <div>
-            <DocSmartNav variant="doctor-home" home="/doctor/home" onSettings={() => setModal(true)} links={[{
+            <DocSmartNav variant="doctor-home" home="/doctor/home" onSettings={() => setModal(true)} sections={["Consulta", "Mi práctica"]} notifications={{
+      href: "/doctor/notifications",
+      count: noLeidas ?? 0
+    }} links={[{
       href: "/doctor/home",
-      label: "Inicio"
+      label: "Inicio",
+      icon: House
     }, {
       href: "/doctor/dashboard",
-      label: "Dashboard"
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      group: "Mi práctica"
     }, {
       href: "/doctor/my-appointments",
-      label: "Mis citas"
+      label: "Mis citas",
+      icon: CalendarDays,
+      group: "Consulta"
     }, {
       href: "/doctor/my-chats",
-      label: "Mis chats"
+      label: "Mis chats",
+      icon: MessagesSquare,
+      group: "Consulta"
     }, {
       href: "/doctor/availability",
-      label: "Disponibilidad"
+      label: "Disponibilidad",
+      icon: Clock,
+      group: "Consulta"
     }, {
       href: "/doctor/my-profile",
-      label: "Perfil"
-    }, {
-      href: "/doctor/notifications",
-      label: `Notificaciones (${noLeidas ?? 0})`
+      label: "Perfil",
+      icon: UserRound,
+      group: "Mi práctica"
     }]} />
             <Modal titulo="Acciones" abierto={modal} headerVariant="white" onCerrar={() => setModal(false)}>
                 <SettingsComponent reportesHref="/doctor/reports" cerrarSesion={logoutUser} eliminarCuenta={eliminarCuentaMedico} abrirCambiarContrasena={() => {

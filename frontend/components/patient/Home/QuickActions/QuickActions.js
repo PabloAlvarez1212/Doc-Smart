@@ -1,5 +1,8 @@
+"use client";
+
 import { ArrowRight, CalendarDays, FileHeart, Search, UserRound } from "lucide-react";
 import Link from "next/link";
+import seguirCursor from "../../../ui/Motion/seguirCursor";
 import styles from "./QuickActions.module.css";
 
 const primaryAction = {
@@ -26,7 +29,7 @@ export default function QuickActions() {
             </div>
 
             <nav className={styles.actions} aria-label="Acciones rápidas del paciente">
-                <Link className={styles.primary} href={primaryAction.href}>
+                <Link className={styles.primary} href={primaryAction.href} onPointerMove={seguirCursor}>
                     <span className={styles.primaryIcon} aria-hidden="true"><PrimaryIcon size={22} /></span>
                     <span>
                         <strong>{primaryAction.label}</strong>
@@ -36,8 +39,8 @@ export default function QuickActions() {
                 </Link>
 
                 <div className={styles.secondary}>
-                    {secondaryActions.map(({ href, label, icon: Icon }) => (
-                        <Link href={href} key={href}>
+                    {secondaryActions.map(({ href, label, icon: Icon }, index) => (
+                        <Link href={href} key={href} style={{ "--i": index }}>
                             <span aria-hidden="true"><Icon size={18} /></span>
                             <strong>{label}</strong>
                             <ArrowRight size={16} aria-hidden="true" />

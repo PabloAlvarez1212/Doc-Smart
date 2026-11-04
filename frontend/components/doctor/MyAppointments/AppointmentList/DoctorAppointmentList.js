@@ -313,7 +313,7 @@ export default function DoctorAppointmentList({
  * Consulta y muestra la información médica
  * registrada por el paciente.
  */
-function InfoMedicaCard({ citaId, panelId }) {
+export function InfoMedicaCard({ citaId, panelId }) {
     const [datos, setDatos] = useState(null);
     const [error, setError] = useState("");
     const [cargando, setCargando] = useState(true);

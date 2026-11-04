@@ -15,7 +15,10 @@ export function isEndCommand(text) {
 // stopMs:    wait for the recognizer to deliver its last result when closing.
 export const DEFAULT_TIMING = { silenceMs: 1600, graceMs: 3200, idleMs: 20000, maxTurnMs: 180000, stopMs: 1500 };
 
-export function createVoiceSession({ browser, notify, onTranscript, onPartial, onWake, onEnd, canListen, errors, timing: initialTiming }) {
+// gate(text) decides what to do with speech heard while Bymax is answering (call mode):
+// "accept" keeps it, "ignore" drops it (Bymax's own voice or noise) and "barge" is the
+// user talking over the answer, so onBarge() cuts the audio before the text is kept.
+export function createVoiceSession({ browser, notify, onTranscript, onPartial, onWake, onEnd, canListen, errors, timing: initialTiming, gate, onBarge }) {
   const Recognition = browser.SpeechRecognition || browser.webkitSpeechRecognition;
   const now = () => browser.performance?.now() ?? Date.now();
   let timing = { ...DEFAULT_TIMING, ...initialTiming };
@@ -25,7 +28,10 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
   let phase = "off", running = false, stopping = false, intentional = false, closing = false;
   let failures = 0, restartTimer, startTimer, stableTimer, quietTimer, idleTimer, turnTimer, closeTimer, endTimer;
   let conversation = false;
-  let mode = "wake", sessionId = 0, lastResultAt = 0, metrics = {}, shown = "";
+  let mode = "wake", sessionId = 0, lastResultAt = 0, metrics = {}, shown = "", rawLength = 0;
+  // The browser closes a quiet microphone by itself (no-speech, or after a long silence). That is
+  // normal while Bymax talks and the user listens, so it must not count as a failure.
+  let startedAt = 0, benignEnd = false;
   const checked = new Set();
   const state = (mic, notice = "", error) => { phase = mic; if (!disposed) notify({mic, active, notice, ...(error !== undefined ? {error} : {})}); };
   const emitMetric = (event, elapsed) => {
@@ -151,6 +157,7 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
     recognition.interimResults = true;
     recognition.maxAlternatives = 3;
     recognition.onstart = () => {
+      startedAt = now(); benignEnd = false;
       if (disposed || stopping || !active || hidden) return;
       browser.clearTimeout(startTimer);
       state(mode === "request" ? "listening" : "waiting", mode === "request" ? "Te escucho. Dime tu solicitud." : "Esperando activación: di «Bymax».");
@@ -161,6 +168,13 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
     recognition.onresult = event => {
       if (disposed || !active || !running || (stopping && !closing) || hidden || !canListen()) return;
       const raw = Array.from(event.results, result => ({ text: pick(result), final: Boolean(result.isFinal) }));
+      rawLength = raw.length;
+      if (gate && mode === "request") {
+        const verdict = gate(raw.at(-1)?.text || "");
+        // What was heard so far stays out of the turn, even if the recognizer rewrites it later.
+        if (verdict === "ignore") { dictation.skipBefore(raw.length); return; }
+        if (verdict === "barge") onBarge?.();
+      }
       if (mode === "wake") {
         // The activation word is accepted from provisional results too, so the
         // first words of the request are visible immediately.
@@ -193,7 +207,8 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
       if (disposed || intentional || !active) return;
       if (["not-allowed", "service-not-allowed", "audio-capture", "language-not-supported"].includes(event.error)) { fail(event.error); return; }
       // Recover only after onend releases the existing microphone session.
-      if (!["no-speech", "aborted"].includes(event.error)) failures += 1;
+      if (["no-speech", "aborted"].includes(event.error)) benignEnd = true;
+      else failures += 1;
       if (failures >= 4) fail(event.error);
       else {
         state("recovering", "El reconocimiento se interrumpió. Esperando su cierre…");
@@ -203,6 +218,9 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
     };
     recognition.onend = () => {
       const wasIntentional = intentional;
+      // A microphone that stayed open for a while, or closed on a quiet «no-speech», just rested.
+      const natural = benignEnd || (startedAt > 0 && now() - startedAt >= 4000);
+      benignEnd = false; startedAt = 0;
       running = stopping = false;
       browser.clearTimeout(endTimer);
       intentional = false;
@@ -215,11 +233,11 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
       dictation.commitSession();
       const keepTurn = !wasIntentional && mode === "request" && dictation.hasText();
       if (!keepTurn) clearCapture();
-      if (!wasIntentional && !keepTurn) failures += 1;
+      if (!wasIntentional && !keepTurn) { if (natural) failures = 0; else failures += 1; }
       if (failures >= 4) { fail(); return; }
       mode = conversation ? "request" : "wake";
       state("recovering", "Reconectando la escucha…");
-      resume(wasIntentional ? 350 : keepTurn ? 200 : Math.min(8000, 500 * 2 ** failures));
+      resume(wasIntentional ? 350 : keepTurn ? 200 : natural ? 150 : Math.min(8000, 500 * 2 ** failures));
     };
     return recognition;
   }
@@ -228,6 +246,7 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
     // A restart inside the same turn keeps the confirmed text.
     sessionId = dictation.beginSession();
     checked.clear();
+    rawLength = 0; startedAt = 0; benignEnd = false;
     intentional = false;
     try {
       const instance = obtain();
@@ -256,6 +275,27 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
     if (hidden) { state("suspended", "Vuelve a la página para activar la escucha."); return; }
     startCapture(); // No await before start: preserves a click's user activation.
   }
+  // Last resort for a call whose microphone stopped answering: a fresh recognizer, ignoring the old one.
+  function hardRestart() {
+    if (disposed || !active) return;
+    clearTimers();
+    if (recognition) {
+      const old = recognition;
+      recognition = null;
+      old.onstart = old.onspeechstart = old.onresult = old.onerror = old.onend = null;
+      try { old.abort(); } catch {}
+    }
+    running = stopping = closing = intentional = false;
+    failures = 0;
+    resume(100);
+  }
+  // Starts a conversation without the wake word. A session that is already listening
+  // for «Bymax» switches mode in place, so the click's microphone permission is kept.
+  function converse() {
+    if (disposed) return;
+    if (active && running && !stopping) { enterRequest(rawLength); return; }
+    start("dictation");
+  }
   function visibility(visible) {
     hidden = !visible;
     if (hidden) { if (active) pause(false); }
@@ -268,7 +308,7 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
     browser.clearTimeout(endTimer);
     if (recognition) recognition.onstart = recognition.onspeechstart = recognition.onresult = recognition.onerror = recognition.onend = null;
   }
-  return { start, stop, pause, resume, terminate, visibility, dispose, fail,
+  return { start, converse, hardRestart, stop, pause, resume, terminate, visibility, dispose, fail,
     configure: next => { timing = { ...timing, ...next }; },
     // The user edited the field: their text is the new base and older events
     // cannot overwrite it.

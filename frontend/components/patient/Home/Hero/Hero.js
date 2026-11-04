@@ -1,6 +1,7 @@
 import { Bell, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import RollingNumber from "../../../ui/Motion/RollingNumber";
 import styles from "./Hero.module.css";
 
 export default function Hero({ nombre, noLeidas, foto_perfil }) {
@@ -27,10 +28,10 @@ export default function Hero({ nombre, noLeidas, foto_perfil }) {
                 </div>
             </div>
 
-            <Link className={styles.notifications} href="/patient/notifications">
+            <Link className={`${styles.notifications} ${unreadCount > 0 ? styles.hasUnread : ""}`} href="/patient/notifications">
                 <span className={styles.notificationIcon} aria-hidden="true"><Bell size={19} /></span>
                 <span>
-                    <strong>{unreadCount}</strong>
+                    <RollingNumber className={styles.count} value={unreadCount} />
                     <small>{unreadCount === 1 ? "notificación sin leer" : "notificaciones sin leer"}</small>
                 </span>
                 <ChevronRight size={17} aria-hidden="true" />

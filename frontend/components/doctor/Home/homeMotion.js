@@ -8,9 +8,9 @@ export function HomeReveal({ children, className, delay = 0 }) {
   return (
     <motion.div
       className={className}
-      initial={reduced ? false : { y: 8 }}
-      animate={{ y: 0 }}
-      transition={{ duration: reduced ? 0 : 0.28, delay: reduced ? 0 : delay, ease: [0.16, 1, 0.3, 1] }}
+      initial={reduced ? false : { opacity: 0, y: 18, filter: 'blur(6px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
+      transition={reduced ? { duration: 0 } : { type: 'spring', bounce: 0.2, visualDuration: 0.5, delay }}
     >
       {children}
     </motion.div>

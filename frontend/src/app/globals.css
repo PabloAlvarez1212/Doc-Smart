@@ -36,7 +36,7 @@ button { max-width: 100%; }
     }
 }
 /* Shared native surfaces and accessibility. */
-html{scroll-behavior:smooth;scroll-padding-top:140px;background:var(--background);color-scheme:light}
+html{scroll-behavior:smooth;scroll-padding-top:104px;background:var(--background);color-scheme:light}
 html[data-theme="dark"]{color-scheme:dark}
 body{background:var(--background)}
 button,input,select,textarea{font-family:inherit}

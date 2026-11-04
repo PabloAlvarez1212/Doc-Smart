@@ -1,0 +1,190 @@
+/* Tokens y piezas compartidas del inicio; todos los colores cambian con el tema. */
+.page {
+    --home-ac: var(--color-dark);
+    --home-ac-hi: #3a63f0;
+    --home-ac-soft: color-mix(in srgb, var(--home-ac) 10%, transparent);
+    --home-on-ac: #fff;
+    --home-grad-a: #1733a4;
+    --home-grad-b: #3a8bff;
+    --home-sky: #38bdf8;
+    --home-green: #0f7a3a;
+    --home-green-hi: #22b35a;
+    --home-night: #101630;
+    --home-night-2: #1c2546;
+    --home-night-ink: #eef2ff;
+    --home-night-muted: #aab4d2;
+    --home-line: color-mix(in srgb, var(--color-text) 9%, transparent);
+    --home-line-2: color-mix(in srgb, var(--color-text) 16%, transparent);
+    --home-faint: color-mix(in srgb, var(--text-secondary) 72%, var(--background));
+    --home-glass: color-mix(in srgb, var(--surface) 60%, transparent);
+    --home-glass-hi: color-mix(in srgb, var(--surface) 86%, transparent);
+    --home-edge: rgba(255, 255, 255, .9);
+    --home-shadow: 0 1px 1px rgba(16, 24, 48, .04), 0 10px 28px -8px rgba(16, 24, 48, .16), 0 28px 56px -18px rgba(16, 24, 48, .14);
+    --home-shadow-sm: 0 1px 2px rgba(16, 24, 48, .06), 0 6px 16px -6px rgba(16, 24, 48, .12);
+    --home-ease: cubic-bezier(.23, 1, .32, 1);
+    --home-spring: cubic-bezier(.34, 1.28, .52, 1);
+    --home-drawer: cubic-bezier(.32, .72, 0, 1);
+
+    position: relative;
+    isolation: isolate;
+    overflow-x: clip;
+}
+
+:global(html[data-theme="dark"]) .page {
+    --home-ac-hi: #c0d0ff;
+    --home-on-ac: #0a0f1c;
+    --home-grad-a: #9db8ff;
+    --home-grad-b: #7dd3fc;
+    --home-green: #4fd67f;
+    --home-green-hi: #9cf0b7;
+    --home-night: #0c1121;
+    --home-night-2: #19223f;
+    --home-night-muted: #a3aed0;
+    --home-edge: rgba(255, 255, 255, .08);
+    --home-shadow: 0 1px 1px rgba(0, 0, 0, .3), 0 14px 34px -8px rgba(0, 0, 0, .6), 0 30px 60px -20px rgba(0, 0, 0, .5);
+    --home-shadow-sm: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 16px -6px rgba(0, 0, 0, .5);
+}
+
+/* Luz ambiental detrás del hero */
+.page::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
+    height: 1100px;
+    pointer-events: none;
+    background:
+        radial-gradient(640px 360px at 8% 0%, color-mix(in srgb, var(--home-ac) 18%, transparent), transparent 70%),
+        radial-gradient(560px 380px at 95% 12%, color-mix(in srgb, var(--home-sky) 14%, transparent), transparent 70%);
+}
+
+.section {
+    position: relative;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 96px 40px;
+    scroll-margin-top: 12px;
+}
+
+.h2 {
+    margin: 0;
+    font-size: clamp(30px, 4.2vw, 50px);
+    line-height: 1.08;
+    letter-spacing: -.04em;
+    font-weight: 650;
+    text-wrap: balance;
+}
+
+.mute { color: var(--home-faint); }
+
+.head {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 32px;
+    margin-bottom: 44px;
+}
+
+.lead {
+    margin: 0;
+    max-width: 40ch;
+    color: var(--text-secondary);
+    font-size: 16px;
+    line-height: 1.65;
+}
+
+.primary, .soft, .white {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 50px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform .16s var(--home-ease), box-shadow .25s;
+}
+
+.primary {
+    overflow: hidden;
+    background: linear-gradient(140deg, var(--home-ac), var(--home-ac-hi));
+    color: var(--home-on-ac);
+    box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--home-ac) 70%, transparent);
+}
+
+/* Brillo que cruza el botón al pasar el mouse. */
+.primary::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -70%;
+    width: 45%;
+    height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent);
+    transform: skewX(-18deg);
+    transition: left .6s var(--home-ease);
+}
+
+.soft {
+    background: var(--surface);
+    color: var(--color-text);
+    box-shadow: 0 0 0 1px var(--home-line), var(--home-shadow-sm);
+}
+
+.white {
+    background: #fff;
+    color: #0d1324;
+    box-shadow: 0 10px 24px -10px rgba(0, 0, 0, .4);
+}
+
+.primary svg, .soft svg, .white svg { transition: transform .3s var(--home-ease); }
+.primary:active, .soft:active, .white:active { transform: scale(.97); }
+
+.live {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--home-green-hi);
+    animation: livePulse 2.2s infinite;
+}
+
+@keyframes livePulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--home-green-hi) 55%, transparent); }
+    70% { box-shadow: 0 0 0 7px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .primary:hover { box-shadow: 0 10px 22px -6px color-mix(in srgb, var(--home-ac) 80%, transparent); }
+    .primary:hover::after { left: 130%; }
+    .primary:hover svg, .white:hover svg { transform: translateX(3px); }
+    .soft:hover svg { transform: translateY(2px); }
+}
+
+@media (max-width: 1040px) {
+    .section { padding: 84px 28px; }
+}
+
+@media (max-width: 860px) {
+    .head { display: block; }
+    .head .lead { margin-top: 14px; }
+}
+
+@media (max-width: 520px) {
+    .section { padding: 64px 18px; }
+    .primary, .soft, .white { height: 48px; padding: 0 18px; font-size: 14.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live { animation: none; }
+    .primary::after { transition: none; }
+}

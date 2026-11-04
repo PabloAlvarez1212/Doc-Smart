@@ -8,7 +8,7 @@ import BymaxLauncher from "./BymaxLauncher";
 import BymaxChatWindow from "./BymaxChatWindow";
 import BymaxDoctorContext from "./BymaxDoctorContext";
 import useBymaxIdentity from "./useBymaxIdentity";
-import { takeSpeechUnits, flushSpeechBuffer, SPEECH_MAX_WAIT_MS } from "./bymaxSpeechUnits.mjs";
+import { takeSpeechUnits, flushSpeechBuffer, SPEECH_MAX_WAIT_MS, SPEECH_FIRST_WAIT_MS } from "./bymaxSpeechUnits.mjs";
 import { matchesTurn, latencyTrace, recoverResponse, esAfirmacionDictada } from "./bymaxTurn.mjs";
 import { assistantState } from "./bymaxPresentation.mjs";
 
@@ -53,6 +53,7 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
   const epochRef = useRef(0);
   const imageUrls = useRef(new Set());
   const voiceRef = useRef(null);
+  const cancelRef = useRef(null);
   const confirmationRef = useRef(false);
   const abrirVentana = useCallback(() => { setVentanaAbierta(true); }, []);
   const voice = useBymaxVoice({
@@ -70,6 +71,8 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
       sendRef.current?.(text);
     },
     onPartial: text => setMensaje(text), onWake: abrirVentana,
+    // Hablar encima de una respuesta la corta y cancela lo que faltaba por generar.
+    onBarge: () => cancelRef.current?.(),
     isBusy: () => sendingRef.current || cargando || !chatId,
   });
   useEffect(() => { voiceRef.current = voice; }, [voice]);
@@ -89,7 +92,7 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
       turn.controller?.abort();
       turn.mark?.("cancelled");
       setMensajes(previous => previous.map(item => item.id === turn.id
-        ? {...item, texto:item.texto || "Respuesta interrumpida. Revisa el historial si había una operación en curso."} : item));
+        ? {...item, cortado:true, texto:item.texto || "Respuesta interrumpida. Revisa el historial si había una operación en curso."} : item));
     }
     epochRef.current += 1;
     turnRef.current = null;
@@ -99,6 +102,7 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
     voiceRef.current?.stopPlayback();
     voiceRef.current?.completeTurn();
   }, []);
+  useEffect(() => { cancelRef.current = cancelTurn; }, [cancelTurn]);
   useEffect(() => {
     function timing(event) {
       const trace = playbackTraceRef.current;
@@ -183,19 +187,22 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
       setStreamingId(null);
       voiceRef.current?.completeTurn();
     }
+    // In a call the first fragment of an answer leaves sooner, so Bymax starts talking while the text still arrives.
+    const firstOfCall = turn => Boolean(voiceRef.current?.call) && !turn.spoke;
     function speakFragments(turn, final = false) {
       clearTimeout(turn.flushTimer);
-      const { units, remaining } = takeSpeechUnits(turn.buffer, final);
-      for (const unit of units) voiceRef.current?.enqueue(unit, turn.id);
+      const first = firstOfCall(turn);
+      const { units, remaining } = takeSpeechUnits(turn.buffer, final, first);
+      for (const unit of units) { voiceRef.current?.enqueue(unit, turn.id); turn.spoke = true; }
       turn.buffer = remaining;
       // Long stretches without punctuation are spoken after a bounded wait.
       if (!final && remaining.trim()) {
         turn.flushTimer = setTimeout(() => {
           if (turnRef.current !== turn) return;
-          const flushed = flushSpeechBuffer(turn.buffer);
-          for (const unit of flushed.units) voiceRef.current?.enqueue(unit, turn.id);
+          const flushed = flushSpeechBuffer(turn.buffer, firstOfCall(turn));
+          for (const unit of flushed.units) { voiceRef.current?.enqueue(unit, turn.id); turn.spoke = true; }
           turn.buffer = flushed.remaining;
-        }, SPEECH_MAX_WAIT_MS);
+        }, first ? SPEECH_FIRST_WAIT_MS : SPEECH_MAX_WAIT_MS);
       }
     }
     socket.onmessage = event => {

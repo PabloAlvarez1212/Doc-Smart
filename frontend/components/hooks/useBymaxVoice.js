@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createBymaxVoiceController, DEFAULT_VOICE } from "../bymax/bymaxVoiceController.mjs";
 
-const initialState = { mic: "off", active: false, playback: "idle", enabled: false, messageId: null, error: "", notice: "", supported: false };
+const initialState = { mic: "off", active: false, playback: "idle", enabled: false, messageId: null, error: "", notice: "", supported: false,
+  call: false, muted: false, speechId: null, spokenText: "", speakingText: "" };
 export default function useBymaxVoice(options) {
   const latest = useRef(options);
   latest.current = options;
@@ -32,6 +33,7 @@ export default function useBymaxVoice(options) {
       onPartial: (text, view) => latest.current.onPartial(text, view),
       onWake: () => latest.current.onWake(),
       onEnd: () => latest.current.onEnd?.(),
+      onBarge: () => latest.current.onBarge?.(),
       isBusy: () => latest.current.isBusy(),
     });
     controller.current = instance;
@@ -103,9 +105,14 @@ export default function useBymaxVoice(options) {
   const clearError = useCallback(() => controller.current?.clearError(), []);
   const manualEdit = useCallback(text => controller.current?.manualEdit(text), []);
   const discardDictation = useCallback(() => controller.current?.discardDictation(), []);
+  // Llamada: escucha continua, interrupción al hablar encima y respuestas habladas sin botón.
+  const startCall = useCallback(() => controller.current?.startCall(), []);
+  const endCall = useCallback(() => controller.current?.endCall(), []);
+  const setMuted = useCallback(value => controller.current?.setMuted(value), []);
+  const interrupt = useCallback(() => controller.current?.interrupt(), []);
   const updateConfig = useCallback(next => {
     controller.current?.stopPlayback();
     setConfig(previous => { const value = { ...previous, ...next }; save("bymax_configuracion_voz", JSON.stringify(value)); return value; });
   }, [save]);
-  return { ...state, config, voices, beginTurn, completeTurn, stopPlayback, play, enqueue, clearError, updateConfig, manualEdit, discardDictation };
+  return { ...state, config, voices, beginTurn, completeTurn, stopPlayback, play, enqueue, clearError, updateConfig, manualEdit, discardDictation, startCall, endCall, setMuted, interrupt };
 }

@@ -1,5 +1,6 @@
 "use client";
 import { useCrud } from "../../../../components/hooks/useCrud";
+import useAdminRealtimeRefresh from "../../../../components/admin/useAdminRealtimeRefresh";
 import DataTable from "../../../../components/ui/DataTable/DataTable";
 import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
 import { getDoctoresService, deleteDoctorService } from "@/app/services/adminServices";
@@ -9,6 +10,9 @@ export default function Doctors() {
   const crud = useCrud({
     getService: getDoctoresService,
     eliminarService: deleteDoctorService
+  })
+  useAdminRealtimeRefresh("medicos", crud.recargarSilencioso, {
+    pausado: crud.modalAbierto || crud.guardando || crud.eliminando,
   })
   const columnas = [
     {

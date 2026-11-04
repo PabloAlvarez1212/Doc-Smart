@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "./NowTile.module.css";
 
 function CheckIcon() {
@@ -22,17 +23,24 @@ function AlertIcon() {
  * @param {{
  *   label: string,
  *   value: string,
- *   tone?: "info"|"ok"|"alert",
+ *   tone?: "info"|"ok"|"alert"|"neutral",
  *   pill?: string,
  *   context?: string,
- *   loading?: boolean
+ *   loading?: boolean,
+ *   href?: string,
+ *   linkLabel?: string
  * }} props
  */
-export default function NowTile({ label, value, tone = "info", pill, context, loading = false }) {
+export default function NowTile({ label, value, tone = "info", pill, context, loading = false, href, linkLabel }) {
     const isEmpty = value === "—";
+    const className = `${styles.tile} ${styles[tone] ?? styles.info}`;
+    const Wrapper = href && !loading ? Link : "article";
+    const wrapperProps = href && !loading
+        ? { href, className: `${className} ${styles.link}`, "aria-label": `${label}: ${value}. ${linkLabel ?? ""}`.trim() }
+        : { className };
 
     return (
-        <article className={`${styles.tile} ${styles[tone] ?? styles.info}`}>
+        <Wrapper {...wrapperProps}>
             <span className={styles.strip} aria-hidden="true" />
             <h4 className={styles.label}>{label}</h4>
             {loading ? (
@@ -52,6 +60,6 @@ export default function NowTile({ label, value, tone = "info", pill, context, lo
                     {context && <p className={styles.context}>{context}</p>}
                 </>
             )}
-        </article>
+        </Wrapper>
     );
 }

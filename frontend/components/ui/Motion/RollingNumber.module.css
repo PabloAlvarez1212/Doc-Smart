@@ -1,0 +1,9 @@
+.roll {
+    position: relative;
+    display: inline-flex;
+    overflow: hidden;
+    vertical-align: bottom;
+    font-variant-numeric: tabular-nums;
+}
+
+.roll > span { display: block; }

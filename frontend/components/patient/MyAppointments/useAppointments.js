@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getEspecialidadesService } from "@/app/services/doctorServices";
 import {
     listarCitasPacienteService,
@@ -7,10 +7,15 @@ import {
     reprogramarCitaService,
 } from "@/app/services/appointmentsServices";
 import { getDepartamentosService, getCiudadesPorDepartamentoService } from "@/app/services/catalogs";
-import Swal from "sweetalert2";
+import { useNotificationsContext } from "../../contex/NotificationsContext";
 export default function useAppointments() {
 
+    const { eventoCita } = useNotificationsContext();
     const [citas, setCitas] = useState([]);
+    const [seccion, setSeccion] = useState("agenda");
+    // Conteos por estado con los mismos filtros de la lista (sin sección ni estado).
+    const [conteos, setConteos] = useState({});
+    const ultimaSolicitud = useRef(0);
     const [especialidades, setEspecialidades] = useState([]);
     const [departamentos, setDepartamentos] = useState([]);
     const [ciudades, setCiudades] = useState([]);
@@ -45,63 +50,35 @@ export default function useAppointments() {
 
     useEffect(() => {
         cargarCitas();
-    }, [estado, filtros, paginaActual]);
+    }, [seccion, estado, filtros, paginaActual]);
+
+    // Cuando el médico confirma o cambia una cita, la lista se actualiza sin recargar la página.
+    useEffect(() => {
+        if (eventoCita?.tipo_evento === "ACTUALIZACION_CITA") cargarCitas();
+    }, [eventoCita]);
 
     const cambiarPagina = (nuevaPagina) => {
         setPaginaActual(nuevaPagina);
     };
 
-    const cancelarCita = async (id_cita) => {
+    const cambiarSeccion = (nuevaSeccion) => {
+        if (nuevaSeccion === seccion) return;
+        setSeccion(nuevaSeccion);
+        setEstado("todas");
+        setPaginaActual(1);
+        setCitas([]);
+        setLoading(true);
+    };
 
-        const resultado = await Swal.fire({
-            title: "¿Cancelar cita?",
-            text: "Indica el motivo por el cual deseas cancelar tu cita médica.",
-            icon: "warning",
-            input: "textarea",
-            inputPlaceholder: "Escribe el motivo de su cancelación",
-            inputAttributes: {
-                maxlength: "500",
-                "aria-label": "Motivo de cancelación",
-            },
-            showCancelButton: true,
-            confirmButtonText: "Confirmar Cancelación",
-            cancelButtonText: "volver",
-            inputValidator: (value) => {
-                const motivo = value?.trim();
-                if (!motivo){
-                    return "Debes indicar el motivo de cancelación"
-                }
-                if (motivo.length > 500){
-                    return "El motivo no debe superar los 500 caracteres."
-                }
-            }
-        });
-
-        if (!resultado.isConfirmed) {
-            return;
-        }
+    // El motivo llega desde la tarjeta; el error se lanza para que la tarjeta deshaga su animación.
+    const cancelarCita = async (id_cita, motivo) => {
         try {
-            await cancelarCitaService(
-                id_cita,
-                resultado.value.trim()
-            );
-            await cargarCitas();
-            Swal.fire({
-                title: "Cita cancelada",
-                text: "La cita fue cancelada correctamente.",
-                icon: "success",
-            });
-
+            await cancelarCitaService(id_cita, motivo);
         } catch (error) {
-
             console.error(error);
-
-            Swal.fire({
-                title: "Error",
-                text: "No se pudo cancelar la cita.",
-                icon: "error",
-            });
+            throw error;
         }
+        await cargarCitas();
     };
 
     const reprogramarCita = async (id_cita, fecha_programada) => {
@@ -153,6 +130,7 @@ export default function useAppointments() {
     };
 
     const cargarCitas = async () => {
+        const solicitud = ++ultimaSolicitud.current;
 
         try {
 
@@ -163,7 +141,8 @@ export default function useAppointments() {
             const params = {};
 
             params.page = paginaActual;
-            params.page_size = 6;
+            params.page_size = 9;
+            params.seccion = seccion;
 
             if (estado !== "todas") {
                 params.estado = estado;
@@ -190,21 +169,25 @@ export default function useAppointments() {
             }
 
             const data = await listarCitasPacienteService(params);
+            // Una respuesta vieja no debe pisar la de otra sección o filtro.
+            if (solicitud !== ultimaSolicitud.current) return;
 
             setCitas(data.data);
+            setConteos(data.conteos ?? {});
             setPaginaActual(data.paginacion.current_page);
             setTotalPaginas(data.paginacion.total_pages);
             setTotalRegistros(data.paginacion.count);
 
         } catch (error) {
 
+            if (solicitud !== ultimaSolicitud.current) return;
             console.error(error);
 
             setError(error);
 
         } finally {
 
-            setLoading(false);
+            if (solicitud === ultimaSolicitud.current) setLoading(false);
 
         }
 
@@ -225,6 +208,9 @@ export default function useAppointments() {
 
     return {
         citas,
+        conteos,
+        seccion,
+        cambiarSeccion,
         especialidades,
         cancelarCita,
         reprogramarCita,

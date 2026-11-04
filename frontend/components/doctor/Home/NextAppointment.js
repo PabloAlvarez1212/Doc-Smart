@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, CalendarDays, Clock3, Mail, Phone } from 'lucide-react';
 import ProfilePhoto from '../../ui/ProfilePhoto/ProfilePhoto';
+import seguirCursor from '../../ui/Motion/seguirCursor';
 import formatearFecha from '@/app/utils/fechaFormaterUtils';
 import { getContentTransition, getPageReveal } from '../../patient/Home/patientHomeMotion';
 import card from '../../patient/Home/AppointmentsList/AppointmentsList.module.css';
@@ -14,7 +15,7 @@ export default function NextAppointment({ appointment }) {
   const formatted = appointment ? formatearFecha(appointment.fecha_programada) : null;
   const status = String(appointment?.estado || '').toLowerCase();
   return (
-    <motion.section className={`${card.section} ${styles.doctor}`} aria-labelledby="next-title" {...getPageReveal(reduced)}>
+    <motion.section className={`${card.section} ${styles.doctor}`} aria-labelledby="next-title" onPointerMove={seguirCursor} {...getPageReveal(reduced)}>
       <div className={card.heading}>
         <div><h2 id="next-title">Tu próxima consulta</h2><p>La próxima atención programada en tu agenda.</p></div>
         <Link href="/doctor/my-appointments">Ver agenda <ArrowRight size={16} aria-hidden="true" /></Link>

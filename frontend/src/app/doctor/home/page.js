@@ -1,7 +1,7 @@
 "use client";
 
 import '../../../../components/doctor/Home/home-theme.css';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import Hero from '../../../../components/doctor/Home/Hero/Hero';
 import Notifications from '../../../../components/doctor/Home/Notifications/Notifications';
@@ -19,7 +19,6 @@ export default function Home() {
   const homeRef = useRef(null);
   const { dashboard, loading, error, retry } = useDashboardMedico();
   const ratings = useCalificacionesMedico(dashboard?.id, { activo: Boolean(dashboard?.id) });
-  const [date, setDate] = useState('');
   const notifications = useNotificationsContext();
 
   useLayoutEffect(() => {
@@ -34,13 +33,6 @@ export default function Home() {
     observer.observe(inbox);
     return () => observer.disconnect();
   }, [loading, error]);
-
-  useEffect(() => {
-    const update = () => setDate(new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()));
-    update();
-    const timer = setInterval(update, 60000);
-    return () => clearInterval(timer);
-  }, []);
 
   return (
     <div ref={homeRef} className={styles.home} data-doctor-home="true">
@@ -57,15 +49,17 @@ export default function Home() {
         </section>
       ) : (
         <>
-          <Hero nombre={dashboard?.usuario} especialidad={dashboard?.especialidad} foto_perfil={dashboard?.foto_perfil} date={date} noLeidas={notifications.noLeidas} />
-          <HomeReveal className={styles.primaryGrid}>
+          <HomeReveal>
+            <Hero nombre={dashboard?.usuario} especialidad={dashboard?.especialidad} foto_perfil={dashboard?.foto_perfil} noLeidas={notifications.noLeidas} />
+          </HomeReveal>
+          <HomeReveal className={styles.primaryGrid} delay={0.08}>
             <NextAppointment appointment={nextAppointment(dashboard?.proximas_citas)} />
             <div className={styles.homeSidebar}>
               <QuickActions />
               <RatingSummary compact variant="home" resumen={ratings.resumen} loading={ratings.loading} error={ratings.error} onRetry={ratings.retry} />
             </div>
           </HomeReveal>
-          <HomeReveal className={styles.secondaryGrid} delay={0.06}>
+          <HomeReveal className={styles.secondaryGrid} delay={0.16}>
             <TodaySchedule appointments={dashboard?.citas_hoy} />
             <Notifications
               data={dashboard}

@@ -1,4 +1,5 @@
 "use client";
+import { Fragment } from "react";
 import Image from "next/image";
 import { AlertCircle, CalendarDays, Stethoscope, Play, Square, LoaderCircle } from "lucide-react";
 import { messageBlocks } from "./bymaxPresentation.mjs";
@@ -11,9 +12,18 @@ function fechaCorta(valor) {
   }).format(new Date(valor));
 }
 
-function emphasis(text) {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) =>
-    part.startsWith("**") && part.endsWith("**") ? <strong key={index}>{part.slice(2, -2)}</strong> : part);
+// En las respuestas de Bymax cada palabra es un elemento propio: al llegar por streaming, aparece con su animación.
+function palabras(text, clave) {
+  return text.split(/(\s+)/).map((parte, index) => /^\s*$/.test(parte) ? parte : <span key={`${clave}-${index}`} className={styles.word}>{parte}</span>);
+}
+
+function emphasis(text, animado = false) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    const negrita = part.startsWith("**") && part.endsWith("**");
+    const contenido = negrita ? part.slice(2, -2) : part;
+    const hijos = animado ? palabras(contenido, index) : contenido;
+    return negrita ? <strong key={index}>{hijos}</strong> : <Fragment key={index}>{hijos}</Fragment>;
+  });
 }
 
 function TarjetasResultado({ resultado }) {
@@ -45,7 +55,7 @@ function TarjetasResultado({ resultado }) {
   );
 }
 
-function ContenidoMensaje({ mensaje }) {
+function ContenidoMensaje({ mensaje, animado }) {
   return (
     <>
       {mensaje.imagen && (
@@ -54,9 +64,9 @@ function ContenidoMensaje({ mensaje }) {
       <div className={styles.messageText}>
         {messageBlocks(mensaje.texto).map((block, index) => {
           if (block.type === "space") return null;
-          if (block.type === "p") return <p key={index}>{emphasis(block.lines.join("\n"))}</p>;
+          if (block.type === "p") return <p key={index}>{emphasis(block.lines.join("\n"), animado)}</p>;
           const List = block.type;
-          return <List key={index} start={block.start}>{block.lines.map((line, lineIndex) => <li key={lineIndex}>{emphasis(line)}</li>)}</List>;
+          return <List key={index} start={block.start}>{block.lines.map((line, lineIndex) => <li key={lineIndex}>{emphasis(line, animado)}</li>)}</List>;
         })}
       </div>
       <TarjetasResultado resultado={mensaje.resultado} />
@@ -75,10 +85,11 @@ export default function BymaxMessage({ item, voice, streaming }) {
     {bot && <Image className={styles.miniAvatar} src="/icons/asistente_bymax.png" alt="" width={32} height={32}/>}
     <article className={`${styles.bubble} ${bot ? styles.botBubble : styles.userBubble} ${item.error ? styles.errorBubble : ""}`}>
       <span className={styles.sender}>{item.error && <AlertCircle size={14} aria-hidden="true"/>}{bot ? "Bymax" : "Tú"}{item.error ? " · No se completó la solicitud" : ""}</span>
-      <ContenidoMensaje mensaje={item}/>
+      <ContenidoMensaje mensaje={item} animado={bot}/>
       {streaming && !item.texto && <span className={styles.typing}><i/><i/><i/><span>Preparando tu respuesta…</span></span>}
       <div className={styles.messageFooter}>
         <time>{fechaCorta(item.fecha)}</time>
+        {item.cortado && <span className={styles.cutTag}>Interrumpida</span>}
         {bot && !item.error && item.texto && (!streaming || ready || active || preparing) &&
           <button type="button" className={styles.messageVoice} disabled={preparing}
             onClick={() => active ? voice.stopPlayback() : voice.play(item.texto, item.id)}

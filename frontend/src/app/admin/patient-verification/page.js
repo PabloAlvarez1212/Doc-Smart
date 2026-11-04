@@ -1,5 +1,7 @@
 "use client";
 
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
 import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader";
 import PatientVerificationTable from "../../../../components/admin/PatientVerification/PatientVerificationTable";
@@ -8,11 +10,12 @@ import usePatientVerification, { FILTROS } from "../../../../components/admin/Pa
 import verificationStyles from "../../../../components/admin/PatientVerification/PatientVerification.module.css";
 import styles from "../doctor-requests/doctorRequests.module.css";
 
-export default function PatientVerificationPage() {
+function PatientVerificationContent() {
+    const estadoInicial = useSearchParams().get("estado");
     const {
         estado, setEstado, busqueda, setBusqueda, resultados, conteos, cargando, error, recargar,
         detalle, abrir, cerrar, resolver, procesando,
-    } = usePatientVerification();
+    } = usePatientVerification({ estadoInicial });
 
     return (
         <div className={styles.page}>
@@ -61,5 +64,13 @@ export default function PatientVerificationPage() {
 
             <PatientVerificationDetail detalle={detalle} onClose={cerrar} onResolver={resolver} procesando={procesando} />
         </div>
+    );
+}
+
+export default function PatientVerificationPage() {
+    return (
+        <Suspense fallback={null}>
+            <PatientVerificationContent />
+        </Suspense>
     );
 }

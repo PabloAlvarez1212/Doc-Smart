@@ -1,28 +1,36 @@
-.doctor .unread {background:color-mix(in srgb,var(--doctor-positive-bg) 50%,transparent);border-radius:10px}
-.doctor .itemIcon {color:var(--doctor-primary);background:var(--doctor-positive-bg)}
-.doctor .itemCopy>strong {color:var(--color-text);font-size:.84rem;line-height:1.4;font-weight:650}
-.doctor .readButton {min-height:44px;white-space:nowrap}
-.doctor .readButton:disabled {cursor:wait;opacity:.65}
-.doctor .readButton:hover {background:var(--doctor-positive-bg)}
-.readLabel {display:inline-flex;align-items:center;gap:5px;color:var(--doctor-primary);font-size:.75rem;white-space:nowrap}
-.readLabel svg {flex-shrink:0}
-.activity {border-top:1px solid var(--border);margin-top:18px;padding-top:18px}
-.activity h3 {font-size:.91rem;font-weight:650;margin-bottom:10px;color:var(--color-text)}
-.activity>div {display:flex;align-items:center;gap:8px;padding:7px 0;color:var(--text-secondary);font-size:.84rem}
-.activity svg {flex-shrink:0;color:var(--doctor-primary)}
-.activity strong {margin-left:auto;font-size:.91rem;color:var(--color-text);font-variant-numeric:tabular-nums}
-@media(max-width:560px){.readLabel{grid-column:2}}
-@media(prefers-reduced-motion:no-preference){.spinner{animation:spin .8s linear infinite}}
-@keyframes spin{to{transform:rotate(360deg)}}
+.activity { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.activity h3 { margin-bottom: 6px; color: var(--color-text); font-size: .91rem; font-weight: 650; }
 
-.doctor .item{grid-template-columns:32px minmax(0,1fr) 44px;gap:10px;min-height:76px;padding:12px 8px;align-items:start}
-.doctor .itemIcon{width:32px;height:32px;border-radius:9px;margin-top:2px}
-.doctor .itemIcon svg{width:17px;height:17px}
-.doctor .itemCopy{gap:3px}
-.doctor .itemCopy>span{font-size:.82rem;line-height:1.5}
-.doctor .itemCopy small{font-size:.7rem;line-height:1.4}
-.doctor .readButton,.doctor .readLabel{grid-column:3;grid-row:1;align-self:center;justify-self:center;justify-content:center;width:44px;min-height:44px;padding:0;gap:0}
-.doctor .readButton{border-radius:9px}
-.doctor .readLabel{font-size:0}
-.readActionText{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-@media(max-width:380px){.doctor .item{gap:8px;padding-inline:4px}}
+.activity > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 46px;
+    padding: 4px 8px 4px 4px;
+    border-radius: 10px;
+    color: var(--text-secondary);
+    font-size: .86rem;
+    transition: background-color .2s;
+}
+
+.activity > div > span:first-child {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: var(--doctor-positive-bg);
+    color: var(--doctor-primary);
+}
+
+.activity > div > span:first-child svg { transition: transform .45s cubic-bezier(.34, 1.3, .5, 1); }
+.value { margin-left: auto; color: var(--color-text); font-size: 1rem; font-weight: 650; }
+
+@media (hover: hover) and (pointer: fine) {
+    .activity > div:hover { background: var(--surface-muted); }
+    .activity > div:hover > span:first-child svg { transform: rotate(-10deg) scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .activity > div > span:first-child svg { transition: none; }
+}

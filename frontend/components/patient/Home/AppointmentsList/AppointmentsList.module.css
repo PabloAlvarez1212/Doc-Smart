@@ -102,4 +102,32 @@
     .empty > a { grid-column: 1; width: 100%; }
 }
 
+/* Luz que sigue al cursor y respuesta de cada pieza al pasar por la tarjeta. */
+.section { position: relative; isolation: isolate; }
+.section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: radial-gradient(340px circle at var(--x, 50%) var(--y, 50%), rgba(255, 255, 255, .13), transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .35s;
+}
+.calendarIcon svg, .doctor img { transition: transform .45s cubic-bezier(.34, 1.3, .5, 1); }
+.footer a > svg, .empty > a > svg { transition: transform .28s cubic-bezier(.16, 1, .3, 1); }
+.footer a:active, .empty > a:active { transform: scale(.97); }
+
+@media (hover: hover) and (pointer: fine) {
+    .section:hover::before { opacity: 1; }
+    .schedule:hover .calendarIcon svg { transform: rotate(-10deg) scale(1.12); }
+    .doctor:hover img { transform: rotate(-3deg) scale(1.05); }
+    .footer a:hover > svg, .empty > a:hover > svg { transform: translateX(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .calendarIcon svg, .doctor img, .footer a > svg, .empty > a > svg { transition: none; transform: none !important; }
+}
+
 .schedule strong,.heading h2,.doctor h3,.empty h3{color:var(--blue-card-text)}.footer a:hover,.empty>a:hover{background:#305488;color:var(--blue-card-text)}.status{border:1px solid var(--blue-card-border)}

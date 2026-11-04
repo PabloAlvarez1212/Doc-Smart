@@ -7,7 +7,7 @@ import usePatient from "../../usePatient";
 import { useState } from "react";
 import SettingsComponent from "../../../ui/SettingsComponent/SettingsComponent";
 import Modal from "../../../ui/Modal/Modal";
-import { KeyRound } from "lucide-react";
+import { CalendarDays, FileHeart, House, KeyRound, MessagesSquare, Stethoscope, UserRound } from "lucide-react";
 import { useNotificationsContext } from "../../../contex/NotificationsContext";
 export default function Header() {
   const {
@@ -22,27 +22,38 @@ export default function Header() {
     eliminarCuentaPaciente
   } = usePatient();
   return <div>
-            <DocSmartNav home="/patient/home" onSettings={() => setModal(true)} links={[{
+            <DocSmartNav home="/patient/home" onSettings={() => setModal(true)} sections={["Atención", "Mi salud"]} notifications={{
+      href: "/patient/notifications",
+      count: noLeidas ?? 0
+    }} links={[{
       href: "/patient/home",
-      label: "Inicio"
+      label: "Inicio",
+      icon: House
     }, {
       href: "/patient/my-appointments",
-      label: "Mis citas"
+      label: "Mis citas",
+      icon: CalendarDays,
+      group: "Atención"
     }, {
       href: "/patient/my-chats",
-      label: "Mis chats"
+      label: "Mis chats",
+      icon: MessagesSquare,
+      group: "Atención"
     }, {
       href: "/patient/my-medical-history",
-      label: "Historial clínico"
+      label: "Historial clínico",
+      icon: FileHeart,
+      group: "Mi salud"
     }, {
       href: "/patient/my-profile",
-      label: "Perfil"
+      label: "Perfil",
+      icon: UserRound,
+      group: "Mi salud"
     }, {
       href: "/patient/find-doctors",
-      label: "Encontrar doctores"
-    }, {
-      href: "/patient/notifications",
-      label: `Notificaciones (${noLeidas ?? 0})`
+      label: "Encontrar doctores",
+      icon: Stethoscope,
+      group: "Atención"
     }]} />
             <Modal titulo="Acciones" abierto={modal} onCerrar={() => setModal(false)} headerVariant="white">
                 <SettingsComponent reportesHref="/patient/reports" cerrarSesion={logoutUser} eliminarCuenta={eliminarCuentaPaciente} abrirCambiarContrasena={() => {

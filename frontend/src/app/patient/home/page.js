@@ -7,7 +7,7 @@ import AppointmentsList from "../../../../components/patient/Home/AppointmentsLi
 import Hero from "../../../../components/patient/Home/Hero/Hero";
 import Notifications from "../../../../components/patient/Home/Notifications/Notifications";
 import { updateUpcomingAppointmentsCount } from "../../../../components/patient/Home/patientHomeData";
-import { getPageReveal } from "../../../../components/patient/Home/patientHomeMotion";
+import { pageStagger, sectionReveal } from "../../../../components/patient/Home/patientHomeMotion";
 import QuickActions from "../../../../components/patient/Home/QuickActions/QuickActions";
 import StaticCards from "../../../../components/patient/Home/StaticCards/StaticCards";
 import { useDashboardPaciente } from "../../../../components/patient/Home/useDashboardPaciente";
@@ -101,25 +101,28 @@ export default function Home() {
     return (
         <MotionConfig reducedMotion="user">
             <LazyMotion features={domAnimation}>
-                <m.div className={styles.page} {...getPageReveal(reduceMotion)}>
+                <m.div className={styles.page} variants={pageStagger} initial={reduceMotion ? false : "hidden"} animate="show">
                     <p className={styles.liveRegion} aria-live="polite">
                         {eventoCita?.cita ? "La información de tus citas se actualizó." : ""}
                     </p>
 
-                    <Hero
-                        nombre={dashboard.usuario}
-                        noLeidas={noLeidas}
-                        foto_perfil={dashboard.foto_perfil}
-                    />
+                    <m.div variants={sectionReveal}>
+                        <Hero
+                            nombre={dashboard.usuario}
+                            noLeidas={noLeidas}
+                            foto_perfil={dashboard.foto_perfil}
+                        />
+                    </m.div>
 
-                    <div className={styles.primaryGrid}>
+                    <m.div className={styles.primaryGrid} variants={sectionReveal}>
                         <AppointmentsList appointments={citas} />
                         <QuickActions />
-                    </div>
+                    </m.div>
 
-                    <div className={styles.secondaryGrid}>
+                    <m.div className={styles.secondaryGrid} variants={sectionReveal}>
                         <Notifications
                             notifications={notificaciones}
+                            unread={noLeidas}
                             loading={notificationsLoading}
                             error={notificationsError}
                             onMarcarLeida={marcarLeida}
@@ -132,7 +135,7 @@ export default function Home() {
                             consultasRealizadas={realizadas}
                             consultasCanceladas={canceladas}
                         />
-                    </div>
+                    </m.div>
                 </m.div>
             </LazyMotion>
         </MotionConfig>

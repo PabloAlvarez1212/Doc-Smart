@@ -49,7 +49,36 @@ def listarCitasService():
     serializer = CitaSerializer(citas, many=True)
     return serializer.data, 200
 
-def listarCitasPacienteService(usuario_id,busqueda=None,estado=None,ciudad=None,departamento=None,especialidad=None,fecha=None,page=None, page_size=10):
+ESTADOS_POR_SECCION = {
+    "agenda": ("pendiente", "confirmada", "reprogramada"),
+    "historial": ("completada", "cancelada", "vencida", "inasistencia_paciente"),
+}
+
+def contarCitasPorEstado(citas):
+    """Cuenta por estado con los filtros de búsqueda y fecha ya aplicados, antes de filtrar sección y estado.
+    Así los conteos de pestañas y estados coinciden con lo que se lista."""
+    conteos = {}
+    filas = (citas.prefetch_related(None).order_by()
+        .values_list("id_estado__nombre").annotate(total=Count("id")))
+    for nombre, total in filas:
+        clave = str(nombre).strip().lower()
+        conteos[clave] = conteos.get(clave, 0) + total
+    return conteos
+
+def filtrarSeccionYEstado(citas, seccion=None, estado=None):
+    if seccion:
+        estados_seccion = ESTADOS_POR_SECCION.get(str(seccion).strip().lower())
+        if estados_seccion is None:
+            return None
+        filtro_estados = Q()
+        for nombre_estado in estados_seccion:
+            filtro_estados |= Q(id_estado__nombre__iexact=nombre_estado)
+        citas = citas.filter(filtro_estados)
+    if estado and estado.lower() != "todas":
+        citas = citas.filter(id_estado__nombre__iexact=estado)
+    return citas
+
+def listarCitasPacienteService(usuario_id,busqueda=None,estado=None,ciudad=None,departamento=None,especialidad=None,fecha=None,page=None, page_size=10, seccion=None):
     citas = (Cita.objects
         .filter(id_usuario=usuario_id)
         .prefetch_related(
@@ -63,10 +92,7 @@ def listarCitasPacienteService(usuario_id,busqueda=None,estado=None,ciudad=None,
             )
         )
     )
-    
-    #estado
-    if estado and estado.lower() != "todas":
-        citas = citas.filter(id_estado__nombre__iexact=estado)
+
     #doctor
     if busqueda:
         citas = citas.annotate(
@@ -107,6 +133,12 @@ def listarCitasPacienteService(usuario_id,busqueda=None,estado=None,ciudad=None,
             fecha_programada__gte=inicio,
             fecha_programada__lt=fin
         )
+
+    conteos = contarCitasPorEstado(citas)
+    #próximas o historial, y estado
+    citas = filtrarSeccionYEstado(citas, seccion, estado)
+    if citas is None:
+        return "La sección debe ser agenda o historial", 400
 
     # ==========================================
     # ORDEN DE CITAS DEL PACIENTE
@@ -159,9 +191,10 @@ def listarCitasPacienteService(usuario_id,busqueda=None,estado=None,ciudad=None,
     paginator = Paginator(citas, page_size)
     page_obj = paginator.get_page(page)
     serializer = CitaSerializer(page_obj.object_list, many=True)
-    
+
     return {
             "data": serializer.data,
+            "conteos": conteos,
             "paginacion": {
                 "count": paginator.count,
                 "total_pages": paginator.num_pages,
@@ -213,21 +246,7 @@ def listarCitasMedicoService(
         )
     )
 
-    #FILTRAR AGENDA O HISTORIAL
-    estados_por_seccion = {
-        "agenda": (
-            "pendiente",
-            "confirmada",
-            "reprogramada",
-        ),
-        "historial": (
-            "completada",
-            "cancelada",
-            "vencida",
-            "inasistencia_paciente",
-        ),
-    }
-
+    #VALIDAR AGENDA O HISTORIAL (se filtra después de contar)
     if seccion is not None:
 
         if not isinstance(seccion, str):
@@ -235,27 +254,8 @@ def listarCitasMedicoService(
 
         seccion = seccion.strip().lower()
 
-        if seccion not in estados_por_seccion:
+        if seccion not in ESTADOS_POR_SECCION:
             return "La sección debe ser agenda o historial", 400
-
-        filtro_estados = Q()
-
-        for nombre_estado in estados_por_seccion[seccion]:
-            filtro_estados |= Q(
-                id_estado__nombre__iexact=nombre_estado
-            )
-
-        citas = citas.filter(filtro_estados)
-
-
-    # ==========================================
-    # ESTADO
-    # ==========================================
-
-    if estado and estado.lower() != "todas":
-        citas = citas.filter(
-            id_estado__nombre__iexact=estado
-        )
 
 
     # ==========================================
@@ -328,6 +328,14 @@ def listarCitasMedicoService(
             fecha_programada__gte=inicio,
             fecha_programada__lt=fin
         )
+
+
+    # ==========================================
+    # CONTEOS, SECCIÓN Y ESTADO
+    # ==========================================
+
+    conteos = contarCitasPorEstado(citas)
+    citas = filtrarSeccionYEstado(citas, seccion, estado)
 
 
     # ==========================================
@@ -409,6 +417,8 @@ def listarCitasMedicoService(
 
     return {
         "data": serializer.data,
+
+        "conteos": conteos,
 
         "paginacion": {
             "count": paginator.count,

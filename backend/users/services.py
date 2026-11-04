@@ -12,7 +12,7 @@ from users.models import Usuario,ProcesoRegistroUsuario,InfoUser, TipoInfoUser
 from medicos.models import Medico,SolicitudValidacionMedico
 from users.serializers import UsuarioSerializer, MedicoSerializer,UsuarioPerfilSerializer
 from users.documento_identidad import DocumentoError,extraer_datos_documento
-from users.validacion_facial import facial_cumplida,marcar_revision_posterior
+from users.validacion_facial import contarVerificacionesPorConfirmar,facial_cumplida,marcar_revision_posterior
 from users.registros_abandonados import proceso_en_revision,purgar_abandonados,proceso_reanudable,_borrar_archivo
 import secrets
 from django.utils import timezone
@@ -37,7 +37,7 @@ import logging
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.exceptions import NotFound, PermissionDenied
-from utils import filtrarMedicosAprobados, CustomJWTAuthentication, mensaje_bloqueo, citasValidas, pacientesActivos, pacientesNoBloqueados, ESTADOS_INVALIDOS_CITA, ESTADO_CITA_CANCELADA, porcentajeUnDecimal, rellenarSerie, medicosAprobadosActivos
+from utils import filtrarMedicosAprobados, CustomJWTAuthentication, mensaje_bloqueo, citasValidas, pacientesActivos, pacientesNoBloqueados, conteosAgenda, tramosComparacion, limitesTramo, variacionPorcentual, variacionDiferencia, FILTRO_PACIENTE_ACTIVO, ESTADOS_INVALIDOS_CITA, ESTADO_CITA_CANCELADA, porcentajeUnDecimal, rellenarSerie, medicosAprobadosActivos
 from rest_framework_simplejwt.exceptions import InvalidToken
 from django.db.models import Avg,Count,Case, When, Value, CharField,Q
 from django.db.models.functions import TruncMonth, TruncDay
@@ -609,6 +609,12 @@ def confirmarCambioCorreoService(usuario,cambio_id,codigo):
             "estado",
             "completado_en",
         ]
+    )
+
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
+    programarActualizacionDashboardRealtime(
+        'CORREO_ACTUALIZADO',
+        ('medicos',) if isinstance(usuario, Medico) else ('pacientes',),
     )
 
     return {"correo": usuario.correo}, 200
@@ -1391,6 +1397,8 @@ def completarRegistroUsuarioService(proceso_id):
     proceso.save(update_fields=["estado","completado_en","usuario","revision_posterior"])
     from notificaciones.realtime import programarActualizacionDashboardRealtime
     programarActualizacionDashboardRealtime('PACIENTE_REGISTRADO', ('resumen', 'pacientes'))
+    if proceso.revision_posterior == "pendiente":
+        programarActualizacionDashboardRealtime('VERIFICACION_PENDIENTE', ('resumen', 'verificaciones'))
 
     serializer = UsuarioSerializer(usuario)
     return serializer.data, 201
@@ -1491,6 +1499,9 @@ def editarUsuarioService(id,datos):
         "tipo_sangre",
     ])
 
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
+    programarActualizacionDashboardRealtime('PACIENTE_ACTUALIZADO', ('pacientes',))
+
     serializer=UsuarioPerfilSerializer(usuario)
     return serializer.data,200
 
@@ -1584,10 +1595,97 @@ def obtenerDashboardPacienteInicioService(id):
 
 #!Metodos de estadistica para el panel del admin
 
+def _tasa(parte, base):
+    return parte / base * 100 if base else None
+
+
+def _redondear(valor):
+    return round(valor, 1) if valor is not None else None
+
+
+def obtenerComparacionResumen():
+    """Mes en curso (día 1 a hoy) contra el mismo tramo del mes anterior; dos consultas en total."""
+    tramos = tramosComparacion()
+    limites = {nombre: limitesTramo(*fechas) for nombre, fechas in tramos.items()}
+
+    def rango(campo, nombre):
+        inicio, fin = limites[nombre]
+        return Q(**{f"{campo}__gte": inicio, f"{campo}__lt": fin})
+
+    esValida = ~Q(id_estado__nombre__in=ESTADOS_INVALIDOS_CITA)
+    agregados = {}
+    for nombre in tramos:
+        enRango = rango("fecha_programada", nombre)
+        agregados.update(conteosAgenda(enRango, prefijo=f"{nombre}_"))
+        agregados[f"{nombre}_pacientes"] = Count(
+            "id_usuario", distinct=True, filter=enRango & esValida & FILTRO_PACIENTE_ACTIVO
+        )
+    citas = Cita.objects.filter(
+        rango("fecha_programada", "actual") | rango("fecha_programada", "anterior")
+    ).aggregate(**agregados)
+
+    calificaciones = Calificacion.objects.aggregate(**{
+        f"{nombre}_{clave}": funcion(campo, filter=rango("fecha_creacion", nombre))
+        for nombre in tramos
+        for clave, funcion, campo in (("promedio", Avg, "puntuacion"), ("total", Count, "id"))
+    })
+
+    tramo = {
+        nombre: {"desde": desde.isoformat(), "hasta": hasta.isoformat()}
+        for nombre, (desde, hasta) in tramos.items()
+    }
+
+    def metrica(valor, anterior, variacion, tipo, sentido):
+        return {
+            "valor": valor,
+            "anterior": anterior,
+            "variacion": variacion,
+            "tipo": tipo,
+            "sentido": sentido,
+            "tramo": tramo,
+        }
+
+    cancelacion = _tasa(citas["actual_canceladas"], citas["actual_base_programadas"])
+    cancelacionAnterior = _tasa(citas["anterior_canceladas"], citas["anterior_base_programadas"])
+    inasistencia = _tasa(citas["actual_inasistencias"], citas["actual_base_inasistencia"])
+    inasistenciaAnterior = _tasa(citas["anterior_inasistencias"], citas["anterior_base_inasistencia"])
+    promedio = calificaciones["actual_promedio"] if calificaciones["actual_total"] else None
+    promedioAnterior = calificaciones["anterior_promedio"] if calificaciones["anterior_total"] else None
+
+    return {
+        "citas": metrica(
+            citas["actual_validas"], citas["anterior_validas"],
+            variacionPorcentual(citas["actual_validas"], citas["anterior_validas"]),
+            "porcentaje", "subir_bueno",
+        ),
+        "pacientes_activos": metrica(
+            citas["actual_pacientes"], citas["anterior_pacientes"],
+            variacionPorcentual(citas["actual_pacientes"], citas["anterior_pacientes"]),
+            "porcentaje", "subir_bueno",
+        ),
+        "tasa_cancelacion": metrica(
+            _redondear(cancelacion), _redondear(cancelacionAnterior),
+            variacionDiferencia(cancelacion, cancelacionAnterior, citas["anterior_base_programadas"]),
+            "puntos", "subir_malo",
+        ),
+        "tasa_inasistencia": metrica(
+            _redondear(inasistencia), _redondear(inasistenciaAnterior),
+            variacionDiferencia(inasistencia, inasistenciaAnterior, citas["anterior_base_inasistencia"]),
+            "puntos", "subir_malo",
+        ),
+        "calificacion_promedio": metrica(
+            _redondear(promedio), _redondear(promedioAnterior),
+            variacionDiferencia(promedio, promedioAnterior, calificaciones["anterior_total"]),
+            "absoluta", "subir_bueno",
+        ),
+    }
+
+
 def obtenerMetricasSistema():
     medicos = Medico.objects.all()
     totalMedicosAprobados = medicosAprobadosActivos(medicos).count()
     totalPacientes = pacientesNoBloqueados().count()
+    verificacionesPorConfirmar = contarVerificacionesPorConfirmar()
     totalSolicitudesPendientes = SolicitudValidacionMedico.objects.filter(estado=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE).count()
     solicitudPendienteMasAntigua = (SolicitudValidacionMedico.objects.filter(estado=SolicitudValidacionMedico.EstadoSolicitud.PENDIENTE).order_by("fecha_solicitud").first())
 
@@ -1637,6 +1735,8 @@ def obtenerMetricasSistema():
     data = {
         "total_medicos_aprobados" : totalMedicosAprobados,
         "total_pacientes" : totalPacientes,
+        "verificaciones_por_confirmar": verificacionesPorConfirmar,
+        "comparacion": obtenerComparacionResumen(),
         "total_citas" : totalCitas,
         "total_solicitudes_pendientes": totalSolicitudesPendientes,
         "citas_hoy": totalCitasHoy,

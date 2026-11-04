@@ -4,7 +4,12 @@ import DashboardModuleState from "../DashboardModuleState/DashboardModuleState";
 import MonthPanel from "./MonthPanel";
 import NowTile from "./NowTile";
 import RecentAppointmentsChart from "./RecentAppointmentsChart";
-import { buildPendingRequests, buildTodayAppointments, formatCount } from "./summaryRegistryData";
+import {
+    buildPendingRequests,
+    buildPendingVerifications,
+    buildTodayAppointments,
+    formatCount,
+} from "./summaryRegistryData";
 import styles from "./DashboardSummary.module.css";
 
 /**
@@ -32,9 +37,19 @@ const PENDING_TILE = {
     unknown: { tone: "info", pill: undefined },
 };
 
+const VERIFICATION_TILE = {
+    alert: { tone: "alert", pill: "Por confirmar" },
+    neutral: { tone: "neutral", pill: undefined },
+    unknown: { tone: "info", pill: undefined },
+};
+
 const metricDefinitions = [
     ["Cita válida", "no está cancelada ni vencida."],
     ["Citas de hoy", "citas válidas programadas para hoy."],
+    [
+        "Verificaciones por confirmar",
+        "pacientes que el sistema dejó pasar y que un administrador aún debe confirmar.",
+    ],
     [
         "Pacientes activos",
         "pacientes únicos con al menos una cita válida este mes, sobre los registrados sin cuentas bloqueadas.",
@@ -45,6 +60,22 @@ const metricDefinitions = [
     ],
     ["Canceladas durante el mes", "cancelaciones hechas este mes, sin importar la fecha de la cita."],
     ["Calificación promedio", "promedio de las calificaciones recibidas este mes."],
+    [
+        "Comparación con el mes anterior",
+        "se compara del día 1 a hoy contra el mismo tramo del mes anterior (si ese mes tiene menos días, hasta su último día). Las citas y los pacientes activos varían en %; las tasas de cancelación e inasistencia, en puntos porcentuales (de 10 % a 12 % son +2,0 pts, no +20 %); la calificación, en puntos de calificación. La variación de citas se calcula con citas válidas, aunque la fila muestre todas las programadas del mes.",
+    ],
+    [
+        "Base mínima",
+        "si el tramo anterior tiene menos de 5 citas (cancelación, inasistencia) o menos de 5 calificaciones, o la cifra anterior es 0, se muestra «sin comparación» para no exagerar variaciones.",
+    ],
+    [
+        "Inasistencias",
+        "citas válidas del tramo que ya ocurrieron y quedaron como inasistencia del paciente, sobre todas las válidas que ya ocurrieron.",
+    ],
+    [
+        "Pacientes bloqueados",
+        "se excluyen según su estado de hoy, sin historial: el mes anterior se calcula con ese mismo criterio.",
+    ],
     ["Especialidad más solicitada", "la que más citas recibió al crearse este mes."],
     ["Especialidad más programada", "la que más citas tiene con fecha de atención este mes."],
 ];
@@ -69,6 +100,8 @@ export default function DashboardSummary({ metrics, loading = false, error = fal
     const today = buildTodayAppointments(metrics);
     const pending = buildPendingRequests(metrics);
     const pendingTile = PENDING_TILE[pending.status];
+    const verifications = buildPendingVerifications(metrics);
+    const verificationTile = VERIFICATION_TILE[verifications.status];
     const recentActivity = Array.isArray(metrics?.citas_creadas_ultimos_3_meses)
         ? metrics.citas_creadas_ultimos_3_meses
         : [];
@@ -104,6 +137,17 @@ export default function DashboardSummary({ metrics, loading = false, error = fal
                                 pill={pendingTile.pill}
                                 context={pending.context}
                                 loading={loading}
+                                href="/admin/doctor-requests?estado=pendiente"
+                                linkLabel="Ir a las solicitudes médicas pendientes"
+                            />
+                            <NowTile
+                                label="Verificaciones por confirmar"
+                                value={verifications.value}
+                                tone={verificationTile.tone}
+                                pill={verificationTile.pill}
+                                loading={loading}
+                                href="/admin/patient-verification?estado=posterior"
+                                linkLabel="Ir a las verificaciones de pacientes por confirmar"
                             />
                         </div>
                     </section>
