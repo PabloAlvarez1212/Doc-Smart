@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Swal from "sweetalert2";
 import { obtenerPrimerError } from "@/app/utils/errrorUtils";
 
@@ -28,6 +28,8 @@ export function useCrud({
   const [itemSeleccionado, setItemSeleccionado] = useState(null);
   const [formData, setFormData] = useState(camposIniciales);
   const [guardando, setGuardando] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
+  const ultimaPeticion = useRef(0);
 
   // ── Paginación (solo se usa si paginado = true) ─────────
   const [pagina, setPagina] = useState(1);
@@ -41,13 +43,17 @@ export function useCrud({
 
   // ── Cargar datos ────────────────────────────────────────
   const cargarDatos = useCallback(
-    async (paginaOverride) => {
-      setCargando(true);
+    async (paginaOverride, { silencioso = false } = {}) => {
+      const peticion = ++ultimaPeticion.current;
+      if (!silencioso) setCargando(true);
       try {
         const paginaAConsultar = paginaOverride ?? pagina;
         const res = paginado
           ? await getService(paginaAConsultar, busqueda)
           : await getService();
+
+        // Una respuesta más antigua que la última petición no debe pisar los datos nuevos.
+        if (peticion !== ultimaPeticion.current) return;
 
         if (paginado) {
           // getService devuelve { ok, mensaje, data: { resultados, paginacion } }
@@ -65,13 +71,14 @@ export function useCrud({
           setDatos(Array.isArray(res) ? res : res?.data ?? []);
         }
       } catch (error) {
+        if (silencioso || peticion !== ultimaPeticion.current) return;
         Swal.fire({
           icon: "error",
           title: "Error al cargar",
           text: "No se pudieron obtener los datos del servidor.",
         });
       } finally {
-        setCargando(false);
+        if (peticion === ultimaPeticion.current) setCargando(false);
       }
     },
     [getService, paginado, pagina, busqueda]
@@ -152,14 +159,20 @@ export function useCrud({
 
     if (!confirm.isConfirmed) return;
 
+    setEliminando(true);
     try {
       await eliminarService(item.id);
       await Swal.fire({ icon: "success", title: "Eliminado", timer: 1200, showConfirmButton: false });
       cargarDatos();
     } catch (error) {
       Swal.fire({ icon: "error", title: "Error al eliminar", text: "No se pudo eliminar el registro." });
+    } finally {
+      setEliminando(false);
     }
   };
+
+  // Recarga la lista sin spinner y conservando página y búsqueda actuales.
+  const recargarSilencioso = () => cargarDatos(undefined, { silencioso: true });
 
   return {
     datos,
@@ -169,12 +182,14 @@ export function useCrud({
     modalAbierto,
     modoEdicion,
     guardando,
+    eliminando,
     abrirModalNuevo,
     abrirModalEditar,
     cerrarModal,
     guardar,
     eliminar,
     cargarDatos,
+    recargarSilencioso,
     // ── expuesto solo relevante cuando paginado = true ──────
     pagina,
     setPagina,

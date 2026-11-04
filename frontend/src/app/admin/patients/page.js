@@ -5,6 +5,7 @@ import Pagination from "../../../../components/ui/Pagination/Pagination"
 import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHeader"
 import pageStyles from "../adminPages.module.css"
 import { useCrud } from "../../../../components/hooks/useCrud";
+import useAdminRealtimeRefresh from "../../../../components/admin/useAdminRealtimeRefresh";
 import { getPacientesService, deletePacienteService } from "@/app/services/adminServices";
 
 export default function Patients() {
@@ -12,6 +13,9 @@ export default function Patients() {
         getService: (page, search) => getPacientesService(page, search),
         eliminarService: deletePacienteService,
         paginado: true,
+    })
+    useAdminRealtimeRefresh("pacientes", crud.recargarSilencioso, {
+        pausado: crud.modalAbierto || crud.guardando || crud.eliminando,
     })
     const columnas = [
         {

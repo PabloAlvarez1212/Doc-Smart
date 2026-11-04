@@ -1,0 +1,26 @@
+.delta {
+    display: inline-block;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.delta [aria-hidden="true"] > * + * { margin-left: 4px; }
+.delta strong { font-weight: 650; }
+.arrow { font-weight: 700; }
+
+.mejora { color: var(--ink-green); }
+.empeora { color: var(--ink-orange); }
+.igual,
+.sin_comparacion { color: var(--text-secondary); }
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}

@@ -1,0 +1,33 @@
+.status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px 12px;
+    min-height: 24px;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+    font-size: .78rem;
+    line-height: 1.4;
+}
+
+.state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.connected { color: var(--ink-green); }
+.reconnecting { color: var(--ink-orange); }
+.disconnected { color: var(--ink-red); }
+
+.updated { font-variant-numeric: tabular-nums; }

@@ -10,11 +10,16 @@ import {
 } from "@/app/services/notificationsServices"
 import { obtenerPrimerError } from "@/app/utils/errrorUtils"
 
+const MAX_EVENTOS_DASHBOARD = 100
+
 export const useNotificaciones = ({ cargarBandeja = true } = {}) => {
 
     const [eventoCita, setEventoCita] = useState(null)
-    const [eventoDashboard, setEventoDashboard] = useState(null)
+    const [eventosDashboard, setEventosDashboard] = useState([])
     const [versionConexion, setVersionConexion] = useState(0)
+    const [estadoConexion, setEstadoConexion] = useState("reconectando")
+    const [ultimaActualizacion, setUltimaActualizacion] = useState(null)
+    const secuenciaDashboard = useRef(0)
     const [notificaciones, setNotificaciones] = useState([])
     const [noLeidas, setNoLeidas] = useState(0)
     const [loading, setLoading] = useState(true)
@@ -98,6 +103,7 @@ export const useNotificaciones = ({ cargarBandeja = true } = {}) => {
             console.error(
                 "NEXT_PUBLIC_WS_URL no está configurada"
             )
+            setEstadoConexion("desconectado")
             return
         }
 
@@ -134,6 +140,8 @@ export const useNotificaciones = ({ cargarBandeja = true } = {}) => {
             socket.onopen = () => {
                 intentos = 0
                 setVersionConexion((version) => version + 1)
+                setEstadoConexion("conectado")
+                setUltimaActualizacion(Date.now())
             }
 
             // Mensajes recibidos
@@ -143,7 +151,10 @@ export const useNotificaciones = ({ cargarBandeja = true } = {}) => {
 
                     if (data.type === "dashboard_update") {
                         if (typeof data.event_id === "string" && Array.isArray(data.secciones)) {
-                            setEventoDashboard(data)
+                            secuenciaDashboard.current += 1
+                            const evento = { ...data, secuencia: secuenciaDashboard.current }
+                            setEventosDashboard((eventos) => [...eventos, evento].slice(-MAX_EVENTOS_DASHBOARD))
+                            setUltimaActualizacion(Date.now())
                         }
                         return
                     }
@@ -232,9 +243,11 @@ export const useNotificaciones = ({ cargarBandeja = true } = {}) => {
                     event.code === 4401 ||
                     event.code === 4403
                 ) {
+                    setEstadoConexion("desconectado")
                     return
                 }
 
+                setEstadoConexion("reconectando")
                 intentos += 1
 
                 const delay = Math.min(
@@ -468,7 +481,9 @@ export const useNotificaciones = ({ cargarBandeja = true } = {}) => {
         eliminarTodasNotificaciones,
         cargarNotificaciones,
         eventoCita,
-        eventoDashboard,
+        eventosDashboard,
+        estadoConexion,
+        ultimaActualizacion,
         loading,
         cambiarPagina,
         paginaActual,

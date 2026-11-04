@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import Swal from "sweetalert2";
 import { LockKeyhole } from "lucide-react";
 import DoctorRequestDetail from "../../../../components/admin/DoctorValidation/DoctorRequestDetail/DoctorRequestDetail";
 import DoctorRequestsTable from "../../../../components/admin/DoctorValidation/DoctorRequestsTable/DoctorRequestsTable";
@@ -12,9 +14,13 @@ import styles from "./doctorRequests.module.css";
 import useDoctorValidation from "../../../../components/admin/DoctorValidation/useDoctorValidation";
 import { completeReviewAfterSuccess } from "../../../../components/admin/DoctorValidation/requestReviewFlow";
 
-export default function DoctorRequestsPage() {
+const INITIAL_STATES = ["pendiente", "rechazado"];
+
+function DoctorRequestsContent() {
+    const requestedState = useSearchParams().get("estado");
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+    const resolvingRequestRef = useRef(false);
     const {
         estados,
         especialidades,
@@ -46,7 +52,10 @@ export default function DoctorRequestsPage() {
         aprobarSolicitud,
         rechazarSolicitud,
         procesandoSolicitud,
-    } = useDoctorValidation();
+    } = useDoctorValidation({
+        pausarRefrescoRealtime: isRejectModalOpen,
+        estadoInicial: INITIAL_STATES.includes(requestedState) ? requestedState : "",
+    });
 
     const openRejectModal = (request) => {
         if (request?.estado !== "pendiente" || procesandoSolicitud) return;
@@ -64,21 +73,45 @@ export default function DoctorRequestsPage() {
         setSelectedRequest(null);
     };
 
+    const resolveOwnRequest = async (operation) => {
+        resolvingRequestRef.current = true;
+
+        try {
+            return await completeReviewAfterSuccess(operation, closeProcessedReview);
+        } finally {
+            resolvingRequestRef.current = false;
+        }
+    };
+
     const handleApproveRequest = (solicitudId) => (
-        completeReviewAfterSuccess(
-            () => aprobarSolicitud(solicitudId),
-            closeProcessedReview
-        )
+        resolveOwnRequest(() => aprobarSolicitud(solicitudId))
     );
 
     const handleRejectRequest = async ({ solicitudId, motivo }) => {
         if (solicitudId == null || !motivo.trim()) return false;
 
-        return completeReviewAfterSuccess(
-            () => rechazarSolicitud({ solicitudId, motivo }),
-            closeProcessedReview
-        );
+        return resolveOwnRequest(() => rechazarSolicitud({ solicitudId, motivo }));
     };
+
+    // Si otro administrador resuelve la solicitud abierta, se cierra el detalle con un aviso.
+    useEffect(() => {
+        if (!selectedRequest || selectedRequest.estado !== "pendiente") return;
+        if (cargando || procesandoSolicitud || resolvingRequestRef.current) return;
+
+        const current = solicitudesDoctores.find((request) => request.id === selectedRequest.id);
+        if (current?.estado === "pendiente") return;
+
+        setIsRejectModalOpen(false);
+        setSelectedRequest(null);
+        Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "info",
+            title: "Esta solicitud ya fue resuelta",
+            showConfirmButton: false,
+            timer: 3500,
+        });
+    }, [solicitudesDoctores, selectedRequest, cargando, procesandoSolicitud]);
 
     return (
         <div className={styles.page}>
@@ -148,5 +181,13 @@ export default function DoctorRequestsPage() {
                 onConfirm={handleRejectRequest}
             />
         </div>
+    );
+}
+
+export default function DoctorRequestsPage() {
+    return (
+        <Suspense fallback={null}>
+            <DoctorRequestsContent />
+        </Suspense>
     );
 }

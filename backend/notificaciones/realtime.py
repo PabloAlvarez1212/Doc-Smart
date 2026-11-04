@@ -7,7 +7,9 @@ from channels.layers import get_channel_layer
 from django.db import transaction
 
 logger = logging.getLogger(__name__)
-SECCIONES_DASHBOARD = frozenset({"resumen", "citas", "medicos", "pacientes"})
+SECCIONES_DASHBOARD = frozenset({
+    "resumen", "citas", "medicos", "pacientes", "solicitudes_medicos", "verificaciones",
+})
 
 
 def programarActualizacionDashboardRealtime(tipo_evento, secciones):

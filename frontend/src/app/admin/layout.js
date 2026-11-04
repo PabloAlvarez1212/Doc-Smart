@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import Header from "../../../components/admin/Header/Header";
 import { AdminCrumbs } from "../../../components/admin/Nav/Nav";
+import ConnectionStatus from "../../../components/admin/ConnectionStatus/ConnectionStatus";
 import BymaxDiagnostics from "../../../components/bymax/BymaxDiagnostics";
 import useProfile from "../../../components/admin/Profile/useProfile";
 import useInactivityLogout from "../../../components/hooks/useInactivityLogout";
@@ -55,6 +56,7 @@ export default function AdminLayout({ children }) {
         <main className={Styles.main}>
           <div className={Styles.content}>
             <AdminCrumbs />
+            <ConnectionStatus />
             {children}
           </div>
         </main>

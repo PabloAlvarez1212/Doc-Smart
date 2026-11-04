@@ -7,10 +7,11 @@ import { listarSolicitudesMedicosValidacionService, obtenerMetricasValidacionMed
 import { getDepartamentosService } from "@/app/services/catalogs"
 import { getCiudadesByDepartamentoService } from "@/app/services/authService"
 import { createSingleFlight } from "./requestReviewFlow"
+import useAdminRealtimeRefresh from "../useAdminRealtimeRefresh"
 const consultaInicial = { page: 1, page_size: 10, busqueda: "", estado: "", especialidad: "", departamento: "", ciudad: "" }
 
-export default function useDoctorValidation() {
-    const [consulta, setConsulta] = useState(consultaInicial)
+export default function useDoctorValidation({ pausarRefrescoRealtime = false, estadoInicial = "" } = {}) {
+    const [consulta, setConsulta] = useState(() => ({ ...consultaInicial, estado: estadoInicial }))
     const consultaActual = useRef(consulta)
     const peticionActual = useRef(null)
     const ultimaConsulta = useRef(null)
@@ -95,12 +96,14 @@ export default function useDoctorValidation() {
         }
     }
 
-    const cargarSolicitudDoctores = useCallback(async (parametros) => {
+    const cargarSolicitudDoctores = useCallback(async (parametros, { silencioso = false } = {}) => {
         peticionActual.current?.abort()
         const controller = new AbortController()
         peticionActual.current = controller
-        setCargando(true)
-        setErrorSolicitudes(null)
+        if (!silencioso) {
+            setCargando(true)
+            setErrorSolicitudes(null)
+        }
         try {
             const { data } = await listarSolicitudesMedicosValidacionService(parametros, controller.signal)
             if (controller.signal.aborted) return
@@ -112,7 +115,7 @@ export default function useDoctorValidation() {
             ultimaConsulta.current = JSON.stringify({ ...parametros, page: data.current_page })
             setConsulta(actual => actual.page === data.current_page ? actual : { ...actual, page: data.current_page })
         } catch (error) {
-            if (controller.signal.aborted) return
+            if (controller.signal.aborted || silencioso) return
             ultimaConsulta.current = null
             setErrorSolicitudes(obtenerPrimerError(error) || "No fue posible cargar las solicitudes.")
             console.error("Error cargando solicitudes de médicos:", error)
@@ -122,6 +125,10 @@ export default function useDoctorValidation() {
     }, [])
 
     const refrescarSolicitudes = () => cargarSolicitudDoctores(consultaActual.current)
+    const refrescarEnSegundoPlano = () => Promise.all([
+        cargarSolicitudDoctores(consultaActual.current, { silencioso: true }),
+        cargarMetricas(),
+    ])
 
     const cargarMetricas = async () => {
         try {
@@ -169,9 +176,14 @@ export default function useDoctorValidation() {
 
                 return true
             } catch (error) {
-                const mensaje =
+                const estadoRespuesta = error?.response?.status
+                const otroAdministrador = [400, 404, 409].includes(estadoRespuesta)
+                const mensaje = (otroAdministrador && obtenerPrimerError(error.response.data?.errores)) ||
                     obtenerPrimerError(error?.response?.data) ||
                     mensajeError
+
+                // Otro administrador pudo resolverla antes: la lista se actualiza para quitarla.
+                if (otroAdministrador) await refrescarEnSegundoPlano()
 
                 await Swal.fire({
                     title: "Error",
@@ -222,6 +234,10 @@ export default function useDoctorValidation() {
         setBusqueda("")
         setConsulta(actual => ({ ...consultaInicial, page_size: actual.page_size }))
     }
+
+    useAdminRealtimeRefresh("solicitudes_medicos", refrescarEnSegundoPlano, {
+        pausado: procesandoSolicitud || pausarRefrescoRealtime,
+    })
 
     useEffect(() => {
         const timeout = setTimeout(() => {

@@ -4,7 +4,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.authentication import CSRFCheck
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.exceptions import InvalidToken
-from datetime import date, timedelta
+import calendar
+from datetime import date, datetime, time, timedelta
 from users.models import Usuario
 from medicos.models import Medico,SolicitudValidacionMedico
 from citas.models import Cita
@@ -332,17 +333,27 @@ def porcentajeUnDecimal(parte, base):
     return round(parte / base * 100, 1) if base else None
 
 
+def conteosAgenda(rango=None, prefijo=""):
+    """Agregados condicionales de agenda sobre un rango de fecha_programada (Q opcional); una sola consulta."""
+    rango = rango if rango is not None else Q()
+    es_valida = ~Q(id_estado__nombre__in=ESTADOS_INVALIDOS_CITA)
+    es_valida_ya_ocurrida = es_valida & Q(fecha_programada__lt=timezone.now())
+    return {
+        f"{prefijo}base_programadas": Count("id", filter=rango),
+        f"{prefijo}canceladas": Count("id", filter=rango & Q(id_estado__nombre=ESTADO_CITA_CANCELADA)),
+        f"{prefijo}validas": Count("id", filter=rango & es_valida),
+        f"{prefijo}base_inasistencia": Count("id", filter=rango & es_valida_ya_ocurrida),
+        f"{prefijo}inasistencias": Count(
+            "id", filter=rango & es_valida_ya_ocurrida & Q(id_estado__nombre=ESTADO_CITA_INASISTENCIA)
+        ),
+    }
+
+
 def calidadAgenda(programadas):
     """Tasas de cancelación e inasistencia sobre las citas ya filtradas por fecha_programada."""
     canceladas_qs = programadas.filter(id_estado__nombre=ESTADO_CITA_CANCELADA)
 
-    es_valida_ya_ocurrida = ~Q(id_estado__nombre__in=ESTADOS_INVALIDOS_CITA) & Q(fecha_programada__lt=timezone.now())
-    conteos = programadas.aggregate(
-        base_programadas=Count("id"),
-        canceladas=Count("id", filter=Q(id_estado__nombre=ESTADO_CITA_CANCELADA)),
-        base_inasistencia=Count("id", filter=es_valida_ya_ocurrida),
-        inasistencias=Count("id", filter=es_valida_ya_ocurrida & Q(id_estado__nombre=ESTADO_CITA_INASISTENCIA)),
-    )
+    conteos = programadas.aggregate(**conteosAgenda())
     base_programadas = conteos["base_programadas"]
     canceladas = conteos["canceladas"]
     base_inasistencia = conteos["base_inasistencia"]
@@ -374,14 +385,58 @@ def pacientesNoBloqueados(queryset=None):
     return queryset.filter(id_rol__nombre__iexact="paciente", acceso_bloqueado=False)
 
 
+# Citas de pacientes contables (rol paciente y sin bloqueo); misma regla que pacientesNoBloqueados.
+FILTRO_PACIENTE_ACTIVO = Q(
+    id_usuario__id_rol__nombre__iexact="paciente",
+    id_usuario__acceso_bloqueado=False,
+)
+
+# Con menos citas/calificaciones que esto en el tramo anterior, la variación de una tasa no es fiable.
+MIN_BASE_COMPARACION = 5
+
+
+def tramosComparacion(hoy=None):
+    """Tramo del mes en curso (día 1 a hoy) y el mismo tramo del mes anterior, con fechas inclusivas.
+
+    Si el mes anterior tiene menos días, el tramo anterior termina en su último día."""
+    hoy = hoy or timezone.localdate()
+    inicio_actual = hoy.replace(day=1)
+    inicio_anterior = (inicio_actual - timedelta(days=1)).replace(day=1)
+    dias_mes_anterior = calendar.monthrange(inicio_anterior.year, inicio_anterior.month)[1]
+    fin_anterior = inicio_anterior.replace(day=min(hoy.day, dias_mes_anterior))
+    return {"actual": (inicio_actual, hoy), "anterior": (inicio_anterior, fin_anterior)}
+
+
+def limitesTramo(desde, hasta):
+    """(inicio, fin_exclusivo) en la zona horaria del proyecto para un tramo de fechas inclusivas."""
+    zona = timezone.get_current_timezone()
+    return (
+        timezone.make_aware(datetime.combine(desde, time.min), zona),
+        timezone.make_aware(datetime.combine(hasta + timedelta(days=1), time.min), zona),
+    )
+
+
+def variacionPorcentual(valor, anterior):
+    """Variación en % respecto al período anterior; None si no hay base para compararla."""
+    if valor is None or not anterior:
+        return None
+    return porcentajeUnDecimal(valor - anterior, anterior)
+
+
+def variacionDiferencia(valor, anterior, base_anterior):
+    """Diferencia absoluta (puntos de una tasa o de una calificación) con base mínima en el período anterior."""
+    if valor is None or anterior is None or base_anterior < MIN_BASE_COMPARACION:
+        return None
+    return round(valor - anterior, 1)
+
+
 def pacientesActivos(inicio, fin):
     return (
         citasValidas(
             Cita.objects.filter(
+                FILTRO_PACIENTE_ACTIVO,
                 fecha_programada__gte=inicio,
                 fecha_programada__lt=fin,
-                id_usuario__id_rol__nombre__iexact="paciente",
-                id_usuario__acceso_bloqueado=False,
             )
         )
         .values("id_usuario")
