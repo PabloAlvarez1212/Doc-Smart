@@ -45,7 +45,7 @@ export default function Header() {
       label: `Notificaciones (${noLeidas ?? 0})`
     }]} />
             <Modal titulo="Acciones" abierto={modal} onCerrar={() => setModal(false)} headerVariant="white">
-                <SettingsComponent cerrarSesion={logoutUser} eliminarCuenta={eliminarCuentaPaciente} abrirCambiarContrasena={() => {
+                <SettingsComponent reportesHref="/patient/reports" cerrarSesion={logoutUser} eliminarCuenta={eliminarCuentaPaciente} abrirCambiarContrasena={() => {
         setModal(false);
         setModalCambiarContrasena(true);
       }} />

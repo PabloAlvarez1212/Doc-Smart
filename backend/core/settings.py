@@ -184,6 +184,7 @@ INSTALLED_APPS = [
     "notificaciones",
     "storage_app",
     "calificaciones",
+    "reportes.apps.ReportesConfig",
 ]
 
 

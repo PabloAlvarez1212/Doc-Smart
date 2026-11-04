@@ -7,6 +7,7 @@ class Notificacion(models.Model):
         ('cita_agendada',    'Cita agendada'),
         ('historial_creado', 'Historial creado'),
         ('mensaje_nuevo',    'Mensaje nuevo'),
+        ('reporte_actualizado', 'Reporte actualizado')
     ]
 
     titulo      = models.CharField(max_length=100)

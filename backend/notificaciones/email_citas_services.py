@@ -571,7 +571,7 @@ def enviarCorreosCitaCancelada(cita_id, cancelada_por):
         return
 
     # 3. Validar quién canceló
-    if cancelada_por not in ("paciente", "medico"):
+    if cancelada_por not in ("paciente", "medico", "sistema"):
         logger.warning(
             "Actor de cancelación inválido para la cita %s",
             cita_id
@@ -614,11 +614,11 @@ def enviarCorreosCitaCancelada(cita_id, cancelada_por):
         )
 
     # 7. Identificar quién canceló
-    cancelada_por_texto = (
-        "Paciente"
-        if cancelada_por == "paciente"
-        else "Médico"
-    )
+    cancelada_por_texto = {
+        "paciente": "Paciente",
+        "medico": "Medico",
+        "sistema": "Sistema DocSmart",
+    }
 
     # 8. URL del frontend
     frontend_url = os.getenv(
@@ -653,7 +653,7 @@ def enviarCorreosCitaCancelada(cita_id, cancelada_por):
             "programada en tu agenda."
         )
 
-    else:
+    elif cancelada_por == "medico":
 
         titulo_paciente = (
             "Tu cita médica ha sido cancelada"
@@ -676,6 +676,25 @@ def enviarCorreosCitaCancelada(cita_id, cancelada_por):
             f"del paciente {nombre_paciente}. "
             "La cancelación se registró "
             "correctamente en DocSmart."
+        )
+
+    else:
+        titulo_paciente = ("Tu cita médica fue cancelada por DocSmart")
+
+        mensaje_paciente = (
+            f"Tu cita médica con el Dr. {nombre_medico} "
+            "fue cancelada debido a una medida "
+            "administrativa de DocSmart. "
+            "Puedes consultar otras fechas disponibles "
+            "desde la plataforma."
+        )
+
+        titulo_medico = ("Cita cancelada por DocSmart")
+
+        mensaje_medico = (
+            f"La cita con el paciente {nombre_paciente} "
+            "fue cancelada debido a una medida "
+            "administrativa de DocSmart."
         )
 
     # ===================================

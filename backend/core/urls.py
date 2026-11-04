@@ -34,4 +34,5 @@ urlpatterns = [
     path('api/notificaciones/', include('notificaciones.urls')),
     path("api/storage/",include("storage_app.urls")),
     path("api/calificaciones/", include("calificaciones.urls")),
+    path("api/reportes/", include("reportes.urls")),
 ]

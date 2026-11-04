@@ -16,6 +16,7 @@ import {
     Stethoscope,
     UserRoundCheck,
     ScanFace,
+    Flag,
 } from "lucide-react";
 import { useState } from "react";
 import styles from "./Nav.module.css";
@@ -24,6 +25,7 @@ const primaryItems = [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/patients", label: "Pacientes", icon: CircleUserRound },
     { href: "/admin/doctors", label: "Médicos", icon: Stethoscope },
+    {href: "/admin/reports", label: "Reportes y sanciones", icon: Flag,},
 ];
 
 const catalogItems = [

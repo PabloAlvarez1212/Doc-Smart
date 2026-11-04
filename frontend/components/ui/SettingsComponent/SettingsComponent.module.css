@@ -40,3 +40,7 @@
 :global(body:has([data-doctor-workspace])) .containerllaveIcon svg{color:var(--doctor-primary)}
 :global(body:has([data-doctor-workspace])) .textContainer>button:not(:disabled){color:var(--doctor-primary);background:var(--doctor-positive-bg)}
 :global(body:has([data-doctor-workspace])) .containerllaveIcon svg{stroke:var(--doctor-primary)}
+
+.cardLink {
+    text-decoration: none;
+}

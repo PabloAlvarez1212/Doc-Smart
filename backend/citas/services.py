@@ -18,6 +18,7 @@ from historial_medico.models import HistorialClinico
 from notificaciones.realtime import programarActualizacionDashboardRealtime
 from dateutil.relativedelta import relativedelta as _relativedelta
 from utils import citasValidas, rellenarSerie, rellenarHoras, calidadAgenda
+from reportes.services import tieneSancionActivaService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -660,6 +661,12 @@ def crearCitaService(
     if not medico:
         return "Médico no encontrado", 404
 
+    if tieneSancionActivaService(usuario):
+        return(
+            "Tu cuenta está suspendida temporalmente. "
+            "No puedes agendar citas.", 403
+        )
+
     fecha_programada = datos["fecha_programada"]
     ahora = timezone.now()
 
@@ -827,6 +834,12 @@ def editarCitaService(id, datos, solicitante):
 
     if not cita:
         return 'Cita no encontrada o no te pertenece', 404
+
+    if tieneSancionActivaService(solicitante):
+        return (
+            "Tu cuenta está suspendida temporalmente. "
+            "No puedes reprogramar citas.", 403
+        )
 
     if cita.id_estado.nombre.lower() == 'inasistencia_paciente':
         return 'No se puede editar una cita con inasistencia del paciente', 400
@@ -1005,74 +1018,110 @@ def editarCitaService(id, datos, solicitante):
     programarActualizacionDashboardRealtime('CITA_REPROGRAMADA', ('resumen', 'citas', 'pacientes'))
     return CitaSerializer(cita).data, 200
 
+
 @serializar_agenda
 def cancelarCitaService(id, solicitante, motivo_cancelacion=None):
-    cita = Cita.objects.select_for_update().filter(
-        id=id
-    ).first()
+    cita = Cita.objects.select_for_update().filter(pk=id).first()
 
     if not cita:
-        return 'Cita no encontrada', 404
+        return "Cita no encontrada", 404
 
     if isinstance(solicitante, Usuario):
-        autorizado = (
-            cita.id_usuario_id == solicitante.id
-        )
+        autorizado = cita.id_usuario_id == solicitante.pk
+        cancelada_por = Cita.ResponsableCancelacion.PACIENTE
 
     elif isinstance(solicitante, Medico):
-        autorizado = (
-            cita.id_medico_id == solicitante.id
-        )
+        autorizado = cita.id_medico_id == solicitante.pk
+        cancelada_por = Cita.ResponsableCancelacion.MEDICO
+
+    else:
+        autorizado = False
+        cancelada_por = None
+
+    if not autorizado:
+        return "No tienes permiso para cancelar esta cita", 403
+
+    return _cancelarCitaInterna(
+        cita,
+        cancelada_por=cancelada_por,
+        motivo_cancelacion=motivo_cancelacion,
+        actor_id=solicitante.pk,
+    )
+
+
+@serializar_agenda
+def cancelarCitaPorSancionService(id, sancionado):
+    cita = Cita.objects.select_for_update().filter(pk=id).first()
+
+    if not cita:
+        return "Cita no encontrada", 404
+
+    if isinstance(sancionado, Medico):
+        autorizado = cita.id_medico_id == sancionado.pk
+
+    elif isinstance(sancionado, Usuario):
+        autorizado = cita.id_usuario_id == sancionado.pk
 
     else:
         autorizado = False
 
     if not autorizado:
-        return 'No tienes permiso para cancelar esta cita', 403
-    
-    # Identificar quién está cancelando la cita
-    cancelada_por = (
-        "medico"
-        if isinstance(solicitante, Medico)
-        else "paciente"
+        return "La cita no pertenece al usuario sancionado", 403
+
+    return _cancelarCitaInterna(
+        cita,
+        cancelada_por=Cita.ResponsableCancelacion.SISTEMA,
+        motivo_cancelacion=(
+            "Cancelación automática por suspensión temporal "
+            "de una cuenta involucrada."
+        ),
     )
 
+
+def _cancelarCitaInterna(
+    cita,
+    *,
+    cancelada_por,
+    motivo_cancelacion=None,
+    actor_id=None,
+):
     if motivo_cancelacion is not None:
         if not isinstance(motivo_cancelacion, str):
-            return("El motivo de cancelación debe ser un texto", 400)
+            return "El motivo de cancelación debe ser un texto", 400
+
         motivo_cancelacion = motivo_cancelacion.strip()
+
         if not motivo_cancelacion:
-            return("El motivo de cancelación no puede estar vacío", 400)
+            return "El motivo de cancelación no puede estar vacío", 400
+
         if len(motivo_cancelacion) > 500:
-            return("El motivo de cancelación no puede superar los 500 caracteres", 400)
+            return "El motivo de cancelación no puede superar los 500 caracteres", 400
 
     estado_actual = cita.id_estado.nombre.strip().lower()
 
-    if estado_actual == 'inasistenccia_paciente':
-        return(
-            'No se puede cancelar una cita con inasistencia del paciente', 400
-        )
+    if estado_actual == "inasistencia_paciente":
+        return "No se puede cancelar una cita con inasistencia", 400
 
-    if estado_actual == 'cancelada':
-        return(
-            'La cita ya está cancelada', 400
-        )
+    if estado_actual == "cancelada":
+        return "La cita ya está cancelada", 400
 
-    if estado_actual == 'completada':
-        return(
-            'No se puede cancelar una cita completada', 400
-        )
+    if estado_actual == "completada":
+        return "No se puede cancelar una cita completada", 400
 
-    if estado_actual == 'vencida':
-        return (
-        'No se puede cancelar una cita vencida', 400
-        )
-    # SOLO LOS ESTADOS ACTIVOS ADMITEN CANCELACIÓN
-    if estado_actual not in ('pendiente', 'confirmada', 'reprogramada'):
-        return('El estado actual de la cita no permite cancelarla', 400)
+    if estado_actual == "vencida":
+        return "No se puede cancelar una cita vencida", 400
+
+    if estado_actual not in (
+        "pendiente",
+        "confirmada",
+        "reprogramada",
+    ):
+        return "El estado actual de la cita no permite cancelarla", 400
+
     estado_cancelada = Estado.objects.filter(
-        nombre__iexact='cancelada'
+        nombre__iexact="cancelada"
     ).first()
+
     if not estado_cancelada:
         return "Estado 'cancelada' no configurado", 500
 
@@ -1080,71 +1129,119 @@ def cancelarCitaService(id, solicitante, motivo_cancelacion=None):
     cita.fecha_cancelacion = timezone.now()
     cita.motivo_cancelacion = motivo_cancelacion
     cita.cancelada_por = cancelada_por
-    cita.save(
-        update_fields=[
-            "id_estado", "fecha_cancelacion", "motivo_cancelacion", "cancelada_por"
-        ]
-    )
 
+    cita.save(update_fields=[
+        "id_estado",
+        "fecha_cancelacion",
+        "motivo_cancelacion",
+        "cancelada_por",
+    ])
+
+    # Evitar recordatorios de citas canceladas.
+    RecordatorioCita.objects.filter(
+        id_cita=cita,
+        estado_envio="pendiente",
+    ).update(estado_envio="cancelado")
+
+    # Cerrar la conversación asociada a la cita.
     from chat_citas.services import cerrarConversacionPorCancelacionService
+    from chat_citas.event_services import registrarEventoConversacionService
 
     cerrarConversacionPorCancelacionService(cita)
-    from chat_citas.event_services import registrarEventoConversacionService
-    registrarEventoConversacionService(cita, clave=f'cancelada:{cita.fecha_cancelacion.isoformat()}',
-        evento='cita_cancelada', instante=cita.fecha_cancelacion,
-        metadata={'actor': {'tipo': 'medico' if isinstance(solicitante, Medico) else 'paciente', 'id': solicitante.pk}})
 
-    fecha_fmt = timezone.localtime(cita.fecha_programada).strftime(
-        "%d/%m/%Y a las %H:%M"
+    registrarEventoConversacionService(
+        cita,
+        clave=f"cancelada:{cita.fecha_cancelacion.isoformat()}",
+        evento="cita_cancelada",
+        instante=cita.fecha_cancelacion,
+        metadata={
+            "actor": {
+                "tipo": cancelada_por,
+                "id": actor_id,
+            }
+        },
     )
+
+    fecha_fmt = timezone.localtime(
+        cita.fecha_programada
+    ).strftime("%d/%m/%Y a las %H:%M")
 
     cita_data = CitaSerializer(cita).data
 
+    cancelacion_sistema = (
+        cancelada_por == Cita.ResponsableCancelacion.SISTEMA
+    )
+
+    # Mensajes para los involucrados.
+    if cancelacion_sistema:
+        mensaje_paciente = (
+            f"Tu cita del {fecha_fmt} con el Dr. "
+            f"{cita.id_medico.nombre} {cita.id_medico.apellido} "
+            "fue cancelada por una medida administrativa de DocSmart. "
+            "Puedes consultar otras citas disponibles."
+        )
+
+        mensaje_medico = (
+            f"Tu cita del {fecha_fmt} con el paciente "
+            f"{cita.id_usuario.nombre} {cita.id_usuario.apellido} "
+            "fue cancelada por una medida administrativa de DocSmart."
+        )
+
+    else:
+        mensaje_paciente = (
+            f"Tu cita con el Dr. "
+            f"{cita.id_medico.nombre} {cita.id_medico.apellido} "
+            f"del {fecha_fmt} ha sido cancelada."
+        )
+
+        mensaje_medico = (
+            f"Tu cita con el paciente "
+            f"{cita.id_usuario.nombre} {cita.id_usuario.apellido} "
+            f"del {fecha_fmt} ha sido cancelada."
+        )
+
+    # Notificar al paciente.
     enviarNotificacion(
         cita_id=cita.pk,
-        titulo='Cita cancelada',
-        mensaje=(
-            f'Tu cita con el Dr. '
-            f'{cita.id_medico.nombre} '
-            f'{cita.id_medico.apellido} '
-            f'del {fecha_fmt} ha sido cancelada.'
-        ),
-        tipo='cita_cancelada',
+        titulo="Cita cancelada",
+        mensaje=mensaje_paciente,
+        tipo="cita_cancelada",
         id_usuario=cita.id_usuario_id,
         extra_data={
             "tipo_evento": "ACTUALIZACION_CITA",
-            "cita": cita_data
-        }
+            "cita": cita_data,
+        },
     )
+
+    # Notificar al médico.
     enviarNotificacion(
         cita_id=cita.pk,
-        titulo='Cita cancelada',
-        mensaje=(
-            f'Tu cita con el paciente '
-            f'{cita.id_usuario.nombre} '
-            f'{cita.id_usuario.apellido} '
-            f'del {fecha_fmt} ha sido cancelada.'
-        ),
-        tipo='cita_cancelada',
+        titulo="Cita cancelada",
+        mensaje=mensaje_medico,
+        tipo="cita_cancelada",
         id_medico=cita.id_medico_id,
         extra_data={
             "tipo_evento": "ACTUALIZACION_CITA",
-            "cita": cita_data
-        }
+            "cita": cita_data,
+        },
     )
-    
+
+    # El servicio actual de correos admite cancelaciones
+    # realizadas por pacientes o médicos.
     transaction.on_commit(
-        lambda cita_id=cita.id, actor=cancelada_por: (
-            enviarCorreosCitaCancelada(
-                cita_id,
-                actor
-            )
+        lambda cita_id=cita.pk, actor=cancelada_por: (
+            enviarCorreosCitaCancelada(cita_id, actor)
         ),
         robust=True,
     )
 
-    programarActualizacionDashboardRealtime('CITA_CANCELADA', ('resumen', 'citas'))
-    return 'Cita cancelada correctamente', 200
+    programarActualizacionDashboardRealtime(
+        "CITA_CANCELADA",
+        ("resumen", "citas"),
+    )
+
+    return "Cita cancelada correctamente", 200
+
 
 @serializar_agenda
 def completarCitaService(id, medico_id, datos_historial):
@@ -1340,6 +1437,12 @@ def confirmarCitaService(id, medico_id):
 
     if not cita:
         return 'Cita no encontrada o no te pertenece', 404
+
+    if tieneSancionActivaService(cita.id_medico):
+        return(
+            "Tu cuenta está suspendida temporalmente. "
+            "No puedes confirmar citas."
+        )
 
     estado_actual = cita.id_estado.nombre.strip().lower()
     ahora = timezone.now()

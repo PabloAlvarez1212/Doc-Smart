@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import ThemeSelector from "../Theme/ThemeSelector";
 import Style from "./SettingsComponent.module.css";
@@ -7,7 +9,8 @@ import { KeyIcon, ChevronRight, LogOutIcon, TrashIcon } from "lucide-react";
 export default function SettingsComponent({
   abrirCambiarContrasena,
   eliminarCuenta,
-  cerrarSesion
+  cerrarSesion,
+  reportesHref = null,
 }) {
   const [voice, setVoice] = useState(null);
   useEffect(() => {
@@ -59,6 +62,33 @@ export default function SettingsComponent({
                     </div>
 
                 </button>
+                {reportesHref && (
+                    <Link
+                        href={reportesHref}
+                        className={`${Style.card} ${Style.cardLink}`}
+                    >
+                        <div className={Style.titleContainer}>
+                            <div className={Style.containerllaveIcon}>
+                                <ShieldAlert
+                                    color="#6188DC"
+                                    size={22}
+                                />
+                            </div>
+
+                            <div className={Style.textContainer}>
+                                <h3>Reportes y seguridad</h3>
+                                <p>
+                                    Consulta tus reportes y el estado
+                                    de tu cuenta.
+                                </p>
+                            </div>
+                        </div>
+
+                        <ChevronRight size={28} />
+                    </Link>
+                )}
+
+
                 <button type="button" className={Style.card} onClick={cerrarSesion}>
                     <div className={Style.titleContainer}>
                         <div className={Style.containerCerrarSesionIcon}>
