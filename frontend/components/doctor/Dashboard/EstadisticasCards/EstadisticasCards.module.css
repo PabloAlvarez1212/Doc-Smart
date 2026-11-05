@@ -1,79 +1,87 @@
 .grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
     min-width: 0;
 }
 
+/* Tarjeta como en la maqueta: icono pequeño con tono, etiqueta, cifra grande y variación */
 .card {
-    position: relative;
+    display: grid;
+    gap: 8px;
+    align-content: start;
     min-width: 0;
-    padding: 17px 18px 16px;
-    overflow: hidden;
+    padding: 16px;
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 18px;
     background: var(--surface);
 }
 
-.card::after {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 54px;
-    height: 3px;
-    border-radius: 0 0 0 3px;
-    background: currentColor;
-    content: "";
-    opacity: .72;
+@media (prefers-reduced-motion: no-preference) {
+    .card { animation: cardIn 420ms cubic-bezier(.23, 1, .32, 1) both; }
+    .card:nth-child(2) { animation-delay: 50ms; }
+    .card:nth-child(3) { animation-delay: 100ms; }
+    .card:nth-child(4) { animation-delay: 150ms; }
+    .card:nth-child(5) { animation-delay: 200ms; }
+    .card:nth-child(6) { animation-delay: 250ms; }
 }
+@keyframes cardIn { from { opacity: 0; transform: translateY(10px); } }
 
-.cardTop {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    min-width: 0;
-}
+.cardTop { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--text-secondary); }
 
 .icon {
     display: grid;
-    width: 35px;
-    height: 35px;
+    width: 28px;
+    height: 28px;
     flex: 0 0 auto;
     place-items: center;
-    border-radius: 10px;
-    background: color-mix(in srgb, currentColor 10%, transparent);
+    border-radius: 9px;
+    background: color-mix(in srgb, currentColor 13%, transparent);
 }
+.icon svg { width: 15px; height: 15px; }
 
-.label {
-    color: var(--text-secondary);
-    font-size: .75rem;
-    font-weight: 700;
-    line-height: 1.3;
-}
+.label { color: var(--text-secondary); font-size: .82rem; font-weight: 500; line-height: 1.3; }
 
 .value {
-    display: block;
-    margin-top: 14px;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
     color: var(--color-text);
-    font-size: clamp(1.55rem, 2.4vw, 2rem);
-    font-weight: 780;
+    font-size: clamp(1.7rem, 2.4vw, 1.95rem);
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -.035em;
+    letter-spacing: -.04em;
     line-height: 1;
 }
 
-.card p {
-    margin: 8px 0 0;
-    color: var(--text-secondary);
-    font-size: .68rem;
-    line-height: 1.4;
-}
+.outOf { color: var(--text-secondary); font-size: .85rem; font-weight: 500; letter-spacing: 0; }
 
-.scheduled { color: var(--accent); }
-.completed { color: var(--ink-green); }
-.cancelled {color: var(--ink-red);}
-.missed { color: var(--ink-red); }
-.attendance { color: var(--doctor-chart-4); }
+.card p { margin: 0; color: var(--text-secondary); font-size: .74rem; line-height: 1.4; }
+
+.delta,
+.deltaNone {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    font-size: .78rem;
+    font-weight: 650;
+}
+.delta svg { flex: none; }
+.delta small { color: var(--text-secondary); font-size: .74rem; font-weight: 400; }
+.deltaNone { color: var(--text-secondary); font-weight: 400; }
+
+.good { color: var(--dash-ok, var(--ink-green)); }
+.bad { color: var(--dash-bad, var(--ink-red)); }
+.neutral { color: var(--text-secondary); }
+
+/* El color solo tiñe el icono; el texto se queda neutro */
+.scheduled .icon { color: var(--dash-info, var(--accent)); }
+.completed .icon { color: var(--dash-ok, var(--ink-green)); }
+.cancelled .icon { color: var(--dash-bad, var(--ink-red)); }
+.missed .icon { color: var(--dash-orange, var(--ink-orange)); }
+.attendance .icon { color: var(--dash-purple, var(--ink-purple)); }
+.rating .icon { color: var(--dash-star, var(--ink-orange)); }
 
 @media (max-width: 980px) {
     .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -81,6 +89,4 @@
 
 @media (max-width: 520px) {
     .grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-    .card { padding: 15px 16px; }
-    .value { margin-top: 11px; }
 }

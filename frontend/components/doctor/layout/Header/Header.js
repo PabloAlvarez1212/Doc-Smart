@@ -2,7 +2,7 @@
 
 import ResetPasswordFormComponent from "../../../ui/ResetPasswordComponent/ResetPasswordComponent";
 import DocSmartNav from "../../../ui/DocSmartNav/DocSmartNav";
-import { CalendarDays, Clock, House, KeyRound, LayoutDashboard, MessagesSquare, UserRound } from "lucide-react";
+import { CalendarDays, Clock, House, KeyRound, LayoutDashboard, MessagesSquare, UserRound, Settings } from "lucide-react";
 import { useState } from "react";
 
 import useLogout from "../../../hooks/useLogout";
@@ -55,7 +55,7 @@ export default function Header() {
       icon: UserRound,
       group: "Mi práctica"
     }]} />
-            <Modal titulo="Acciones" abierto={modal} headerVariant="white" onCerrar={() => setModal(false)}>
+            <Modal titulo="Configuración" text="Personaliza DocSmart a tu manera." abierto={modal} onCerrar={() => setModal(false)} headerVariant="white" width="620px" icon={<Settings size={22} aria-hidden="true" />}>
                 <SettingsComponent cerrarSesion={logoutUser} eliminarCuenta={eliminarCuentaMedico} abrirCambiarContrasena={() => {
         setModal(false);
         setModalCambiarContrasena(true);
@@ -64,7 +64,7 @@ export default function Header() {
             <Modal titulo="Cambiar contraseña" abierto={modalCambiarContrasena} onCerrar={() => {
       setModalCambiarContrasena(false);
       setModal(true);
-    }} headerVariant="yellow" text="Mantén tu cuenta segura con una contraseña fuerte" width="500px" icon={<KeyRound size={45} />}>
+    }} headerVariant="white" text="Mantén tu cuenta segura con una contraseña fuerte" width="500px" icon={<KeyRound size={22} aria-hidden="true" />}>
                 <ResetPasswordFormComponent />
             </Modal>
         </div>;

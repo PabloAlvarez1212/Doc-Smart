@@ -69,6 +69,7 @@ export const validateRegisterMedicoStep2 = ({
     departamento_filtro,
     id_ciudad,
     id_especialidad,
+    registro_medico,
     hoja_vida,
 }) => {
     const errors = {};
@@ -92,6 +93,13 @@ export const validateRegisterMedicoStep2 = ({
 
     if (!id_especialidad) {
         errors.id_especialidad = "La especialidad es requerida";
+    }
+
+    if (!String(registro_medico ?? "").trim()) {
+        errors.registro_medico = "El registro médico es requerido";
+    } else if (!/^[A-Za-z0-9][A-Za-z0-9 .\-/]{3,24}$/.test(String(registro_medico).trim())) {
+        errors.registro_medico =
+            "Usa entre 4 y 25 caracteres: letras, números, puntos, guiones o diagonales";
     }
 
     if (!hoja_vida) {

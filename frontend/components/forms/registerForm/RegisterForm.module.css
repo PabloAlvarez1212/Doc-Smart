@@ -575,3 +575,5 @@
 .otpBlock .error {
     text-align: center;
 }
+
+.fieldHint{margin-top:6px;font-size:.78rem;line-height:1.45;color:var(--text-secondary)}

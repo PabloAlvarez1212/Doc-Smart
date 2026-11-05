@@ -4,6 +4,7 @@ import { CircleAlert, RefreshCw } from "lucide-react";
 import EstadisticasCards from "../../../../components/doctor/Dashboard/EstadisticasCards/EstadisticasCards";
 import FiltrosDashboard from "../../../../components/doctor/Dashboard/FiltrosDashboard/FiltrosDashboard";
 import GraficaAsistencia from "../../../../components/doctor/Dashboard/GraficaAsistencia/GraficaAsistencia";
+import GraficaCalificaciones from "../../../../components/doctor/Dashboard/GraficaCalificaciones/GraficaCalificaciones";
 import GraficaDemanda from "../../../../components/doctor/Dashboard/GraficaDemanda/GraficaDemanda";
 import GraficaEstados from "../../../../components/doctor/Dashboard/GraficaEstados/GraficaEstados";
 import GraficaEvolucion from "../../../../components/doctor/Dashboard/GraficaEvolucion/GraficaEvolucion";
@@ -100,13 +101,14 @@ export default function Dashboard() {
                             </p>
                         )}
 
-                        <EstadisticasCards estadisticas={datos.estadisticas} />
+                        <EstadisticasCards estadisticas={datos.estadisticas} anteriores={datos.estadisticas_anteriores} />
 
                         <section className={styles.chartGrid} aria-label="Gráficas del dashboard médico">
                             <GraficaEvolucion data={datos.grafica_citas} agrupacion={datos.filtros?.agrupacion} />
                             <GraficaEstados data={datos.grafica_estados} />
                             <GraficaAsistencia data={datos.grafica_asistencia} />
-                            <GraficaDemanda data={datos.grafica_demanda} />
+                            <GraficaCalificaciones data={datos.grafica_calificaciones} agrupacion={datos.filtros?.agrupacion} />
+                            <GraficaDemanda data={datos.grafica_demanda_horaria} />
                         </section>
                     </div>
                 )}

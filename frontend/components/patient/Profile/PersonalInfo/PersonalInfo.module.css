@@ -366,3 +366,11 @@
 }
 @media (max-width:360px) { .header { flex-direction: column; } .header .addButton { width: 100%; } }
 @media (prefers-reduced-motion:reduce) { .spinner { animation: none; } .table tr, .actions button, .actions button svg, .profileActions button svg, .addButton, .addButton svg, .formActions button { transition: none; transform: none!important; } }
+
+.secretField{position:relative}
+.secretField input{padding-right:52px;letter-spacing:.06em}
+.revealButton{position:absolute;top:50%;right:5px;display:grid;width:38px;height:38px;margin-top:-19px;place-items:center;border:0;border-radius:10px;color:var(--text-secondary);background:transparent;cursor:pointer;transition:background-color 160ms,color 160ms,transform 140ms}
+.revealButton:hover{background:var(--surface-muted);color:var(--color-text)}
+.revealButton:active{transform:scale(.92)}
+.revealButton:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.privateNote{display:flex;align-items:center;gap:5px;margin-top:6px;color:var(--text-secondary);font-size:.74rem}

@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, useAnimate, usePresence, useReducedMotion } from "motion/react";
-import { FileText, MapPin, Star } from "lucide-react";
+import { FileText, MapPin, Star, Timer } from "lucide-react";
 import seguirCursor from "../Motion/seguirCursor";
 import { avisar } from "./Avisos";
 import pedirMotivo from "./pedirMotivo";
-import { ESTADOS, avanceEspera, cuentaRegresiva, estadoDe, fechaRelativa, partesFecha } from "./citaFormato";
+import { ESTADOS, avanceEspera, cuentaRegresiva, estadoDe, fechaRelativa, partesFecha, ventanaConsulta, formatoReloj } from "./citaFormato";
 import { olvidarSalida, registrarSalida, useEfectoCita, verSalida } from "./citaEfectos";
 import styles from "./MisCitas.module.css";
 
@@ -22,6 +22,44 @@ const CORTE_IZQUIERDO = `polygon(0 0, ${DIENTES}, 0 100%)`;
 const CORTE_DERECHO = `polygon(${DIENTES}, 100% 100%, 100% 0)`;
 
 const iniciales = (nombre = "") => nombre.split(" ").filter(Boolean).slice(0, 2).map((parte) => parte[0]).join("").toUpperCase();
+
+// Barra de la consulta en curso: parte llena al empezar y se va consumiendo hasta la hora de finalización.
+function ProgresoConsulta({ inicio, fin, rol, reducido }) {
+    const [reloj, setReloj] = useState(() => Date.now());
+    useEffect(() => {
+        const temporizador = setInterval(() => setReloj(Date.now()), 1000);
+        return () => clearInterval(temporizador);
+    }, []);
+
+    const total = Math.max(1, fin - inicio);
+    const restante = Math.min(total, Math.max(0, fin - reloj));
+    const fraccion = restante / total;
+    const nivel = fraccion > 0.5 ? "amplio" : fraccion > 0.2 ? "medio" : "poco";
+    const termina = new Intl.DateTimeFormat("es-CO", { hour: "numeric", minute: "2-digit", hour12: true }).format(fin);
+    const texto = restante > 0 ? `Quedan ${formatoReloj(restante)}` : "Tiempo de la consulta cumplido";
+
+    return (
+        <div
+            className={styles.progreso}
+            data-nivel={nivel}
+            role="progressbar"
+            aria-label={rol === "doctor" ? "Tiempo restante de la consulta" : "Tiempo restante de tu cita"}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(fraccion * 100)}
+            aria-valuetext={texto}
+        >
+            <div className={styles.progresoCabeza}>
+                <span className={styles.progresoEtiqueta}><i aria-hidden="true" /><Timer size={15} aria-hidden="true" />Consulta en curso</span>
+                <b>{formatoReloj(restante)}</b>
+            </div>
+            <div className={styles.pista} aria-hidden="true">
+                <span style={{ transform: `scaleX(${fraccion})`, transition: reducido ? "none" : "transform 1s linear, background-color .4s" }} />
+            </div>
+            <small>{texto} · termina a las {termina}</small>
+        </div>
+    );
+}
 
 export default function CitaCard({
     ref,
@@ -46,6 +84,8 @@ export default function CitaCard({
     const meta = ESTADOS[estado] || { etiqueta: cita.estado || "Sin estado", tono: "muted" };
     const fecha = partesFecha(cita.fecha_programada);
     const puntuacion = Number(cita.calificacion?.puntuacion) || 0;
+    const ventana = estado === "confirmada" ? ventanaConsulta(cita) : null;
+    const enCurso = Boolean(ventana) && ahora >= ventana.inicio && ahora < ventana.fin;
     const reducido = useReducedMotion();
     const [scope, animate] = useAnimate();
     const [presente, quitar] = usePresence();
@@ -204,7 +244,9 @@ export default function CitaCard({
         </div>
     );
 
-    const cuenta = destacada && (
+    const progreso = enCurso && <ProgresoConsulta inicio={ventana.inicio} fin={ventana.fin} rol={rol} reducido={reducido} />;
+
+    const cuenta = destacada && !enCurso && (
         <div className={styles.cuenta}>
             <svg className={styles.anillo} viewBox="0 0 120 120" aria-hidden="true">
                 <circle cx="60" cy="60" r="52" />
@@ -326,6 +368,8 @@ export default function CitaCard({
             ) : (
                 <>{quien}{lugar}{enlaces && <div className={styles.enlaces}>{enlaces}</div>}{valoracion}</>
             )}
+
+            {progreso}
 
             <footer className={styles.acciones}>
                 {principal && (

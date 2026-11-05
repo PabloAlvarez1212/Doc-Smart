@@ -35,6 +35,7 @@ export default function AvailabilityPage() {
     // Hook de disponibilidad
     const {
         duracionConsulta,
+        valorConsulta,
 
         disponibilidad,
 
@@ -171,6 +172,7 @@ export default function AvailabilityPage() {
                 duracionConsulta={
                     duracionConsulta
                 }
+                valorConsulta={valorConsulta}
             />
 
 
@@ -201,6 +203,7 @@ export default function AvailabilityPage() {
             <WeeklySchedule
                 disponibilidad={disponibilidad}
                 duracionConsulta={duracionConsulta}
+                valorConsulta={valorConsulta}
                 saving={saving}
                 onSave={guardarDisponibilidad}
             />

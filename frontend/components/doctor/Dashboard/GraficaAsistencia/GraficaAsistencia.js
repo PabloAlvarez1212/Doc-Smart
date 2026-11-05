@@ -6,6 +6,7 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
+    Cell,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -65,7 +66,11 @@ export default function GraficaAsistencia({ data = [] }) {
                                 width={42}
                             />
                             <Tooltip cursor={{ fill: "var(--surface-muted)" }} content={<AttendanceTooltip />} />
-                            <Bar isAnimationActive={!reduced} animationDuration={240} dataKey="cantidad" name="Citas" fill="var(--doctor-chart-0)" radius={[7, 7, 2, 2]} maxBarSize={72} />
+                            <Bar isAnimationActive={!reduced} animationDuration={240} dataKey="cantidad" name="Citas" fill="var(--dash-ok, var(--doctor-chart-0))" radius={[7, 7, 2, 2]} maxBarSize={72}>
+                                {chartData.map((item) => (
+                                    <Cell key={item.estado} fill={/^inasist/i.test(String(item.estado)) ? "var(--dash-bad, var(--ink-red))" : "var(--dash-ok, var(--doctor-chart-0))"} />
+                                ))}
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

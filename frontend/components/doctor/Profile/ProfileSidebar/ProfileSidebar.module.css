@@ -3,3 +3,7 @@
 .doctor .camera:active{transform:none}
 .doctor .camera:focus-visible{outline:3px solid var(--profile-accent);outline-offset:3px}
 .doctor .role{color:var(--profile-accent);background:var(--profile-soft)}
+
+.verified{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:var(--tone-green);color:var(--ink-green);font-size:.71rem;font-weight:700}
+.capital{text-transform:capitalize}
+.doctor .camera{transition:background-color 160ms,transform 140ms}

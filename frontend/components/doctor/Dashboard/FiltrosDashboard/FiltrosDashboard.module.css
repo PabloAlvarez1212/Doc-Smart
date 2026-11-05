@@ -1,181 +1,84 @@
-.panel {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(210px, .72fr) minmax(0, 1.28fr);
-    align-items: end;
-    gap: 22px;
-    padding: 18px 20px;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    background: var(--surface);
-}
+.panel { display: grid; gap: 8px; min-width: 0; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-.heading {
-    display: flex;
-    align-items: flex-start;
-    gap: 11px;
-    min-width: 0;
-}
+.form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 18px; }
 
-.headingIcon {
-    display: grid;
-    width: 38px;
+/* Tipo de período como píldoras, igual que en la maqueta */
+.periods { display: flex; flex-wrap: wrap; gap: 6px; }
+.periods button {
     height: 38px;
-    flex: 0 0 auto;
-    place-items: center;
-    border-radius: 11px;
-    background: var(--tone-blue);
-    color: var(--accent);
-}
-
-.heading h2 {
-    margin: 0;
-    color: var(--color-text);
-    font-size: .92rem;
-    font-weight: 750;
-    line-height: 1.35;
-}
-
-.heading p {
-    max-width: 38ch;
-    margin: 4px 0 0;
-    color: var(--text-secondary);
-    font-size: .75rem;
-    line-height: 1.45;
-}
-
-.form {
-    display: grid;
-    grid-template-columns: minmax(150px, 1.15fr) repeat(2, minmax(120px, .72fr)) auto;
-    align-items: start;
-    gap: 12px;
-    min-width: 0;
-}
-
-.year { grid-template-columns: minmax(170px, 1.2fr) minmax(120px, .7fr) auto; }
-.month,
-.custom { grid-template-columns: minmax(150px, 1.1fr) repeat(2, minmax(120px, .75fr)) auto; }
-
-.field {
-    display: grid;
-    min-width: 0;
-    gap: 6px;
-}
-
-.field label {
-    color: var(--text-secondary);
-    font-size: .71rem;
-    font-weight: 700;
-}
-
-.field input,
-.field select {
-    width: 100%;
-    min-width: 0;
-    min-height: 44px;
-    padding: 9px 11px;
+    padding: 0 16px;
     border: 1px solid var(--control-border);
-    border-radius: 11px;
-    outline: none;
-    background: var(--surface-muted);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 180ms, color 180ms, border-color 180ms, transform 160ms;
+}
+.periods button:active:not(:disabled) { transform: scale(.96); }
+.periods button.on { background: var(--doctor-button, var(--action-primary-bg)); border-color: transparent; color: var(--doctor-on-primary, var(--action-on)); }
+.periods button:disabled { cursor: wait; opacity: .7; }
+@media (hover: hover) { .periods button:not(.on):not(:disabled):hover { border-color: var(--doctor-primary, var(--accent)); color: var(--color-text); } }
+.periods button:focus-visible { outline: 3px solid var(--doctor-primary, var(--focus)); outline-offset: 2px; }
+
+.fields { display: flex; flex-wrap: wrap; gap: 12px; }
+.field { display: grid; gap: 5px; min-width: 0; }
+.field label { color: var(--text-secondary); font-size: .72rem; font-weight: 600; }
+.field select,
+.field input {
+    min-width: 150px;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--control-border);
+    border-radius: 12px;
+    background: var(--surface);
     color: var(--color-text);
     font: inherit;
-    font-size: .82rem;
-    color-scheme: light dark;
+    font-size: .85rem;
+    transition: border-color 160ms, box-shadow 160ms;
 }
-
-.field input:focus-visible,
 .field select:focus-visible,
-.primaryAction:focus-visible,
-.secondaryAction:focus-visible {
-    outline: 3px solid var(--focus);
-    outline-offset: 2px;
-}
+.field input:focus-visible { outline: 0; border-color: var(--doctor-primary, var(--focus)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--doctor-primary, var(--focus)) 18%, transparent); }
+.field [aria-invalid="true"] { border-color: var(--ink-red); }
+.error { margin: 0; color: var(--ink-red); font-size: .72rem; line-height: 1.4; }
 
-.field input[aria-invalid="true"],
-.field select[aria-invalid="true"] {
-    border-color: var(--ink-red);
-}
-
-.field input:disabled,
-.field select:disabled,
-.actions button:disabled {
-    cursor: wait;
-    opacity: .68;
-}
-
-.error {
-    margin: 0;
-    color: var(--ink-red);
-    font-size: .68rem;
-    line-height: 1.35;
-}
-
-.actions {
-    display: flex;
+.actions { display: flex; gap: 8px; margin-left: auto; }
+.primaryAction,
+.secondaryAction {
+    display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding-top: 23px;
-}
-
-.actions button {
-    display: inline-flex;
-    min-height: 44px;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    padding: 9px 13px;
-    border-radius: 11px;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 12px;
     font: inherit;
-    font-size: .76rem;
-    font-weight: 700;
-    white-space: nowrap;
-    cursor: pointer;
-}
-
-.primaryAction {
-    border: 1px solid var(--doctor-button);
-    background: var(--doctor-button);
-    color: var(--doctor-on-primary);
-}
-
-.secondaryAction {
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text-secondary);
-}
-
-.updating {
-    position: absolute;
-    right: 20px;
-    bottom: 4px;
-    margin: 0;
-    color: var(--accent);
-    font-size: .68rem;
+    font-size: .85rem;
     font-weight: 650;
+    cursor: pointer;
+    transition: background-color 180ms, border-color 180ms, transform 160ms;
 }
+.primaryAction { border: 0; background: var(--doctor-button, var(--action-primary-bg)); color: var(--doctor-on-primary, var(--action-on)); }
+.primaryAction:hover:not(:disabled) { background: var(--doctor-button-hover, var(--action-primary-hover)); }
+.secondaryAction { border: 1px solid var(--control-border); background: transparent; color: var(--text-secondary); }
+.secondaryAction:hover:not(:disabled) { background: var(--surface-muted); color: var(--color-text); }
+.primaryAction:active:not(:disabled),
+.secondaryAction:active:not(:disabled) { transform: scale(.97); }
+.primaryAction:disabled,
+.secondaryAction:disabled { cursor: wait; opacity: .65; }
+.primaryAction:focus-visible,
+.secondaryAction:focus-visible { outline: 3px solid var(--doctor-primary, var(--focus)); outline-offset: 2px; }
 
-@media (max-width: 980px) {
-    .panel { grid-template-columns: minmax(0, 1fr); align-items: start; }
-    .form { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
-    .actions { grid-column: 1 / -1; padding-top: 2px; }
+.updating { margin: 0; color: var(--text-secondary); font-size: .76rem; }
+
+@media (max-width: 760px) {
+    .actions { margin-left: 0; width: 100%; }
+    .actions > button { flex: 1; justify-content: center; }
+    .field select, .field input { min-width: 0; width: 100%; }
+    .fields, .field { width: 100%; }
 }
-
-@media (max-width: 680px) {
-    .panel { padding: 17px 16px; }
-    .form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .periodField { grid-column: 1 / -1; }
-    .actions { grid-column: 1 / -1; padding-top: 2px; }
-}
-
-@media (max-width: 460px) {
-    .form { grid-template-columns: minmax(0, 1fr); }
-    .actions { grid-column: auto; display: grid; grid-template-columns: minmax(0, 1fr); }
-    .actions button { width: 100%; }
-    .updating { position: static; text-align: right; }
-}
-
 @media (prefers-reduced-motion: reduce) {
-    .actions button { transition: none; }
+    .periods button, .primaryAction, .secondaryAction { transition: none; }
 }
-.headingIcon{background:var(--doctor-positive-bg);color:var(--doctor-primary)}

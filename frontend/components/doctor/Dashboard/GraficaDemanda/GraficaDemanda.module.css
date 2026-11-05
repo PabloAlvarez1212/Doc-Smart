@@ -2,7 +2,7 @@
     display: grid;
     min-width: 0;
     min-height: 356px;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto 1fr auto;
     padding: 21px 22px 18px;
     border: 1px solid var(--border);
     border-radius: 16px;
@@ -12,12 +12,58 @@
 .header { margin-bottom: 15px; }
 .header h2 { margin: 0; color: var(--color-text); font-size: .95rem; font-weight: 750; line-height: 1.35; }
 .header p { max-width: 54ch; margin: 5px 0 0; color: var(--text-secondary); font-size: .74rem; line-height: 1.5; }
-.chartScroll { min-width: 0; overflow-x: auto; overflow-y: hidden; }
-.chartArea { width: 100%; min-width: 500px; height: 270px; }
+
+.scroll { min-width: 0; overflow-x: auto; padding-bottom: 4px; }
+.heatmap { width: 100%; min-width: 430px; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+.heatmap thead th { padding: 0 0 4px; color: var(--text-secondary); font-size: .7rem; font-weight: 650; text-align: center; }
+.heatmap tbody th { width: 62px; padding-right: 6px; color: var(--text-secondary); font-size: .68rem; font-weight: 600; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.heatmap thead td { width: 62px; }
+
+.cell {
+    height: 28px;
+    padding: 0;
+    border-radius: 8px;
+    background: var(--surface-muted);
+    color: transparent;
+    font-size: .68rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.cell.active {
+    background: color-mix(in srgb, var(--dash-info, var(--accent)) calc(var(--level) * 100%), var(--surface-muted));
+    color: var(--color-text);
+}
+
+/* Las celdas más intensas llevan texto contrastante sobre el color de fondo. */
+.cell.active.strong { color: var(--surface); }
+
+.peak { outline: 2px solid var(--color-text); outline-offset: 1px; }
+
+@media (prefers-reduced-motion: no-preference) {
+    .cell { animation: cellIn 380ms cubic-bezier(.23, 1, .32, 1) both; animation-delay: var(--delay); }
+    .cell.active { transition: transform 160ms ease; }
+}
+@media (hover: hover) {
+    .cell.active:hover { transform: scale(1.12); }
+}
+@keyframes cellIn { from { opacity: 0; transform: scale(.7); } }
+
+.footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--text-secondary); font-size: .72rem; }
+.footer p { margin: 0; }
+.footer strong { color: var(--color-text); }
+.scale { display: inline-flex; align-items: center; gap: 8px; }
+.scale i { width: 90px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, var(--dash-info, var(--accent)) 20%, var(--surface-muted)), var(--dash-info, var(--accent))); }
+
 .empty { display: grid; min-height: 270px; place-items: center; margin: 0; padding: 18px; border: 1px dashed var(--border); border-radius: 11px; color: var(--text-secondary); font-size: .78rem; line-height: 1.5; text-align: center; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 @media (max-width: 520px) {
     .card { min-height: 330px; padding: 18px 15px 15px; }
-    .chartArea { min-width: 460px; height: 245px; }
     .empty { min-height: 245px; }
 }
+
+/* Ocupa todo el ancho: el mapa de calor es más alto que las demás gráficas y así no estira a su vecina */
+.wide { grid-column: 1 / -1; min-height: 0; }
+.wide .heatmap { min-width: 560px; }

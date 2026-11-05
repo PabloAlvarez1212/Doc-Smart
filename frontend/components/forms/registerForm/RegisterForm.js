@@ -12,16 +12,17 @@ import DocumentoBuzon from './DocumentoBuzon'
 import { useRegister } from './UseRegister'
 import styles from './RegisterForm.module.css'
 
-function Field({name,label,form,errors,handleChange,locked,feedback,type='text',options,autoComplete}) {
+function Field({name,label,form,errors,handleChange,locked,feedback,type='text',options,autoComplete,hint}) {
     const id=`register-${name}`
     const error=errors[name]
     const reduced=useReducedMotion()
-    const props={id,name,'aria-label':label,value:form[name],onChange:handleChange,'aria-invalid':Boolean(error),'aria-describedby':error?`${id}-error`:undefined}
+    const props={id,name,'aria-label':label,value:form[name],onChange:handleChange,'aria-invalid':Boolean(error),'aria-describedby':error?`${id}-error`:hint?`${id}-hint`:undefined}
     return <div className={styles.fieldFull}>
         <label className={styles.fieldLabel} htmlFor={id}>{label}</label>
         {options ? <select {...props} disabled={locked} className={styles.select}>
             <option value="">Seleccionar</option>{options.map(([value,text])=><option key={value} value={value}>{text}</option>)}
         </select> : <Input {...props} placeholder={label} type={type} autoComplete={autoComplete} readOnly={locked} validationAttempt={feedback.kind==='error'?feedback.revision:0} />}
+        {hint && !error && <p id={`${id}-hint`} className={styles.fieldHint}>{hint}</p>}
         {error && <motion.p key={`${name}-${feedback.revision}`} animate={{x:reduced?0:[0,-3,3,0]}} transition={{duration:.18}} id={`${id}-error`} className={styles.error}>{error}</motion.p>}
     </div>
 }
@@ -110,6 +111,7 @@ export default function RegisterForm({role,setRole}) {
                         {field('departamento_filtro','Departamento',{options:departamentos.map(d=>[String(d.id_departamento??d.id),d.nombre_departamento??d.nombre])})}
                         {field('id_ciudad','Ciudad',{options:ciudades.map(c=>[String(c.id_ciudad??c.id),c.nombre_ciudad??c.nombre]),locked:locked||!form.departamento_filtro})}
                         {field('id_especialidad','Especialidad',{options:especialidades.map(e=>[String(e.id),e.nombre])})}
+                        {field('registro_medico','Registro médico',{autoComplete:'off',hint:'Número de tu tarjeta o registro profesional. El administrador lo valida y se guarda cifrado.'})}
                         <Upload id="hoja-vida" label="Hoja de vida profesional" file={form.hoja_vida} onChange={e=>handleChange({target:{name:'hoja_vida',files:e.target.files}})} accept="application/pdf" disabled={locked} help="PDF · máximo 5 MB · será revisado por el equipo de DocSmart" error={errors.hoja_vida} />
                         <p className={styles.savedNotice}>Tu cuenta quedará pendiente de aprobación profesional. Las herramientas médicas se habilitan después de la revisión.</p>
                     </>:<>

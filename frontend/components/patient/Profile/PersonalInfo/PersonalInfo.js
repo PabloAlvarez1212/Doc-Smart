@@ -1,6 +1,6 @@
 "use client";
 
-import { HeartPulse, LoaderCircle, LockKeyhole, Mail, Save, UserRound } from "lucide-react";
+import { Eye, EyeOff, HeartPulse, LoaderCircle, LockKeyhole, Mail, Save, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import Button from "../../../ui/Button/Button";
@@ -10,6 +10,7 @@ import styles from "./PersonalInfo.module.css";
 
 export default function PersonalInfo({perfil, actualizarPerfilPaciente, guardando, onCambiarCorreo, ocupadoCorreo=false, datosSalud=[], onAgregarSalud, onEditarSalud, onEliminarSalud}) {
     const [nombre,setNombre]=useState(""),[apellido,setApellido]=useState(""),[fechaNacimiento,setFechaNacimiento]=useState(""),[telefono,setTelefono]=useState(""),[peso,setPeso]=useState(""),[estatura,setEstatura]=useState("");
+    const [verCedula,setVerCedula]=useState(false);
     const [genero,setGenero]=useState(perfil?.genero ?? '');
     const [tipoSangre,setTipoSangre]=useState(perfil?.tipo_sangre ?? '');
 
@@ -60,7 +61,13 @@ export default function PersonalInfo({perfil, actualizarPerfilPaciente, guardand
                     </ProfileField>
 
                     <ProfileField label="Cédula" htmlFor="cedula" locked>
-                        <Input id="cedula" aria-label="Cédula" name="cedula" value={perfil?.cedula??""} readOnly/>
+                        <div className={styles.secretField}>
+                            <Input id="cedula" aria-label="Cédula" name="cedula" value={verCedula ? (perfil?.cedula??"") : ocultarDocumento(perfil?.cedula)} readOnly/>
+                            <button type="button" className={styles.revealButton} onClick={()=>setVerCedula(v=>!v)} aria-pressed={verCedula} aria-label={verCedula?"Ocultar cédula":"Mostrar cédula"}>
+                                {verCedula ? <EyeOff size={18} aria-hidden="true"/> : <Eye size={18} aria-hidden="true"/>}
+                            </button>
+                        </div>
+                        <p className={styles.privateNote}><LockKeyhole size={12} aria-hidden="true"/> Solo tú puedes ver tu documento.</p>
                     </ProfileField>
 
                     <ProfileField label="Teléfono" htmlFor="telefono" className={styles.wideField}>
@@ -138,6 +145,13 @@ function ProfileSection({icon:Icon,title,description,medical=false,children}){
             {children}
         </section>
     );
+}
+
+// Muestra solo los últimos dígitos hasta que la persona decida revelar su documento.
+function ocultarDocumento(valor){
+    const texto=String(valor??"");
+    if(!texto)return "";
+    return texto.length<=3?"•".repeat(texto.length):`${"•".repeat(Math.min(texto.length-3,8))}${texto.slice(-3)}`;
 }
 
 function ProfileField({label,htmlFor,locked=false,unit,className="",children}){

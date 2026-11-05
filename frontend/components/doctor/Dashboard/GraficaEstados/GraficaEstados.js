@@ -5,7 +5,18 @@ import { useReducedMotion } from "motion/react";
 import { Cell, Label, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import styles from "./GraficaEstados.module.css";
 
-const colors = ["var(--doctor-chart-0)", "var(--doctor-chart-1)", "var(--doctor-chart-2)", "var(--doctor-chart-3)", "var(--doctor-chart-4)", "var(--doctor-chart-5)", "var(--doctor-chart-6)"];
+// Cada estado conserva siempre su color: «completada» es verde, sin importar el orden en que llegue.
+const stateColors = {
+    completada: "var(--dash-ok, #0e7a3c)",
+    confirmada: "var(--dash-info, #2456a6)",
+    pendiente: "var(--dash-warn, #a8640b)",
+    reprogramada: "var(--dash-purple, #7257b5)",
+    cancelada: "var(--dash-bad, #b3263f)",
+    inasistencia_paciente: "var(--dash-orange, #c2570c)",
+    vencida: "var(--dash-muted, #64748b)",
+};
+const fallbackColors = ["var(--doctor-chart-5)", "var(--doctor-chart-4)", "var(--doctor-chart-3)"];
+const colorFor = (state, index) => stateColors[String(state ?? "").trim().toLowerCase()] ?? fallbackColors[index % fallbackColors.length];
 const numberFormatter = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
 const percentageFormatter = new Intl.NumberFormat("es-CO", {
     minimumFractionDigits: 0,
@@ -65,7 +76,7 @@ export default function GraficaEstados({ data = [] }) {
                                     strokeWidth={2}
                                 >
                                     {distribution.map((item, index) => (
-                                        <Cell key={`${item.estado}-${index}`} fill={colors[index % colors.length]} />
+                                        <Cell key={`${item.estado}-${index}`} fill={colorFor(item.estado, index)} />
                                     ))}
                                     <Label
                                         position="center"
@@ -85,7 +96,7 @@ export default function GraficaEstados({ data = [] }) {
                     <ul className={styles.legend} aria-label="Detalle de citas por estado">
                         {distribution.map((item, index) => (
                             <li key={`${item.estado}-${index}`}>
-                                <span className={`${styles.swatch} ${styles[`color${index % colors.length}`]}`} aria-hidden="true" />
+                                <span className={styles.swatch} style={{ background: colorFor(item.estado, index) }} aria-hidden="true" />
                                 <span className={styles.stateName}>{formatState(item.estado)}</span>
                                 <strong>{numberFormatter.format(item.cantidad)}</strong>
                                 <span>{percentageFormatter.format(item.porcentaje)}%</span>
