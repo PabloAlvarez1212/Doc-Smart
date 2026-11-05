@@ -89,6 +89,20 @@ def descifrar_documento(token):
         return ""
 
 
+def descifrar_documento_estricto(token):
+    """Como `descifrar_documento`, pero un valor cifrado que no se puede descifrar (clave distinta,
+    dato alterado) lanza ValueError en lugar de devolver vacío. Resuelve también el doble cifrado."""
+    valor = token
+    for _ in range(3):
+        if not valor or not str(valor).startswith(PREFIJO_DOCUMENTO):
+            return valor
+        try:
+            valor = _siv().decrypt(base64.urlsafe_b64decode(valor[len(PREFIJO_DOCUMENTO):]), _ASOCIADO).decode()
+        except Exception as error:
+            raise ValueError("no se pudo descifrar con la clave actual") from error
+    raise ValueError("el valor está cifrado más de tres veces")
+
+
 class DocumentoCifradoField(models.CharField):
     """Texto que se guarda cifrado en la base de datos y se lee en claro en el código."""
 

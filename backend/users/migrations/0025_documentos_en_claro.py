@@ -2,21 +2,65 @@
 
 from django.db import migrations, models
 
+from core.cifrado import PREFIJO_DOCUMENTO, descifrar_documento_estricto
 
+LONGITUD = 30
 PENDIENTES = [('Usuario', 'cedula'), ('ProcesoRegistroUsuario', 'numero_documento_declarado'), ('ProcesoRegistroUsuario', 'numero_documento_verificado')]
 
 
+def _filas(cursor, qn, tabla, pk, columna):
+    # Se lee y se compara el valor tal como está en la base: la clave primaria (por ejemplo un UUID
+    # guardado sin guiones en MySQL) se reutiliza sin convertirla, para que el UPDATE siempre coincida.
+    cursor.execute(f"SELECT {qn(pk)}, {qn(columna)} FROM {qn(tabla)} WHERE {qn(columna)} IS NOT NULL AND {qn(columna)} <> ''")
+    return cursor.fetchall()
+
+
 def descifrar_documentos(apps, schema_editor):
-    """Vuelve a guardar en claro los documentos que estaban cifrados (el campo los lee ya descifrados)."""
+    from core.cifrado import descifrar_documento
+    from django.db import transaction
+
+    conexion = schema_editor.connection
+    q = conexion.ops.quote_name
+    pendientes = []
+
+    # Leer directamente evita conversiones del campo personalizado.
     for modelo, campo in PENDIENTES:
         Modelo = apps.get_model("users", modelo)
-        tabla = Modelo._meta.db_table
-        columna = Modelo._meta.get_field(campo).column
-        with schema_editor.connection.cursor() as cursor:
-            for pk, valor in list(Modelo.objects.values_list("pk", campo)):
-                if valor:
-                    cursor.execute(f"UPDATE {tabla} SET {columna} = %s WHERE id = %s", [valor, pk])
+        tabla = q(Modelo._meta.db_table)
+        columna = q(Modelo._meta.get_field(campo).column)
+        pk_columna = q(Modelo._meta.pk.column)
 
+        with conexion.cursor() as cursor:
+            cursor.execute(
+                f"SELECT {pk_columna}, {columna} FROM {tabla}"
+            )
+            filas = cursor.fetchall()
+
+        for pk, valor in filas:
+            if not valor:
+                continue
+
+            claro = descifrar_documento(valor)
+
+            if not claro or len(claro) > 30:
+                raise RuntimeError(
+                    f"No se pudo convertir {modelo}.{campo}; "
+                    "se detuvo la migración sin truncar datos."
+                )
+
+            pendientes.append(
+                (tabla, columna, pk_columna, pk, claro)
+            )
+
+    # Escribir únicamente después de validar todos los valores.
+    with transaction.atomic(using=conexion.alias):
+        with conexion.cursor() as cursor:
+            for tabla, columna, pk_columna, pk, claro in pendientes:
+                cursor.execute(
+                    f"UPDATE {tabla} SET {columna} = %s "
+                    f"WHERE {pk_columna} = %s",
+                    [claro, pk],
+                )
 
 class Migration(migrations.Migration):
 
