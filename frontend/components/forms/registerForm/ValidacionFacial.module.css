@@ -146,20 +146,6 @@
     line-height: 1.5;
 }
 
-.alternativas {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
-}
-
-.alternativas > p:first-child {
-    margin: 0;
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
 .correoForm {
     display: flex;
     flex-direction: column;
@@ -399,3 +385,26 @@
         transition: none;
     }
 }
+
+
+/* ── Términos y condiciones desplegables ── */
+.terminosToggle { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 0 16px 0 12px; border: 1px solid var(--control-border); border-radius: 14px; background: var(--surface); color: var(--color-text); font: inherit; font-size: .92rem; font-weight: 650; text-align: left; cursor: pointer; transition: border-color .2s, background-color .2s, box-shadow .2s; }
+.terminosToggle:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.terminosToggle:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 40%, transparent); outline-offset: 2px; }
+.terminosAbierto { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
+.terminosIcono { display: grid; flex: none; width: 34px; height: 34px; place-items: center; border-radius: 10px; background: var(--tone-blue); color: var(--accent); }
+.terminosFlecha { margin-left: auto; color: var(--text-secondary); transition: rotate .3s cubic-bezier(.23, 1, .32, 1); }
+.terminosAbierto .terminosFlecha { rotate: 180deg; }
+
+.terminosPanel { display: grid; grid-template-rows: 0fr; margin-top: 0; opacity: 0; transition: grid-template-rows .4s cubic-bezier(.23, 1, .32, 1), opacity .3s, margin-top .3s; }
+.terminosPanelAbierto { grid-template-rows: 1fr; margin-top: 10px; opacity: 1; }
+.terminosRecorte { min-height: 0; overflow: hidden; }
+.terminos { max-height: 220px; padding: 18px 20px; overflow-y: auto; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-muted); color: var(--color-text); scrollbar-width: thin; }
+.terminos:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 40%, transparent); outline-offset: 2px; }
+.terminos h4 { margin: 0 0 14px; font-size: .95rem; font-weight: 700; letter-spacing: -.01em; }
+.terminos ol { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: clausula; }
+.terminos li { position: relative; padding-left: 30px; counter-increment: clausula; }
+.terminos li::before { content: counter(clausula) "."; position: absolute; left: 0; top: 0; color: var(--accent); font-size: .85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.terminos li strong { display: block; margin-bottom: 3px; font-size: .88rem; font-weight: 650; }
+.terminos li p { margin: 0; color: var(--text-secondary); font-size: .84rem; line-height: 1.6; text-align: justify; hyphens: auto; }
+@media (prefers-reduced-motion: reduce) { .terminosPanel, .terminosFlecha, .terminosToggle { transition: none; } }

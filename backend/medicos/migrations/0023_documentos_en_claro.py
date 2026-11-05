@@ -2,20 +2,44 @@
 
 from django.db import migrations, models
 
+from core.cifrado import PREFIJO_DOCUMENTO, descifrar_documento_estricto
 
-PENDIENTES = [('Medico', 'cedula')]
+LONGITUD = 30
 
 
 def descifrar_documentos(apps, schema_editor):
-    """Vuelve a guardar en claro los documentos que estaban cifrados (el campo los lee ya descifrados)."""
-    for modelo, campo in PENDIENTES:
-        Modelo = apps.get_model("medicos", modelo)
-        tabla = Modelo._meta.db_table
-        columna = Modelo._meta.get_field(campo).column
-        with schema_editor.connection.cursor() as cursor:
-            for pk, valor in list(Modelo.objects.values_list("pk", campo)):
-                if valor:
-                    cursor.execute(f"UPDATE {tabla} SET {columna} = %s WHERE id = %s", [valor, pk])
+    """Guarda en claro las cédulas cifradas antes de reducir la columna.
+    Valida todo sin escribir; si un valor no se puede descifrar o no cabe, se detiene sin tocar ni truncar nada."""
+    qn = schema_editor.quote_name
+    Modelo = apps.get_model("medicos", "Medico")
+    tabla, columna, pk = Modelo._meta.db_table, Modelo._meta.get_field("cedula").column, Modelo._meta.pk.column
+    consulta = f"SELECT {qn(pk)}, {qn(columna)} FROM {qn(tabla)} WHERE {qn(columna)} IS NOT NULL AND {qn(columna)} <> ''"
+    errores, cambios, vistos = [], [], {}
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute(consulta)
+        for clave, crudo in cursor.fetchall():
+            try:
+                claro = descifrar_documento_estricto(crudo)
+            except ValueError as error:
+                errores.append(f"{tabla}.{columna} id={clave}: {error}")
+                continue
+            if len(claro) > LONGITUD:
+                errores.append(f"{tabla}.{columna} id={clave}: el documento mide {len(claro)} caracteres y la columna admite {LONGITUD}")
+            elif claro in vistos:
+                errores.append(f"{tabla}.{columna} id={clave}: documento repetido con id={vistos[claro]}")
+            else:
+                vistos[claro] = clave
+                if claro != crudo:
+                    cambios.append((clave, crudo, claro))
+        if errores:
+            raise RuntimeError("No se modificó ningún dato. Corrige lo siguiente y vuelve a ejecutar la migración:\n  - " + "\n  - ".join(errores[:50]))
+        for clave, crudo, claro in cambios:
+            cursor.execute(f"UPDATE {qn(tabla)} SET {qn(columna)} = %s WHERE {qn(pk)} = %s AND {qn(columna)} = %s", [claro, clave, crudo])
+            if cursor.rowcount != 1:
+                raise RuntimeError(f"{tabla}.{columna} id={clave}: la fila cambió mientras se migraba; no se continuó")
+        cursor.execute(consulta)
+        if any(str(v).startswith(PREFIJO_DOCUMENTO) or len(v) > LONGITUD for _, v in cursor.fetchall()):
+            raise RuntimeError(f"{tabla}.{columna}: quedaron valores cifrados o demasiado largos tras la conversión")
 
 
 class Migration(migrations.Migration):

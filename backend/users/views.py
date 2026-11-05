@@ -1026,7 +1026,9 @@ class RevisionFacialDetalleView(APIView):
         if not serializer.is_valid():
             return respuesta_serializer_invalido(serializer.errors)
         datos = serializer.validated_data
-        if datos["decision"] in ("legitimo", "bloquear"):
+        if datos["decision"] == "habilitar":
+            resultado, status_code = facial.habilitarCuentaBloqueadaService(proceso_id, request.user.pk)
+        elif datos["decision"] in ("legitimo", "bloquear"):
             resultado, status_code = facial.resolverRevisionPosteriorService(
                 proceso_id, datos["decision"], datos.get("motivo", ""), request.user.pk
             )

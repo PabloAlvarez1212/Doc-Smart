@@ -161,7 +161,7 @@ export const useRegister = (role, setRole) => {
             setDocumentoCargado(true)
             setDocumentoVerificado(true)
             setFacialListo(true)
-            setStep(3)
+            setStep(4)
             report('success', 'Tu identidad fue verificada. Completa los datos que faltan para terminar tu registro.')
         }, 'Retomando tu registro…')
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -210,6 +210,7 @@ export const useRegister = (role, setRole) => {
     const handleNextStep = async () => {
         if (ocupado.current || loading) return
         if (step === 2) return handleDocumento()
+        if (step === 3) return facialListo ? setStep(4) : undefined
         if (step === 1) {
             if (mostrarValidacion(validateRegisterStep1(form, role))) return
             return ejecutarPaso(async () => {
@@ -237,7 +238,7 @@ export const useRegister = (role, setRole) => {
                         setDocumentoVerificado(true)
                         setFacialListo(true)
                         report('success', 'Tu identidad ya fue verificada. Completa los datos que faltan para terminar tu registro.')
-                        setStep(3)
+                        setStep(4)
                         return
                     }
                 }
@@ -266,7 +267,7 @@ export const useRegister = (role, setRole) => {
                 setStep(2)
             })
         }
-        if (step !== 3 || !procesoId || !documentoVerificado) return
+        if (step !== 4 || !procesoId || !documentoVerificado) return
         if (mostrarValidacion(role === 'paciente' ? validateRegisterPacienteStep2(form) : validateRegisterMedicoStep2(form))) return
         return ejecutarPaso(async () => {
             if (!datosGuardados) {
@@ -293,18 +294,18 @@ export const useRegister = (role, setRole) => {
                 if (response.data?.datos_guardados !== true) throw new Error('Todavía no se confirmaron los datos')
                 setDatosGuardados(true)
             }
-            setStep(4)
+            setStep(5)
         }, role === 'medico' ? 'Guardando tus datos profesionales y hoja de vida…' : 'Guardando tus datos adicionales…')
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
         if (ocupado.current || loading) return
-        if (step < 4) return handleNextStep()
-        if (step === 5) return handleVerificarOtp()
+        if (step < 5) return handleNextStep()
+        if (step === 6) return handleVerificarOtp()
         if (!procesoId || !documentoVerificado || !datosGuardados) return
         const credenciales = { correo: form.correo.trim().toLowerCase(), contraseña: form.contraseña }
-        if (correoConfigurado && JSON.stringify(credenciales) === JSON.stringify(credencialesEnviadas)) return setStep(5)
+        if (correoConfigurado && JSON.stringify(credenciales) === JSON.stringify(credencialesEnviadas)) return setStep(6)
         if (mostrarValidacion(validateRegisterStep3(form))) return
         return ejecutarPaso(async () => {
             const response = await registroService(role, 'credenciales', {proceso_id:procesoId, correo:form.correo, contraseña:form.contraseña})
@@ -312,12 +313,12 @@ export const useRegister = (role, setRole) => {
             setCredencialesEnviadas(credenciales)
             setCorreoConfigurado(true)
             if (otp) setOtp('')
-            setStep(5)
+            setStep(6)
         }, correoConfigurado ? 'Actualizando tus datos y enviando un nuevo código…' : 'Preparando tu correo y enviando el código…')
     }
 
     const handleVerificarOtp = async () => {
-        if (step !== 5 || !procesoId || !documentoVerificado || !datosGuardados || !correoConfigurado) return
+        if (step !== 6 || !procesoId || !documentoVerificado || !datosGuardados || !correoConfigurado) return
         if (!correoVerificado && mostrarValidacion(validateRegisterOtp(otp))) return
         let recienVerificado = false
         return ejecutarPaso(async () => {
@@ -342,7 +343,7 @@ export const useRegister = (role, setRole) => {
 
     const handleDocumento = async () => {
         if (step !== 2 || !procesoId) return
-        if (documentoVerificado) return facialListo ? setStep(3) : undefined
+        if (documentoVerificado) return setStep(facialListo ? 4 : 3)
         if (mostrarValidacion(validateRegisterDocumento(form.tipo_documento, documentoFrente, documentoReverso))) return
         return ejecutarPaso(async () => {
             if (!documentoCargado) {
@@ -378,9 +379,10 @@ export const useRegister = (role, setRole) => {
             if (facial?.data?.obligatoria === false || ['aprobado', 'alternativa'].includes(facial?.data?.estado)) {
                 setFacialListo(true)
                 report("success","Los datos del documento coinciden. Continúa con el siguiente paso.")
-                setStep(3)
+                setStep(4)
             } else {
-                report("success","Documento verificado. Completa la verificación facial para continuar.")
+                report("success","Documento verificado. Ahora verifica tu rostro para continuar.")
+                setStep(3)
             }
         }, "Verificando tu documento de identidad…")
     }
@@ -401,11 +403,11 @@ export const useRegister = (role, setRole) => {
             : estado === 'revision'
                 ? "Tu identidad se revisará junto con tu solicitud profesional. Continúa con tu registro."
                 : "Rostro verificado. Continúa con el siguiente paso.")
-        setStep(3)
+        setStep(4)
     }
 
     const handleReenviarOtp = () => {
-        if (step !== 5 || !correoConfigurado || correoVerificado) return
+        if (step !== 6 || !correoConfigurado || correoVerificado) return
         return ejecutarPaso(async () => {
             await registroService(role, 'reenviar-codigo', { proceso_id: procesoId })
             report('success','Código reenviado. Revisa tu correo e ingresa el nuevo código.')

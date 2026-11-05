@@ -275,3 +275,21 @@ export const solicitarCambioCorreoService = async (correo) =>
     (await api.post("/medicos/perfil/correo/solicitar-cambio/", { correo })).data;
 export const confirmarCambioCorreoService = async (cambio_id, codigo) =>
     (await api.post("/medicos/perfil/correo/confirmar-cambio/", { cambio_id, codigo })).data;
+
+
+// ── Médicos favoritos del paciente ───────────────────────────────────────────
+
+export const listarFavoritosServices = async function () {
+    const response = await api.get("/medicos/favoritos/");
+    return response.data;
+};
+
+export const agregarFavoritoService = async function (idMedico) {
+    const response = await api.post(`/medicos/favoritos/${idMedico}/`);
+    return response.data;
+};
+
+export const quitarFavoritoService = async function (idMedico) {
+    const response = await api.delete(`/medicos/favoritos/${idMedico}/`);
+    return response.data;
+};

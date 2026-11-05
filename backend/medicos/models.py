@@ -217,3 +217,28 @@ class ExcepcionDisponibilidadMedico(models.Model):
             f"{self.get_tipo_display()}"
         )
 
+
+
+class MedicoFavorito(models.Model):
+    """Médico que un paciente guardó para volver a encontrarlo rápido."""
+
+    paciente = models.ForeignKey(
+        "users.Usuario",
+        on_delete=models.CASCADE,
+        related_name="medicos_favoritos",
+    )
+    medico = models.ForeignKey(
+        Medico,
+        on_delete=models.CASCADE,
+        related_name="favoritos",
+    )
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado_en"]
+        constraints = [
+            models.UniqueConstraint(fields=["paciente", "medico"], name="favorito_unico_por_paciente_y_medico"),
+        ]
+
+    def __str__(self):
+        return f"{self.paciente_id} → {self.medico_id}"

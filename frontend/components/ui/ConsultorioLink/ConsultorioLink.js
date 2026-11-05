@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MapPin, Navigation, ArrowUpRight } from "lucide-react";
-import Modal from "../Modal/Modal";
+import LocationModal from "../LocationModal/LocationModal";
 import styles from "./ConsultorioLink.module.css";
 
 export default function ConsultorioLink({
@@ -65,57 +65,14 @@ export default function ConsultorioLink({
                 {compact ? <><strong>{ciudad || 'Consultorio'}</strong><span className={styles.compactAddress}>{direccion}<ArrowUpRight size={14} aria-hidden="true" /></span></> : <>{direccion}<span>Ver mapa y cómo llegar</span></>}
             </button>
 
-            <Modal
+            <LocationModal
                 abierto={abierto}
                 onCerrar={() => setAbierto(false)}
-                titulo="Ubicación del consultorio"
-                width="760px"
-                icon={<MapPin size={24} aria-hidden="true" />}
-            >
-                <div className={styles.content}>
-                    <p className={styles.address}>{direccion}</p>
-
-                    {!tieneCoordenadas ? (
-                        <p>
-                            El médico todavía no ha confirmado la
-                            ubicación exacta de este consultorio.
-                        </p>
-                    ) : (
-                        <>
-                            {abierto && mapaUrl ? (
-                                <iframe
-                                    className={styles.map}
-                                    title={`Mapa del consultorio: ${direccion}`}
-                                    src={mapaUrl}
-                                    loading="lazy"
-                                    allowFullScreen
-                                    referrerPolicy="no-referrer-when-downgrade"
-                                />
-                            ) : (
-                                <p>
-                                    El mapa no está disponible.
-                                    Puedes abrir la ruta en Google Maps.
-                                </p>
-                            )}
-
-                            <a
-                                className={styles.directions}
-                                href={rutaUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <Navigation size={18} aria-hidden="true" />
-                                Cómo llegar
-                            </a>
-
-                            <p className={styles.note}>
-                                Google Maps abrirá la ruta para que
-                                elijas tu punto de salida y transporte.
-                            </p>
-                        </>
-                    )}
-                </div>
-            </Modal>
+                direccion={direccion}
+                ciudad={ciudad}
+                latitud={latitud}
+                longitud={longitud}
+            />
         </>
     );
 }

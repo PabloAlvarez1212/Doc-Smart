@@ -106,3 +106,17 @@ def proceso_reanudable(tipo_registro, tipo_documento, numero, datos):
         and proceso.fecha_nacimiento_declarada == datos["fecha_nacimiento"]
     )
     return proceso if coincide else None
+
+
+def documento_en_otro_perfil(tipo_registro, numero):
+    """Hay un trámite vigente (en curso, en revisión o por retomar) con el mismo documento
+    en el otro tipo de perfil. Un mismo documento no puede avanzar en dos registros a la vez."""
+    from django.db.models import Q
+    ahora = timezone.now()
+    return ProcesoRegistroUsuario.objects.filter(
+        numero_documento_declarado=numero,
+    ).exclude(tipo_registro=tipo_registro).exclude(
+        estado__in=(Estado.COMPLETADO, Estado.BLOQUEADO, Estado.EXPIRADO),
+    ).filter(
+        Q(expira_en__gt=ahora) | Q(estado_facial=EstadoFacial.REVISION) | Q(token_reanudacion_expira_en__gt=ahora)
+    ).exists()

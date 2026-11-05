@@ -154,3 +154,20 @@
 .summary svg { flex: none; }
 .summary strong { font-size: 1rem; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 @media (max-width: 760px) { .hero { padding: 22px 18px; } .chips { width: 100%; } .chips .summary { flex: 1 1 150px; } }
+
+
+/* ── Encabezado simple: título, descripción y una etiqueta pequeña (sin banner) ── */
+.hero { position: static !important; overflow: visible !important; display: flex; align-items: flex-end !important; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; margin: 0 0 22px !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; }
+.hero::before, .hero::after { display: none !important; }
+.hero > * { animation: none !important; }
+.icon { display: none !important; }
+.eyebrow { display: none !important; }
+.heading { display: block !important; min-width: 0; }
+.heading h1 { margin: 0; color: var(--color-text); font-size: clamp(1.75rem, 3vw, 2.1rem) !important; font-weight: 700; line-height: 1.12 !important; letter-spacing: -.03em; text-wrap: balance; }
+.description { max-width: 62ch; margin: 6px 0 0 !important; color: var(--text-secondary); font-size: .95rem !important; line-height: 1.5; }
+.summary { display: inline-flex !important; align-items: center; gap: 6px; flex: none; height: 32px; padding: 0 12px !important; border: 0 !important; border-radius: 10px !important; background: color-mix(in srgb, var(--accent) 10%, transparent) !important; color: var(--accent) !important; font-size: .78rem; font-weight: 650; box-shadow: none !important; }
+.summary svg { width: 15px; height: 15px; }
+.summary div { display: inline-flex; gap: 6px; align-items: center; }
+.summary span:not(:first-child), .summary small { display: none; }
+.summary strong { color: inherit; font-size: inherit; font-weight: 650; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; flex: none; width: auto !important; }

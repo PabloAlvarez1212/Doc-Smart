@@ -34,6 +34,9 @@ export default function Header() {
                 home="/patient/home"
                 onSettings={() => setModal(true)}
                 sections={["Atención", "Mi salud"]}
+                favorites={{
+                    href: "/patient/favorites",
+                }}
                 notifications={{
                     href: "/patient/notifications",
                     count: noLeidas ?? 0,

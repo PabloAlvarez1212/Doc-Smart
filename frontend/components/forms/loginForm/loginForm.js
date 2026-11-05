@@ -3,7 +3,8 @@ import VerificationStatus from '../../ui/VerificationStatus/VerificationStatus'
 import { useLogin } from './useLogin'
 import Button from '../../ui/Button/Button'
 import Input from '../../ui/Input/Input'
-import { LockKeyhole } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRight, LockKeyhole, LogIn } from 'lucide-react'
 import styles from './loginForm.module.css'
 
 export default function LoginForm() {
@@ -93,7 +94,7 @@ export default function LoginForm() {
                             : undefined
                     }
                     type="email"
-                    placeholder="Correo:"
+                    placeholder="nombre@correo.com"
                     name="correo"
                     id="correo"
                     className={styles.input}
@@ -132,7 +133,7 @@ export default function LoginForm() {
                             : undefined
                     }
                     type="password"
-                    placeholder="Contraseña:"
+                    placeholder="Tu contraseña"
                     sizeEye={26}
                     name="contraseña"
                     id="contraseña"
@@ -150,6 +151,8 @@ export default function LoginForm() {
                     </p>
                 )}
 
+                <Link href="/forgot-password" className={styles.forgot}>¿Olvidaste tu contraseña?</Link>
+
             </div>
 
             <Button
@@ -157,12 +160,14 @@ export default function LoginForm() {
                 className={styles.btn}
                 disabled={loading || estaBloqueado}
             >
-                {loading
-                    ? 'Iniciando sesión…'
-                    : estaBloqueado
-                        ? 'Espera para volver a intentar'
-                        : 'Entrar'
-                }
+                <span className={styles.btnContent}>
+                    {loading
+                        ? 'Iniciando sesión…'
+                        : estaBloqueado
+                            ? 'Espera para volver a intentar'
+                            : <>Entrar<ArrowRight size={18} aria-hidden="true" /></>
+                    }
+                </span>
             </Button>
 
         </form>

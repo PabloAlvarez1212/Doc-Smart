@@ -130,3 +130,20 @@
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+
+/* ── Filtros con el diseño del dashboard del médico ──────────────────────── */
+.filtersPanel { border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
+.filtersPanel::before, .filtersPanel::after { display: none !important; }
+.filtersHeading,
+.filtersIcon { position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important;margin:0!important;padding:0!important;border:0!important }
+.filterControls { display: flex !important; flex-wrap: wrap; align-items: flex-end; gap: 14px 18px; padding: 0 !important; }
+.filterField > :is(label, span:first-child) { color: var(--text-secondary); font-size: .72rem; font-weight: 600; }
+.filterField :is(input, select) { height: 38px; min-height: 38px !important; padding: 0 12px; border: 1px solid var(--control-border) !important; border-radius: 12px !important; background: var(--surface); color: var(--color-text); font: inherit; font-size: .85rem; transition: border-color .16s, box-shadow .16s; }
+.filterField :is(input, select):focus-visible { outline: 0; border-color: var(--accent) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.selectWrapper { min-height: 38px !important; border: 1px solid var(--control-border) !important; border-radius: 12px !important; background: var(--surface); transition: border-color .16s, box-shadow .16s; }
+.selectWrapper:focus-within { border-color: var(--accent) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent) !important; }
+.selectWrapper input { height: auto !important; min-height: 0 !important; border: 0 !important; box-shadow: none !important; background: transparent !important; }
+.clearButtonNone { display: inline-flex; align-items: center; gap: 8px; height: 38px; min-height: 38px !important; padding: 0 16px !important; border: 1px solid var(--control-border) !important; border-radius: 12px !important; background: transparent !important; color: var(--text-secondary) !important; font-size: .85rem; font-weight: 650; }
+.clearButtonNone:not(:disabled):hover { background: var(--surface-muted) !important; color: var(--color-text) !important; }
+

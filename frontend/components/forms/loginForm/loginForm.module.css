@@ -129,3 +129,16 @@
         margin-top: -5px;
     }
 }
+
+
+/* ── Rediseño: campos de 48 px, enlace de recuperación bajo la contraseña y botón con flecha ── */
+.formLogin { gap: 18px; }
+.inputs { gap: 8px; }
+.label { margin-top: 6px; font-size: .82rem; font-weight: 650; }
+.label:first-child { margin-top: 0; }
+.input { min-height: 48px !important; border-radius: 14px !important; font-size: 1rem !important; }
+.forgot { align-self: flex-end; margin-top: 2px; color: var(--accent); font-size: .84rem; font-weight: 650; text-decoration: none; background: linear-gradient(currentColor, currentColor) 0 100% / 0 1.5px no-repeat; transition: background-size .3s cubic-bezier(.23, 1, .32, 1); }
+.forgot:hover { background-size: 100% 1.5px; }
+.forgot:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 40%, transparent); outline-offset: 3px; border-radius: 4px; }
+.btn { min-height: 50px; margin: 2px 0 0; border-radius: 14px; font-size: 1rem !important; font-weight: 650; }
+.btnContent { display: inline-flex; align-items: center; justify-content: center; gap: 9px; }

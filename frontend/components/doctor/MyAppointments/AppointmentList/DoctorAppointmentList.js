@@ -1,5 +1,6 @@
 "use client";
 
+import { HeartPulse as ModalIconHealth } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -294,7 +295,9 @@ export default function DoctorAppointmentList({
                 onCerrar={() => setCitaAbierta(null)}
                 titulo="Información médica del paciente"
                 text={citaVisible?.paciente || ""}
+                headerVariant="white"
                 width="800px"
+                icon={<ModalIconHealth size={22} aria-hidden="true" />}
             >
                 {citaVisible && (
                     <InfoMedicaCard
@@ -391,6 +394,16 @@ export function InfoMedicaCard({ citaId, panelId }) {
                             {datos.paciente.estatura != null
                                 ? `${datos.paciente.estatura} m`
                                 : "Sin informar"}
+                        </span>
+
+                        <span>
+                            Género:{" "}
+                            {datos.paciente.genero_display || "Sin informar"}
+                        </span>
+
+                        <span>
+                            Tipo de sangre:{" "}
+                            {datos.paciente.tipo_sangre || "Sin informar"}
                         </span>
                     </div>
 

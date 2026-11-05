@@ -7,7 +7,7 @@ from datetime import timedelta
 from citas.models import Cita
 from calificaciones.models import Calificacion
 from notificaciones.models import Notificacion
-from medicos.models import Medico, Especialidad,SolicitudValidacionMedico, DisponibilidadMedico, ExcepcionDisponibilidadMedico
+from medicos.models import Medico, Especialidad,SolicitudValidacionMedico, DisponibilidadMedico, ExcepcionDisponibilidadMedico, MedicoFavorito
 from citas.models import Cita
 from historial_medico.models import HistorialClinico
 from catalogos.models import Ciudad
@@ -52,7 +52,8 @@ def listarMedicosPublicosService(
     especialidad=None,
     departamento=None,
     ciudad=None,
-    calificacion_minima=None
+    calificacion_minima=None,
+    ids=None
 ):
 
     medicos = filtrarMedicosAprobados(
@@ -126,6 +127,9 @@ def listarMedicosPublicosService(
             output_field=IntegerField(),
         )
     )
+
+    if ids is not None:
+        medicos = medicos.filter(id__in=ids)
 
     # FILTRAR POR NOMBRE
 
@@ -2023,3 +2027,50 @@ def obtenerEstadisticasMedicosService(anio=None, mes=None):
         })
 
     return data, 200
+
+
+
+# ── MÉDICOS FAVORITOS DEL PACIENTE ────────────────────────────────────────────
+
+def idsFavoritosPacienteService(paciente):
+    return list(
+        MedicoFavorito.objects.filter(paciente=paciente).values_list("medico_id", flat=True)
+    )
+
+
+def listarFavoritosPacienteService(paciente):
+    """Devuelve los favoritos con la misma información que la búsqueda de médicos, del más reciente al más antiguo."""
+    ids = idsFavoritosPacienteService(paciente)
+
+    if not ids:
+        return [], 200
+
+    datos, estado = listarMedicosPublicosService(ids=ids)
+
+    if estado != 200:
+        return datos, estado
+
+    orden = {medico_id: posicion for posicion, medico_id in enumerate(ids)}
+    datos = sorted(datos, key=lambda medico: orden.get(medico["id"], len(orden)))
+
+    for medico in datos:
+        medico["es_favorito"] = True
+
+    return datos, 200
+
+
+def agregarFavoritoService(paciente, id_medico):
+    medico = filtrarMedicosAprobados(Medico.objects.filter(id=id_medico)).first()
+
+    if not medico:
+        return "Médico no encontrado", 404
+
+    MedicoFavorito.objects.get_or_create(paciente=paciente, medico=medico)
+
+    return {"id_medico": medico.id, "es_favorito": True}, 200
+
+
+def quitarFavoritoService(paciente, id_medico):
+    MedicoFavorito.objects.filter(paciente=paciente, medico_id=id_medico).delete()
+
+    return {"id_medico": id_medico, "es_favorito": False}, 200

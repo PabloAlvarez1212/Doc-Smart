@@ -13,7 +13,7 @@ from medicos.models import Medico,SolicitudValidacionMedico
 from users.serializers import UsuarioSerializer, MedicoSerializer,UsuarioPerfilSerializer
 from users.documento_identidad import DocumentoError,extraer_datos_documento
 from users.validacion_facial import contarVerificacionesPorConfirmar,facial_cumplida,marcar_revision_posterior
-from users.registros_abandonados import proceso_en_revision,purgar_abandonados,proceso_reanudable,_borrar_archivo
+from users.registros_abandonados import documento_en_otro_perfil,proceso_en_revision,purgar_abandonados,proceso_reanudable,_borrar_archivo
 import secrets
 from django.utils import timezone
 from datetime import timedelta
@@ -671,6 +671,8 @@ def registrarUsuarioService(datos, tipo_registro="paciente"):
 
     if Usuario.objects.filter(cedula=numero).exists() or Medico.objects.filter(cedula=numero).exists():
         return {"numero_documento":["Este documento ya está registrado"]},400
+    if documento_en_otro_perfil(tipo_registro,numero):
+        return {"numero_documento":["Este documento ya está siendo usado en otro registro en proceso"]},400
 
     en_revision=proceso_en_revision(tipo_registro,tipo,numero)
     if en_revision:
@@ -805,6 +807,8 @@ def actualizarDatosRegistroService(datos, tipo_registro="paciente"):
     numero=datos["numero_documento"].strip().upper()
     if Usuario.objects.filter(cedula=numero).exists() or Medico.objects.filter(cedula=numero).exists():
         return {"numero_documento":["Este documento ya está registrado"]},400
+    if documento_en_otro_perfil(tipo_registro,numero):
+        return {"numero_documento":["Este documento ya está siendo usado en otro registro en proceso"]},400
     otro=proceso_en_revision(tipo_registro,tipo,numero)
     if otro and otro.pk!=proceso.pk:
         return {"en_revision":True,"general":["Ya existe un registro con estos datos pendiente de revisión."]},409

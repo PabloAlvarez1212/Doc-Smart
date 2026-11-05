@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Camera, Mail, Phone, Trash2 } from "lucide-react";
+import { CalendarCheck2, CalendarDays, Camera, Mail, Phone, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRef } from "react";
 import styles from "./ProfileSidebar.module.css";
@@ -9,6 +9,7 @@ export default function ProfileSidebar({ perfil, actualizarFotoPerfil, guardando
     const inputFotoRef = useRef(null);
     const fullName = [perfil?.nombre, perfil?.apellido].filter(Boolean).join(" ") || "Usuario de DocSmart";
     const role = String(perfil?.rol || "paciente");
+    const miembroDesde = perfil?.miembro_desde ? new Intl.DateTimeFormat("es-CO", { month: "long", year: "numeric" }).format(new Date(perfil.miembro_desde)) : null;
     const roleLabel = `${role.charAt(0).toUpperCase()}${role.slice(1)}`;
 
     const handleSeleccionarFoto = (event) => {
@@ -90,6 +91,13 @@ export default function ProfileSidebar({ perfil, actualizarFotoPerfil, guardando
                     <div>
                         <dt>Edad</dt>
                         <dd>{perfil?.edad != null ? `${perfil.edad} años` : "No disponible"}</dd>
+                    </div>
+                </div>
+                <div>
+                    <span aria-hidden="true"><CalendarCheck2 size={18} /></span>
+                    <div>
+                        <dt>Miembro desde</dt>
+                        <dd style={{ textTransform: "capitalize" }}>{miembroDesde || "No disponible"}</dd>
                     </div>
                 </div>
             </dl>

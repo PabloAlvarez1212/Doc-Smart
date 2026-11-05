@@ -1,5 +1,6 @@
 "use client";
 
+import { Stethoscope as ModalIconCatalog } from "lucide-react";
 import FormCatalogo from "../../../../components/forms/CatalogoForm/FormCatalogo";
 import { useCrud } from "../../../../components/hooks/useCrud";
 import DataTable from "../../../../components/ui/DataTable/DataTable";
@@ -71,6 +72,9 @@ export default function Especialidad() {
                         ? "Editar Especialidad"
                         : "Nueva Especialidad"
                 }
+                text="Las especialidades permiten a los pacientes encontrar al médico indicado."
+                headerVariant="white"
+                icon={<ModalIconCatalog size={22} aria-hidden="true" />}
             >
                 <FormCatalogo
                     formData={crud.formData}

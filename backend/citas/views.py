@@ -449,6 +449,9 @@ class InfoPacienteCitaView(APIView):
                 "apellido": paciente.apellido,
                 "peso": paciente.peso,
                 "estatura": paciente.estatura,
+                "genero": paciente.genero,
+                "genero_display": paciente.get_genero_display() if paciente.genero else None,
+                "tipo_sangre": paciente.tipo_sangre,
             },
             "informacion_salud": InfoUserSerializer(
                 registros, many=True

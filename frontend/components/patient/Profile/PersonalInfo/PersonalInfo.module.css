@@ -374,3 +374,51 @@
 .revealButton:active{transform:scale(.92)}
 .revealButton:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 .privateNote{display:flex;align-items:center;gap:5px;margin-top:6px;color:var(--text-secondary);font-size:.74rem}
+
+
+/* Confirmación de cambios */
+.changeList{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.changeList li{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px 10px;padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:var(--surface-muted)}
+@media(prefers-reduced-motion:no-preference){.changeList li{animation:rowIn 380ms cubic-bezier(.23,1,.32,1) both}.changeList li:nth-child(2){animation-delay:50ms}.changeList li:nth-child(3){animation-delay:100ms}.changeList li:nth-child(4){animation-delay:150ms}}
+@keyframes rowIn{from{opacity:0;transform:translateY(8px)}}
+.changeList strong{grid-column:1/-1;font-size:.78rem;color:var(--text-secondary);font-weight:650}
+.changeList svg{color:var(--text-secondary)}
+.before{color:var(--text-secondary);font-size:.86rem;overflow-wrap:anywhere;text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--text-secondary) 50%,transparent)}
+.after{color:var(--color-text);font-size:.88rem;font-weight:650;overflow-wrap:anywhere}
+.modalNote{display:flex;gap:8px;align-items:flex-start;margin-top:14px;color:var(--text-secondary);font-size:.8rem;line-height:1.5}
+.modalNote svg{flex:none;margin-top:2px}
+.modalSave,.modalCancel{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border-radius:12px;font:inherit;font-size:.9rem;font-weight:650;cursor:pointer;transition:background-color 180ms,transform 140ms}
+.modalSave{border:0;color:var(--action-on);background:var(--action-primary-bg)}
+.modalSave:hover:not(:disabled){background:var(--action-primary-hover)}
+.modalCancel{border:1px solid var(--control-border);color:var(--color-text);background:transparent}
+.modalCancel:hover:not(:disabled){background:var(--surface-muted)}
+.modalSave:active:not(:disabled),.modalCancel:active:not(:disabled){transform:scale(.97)}
+.modalSave:disabled,.modalCancel:disabled{opacity:.6;cursor:wait}
+.modalSave:focus-visible,.modalCancel:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+
+/* Botones de editar y eliminar dato de salud */
+.actions{display:flex;gap:8px}
+.actions .editButton,.actions .deleteButton{position:relative;display:grid;place-items:center;width:42px;height:42px;padding:0;border:1px solid var(--border);border-radius:13px;background:var(--surface-muted);color:var(--text-secondary);cursor:pointer;transition:background-color 220ms,color 220ms,border-color 220ms,transform 160ms cubic-bezier(.34,1.32,.52,1),box-shadow 220ms}
+.actions .editButton{color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.actions .deleteButton{color:var(--ink-red);background:var(--tone-red);border-color:color-mix(in srgb,var(--ink-red) 24%,transparent)}
+.actions .editButton svg,.actions .deleteButton svg{transform-origin:50% 90%}
+@media(hover:hover){
+  .actions .editButton:not(:disabled):hover{background:var(--accent);color:var(--on-accent,#fff);border-color:transparent;transform:translateY(-2px);box-shadow:0 8px 18px -8px color-mix(in srgb,var(--accent) 70%,transparent)}
+  .actions .editButton:not(:disabled):hover svg{animation:penWrite 560ms ease-in-out}
+  .actions .deleteButton:not(:disabled):hover{background:var(--ink-red);color:var(--tone-red);border-color:transparent;transform:translateY(-2px);box-shadow:0 8px 18px -8px color-mix(in srgb,var(--ink-red) 70%,transparent)}
+  .actions .deleteButton:not(:disabled):hover svg{animation:binWiggle 520ms ease-in-out}
+}
+.actions .editButton:not(:disabled):active,.actions .deleteButton:not(:disabled):active{transform:scale(.88)}
+.actions .deleteButton:not(:disabled):active svg{animation:binDrop 260ms ease-in forwards}
+.actions .editButton:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 40%,transparent);outline-offset:2px}
+.actions .deleteButton:focus-visible{outline:3px solid color-mix(in srgb,var(--ink-red) 40%,transparent);outline-offset:2px}
+.actions .editButton:disabled,.actions .deleteButton:disabled{opacity:.5;cursor:not-allowed}
+@keyframes penWrite{0%,100%{transform:rotate(0) translate(0,0)}25%{transform:rotate(-16deg) translate(-1px,-1px)}55%{transform:rotate(10deg) translate(1px,1px)}80%{transform:rotate(-6deg)}}
+@keyframes binWiggle{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg) translateY(-1px)}45%{transform:rotate(12deg)}70%{transform:rotate(-7deg)}}
+@keyframes binDrop{to{transform:translateY(3px) scale(.7);opacity:.4}}
+@media(prefers-reduced-motion:reduce){.actions .editButton,.actions .deleteButton,.actions svg{animation:none!important;transition:none!important}}
+
+/* Campos alineados aunque uno lleve una nota debajo, y sello «Verificado» en el color del paciente */
+.fieldsGrid,.medicalGrid{align-items:start}
+.field{align-content:start}
+.lockedField .labelRow span{color:var(--accent)}

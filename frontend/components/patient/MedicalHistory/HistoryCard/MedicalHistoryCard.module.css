@@ -244,3 +244,16 @@
 .date { line-height: 1.5; }
 .action { min-height: 44px; }
 .clinicalData span { letter-spacing: normal; text-transform: none; }
+
+
+/* ── Rediseño y animaciones ── */
+.card { border-radius: 20px; transition: transform .3s cubic-bezier(.23, 1, .32, 1), border-color .2s, box-shadow .3s; }
+@media (hover: hover) { .card:hover { transform: translateX(4px); border-color: var(--accent); box-shadow: 0 16px 34px -26px rgb(15 23 42 / 45%); } }
+.marker { transition: transform .35s cubic-bezier(.34, 1.32, .52, 1), box-shadow .3s; }
+@media (hover: hover) { .entry:hover .marker { transform: scale(1.25); } }
+.action { transition: background-color .2s, transform .16s cubic-bezier(.34, 1.32, .52, 1), box-shadow .2s, color .2s; }
+.action:active { transform: scale(.95); }
+@media (hover: hover) { .action:hover { transform: translateY(-2px); } }
+@media (prefers-reduced-motion: no-preference) { .entry { animation: entryIn .5s cubic-bezier(.23, 1, .32, 1) both; } }
+@keyframes entryIn { from { opacity: 0; transform: translateY(14px); } }
+@media (prefers-reduced-motion: reduce) { .card, .marker, .action { transition: none; } }

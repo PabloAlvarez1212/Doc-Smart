@@ -361,3 +361,12 @@
 .header{align-items:center}
 .titulo{letter-spacing:-.02em}
 @media(prefers-reduced-motion:reduce){.cerrar:hover{transform:none}}
+
+/* Contenido que entra con calma y pie con botones siempre nítidos */
+@media(prefers-reduced-motion:no-preference){
+  .body>*{animation:modalBodyIn .45s cubic-bezier(.23,1,.32,1) both}
+  .body>*:nth-child(2){animation-delay:50ms}.body>*:nth-child(3){animation-delay:100ms}.body>*:nth-child(4){animation-delay:150ms}.body>*:nth-child(n+5){animation-delay:200ms}
+}
+@keyframes modalBodyIn{from{opacity:0;transform:translateY(10px)}}
+.footer{background:var(--surface)}
+.footer button:not(:disabled){opacity:1}

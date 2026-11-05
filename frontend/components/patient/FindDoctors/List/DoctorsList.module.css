@@ -30,21 +30,25 @@
 }
 
 .list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
 }
+@media (max-width: 900px) { .list { grid-template-columns: minmax(0, 1fr); } }
 
 .loading {
     display: grid;
-    gap: 15px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
 }
+@media (max-width: 900px) { .loading { grid-template-columns: minmax(0, 1fr); } }
 
 .skeleton {
     display: block;
-    min-height: 164px;
+    min-height: 330px;
     border: 1px solid var(--border);
-    border-radius: 15px;
+    border-radius: 22px;
     background: linear-gradient(100deg, var(--surface) 25%, var(--surface-muted) 42%, var(--surface) 60%);
     background-size: 300% 100%;
     animation: loading-shimmer 1.35s ease-in-out infinite;

@@ -1,5 +1,6 @@
 "use client";
 
+import { HeartPulse as ModalIconHealth } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { motion as m, useReducedMotion } from "motion/react";
@@ -198,7 +199,9 @@ export default function MyProfile() {
                         onCerrar={cerrarFormulario}
                         titulo={datoEditado ? "Editar dato médico" : "Agregar dato médico"}
                         text="Registra información importante para tu atención."
+                        headerVariant="white"
                         width="720px"
+                        icon={<ModalIconHealth size={22} aria-hidden="true" />}
                     >
                         <FormInfoSalud
                             key={formAbierto

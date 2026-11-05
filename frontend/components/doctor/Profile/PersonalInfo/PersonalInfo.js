@@ -18,7 +18,7 @@ const ocultar = (valor) => {
     return texto.length <= 3 ? "•".repeat(texto.length) : `${"•".repeat(Math.min(texto.length - 3, 8))}${texto.slice(-3)}`;
 };
 
-function SecretField({ id, label, valor, visible, onToggle, nota }) {
+function SecretField({ id, label, valor, visible, onToggle, nota, ayuda }) {
     return (
         <div className={styles.itemInput}>
             <div className={styles.labelRow}>
@@ -31,6 +31,7 @@ function SecretField({ id, label, valor, visible, onToggle, nota }) {
                     {visible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 </button>
             </div>
+            {ayuda && <p className={styles.fieldHelp}>{ayuda}</p>}
         </div>
     );
 }
@@ -229,7 +230,7 @@ export default function PersonalInfo({
                         <Input id="fechaNacimiento" aria-label="Fecha de nacimiento" name="fechaNacimiento" type="date" value={fechaNacimiento} readOnly disabled={guardando} />
                     </div>
 
-                    <SecretField id="cedula" label="Cédula" valor={perfil?.cedula ?? ""} visible={verCedula} onToggle={() => setVerCedula(v => !v)} nota="Solo tú puedes verla" />
+                    <SecretField id="cedula" label="Cédula" valor={perfil?.cedula ?? ""} visible={verCedula} onToggle={() => setVerCedula(v => !v)} nota="Verificado" />
 
                     <div className={styles.itemInput}>
                         <label htmlFor="telefono">Teléfono</label>
@@ -242,13 +243,11 @@ export default function PersonalInfo({
                             onChange={(event) => setTelefono(event.target.value)}
                             disabled={guardando}
                         />
-                        <p className={styles.fieldHelp}>Los pacientes ven este número en tu perfil.</p>
                     </div>
 
                     <div className={styles.itemInput}>
-                        <label htmlFor="correo">Correo electrónico</label>
+                        <div className={styles.labelRow}><label htmlFor="correo">Correo electrónico</label><span><LockKeyhole size={12} aria-hidden="true" /> Verificado</span></div>
                         <Input id="correo" aria-label="Correo electrónico" name="correo" value={perfil?.correo ?? ""} readOnly />
-                        <p className={styles.fieldHelp}>Los pacientes ven este correo en tu perfil.</p>
                     </div>
                 </div>
             </section>
@@ -265,7 +264,7 @@ export default function PersonalInfo({
                         <Input id="especialidad" aria-label="Especialidad" name="especialidad" value={especialidad} readOnly />
                     </div>
 
-                    <SecretField id="registro-medico" label="Registro médico" valor={perfil?.registro_medico ?? ""} visible={verRegistro} onToggle={() => setVerRegistro(v => !v)} nota="Validado y cifrado" />
+                    <SecretField id="registro-medico" label="Registro médico" valor={perfil?.registro_medico ?? ""} visible={verRegistro} onToggle={() => setVerRegistro(v => !v)} nota="Verificado" />
 
                     <div className={styles.itemInput}>
                         <label htmlFor="anios">Años de experiencia</label>
@@ -280,7 +279,6 @@ export default function PersonalInfo({
                             onChange={(event) => setAniosExperiencia(event.target.value)}
                             disabled={guardando}
                         />
-                        <p className={styles.fieldHelp}>Visible para los pacientes.</p>
                     </div>
 
                     <div className={`${styles.itemInput} ${styles.wide}`}>

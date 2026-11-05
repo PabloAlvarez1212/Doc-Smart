@@ -36,3 +36,34 @@
 .card[data-role="medico"] { --accent:#10813d; --brand-solid:#10813d; --focus:#10813d; --tone-blue:var(--tone-green); }
 :global(:root[data-theme="dark"]) .card[data-role="medico"] { --accent:#43dc6b; --focus:#43dc6b; }
 @media(hover:hover) { .card[data-role="medico"]:hover .action { box-shadow:0 5px 12px rgb(16 129 61 / .28); } }
+
+
+/* ── Rediseño: tarjetas del mismo lenguaje que el resto de DocSmart ── */
+.header h1 { font-weight: 700; letter-spacing: -.04em; }
+.cards { gap: 20px; }
+.card { position: relative; padding: 30px; border-radius: 26px; box-shadow: none; }
+.cardTop { min-height: 0; margin-bottom: 4px; }
+.icon { width: 58px; height: 58px; border-radius: 18px; }
+.badge { display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 999px; background: var(--tone-orange); color: var(--ink-orange); font-size: .74rem; font-weight: 700; }
+.card h2 { margin: 22px 0 10px; font-size: 1.9rem; font-weight: 700; letter-spacing: -.03em; }
+.description { min-height: 0; font-size: .95rem; line-height: 1.6; }
+.features { gap: 10px; padding: 20px 0 26px; }
+.features li { gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--surface-muted); font-size: .88rem; font-weight: 550; transition: translate .25s cubic-bezier(.23, 1, .32, 1); }
+.features svg { display: grid; box-sizing: content-box; padding: 6px; border-radius: 10px; background: var(--surface); color: var(--accent); box-shadow: 0 0 0 1px var(--border); }
+.action { position: relative; overflow: hidden; isolation: isolate; min-height: 52px; padding: 0 20px; border-radius: 15px; background: var(--action-primary-bg, var(--brand-solid)); color: var(--action-on, var(--on-accent)); font-size: .95rem; font-weight: 650; }
+.action::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(110deg, transparent 32%, rgb(255 255 255 / 30%) 50%, transparent 68%); transform: translateX(-130%); transition: transform .7s cubic-bezier(.23, 1, .32, 1); }
+@media(hover:hover) {
+  .card:hover { transform: translateY(-5px); box-shadow: 0 24px 44px -26px color-mix(in srgb, var(--accent) 55%, rgb(0 0 0 / .5)); }
+  .card:hover .action::after { transform: translateX(130%); }
+  .card:hover .action { background: var(--action-primary-hover, var(--action-primary-bg)); box-shadow: none; }
+  .card:hover .features li:nth-child(1) { translate: 4px 0; }
+  .card:hover .features li:nth-child(2) { translate: 4px 0; transition-delay: 40ms; }
+  .card:hover .features li:nth-child(3) { translate: 4px 0; transition-delay: 80ms; }
+}
+.card[data-role="medico"] { --action-primary-bg: #10813d; --action-primary-hover: #0a6130; --action-on: #fff; }
+:global(:root[data-theme="dark"]) .card[data-role="medico"] { --action-primary-bg: #43dc6b; --action-primary-hover: #70e68e; --action-on: #07190b; }
+.footer a { display: inline-block; transition: translate .2s cubic-bezier(.34, 1.32, .52, 1); }
+.footer a:hover { translate: 0 -1px; }
+@media(prefers-reduced-motion: no-preference) { .card { animation: roleIn .6s cubic-bezier(.23, 1, .32, 1) both; } .cardWrap:nth-child(2) .card { animation-delay: .08s; } .header { animation: roleIn .6s cubic-bezier(.23, 1, .32, 1) both; } }
+@keyframes roleIn { from { opacity: 0; transform: translateY(16px); } }
+@media(prefers-reduced-motion:reduce) { .action::after, .features li { transition: none; } }

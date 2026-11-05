@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BadgeCheck, Camera, Fingerprint, LockKeyhole, Scale, ScanFace, ScanLine, ShieldQuestion, Target, UserCheck } from 'lucide-react'
+import { Camera, ChevronDown, FileText, ScanFace, ScanLine, ShieldQuestion } from 'lucide-react'
 import Button from '../../ui/Button/Button'
 import { registroService } from '@/app/services/authService'
 import IntentoFallido from './IntentoFallido'
@@ -23,15 +23,15 @@ const textosRevision = {
     captura_reutilizada: 'Detectamos que se envió una imagen ya usada en un intento anterior. Un integrante del equipo de DocSmart revisará tu caso.',
 }
 
-// Información previa a la autorización (Ley 1581 de 2012, tratamiento de datos sensibles).
-const PUNTOS = [
-    [Target, 'Finalidad', 'Verificar que la persona que se registra es la titular del documento. Es el único uso de tus imágenes: no se emplean para publicidad, perfilamiento ni otros fines, ni se ceden o comercializan con terceros.'],
-    [Fingerprint, 'Tipo de dato', 'Tu imagen facial es un dato biométrico y, según la Ley 1581 de 2012, un dato sensible. Solo lo tratamos con tu autorización previa, expresa e informada.'],
-    [Camera, 'Qué recolectamos', 'Algunos fotogramas tomados con tu cámara en este momento y el recorte de la fotografía de tu documento. La comparación se realiza en los servidores de DocSmart, sin servicios externos de reconocimiento facial.'],
-    [LockKeyhole, 'Seguridad y conservación', 'Se almacenan de forma privada, con acceso restringido al personal autorizado y solo cuando se requiere una revisión manual. Se eliminan automáticamente a los 30 días, salvo que haya una revisión en curso.'],
-    [UserCheck, 'Revisión humana', 'La comparación es automática. Si no se logra confirmar tu identidad en 3 intentos, una persona del equipo de DocSmart revisará tu caso y te avisará por correo.'],
-    [Scale, 'Tus derechos', 'Como titular puedes conocer, actualizar, rectificar y suprimir tus datos, y revocar esta autorización en cualquier momento, a través de los canales de atención de DocSmart.'],
-    [BadgeCheck, 'Es voluntario', 'No estás obligado a autorizarlo. Si prefieres no hacerlo, puedes elegir una alternativa de verificación revisada por una persona, sin que tu solicitud sea rechazada por ello.'],
+// Términos y condiciones del tratamiento de la imagen facial (Ley 1581 de 2012, datos sensibles).
+const TERMINOS = [
+    ['Responsable y finalidad', 'DocSmart actúa como responsable del tratamiento de la imagen facial del titular. La imagen se utiliza exclusivamente para verificar que la persona que se registra es la titular del documento de identidad aportado. No se emplea con fines publicitarios, de perfilamiento ni de cualquier otra naturaleza, y no se cede, transfiere ni comercializa con terceros.'],
+    ['Naturaleza del dato', 'La imagen facial constituye un dato biométrico y, conforme a la Ley 1581 de 2012, un dato sensible. Su tratamiento se realiza únicamente con la autorización previa, expresa e informada del titular.'],
+    ['Información recolectada', 'Se recolectan fotogramas capturados con la cámara del titular durante la verificación y el recorte de la fotografía del documento de identidad. La comparación biométrica se ejecuta en los servidores de DocSmart, sin recurrir a servicios externos de reconocimiento facial.'],
+    ['Seguridad y conservación', 'La información se almacena de manera privada y con acceso restringido al personal autorizado, y solo se consulta cuando se requiere una revisión manual. Se elimina automáticamente transcurridos treinta (30) días, salvo que exista una revisión en curso.'],
+    ['Revisión por personal autorizado', 'La comparación es automática. Cuando la identidad no pueda confirmarse tras tres (3) intentos, un integrante del equipo de DocSmart revisará el caso y comunicará el resultado al correo electrónico del titular.'],
+    ['Derechos del titular', 'El titular puede conocer, actualizar, rectificar y suprimir sus datos, así como revocar esta autorización en cualquier momento, a través de los canales de atención de DocSmart.'],
+    ['Aceptación y alcance', 'La verificación facial es un requisito para completar el registro en DocSmart. La aceptación de estos términos y condiciones es indispensable para continuar con el proceso; en caso de no aceptarlos, el registro no podrá avanzar. DocSmart conservará la fecha y la hora de la aceptación como constancia de la autorización otorgada.'],
 ]
 
 const esperar = ms => new Promise(resolve => setTimeout(resolve, ms))
@@ -43,6 +43,7 @@ const primerMensaje = errores => {
 
 export default function ValidacionFacial({ role, procesoId, onListo }) {
     const [fase, setFase] = useState('consentimiento')
+    const [verTerminos, setVerTerminos] = useState(false)
     const [acepta, setAcepta] = useState(false)
     const [cargando, setCargando] = useState(false)
     const [mensaje, setMensaje] = useState('')
@@ -117,7 +118,7 @@ export default function ValidacionFacial({ role, procesoId, onListo }) {
                 await abrirCamara()
             } catch {
                 setFase('sin_camara')
-                setMensaje('No pudimos acceder a la cámara. Revisa los permisos del navegador o elige otra opción.')
+                setMensaje('No pudimos acceder a la cámara. Revisa los permisos del navegador e inténtalo de nuevo.')
             }
         } catch (error) {
             setMensaje(primerMensaje(error.response?.data?.errores) || 'No fue posible iniciar la verificación. Inténtalo de nuevo.')
@@ -220,15 +221,6 @@ export default function ValidacionFacial({ role, procesoId, onListo }) {
         }
     }
 
-    const alternativas = <div className={styles.alternativas}>
-        <p>¿No puedes usar la cámara o prefieres otra opción?</p>
-        <div className={styles.fila}>
-            <Button type="button" variant="secondary" onClick={() => omitir('camara_no_disponible')} disabled={cargando}>No puedo usar la cámara</Button>
-            <Button type="button" variant="secondary" onClick={() => omitir('accesibilidad')} disabled={cargando}>Necesito otra alternativa</Button>
-        </div>
-        <p className={styles.nota}>Un integrante del equipo de DocSmart revisará tu caso de forma manual.</p>
-    </div>
-
     // Estado de la guía en vivo: sale solo de lo que devolvió el servidor, nunca de una animación.
     const rostro = analisis?.rostro?.caja ? analisis.rostro : null
     const problemas = analisis?.problemas || []
@@ -263,36 +255,40 @@ export default function ValidacionFacial({ role, procesoId, onListo }) {
             <span className={styles.icono}><ScanFace size={28} aria-hidden="true" /></span>
             <div>
                 <strong id="facial-titulo">Verificación facial</strong>
-                <p>Confirmamos que quien se registra es el titular del documento.</p>
+                
             </div>
         </div>
 
         {fase === 'consentimiento' && <>
             <div className={styles.autorizacion}>
-                <p className={styles.introduccion}>
-                    Para proteger tu cuenta y la información de salud que administrarás en DocSmart, necesitamos comparar tu rostro con la
-                    fotografía de tu documento de identidad. Antes de activar la cámara, te informamos cómo trataremos esa información.
-                </p>
-                <ul className={styles.puntos}>
-                    {PUNTOS.map(([Icono, titulo, texto]) => <li key={titulo}>
-                        <span className={styles.puntoIcono}><Icono size={18} aria-hidden="true" /></span>
-                        <div><strong>{titulo}</strong><p>{texto}</p></div>
-                    </li>)}
-                </ul>
+                <p className={styles.introduccion}>Compararemos tu rostro con la foto de tu documento. Revisa y acepta los términos para activar la cámara.</p>
+                <button type="button" className={`${styles.terminosToggle} ${verTerminos ? styles.terminosAbierto : ''}`} aria-expanded={verTerminos} aria-controls="facial-terminos" onClick={() => setVerTerminos(valor => !valor)}>
+                    <span className={styles.terminosIcono}><FileText size={18} aria-hidden="true" /></span>
+                    <span>{verTerminos ? 'Ocultar términos y condiciones' : 'Ver términos y condiciones'}</span>
+                    <ChevronDown size={18} aria-hidden="true" className={styles.terminosFlecha} />
+                </button>
+                <div id="facial-terminos" className={`${styles.terminosPanel} ${verTerminos ? styles.terminosPanelAbierto : ''}`} inert={verTerminos ? undefined : true}>
+                    <div className={styles.terminosRecorte}>
+                        <article className={styles.terminos} aria-label="Términos y condiciones del tratamiento de la imagen facial" tabIndex={verTerminos ? 0 : -1}>
+                            <h4>Términos y condiciones del tratamiento de la imagen facial</h4>
+                            <ol>
+                                {TERMINOS.map(([titulo, texto]) => <li key={titulo}>
+                                    <strong>{titulo}</strong>
+                                    <p>{texto}</p>
+                                </li>)}
+                            </ol>
+                        </article>
+                    </div>
+                </div>
             </div>
             <label className={styles.consentimiento}>
                 <input type="checkbox" checked={acepta} onChange={e => setAcepta(e.target.checked)} disabled={cargando} />
-                <span>
-                    Declaro que soy el titular del documento cargado y autorizo de forma previa, expresa e informada a DocSmart para tratar
-                    mi imagen facial (dato biométrico) con la finalidad indicada, conforme a la Ley 1581 de 2012.
-                </span>
+                <span>Acepto los términos y condiciones y autorizo el tratamiento de mi imagen facial (dato biométrico) como titular del documento.</span>
             </label>
-            <p className={styles.constancia}>Registraremos la fecha y la hora de tu autorización.</p>
             <div className={styles.fila}>
                 <Button type="button" variant="primary" onClick={iniciar} disabled={cargando || !acepta}>
-                    <Camera size={17} aria-hidden="true" /> {cargando ? 'Preparando…' : 'Autorizar y activar cámara'}
+                    <Camera size={17} aria-hidden="true" /> {cargando ? 'Preparando…' : 'Aceptar y activar cámara'}
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => omitir('sin_consentimiento')} disabled={cargando}>No autorizo</Button>
             </div>
         </>}
 
@@ -330,7 +326,7 @@ export default function ValidacionFacial({ role, procesoId, onListo }) {
                 </div>
             </div>
             {sinRostroDocumento && <p className={styles.nota}>
-                No pudimos leer el rostro de la fotografía de tu documento. Toma tu selfie igualmente: es obligatoria, y una persona del equipo la comparará con tu documento.
+                No pudimos leer el rostro de tu documento. Toma tu selfie igualmente: una persona del equipo la comparará con tu documento.
             </p>}
             {documentoRostro?.alineacion === 'dudosa' && <p className={styles.nota}>
                 El rostro de tu documento aparece girado o poco claro. Puedes continuar, pero es posible que una persona del equipo deba revisar tu caso.
@@ -338,10 +334,6 @@ export default function ValidacionFacial({ role, procesoId, onListo }) {
             {documentoRostro?.calidad_baja && <p className={styles.nota}>
                 La fotografía de tu documento es pequeña o poco nítida. Puedes continuar, pero es posible que una persona del equipo deba revisar tu caso.
             </p>}
-            <p className={styles.ayuda}>
-                Ubica tu rostro de frente, con buena luz y sin gafas oscuras ni gorra. Mueve ligeramente la cabeza al capturar.
-                Los puntos son detecciones reales de tu imagen y sirven de apoyo: no verifican tu identidad. La decisión final la toma el servidor.
-            </p>
             <div className={styles.fila}>
                 <Button type="button" variant="primary" onClick={capturar} disabled={cargando || fase === 'procesando'}>
                     <Camera size={17} aria-hidden="true" /> {fase === 'procesando' ? 'Procesando…' : 'Capturar y verificar'}
@@ -383,6 +375,6 @@ export default function ValidacionFacial({ role, procesoId, onListo }) {
         </div>}
 
         {mensaje && <p className={styles.mensaje} role="alert">{mensaje}</p>}
-        {(fase === 'reintento' || fase === 'camara' || fase === 'sin_camara') && alternativas}
+        {fase === 'sin_camara' && <div className={styles.fila}><Button type="button" variant="primary" onClick={iniciar} disabled={cargando}><Camera size={17} aria-hidden="true" /> Reintentar</Button></div>}
     </section>
 }

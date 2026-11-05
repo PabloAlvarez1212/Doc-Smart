@@ -1,142 +1,37 @@
-.mainLogin {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    min-height: 100dvh;
-    padding: clamp(14px, 3vh, 24px) 16px;
-}
+.mainLogin { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 100dvh; padding: clamp(14px, 3vh, 24px) 16px; }
 
-.container {
-    background-color: var(--surface);
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    width: min(100%, 520px);
-    min-height: 0;
-    margin: auto;
-    padding: clamp(20px, 3vw, 28px);
-    gap: 9px;
-    border: 1px solid var(--border);
-    border-radius: 28px;
-    box-shadow: var(--shadow);
-    color: var(--text-primary);
-}
+.container { display: flex; align-items: center; flex-direction: column; width: min(100%, 480px); min-height: 0; margin: auto; padding: clamp(24px, 4vw, 36px); gap: 18px; border: 1px solid var(--border); border-radius: 28px; background-color: var(--surface); box-shadow: 0 2px 4px rgb(15 23 42 / 5%), 0 30px 70px -30px rgb(15 23 42 / 35%); color: var(--text-primary); }
+@media (prefers-reduced-motion: no-preference) { .container { animation: cardIn .6s cubic-bezier(.23, 1, .32, 1) both; } .logo { animation: logoPop .7s cubic-bezier(.34, 1.32, .52, 1) .1s both; } .heading, .form, .containerLinks { animation: cardIn .6s cubic-bezier(.23, 1, .32, 1) both; } .heading { animation-delay: .1s; } .form { animation-delay: .16s; } .containerLinks { animation-delay: .22s; } }
+@keyframes cardIn { from { opacity: 0; transform: translateY(16px); } }
+@keyframes logoPop { from { opacity: 0; transform: scale(.6) rotate(-10deg); } }
 
-.logo {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    gap: 5px;
-}
+.logo { display: flex; align-items: center; flex-direction: column; gap: 8px; }
+.logo img { width: 56px; height: 56px; padding: 6px; border-radius: 18px; background: #fff; box-shadow: 0 0 0 1px var(--border), 0 10px 22px -12px rgb(15 23 42 / 35%); object-fit: contain; }
+.logo h1 { font-size: 1.5rem; font-weight: 650; line-height: 1.1; letter-spacing: -.03em; }
+.logo span { color: var(--accent); font-weight: 700; }
 
-.logo h1 {
-    font-size: 25px;
-    font-weight: 700;
-    line-height: 1.1;
-    letter-spacing: -0.045em;
-}
+.heading { display: grid; justify-items: center; gap: 4px; text-align: center; }
+.heading h2 { font-size: 1.5rem; font-weight: 700; line-height: 1.2; letter-spacing: -.03em; }
+.heading p { color: var(--text-secondary); font-size: .92rem; }
 
-.logo span {
-    color: var(--color-dark);
-}
+.form { width: 100%; }
 
-.logo img {
-    width: 52px;
-    height: 52px;
-    object-fit: contain;
-    padding: 5px;
-    border-radius: 15px;
-    background: #fff;
-}
+.containerLinks { display: grid; justify-items: center; width: 100%; gap: 10px; }
+.divider { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; color: var(--text-secondary); font-size: .8rem; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.divider span { padding: 0 12px; }
 
-.container h2 {
-    font-size: 22px;
-    font-weight: 650;
-    line-height: 1.2;
-    letter-spacing: -0.035em;
-    margin-bottom: 5px;
-}
+.createAccount { display: inline-flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 46px; border: 1px solid var(--control-border); border-radius: 14px; background: transparent; color: var(--color-text); font-size: .92rem; font-weight: 650; text-decoration: none; transition: background-color .2s, border-color .2s, translate .2s cubic-bezier(.34, 1.32, .52, 1), scale .16s; }
+.createAccount svg { transition: translate .3s cubic-bezier(.34, 1.32, .52, 1); }
+.createAccount:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); translate: 0 -2px; }
+.createAccount:hover svg { translate: 3px 0; }
+.createAccount:active { scale: .97; translate: 0 0; }
+.createAccount:focus-visible, .link:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 40%, transparent); outline-offset: 3px; }
 
-.form {
-    width: 100%;
-}
+.link { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border-radius: 10px; color: var(--text-secondary); font-size: .85rem; font-weight: 600; text-decoration: none; transition: color .2s, background-color .2s; }
+.link svg { transition: translate .25s cubic-bezier(.34, 1.32, .52, 1); }
+.link:hover { background: var(--surface-muted); color: var(--color-text); }
+.link:hover svg { translate: -3px 0; }
 
-.containerLinks {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    gap: 1px;
-    margin-top: 1px;
-}
-
-.link,
-.link:hover {
-    display: inline-flex;
-    align-items: center;
-    min-height: 34px;
-    color: var(--accent);
-    font-size: 14px;
-    text-align: center;
-    text-decoration: none;
-    transition: color var(--motion-fast);
-}
-
-.link:hover {
-    text-decoration: underline;
-}
-
-@media (max-height: 800px) {
-    .mainLogin {
-        padding-block: 12px;
-    }
-
-    .container {
-        padding-block: 18px;
-        gap: 7px;
-    }
-
-    .logo {
-        gap: 3px;
-    }
-
-    .logo img {
-        width: 46px;
-        height: 46px;
-    }
-
-    .containerLinks {
-        gap: 0;
-    }
-
-    .link,
-    .link:hover {
-        min-height: 31px;
-    }
-}
-
-@media (max-width: 640px) {
-    .mainLogin {
-        align-items: flex-start;
-        padding: 16px 12px;
-    }
-
-    .container {
-        margin: auto;
-        padding: 22px 20px;
-        gap: 9px;
-        border-radius: 22px;
-    }
-
-    .link,
-    .link:hover {
-        min-height: 40px;
-    }
-}
-
-@media (max-width: 360px) {
-    .container {
-        padding-inline: 16px;
-    }
-}
+@media (max-width: 640px) { .mainLogin { align-items: flex-start; padding: 16px 12px; } .container { padding: 24px 20px; border-radius: 24px; } }
+@media (prefers-reduced-motion: reduce) { .createAccount, .link, .createAccount svg, .link svg { transition: none; } }

@@ -39,8 +39,8 @@
 
 .steps li[aria-current]>span{
   color:#fff;
-  background:#2456a6;
-  border-color:#2456a6;
+  background:var(--action-primary-bg);
+  border-color:var(--action-primary-bg);
   box-shadow:0 0 0 4px rgb(36 86 166 / 10%);
 }
 
