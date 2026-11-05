@@ -21,7 +21,7 @@ import {
 export default function Especialidad() {
 
     const crud = useCrud({
-        getService: (page, search) => getEspecialidadesService(page, search),
+        getService: getEspecialidadesService,
         crearService: crearEspecialidadService,
         editarService: editarEspecialidadService,
         eliminarService: eliminarEspecialidadService,
@@ -52,6 +52,8 @@ export default function Especialidad() {
                 onEliminar={crud.eliminar}
                 mostrarEncabezado={false}
                 placeholderBusqueda="Buscar especialidad..."
+                valorBusqueda={crud.busqueda}
+                onBuscar={crud.setBusqueda}
             />
 
             <Pagination

@@ -63,8 +63,11 @@ export default function DataTable({
   emptyDescription,
   indiceInicial = 0,
   textoConteo,
+  valorBusqueda,
+  onBuscar,
 }) {
-  const [busqueda, setBusqueda] = useState("");
+  const [busquedaLocal, setBusquedaLocal] = useState("");
+  const busqueda = typeof onBuscar === "function" ? (valorBusqueda ?? "") : busquedaLocal;
 
   const normalizarTexto = (texto) =>
     (texto ?? "")
@@ -73,7 +76,7 @@ export default function DataTable({
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
 
-  const datosFiltrados = datos.filter((item) => {
+  const datosFiltrados = typeof onBuscar === "function" ? datos : datos.filter((item) => {
     const valor = item[campoBusqueda];
 
     if (!valor) return true;
@@ -110,7 +113,7 @@ export default function DataTable({
           type="text"
           placeholder={placeholderBusqueda}
           value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
+          onChange={(e) => (onBuscar ?? setBusquedaLocal)(e.target.value)}
           className={styles.searchInput}
           aria-label={placeholderBusqueda}
         />

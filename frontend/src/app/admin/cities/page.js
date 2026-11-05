@@ -21,7 +21,8 @@ export default function Cities() {
     const [departamentoSeleccionado, setDepartamentoSeleccionado] = useState("");
     const [cargando, setCargando] = useState(true);
 
-    const [pagina, setPagina] = useState(1);
+    const [busqueda, setBusqueda] = useState("");
+    const [consulta, setConsulta] = useState({ pagina: 1, search: "", departamento: "" });
     const [totalPaginas, setTotalPaginas] = useState(1);
     const [totalRegistros, setTotalRegistros] = useState(0);
 
@@ -30,9 +31,13 @@ export default function Cities() {
     }, []);
 
     useEffect(() => {
-        cargarCiudades(pagina, departamentoSeleccionado);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pagina]);
+        const timeout = setTimeout(() => {
+            setConsulta((actual) => actual.search === busqueda.trim() && actual.pagina === 1
+                ? actual
+                : { ...actual, pagina: 1, search: busqueda.trim() });
+        }, 300);
+        return () => clearTimeout(timeout);
+    }, [busqueda]);
 
     const cargarDepartamentos = async () => {
         try {
@@ -47,13 +52,15 @@ export default function Cities() {
         }
     };
 
-    const cargarCiudades = async (paginaSolicitada = 1, idDepartamento = "") => {
+    useEffect(() => {
+        let activo = true;
+        const cargarCiudades = async () => {
         setCargando(true);
 
         try {
-            const res = idDepartamento
-                ? await getCiudadesPorDepartamentoService(idDepartamento, paginaSolicitada)
-                : await getCiudadesService(paginaSolicitada);
+            const res = consulta.departamento
+                ? await getCiudadesPorDepartamentoService(consulta.departamento, consulta.pagina, consulta.search)
+                : await getCiudadesService(consulta.pagina, consulta.search);
 
             const resultados = res?.data?.resultados ?? [];
             const meta = res?.data?.paginacion ?? {
@@ -62,26 +69,29 @@ export default function Cities() {
                 count: resultados.length,
             };
 
-            setCiudades(resultados);
-            setTotalPaginas(meta.total_pages);
-            setTotalRegistros(meta.count);
-            setPagina(meta.current_page);
+            if (activo) {
+                setCiudades(resultados);
+                setTotalPaginas(meta.total_pages);
+                setTotalRegistros(meta.count);
+            }
         } catch (error) {
-            Swal.fire({
+            if (activo) Swal.fire({
                 icon: "error",
                 title: "Error",
                 text: "No se pudieron cargar las ciudades.",
             });
         } finally {
-            setCargando(false);
+            if (activo) setCargando(false);
         }
-    };
+        };
+        cargarCiudades();
+        return () => { activo = false; };
+    }, [consulta]);
 
-    const cambiarDepartamento = async (e) => {
+    const cambiarDepartamento = (e) => {
         const id = e.target.value;
         setDepartamentoSeleccionado(id);
-        await cargarCiudades(1, id);
-        setPagina(1);
+        setConsulta((actual) => ({ ...actual, pagina: 1, departamento: id }));
     };
 
     const columnas = [
@@ -120,16 +130,18 @@ export default function Cities() {
                 cargando={cargando}
                 campoBusqueda="nombre_ciudad"
                 placeholderBusqueda="Buscar ciudad..."
+                valorBusqueda={busqueda}
+                onBuscar={setBusqueda}
                 mostrarBotonNuevo={false}
                 mostrarAcciones={false}
                 mostrarEncabezado={false}
             />
 
             <Pagination
-                paginaActual={pagina}
+                paginaActual={consulta.pagina}
                 totalPaginas={totalPaginas}
                 totalRegistros={totalRegistros}
-                onCambiarPagina={setPagina}
+                onCambiarPagina={(pagina) => setConsulta((actual) => ({ ...actual, pagina }))}
                 cargando={cargando}
                 variant="admin"
             />

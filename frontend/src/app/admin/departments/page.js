@@ -13,20 +13,27 @@ export default function Departaments() {
     const [departamentos, setDepartamentos] = useState([]);
     const [cargando, setCargando] = useState(true);
 
-    const [pagina, setPagina] = useState(1);
+    const [busqueda, setBusqueda] = useState("");
+    const [consulta, setConsulta] = useState({ pagina: 1, search: "" });
     const [totalPaginas, setTotalPaginas] = useState(1);
     const [totalRegistros, setTotalRegistros] = useState(0);
 
     useEffect(() => {
-        cargarDepartamentos(pagina);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pagina]);
+        const timeout = setTimeout(() => {
+            setConsulta((actual) => actual.search === busqueda.trim() && actual.pagina === 1
+                ? actual
+                : { ...actual, pagina: 1, search: busqueda.trim() });
+        }, 300);
+        return () => clearTimeout(timeout);
+    }, [busqueda]);
 
-    const cargarDepartamentos = async (paginaSolicitada = 1) => {
+    useEffect(() => {
+        let activo = true;
+        const cargarDepartamentos = async () => {
         setCargando(true);
 
         try {
-            const res = await getDepartamentosService(paginaSolicitada);
+            const res = await getDepartamentosService(consulta.pagina, consulta.search);
             // res = { ok, mensaje, data: { resultados, paginacion } }
             const resultados = res?.data?.resultados ?? [];
             const meta = res?.data?.paginacion ?? {
@@ -35,20 +42,24 @@ export default function Departaments() {
                 count: resultados.length,
             };
 
-            setDepartamentos(resultados);
-            setTotalPaginas(meta.total_pages);
-            setTotalRegistros(meta.count);
-            setPagina(meta.current_page);
+            if (activo) {
+                setDepartamentos(resultados);
+                setTotalPaginas(meta.total_pages);
+                setTotalRegistros(meta.count);
+            }
         } catch (error) {
-            Swal.fire({
+            if (activo) Swal.fire({
                 icon: "error",
                 title: "Error",
                 text: "No se pudieron cargar los departamentos.",
             });
         } finally {
-            setCargando(false);
+            if (activo) setCargando(false);
         }
-    };
+        };
+        cargarDepartamentos();
+        return () => { activo = false; };
+    }, [consulta]);
 
     const columnas = [
         {
@@ -68,16 +79,18 @@ export default function Departaments() {
                 cargando={cargando}
                 campoBusqueda="nombre"
                 placeholderBusqueda="Buscar departamento..."
+                valorBusqueda={busqueda}
+                onBuscar={setBusqueda}
                 mostrarBotonNuevo={false}
                 mostrarAcciones={false}
                 mostrarEncabezado={false}
             />
 
             <Pagination
-                paginaActual={pagina}
+                paginaActual={consulta.pagina}
                 totalPaginas={totalPaginas}
                 totalRegistros={totalRegistros}
-                onCambiarPagina={setPagina}
+                onCambiarPagina={(pagina) => setConsulta((actual) => ({ ...actual, pagina }))}
                 cargando={cargando}
                 variant="admin"
             />

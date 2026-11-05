@@ -33,7 +33,16 @@ export function useCrud({
 
   // ── Paginación (solo se usa si paginado = true) ─────────
   const [pagina, setPagina] = useState(1);
-  const [busqueda, setBusqueda] = useState("");
+  const [busqueda, actualizarBusqueda] = useState("");
+  const [busquedaAplicada, setBusquedaAplicada] = useState("");
+  const setBusqueda = (valor) => {
+    setPagina(1);
+    actualizarBusqueda(valor);
+  };
+  useEffect(() => {
+    const timeout = setTimeout(() => setBusquedaAplicada(busqueda.trim()), 300);
+    return () => clearTimeout(timeout);
+  }, [busqueda]);
   const [paginacion, setPaginacion] = useState({
     count: 0,
     total_pages: 1,
@@ -49,7 +58,7 @@ export function useCrud({
       try {
         const paginaAConsultar = paginaOverride ?? pagina;
         const res = paginado
-          ? await getService(paginaAConsultar, busqueda)
+          ? await getService(paginaAConsultar, busquedaAplicada)
           : await getService();
 
         // Una respuesta más antigua que la última petición no debe pisar los datos nuevos.
@@ -81,17 +90,12 @@ export function useCrud({
         if (peticion === ultimaPeticion.current) setCargando(false);
       }
     },
-    [getService, paginado, pagina, busqueda]
+    [getService, paginado, pagina, busquedaAplicada]
   );
 
   useEffect(() => {
     cargarDatos();
   }, [cargarDatos]);
-
-  // Al cambiar la búsqueda, siempre regresamos a la página 1
-  useEffect(() => {
-    if (paginado) setPagina(1);
-  }, [busqueda, paginado]);
 
   // ── Manejo de inputs ────────────────────────────────────
   const handleChange = (e) => {

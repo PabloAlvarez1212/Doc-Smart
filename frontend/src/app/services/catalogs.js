@@ -128,12 +128,13 @@ export const getCiudadesService = async function (page = 1, search = "") {
     return response.data;
 };
 
-export const getCiudadesPorDepartamentoService = async function (idDepartamento) {
+export const getCiudadesPorDepartamentoService = async function (idDepartamento, page, search = "") {
     const response = await api.get(
-        `/catalogos/departamentos/${idDepartamento}/ciudades/`
+        `/catalogos/departamentos/${idDepartamento}/ciudades/`,
+        { params: { page, page_size: page ? 10 : undefined, search: search || undefined } }
     );
 
-    return response.data.data;
+    return page == null ? response.data.data : response.data;
 };
 
 // ===========================DEPARTAMENTOS===========================
