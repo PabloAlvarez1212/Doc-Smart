@@ -10,7 +10,7 @@
   align-items:center;
   justify-content:center;
   padding:24px;
-  background:rgb(18 34 55 / 44%);
+  background:rgb(12 18 32 / 52%);
   backdrop-filter:blur(6px);
   -webkit-backdrop-filter:blur(6px);
   font-family:var(--font-geist-sans),system-ui,sans-serif;
@@ -27,8 +27,8 @@
   overflow:hidden;
   background:var(--surface);
   border:1px solid var(--border);
-  border-radius:18px;
-  box-shadow:0 24px 70px rgb(15 23 42 / 22%);
+  border-radius:24px;
+  box-shadow:0 2px 4px rgb(15 23 42 / 8%),0 28px 70px rgb(15 23 42 / 30%);
 }
 
 .header{
@@ -64,8 +64,8 @@
 
 .titulo{
   margin:0;
-  color:white;
-  font-size:1.55rem;
+  color:var(--color-text);
+  font-size:1.35rem;
   font-weight:700;
   line-height:1.2;
 }
@@ -81,13 +81,15 @@
   border:0;
   border-radius:10px;
   background:transparent;
-  color:white;
+  color:var(--text-secondary);
   cursor:pointer;
-  transition:background-color .15s ease,color .15s ease,transform .15s ease;
+  transition:background-color .15s ease,color .15s ease,transform .25s ease;
 }
 
 .cerrar:hover{
-  background:rgb(255 255 255 / 14%);
+  background:var(--surface-muted);
+  color:var(--color-text);
+  transform:rotate(90deg);
 }
 
 .cerrar:active{
@@ -120,13 +122,11 @@
 /* Variantes */
 
 .default{
-  background:#1733a4;
-  color:var(--on-accent);
+  background:var(--surface);
 }
 
-.default .containerTitle p,
-.default .container svg{
-  color:var(--on-accent);
+.default .containerTitle p{
+  color:var(--text-secondary);
 }
 
 .white{
@@ -149,20 +149,11 @@
 }
 
 .yellow {
-    background: var(--tone-orange);
-    color: var(--ink-orange);
+    background: var(--surface);
 }
 
-.yellow .titulo,
-.yellow .containerTitle p,
-.yellow .cerrar,
-.yellow .container svg {
-    color: var(--ink-orange);
-}
-
-.yellow .cerrar:hover {
-    background: var(--surface-muted);
-    color: var(--color-text);
+.yellow .containerTitle p {
+    color: var(--text-secondary);
 }
 
 @media (max-width:640px){
@@ -354,3 +345,19 @@
 .field :is(input,select,textarea):focus { border-color: var(--focus); box-shadow: none; outline: 2px solid var(--focus); outline-offset: 2px; }
 .primary, .secondary { min-height: 44px; }
 .cerrar { width: 44px; height: 44px; }
+
+
+/* Icono de cabecera como insignia con el acento del rol: el mismo estilo en todas las variantes */
+.header .container>svg{
+  flex:none;
+  box-sizing:border-box;
+  width:44px;
+  height:44px;
+  padding:11px;
+  border-radius:13px;
+  color:var(--modal-accent);
+  background:color-mix(in srgb,var(--modal-accent) 12%,transparent);
+}
+.header{align-items:center}
+.titulo{letter-spacing:-.02em}
+@media(prefers-reduced-motion:reduce){.cerrar:hover{transform:none}}

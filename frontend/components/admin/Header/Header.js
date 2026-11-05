@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRound } from "lucide-react";
+import { KeyRound, Settings } from "lucide-react";
 import { useState } from "react";
 import useLogout from "../../hooks/useLogout";
 import Modal from "../../ui/Modal/Modal";
@@ -17,7 +17,7 @@ export default function Header() {
   return <>
             <Nav onSettings={() => setModal(true)} />
 
-            <Modal titulo="Cuenta y seguridad" abierto={modal} headerVariant="white" onCerrar={() => setModal(false)}>
+            <Modal titulo="Configuración" text="Personaliza DocSmart a tu manera." abierto={modal} headerVariant="white" onCerrar={() => setModal(false)} width="620px" icon={<Settings size={22} aria-hidden="true" />}>
                 <SettingsComponent cerrarSesion={logoutUser} abrirCambiarContrasena={() => {
         setModal(false);
         setPasswordModal(true);
@@ -26,7 +26,7 @@ export default function Header() {
             <Modal titulo="Cambiar contraseña" abierto={passwordModal} onCerrar={() => {
       setPasswordModal(false);
       setModal(true);
-    }} headerVariant="yellow" text="Mantén tu cuenta segura con una contraseña fuerte" width="500px" icon={<KeyRound size={38} />}>
+    }} headerVariant="white" text="Mantén tu cuenta segura con una contraseña fuerte" width="500px" icon={<KeyRound size={22} aria-hidden="true" />}>
                 <ResetPasswordFormComponent />
             </Modal>
         </>;

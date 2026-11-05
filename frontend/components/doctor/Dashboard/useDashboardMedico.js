@@ -15,10 +15,13 @@ import {
 const EMPTY_DATA = {
     filtros: {},
     estadisticas: {},
+    estadisticas_anteriores: null,
     grafica_citas: [],
     grafica_estados: [],
     grafica_asistencia: [],
     grafica_demanda: [],
+    grafica_demanda_horaria: [],
+    grafica_calificaciones: [],
 };
 
 
@@ -44,10 +47,17 @@ const normalizarDatos = (value) => {
                 ? source.estadisticas
                 : {},
 
+        estadisticas_anteriores:
+            source.estadisticas_anteriores && typeof source.estadisticas_anteriores === "object"
+                ? source.estadisticas_anteriores
+                : null,
+
         grafica_citas: normalizarLista(source.grafica_citas),
         grafica_estados: normalizarLista(source.grafica_estados),
         grafica_asistencia: normalizarLista(source.grafica_asistencia),
         grafica_demanda: normalizarLista(source.grafica_demanda),
+        grafica_demanda_horaria: normalizarLista(source.grafica_demanda_horaria),
+        grafica_calificaciones: normalizarLista(source.grafica_calificaciones),
     };
 };
 
@@ -252,6 +262,7 @@ export const useDashboardMedico = () => {
         const eventosDashboard = [
             "NUEVA_SOLICITUD",
             "ACTUALIZACION_CITA",
+            "CALIFICACION_RECIBIDA",
         ];
 
         if (!eventosDashboard.includes(eventoCita.tipo_evento)) {

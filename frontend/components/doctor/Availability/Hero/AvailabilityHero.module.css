@@ -130,3 +130,27 @@
 .heading h1{font-size:clamp(28px,2.8vw,36px);line-height:1.13;letter-spacing:-.03em;font-weight:700}
 .description{font-size:15px;max-width:60ch;line-height:1.5}.summary{color:var(--doctor-primary);border:0;background:var(--doctor-positive-bg)}
 .summary strong{color:var(--color-text)}
+
+
+/* ── Rediseño ──────────────────────────────────────────────────────────── */
+.hero {
+    position: relative;
+    overflow: hidden;
+    align-items: center;
+    padding: 28px 30px;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    background:
+        radial-gradient(520px 220px at 100% 0%, color-mix(in srgb, var(--doctor-primary) 16%, transparent), transparent 70%),
+        radial-gradient(380px 200px at 0% 100%, color-mix(in srgb, var(--doctor-primary) 9%, transparent), transparent 70%),
+        var(--surface);
+}
+.icon { flex: 0 0 60px; height: 60px; border-radius: 18px; color: var(--doctor-on-primary); background: var(--doctor-button); box-shadow: 0 12px 26px color-mix(in srgb, var(--doctor-button) 30%, transparent); }
+.icon svg { width: 28px; height: 28px; }
+@media (prefers-reduced-motion: no-preference) { .icon { animation: heroPop 600ms cubic-bezier(.34, 1.32, .52, 1) both; } }
+@keyframes heroPop { from { opacity: 0; transform: scale(.7) rotate(-8deg); } }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; flex: 0 0 auto; }
+.summary { padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--doctor-primary) 22%, var(--border)); border-radius: 16px; background: color-mix(in srgb, var(--doctor-positive-bg) 70%, var(--surface)); }
+.summary svg { flex: none; }
+.summary strong { font-size: 1rem; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) { .hero { padding: 22px 18px; } .chips { width: 100%; } .chips .summary { flex: 1 1 150px; } }

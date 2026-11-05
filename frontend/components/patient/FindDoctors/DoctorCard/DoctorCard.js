@@ -5,6 +5,8 @@ import { motion, useReducedMotion } from "motion/react";
 import Modal from "../../../ui/Modal/Modal";
 import Image from "next/image";
 import {
+    BadgeCheck,
+    Banknote,
     Building2,
     CalendarClock,
     CalendarPlus,
@@ -12,6 +14,7 @@ import {
     Navigation,
     Stethoscope,
     UserRound,
+    Users,
 } from "lucide-react";
 
 import Button from "../../../ui/Button/Button";
@@ -129,34 +132,46 @@ export default function DoctorCard({ doctor, onSchedule, onViewProfile }) {
                         )}
                     </div>
 
-                    {location && (
-                        <p className={styles.location}>
-                            <MapPin size={16} />
-                            {location}
-                        </p>
-                    )}
+                    <p className={styles.trust}>
+                        {doctor.verificado && (
+                            <span className={styles.verified}>
+                                <BadgeCheck size={14} aria-hidden="true" />
+                                Médico verificado
+                            </span>
+                        )}
+                        <span className={styles.attended}>
+                            <Users size={14} aria-hidden="true" />
+                            {doctor.pacientes_atendidos ?? 0} {doctor.pacientes_atendidos === 1 ? "paciente atendido" : "pacientes atendidos"}
+                        </span>
+                    </p>
 
-                    {doctor.direccion && (
-                        tieneCoordenadas ? (
+                    {(location || doctor.direccion) && (
+                        tieneCoordenadas && doctor.direccion ? (
                             <button
                                 type="button"
-                                className={styles.addressLink}
+                                className={styles.place}
                                 onClick={() => setMapaAbierto(true)}
                                 aria-haspopup="dialog"
                                 aria-label={`Ver ubicación de ${fullName}`}
                             >
-                                <Building2 size={16} aria-hidden="true" />
-
-                                <span>
-                                    {doctor.direccion}
-                                    <small>Ver ubicación y cómo llegar</small>
+                                <span className={styles.placeIcon} aria-hidden="true"><MapPin size={18} /></span>
+                                <span className={styles.placeText}>
+                                    <strong>{location || "Consultorio"}</strong>
+                                    <span>{doctor.direccion}</span>
+                                </span>
+                                <span className={styles.placeCta}>
+                                    Ver mapa
+                                    <Navigation size={14} aria-hidden="true" />
                                 </span>
                             </button>
                         ) : (
-                            <p className={styles.address}>
-                                <Building2 size={16} aria-hidden="true" />
-                                {doctor.direccion}
-                            </p>
+                            <div className={styles.place} data-static="true">
+                                <span className={styles.placeIcon} aria-hidden="true"><MapPin size={18} /></span>
+                                <span className={styles.placeText}>
+                                    <strong>{location || "Consultorio"}</strong>
+                                    {doctor.direccion && <span>{doctor.direccion}</span>}
+                                </span>
+                            </div>
                         )
                     )}
                 </div>
@@ -207,6 +222,15 @@ export default function DoctorCard({ doctor, onSchedule, onViewProfile }) {
             </div>
 
             <div className={styles.actions}>
+                {doctor.valor_consulta != null && (
+                    <div className={styles.priceBox}>
+                        <span className={styles.priceIcon} aria-hidden="true"><Banknote size={18} /></span>
+                        <div>
+                            <small>Valor de la consulta</small>
+                            <strong>{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(doctor.valor_consulta)}</strong>
+                        </div>
+                    </div>
+                )}
                 <motion.button initial="rest" whileHover="hover" whileFocus="hover" type="button" className={styles.profileAction} onClick={() => onViewProfile?.(doctor)}>
                     <motion.span aria-hidden="true" style={{ display: "inline-flex" }} variants={{ rest: { y: 0 }, hover: { y: reduceMotion ? 0 : -2 } }} transition={{ duration: .18, ease: "easeOut" }}><UserRound size={17} /></motion.span>
                     Ver perfil y valoración

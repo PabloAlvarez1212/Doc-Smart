@@ -225,3 +225,58 @@
         height: 260px;
     }
 }
+
+/* ── Rediseño: buscador, mapa y botones ───────────────────────────────── */
+.container h4 { font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+.help { font-size: 13.5px; }
+.autocomplete {
+    min-height: 50px;
+    border-radius: 14px;
+    border-color: var(--control-border);
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+.autocomplete:hover { border-color: var(--text-secondary); }
+.autocomplete:focus-within {
+    border-color: var(--doctor-primary, var(--focus));
+    outline: 0;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--doctor-primary, var(--focus)) 18%, transparent);
+}
+.autocomplete::part(prediction-list) { border-radius: 14px; overflow: hidden; }
+.map { border-radius: 18px; height: 320px; }
+.container .pointButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 0 18px;
+    border: 1px solid var(--control-border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--color-text);
+    font-size: 14px;
+    font-weight: 650;
+    cursor: pointer;
+}
+.container .pointButton:not(:disabled):hover {
+    background: color-mix(in srgb, var(--doctor-primary, var(--focus)) 10%, var(--surface));
+    border-color: var(--doctor-primary, var(--focus));
+    color: var(--doctor-primary, var(--color-text));
+}
+.container .pointButton:not(:disabled):active { transform: scale(.98); }
+.container .pointActions > button { border-radius: 12px; font-weight: 650; }
+.container .cancelPoint { background: transparent; border: 1px solid var(--control-border); color: var(--color-text); }
+.container .confirmPoint {
+    background: var(--doctor-button, var(--action-primary-bg));
+    color: var(--doctor-on-primary, var(--action-on));
+    border: 1px solid transparent;
+}
+.container .confirmPoint:not(:disabled):hover { background: var(--doctor-button-hover, var(--action-primary-hover)); }
+.pointConfirmation { border-radius: 18px; border-color: color-mix(in srgb, var(--doctor-primary, var(--focus)) 40%, var(--border)); }
+.fixedLocation > span {
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: var(--doctor-positive-bg, var(--tone-green));
+    color: var(--doctor-primary, var(--ink-green));
+    font-weight: 650;
+}
+.address { border-radius: 14px; }

@@ -109,6 +109,24 @@ def listarMedicosPublicosService(
         )
     )
 
+    pacientes = (
+        Cita.objects.filter(
+            id_medico_id=OuterRef("pk"),
+            id_estado__nombre__iexact=ESTADO_CITA_COMPLETADA,
+        )
+        .order_by()
+        .values("id_medico_id")
+        .annotate(total=Count("id_usuario", distinct=True))
+    )
+
+    medicos = medicos.annotate(
+        pacientes_atendidos=Coalesce(
+            Subquery(pacientes.values("total")[:1], output_field=IntegerField()),
+            Value(0),
+            output_field=IntegerField(),
+        )
+    )
+
     # FILTRAR POR NOMBRE
 
     if search:
@@ -1172,6 +1190,8 @@ def editarPerfilMedicoService(id_medico, data):
         'direccion',
         'latitud',
         'longitud',
+        'anios_experiencia',
+        'presentacion',
     ]
 
     for campo in campos_actualizables:
@@ -1267,6 +1287,7 @@ def obtenerDisponibilidadMedicoService(
         "duracion_consulta": (
             medico.duracion_consulta
         ),
+        "valor_consulta": medico.valor_consulta,
         "disponibilidad": serializer.data,
     }, 200
 
@@ -1275,7 +1296,9 @@ def obtenerDisponibilidadMedicoService(
 def actualizarDisponibilidadMedicoService(
     medico_id,
     bloques,
-    duracion_consulta
+    duracion_consulta,
+    valor_consulta=None,
+    actualizar_valor=False
 ):
     medico = (
         Medico.objects
@@ -1291,11 +1314,13 @@ def actualizarDisponibilidadMedicoService(
         duracion_consulta
     )
 
-    medico.save(
-        update_fields=[
-            "duracion_consulta"
-        ]
-    )
+    campos = ["duracion_consulta"]
+
+    if actualizar_valor:
+        medico.valor_consulta = valor_consulta
+        campos.append("valor_consulta")
+
+    medico.save(update_fields=campos)
 
     DisponibilidadMedico.objects.filter(
         medico=medico
@@ -1344,6 +1369,7 @@ def actualizarDisponibilidadMedicoService(
         "duracion_consulta": (
             medico.duracion_consulta
         ),
+        "valor_consulta": medico.valor_consulta,
         "disponibilidad": serializer.data,
     }, 200
 

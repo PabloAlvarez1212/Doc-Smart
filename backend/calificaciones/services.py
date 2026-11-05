@@ -9,6 +9,7 @@ from utils import ESTADO_CITA_COMPLETADA
 from django.db.models import Avg, Count, Q
 from notificaciones.services import enviarNotificacion
 from notificaciones.realtime import programarActualizacionDashboardRealtime
+from citas.realtime import programarActualizacionCalificacionRealtime
 
 
 def crearCalificacionesServices(data,usuario):
@@ -43,6 +44,7 @@ def crearCalificacionesServices(data,usuario):
         return "Esta cita ya tiene una calificación registrada.", 409
 
     programarActualizacionDashboardRealtime("CALIFICACION_CREADA", ("resumen",))
+    programarActualizacionCalificacionRealtime(cita)
     return "Calificación creada correctamente.",201
 
 def actualizarCalificacionServices(data,id_calificacion,usuario):
@@ -68,6 +70,7 @@ def actualizarCalificacionServices(data,id_calificacion,usuario):
     
     calificacion.save()
     programarActualizacionDashboardRealtime("CALIFICACION_ACTUALIZADA", ("resumen",))
+    programarActualizacionCalificacionRealtime(calificacion.id_cita)
 
     return "Campos actualizados correctamente.",200
 

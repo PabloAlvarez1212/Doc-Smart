@@ -56,6 +56,7 @@ export const useRegister = (role, setRole) => {
         departamento_filtro: '',
         id_ciudad: '',
         id_especialidad: '',
+        registro_medico: '',
         correo: '',
         contraseña: '',
         confirmar_contraseña: '',
@@ -94,7 +95,7 @@ export const useRegister = (role, setRole) => {
         {
             if (documentoVerificado && ['nombre', 'apellido', 'tipo_documento', 'numero_documento', 'fecha_nacimiento'].includes(name)) return
             if (correoVerificado) return
-            if (['telefono','estatura','peso','genero','tipo_sangre','departamento_filtro','id_ciudad','id_especialidad','hoja_vida'].includes(name)) {setDatosGuardados(false)}
+            if (['telefono','estatura','peso','genero','tipo_sangre','departamento_filtro','id_ciudad','id_especialidad','registro_medico','hoja_vida'].includes(name)) {setDatosGuardados(false)}
         }
 
         if (name === 'hoja_vida') {
@@ -280,6 +281,7 @@ export const useRegister = (role, setRole) => {
                         telefono: form.telefono,
                         ciudad: form.id_ciudad,
                         id_especialidad: form.id_especialidad,
+                        registro_medico: form.registro_medico.trim(),
                         hoja_vida: form.hoja_vida,
                     };
 

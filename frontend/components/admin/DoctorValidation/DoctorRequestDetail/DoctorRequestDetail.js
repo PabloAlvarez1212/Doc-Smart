@@ -135,6 +135,7 @@ export default function DoctorRequestDetail({
                         <div className={styles.sectionTitle}><Stethoscope size={18} /><h3 id="professional-information-title">Información profesional</h3></div>
                         <dl className={styles.fieldsGrid}>
                             <DetailField label="Especialidad" value={request.especialidad} />
+                            <DetailField label="Registro médico" value={request.registro_medico || "Sin registrar"} />
                             <DetailField label="Dirección" value={request.direccion} />
                             <DetailField label="Ciudad" value={request.ciudad} />
                             <DetailField label="Departamento" value={request.departamento} />

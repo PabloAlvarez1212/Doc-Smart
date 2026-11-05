@@ -73,3 +73,22 @@ export function avanceEspera(valor, ahora = Date.now()) {
     const restante = Date.parse(valor) - ahora;
     return Math.min(1, Math.max(0.04, 1 - restante / (7 * DIA)));
 }
+
+
+// Ventana de la consulta en milisegundos. Si la cita no trae hora final se asume media hora.
+export function ventanaConsulta(cita) {
+    const inicio = Date.parse(cita?.fecha_programada);
+    if (!Number.isFinite(inicio)) return null;
+    const final = Date.parse(cita?.fecha_final);
+    return { inicio, fin: Number.isFinite(final) && final > inicio ? final : inicio + 30 * 60000 };
+}
+
+// 83000 ms -> "01:23"; desde una hora se muestra "1:01:23".
+export function formatoReloj(milisegundos) {
+    const total = Math.max(0, Math.ceil(milisegundos / 1000));
+    const horas = Math.floor(total / 3600);
+    const minutos = Math.floor((total % 3600) / 60);
+    const segundos = total % 60;
+    const dos = (valor) => String(valor).padStart(2, "0");
+    return horas > 0 ? `${horas}:${dos(minutos)}:${dos(segundos)}` : `${dos(minutos)}:${dos(segundos)}`;
+}

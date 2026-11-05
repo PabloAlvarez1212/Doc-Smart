@@ -238,3 +238,18 @@
 @media(hover:hover){.addButton:hover{background:var(--doctor-button-hover)}.actions button:hover{background:var(--doctor-positive-bg);color:var(--doctor-primary)}.actions button:hover svg{transform:translateX(2px)}}
 @media(prefers-reduced-motion:reduce){.container *{transition:none!important;animation:none!important;transform:none!important}}
 .container{border:0;border-top:1px solid var(--border);border-radius:0}.addButton:hover{opacity:1}
+
+
+/* ── Rediseño de excepciones ───────────────────────────────────────────── */
+.container{padding-top:28px}
+.header h2{font-size:24px;font-weight:700;letter-spacing:-.03em}
+.addButton{border-radius:14px;padding:0 18px;font-weight:650}
+.card{position:relative;border-radius:20px;padding:18px 20px;transition:border-color 200ms,transform 260ms cubic-bezier(.23,1,.32,1),box-shadow 260ms}
+@media(hover:hover){.card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--doctor-primary) 30%,var(--border));box-shadow:0 14px 30px -22px color-mix(in srgb,var(--doctor-primary) 50%,transparent)}}
+@media(prefers-reduced-motion:no-preference){.card{animation:excIn 460ms cubic-bezier(.23,1,.32,1) both}}
+@keyframes excIn{from{opacity:0;transform:translateY(12px)}}
+.dateIcon{width:48px;height:48px;border-radius:15px}
+.titleRow h3{font-size:16.5px;font-weight:700;letter-spacing:-.015em}
+.schedules span{border-radius:10px;font-weight:600;font-variant-numeric:tabular-nums}
+.empty{padding:48px 20px;border:1.5px dashed var(--border);border-radius:20px;background:color-mix(in srgb,var(--surface-muted) 45%,transparent)}
+.actions button{border-radius:12px}

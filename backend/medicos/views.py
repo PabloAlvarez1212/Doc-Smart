@@ -740,7 +740,9 @@ class DisponibilidadMedicoView(APIView):
                 actualizarDisponibilidadMedicoService(
                     request.user.id,
                     bloques,
-                    duracion_consulta
+                    duracion_consulta,
+                    serializer.validated_data.get("valor_consulta"),
+                    "valor_consulta" in serializer.validated_data
                 )
             )
 

@@ -98,7 +98,7 @@ export default function GraficaEvolucion({ data = [], agrupacion = "mes" }) {
                                 type="monotone"
                                 dataKey="programadas"
                                 name="Programadas"
-                                stroke="var(--doctor-chart-1)"
+                                stroke="var(--dash-info, var(--doctor-chart-1))"
                                 strokeWidth={2.4}
                                 dot={{ r: 3, strokeWidth: 2, fill: "var(--surface)" }}
                                 activeDot={{ r: 5 }}
@@ -107,7 +107,7 @@ export default function GraficaEvolucion({ data = [], agrupacion = "mes" }) {
                                 type="monotone"
                                 dataKey="completadas"
                                 name="Completadas"
-                                stroke="var(--doctor-chart-0)"
+                                stroke="var(--dash-ok, var(--doctor-chart-0))"
                                 strokeWidth={2.4}
                                 dot={{ r: 3, strokeWidth: 2, fill: "var(--surface)" }}
                                 activeDot={{ r: 5 }}
@@ -116,7 +116,7 @@ export default function GraficaEvolucion({ data = [], agrupacion = "mes" }) {
                                 type="monotone"
                                 dataKey="canceladas"
                                 name="Canceladas"
-                                stroke="var(--ink-red)"
+                                stroke="var(--dash-bad, var(--ink-red))"
                                 strokeWidth={2}
                                 dot={{ r: 3 }}
                                 activeDot={{ r: 6 }}
