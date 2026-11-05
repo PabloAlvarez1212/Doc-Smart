@@ -62,3 +62,16 @@ Un filtro por frases (`FiltroPromesas`) retira del texto del modelo, también en
 ## Limitaciones conocidas
 - No existe memoria de preferencias personales del médico (requeriría un modelo y una migración nuevos); los chats de médicos no usan la memoria de pacientes.
 - La voz del navegador depende de los permisos y del soporte de reconocimiento del dispositivo; no se verificó con micrófono real en esta revisión.
+
+## Búsqueda y agendamiento (flujo vigente)
+1. **Ubicación primero:** una búsqueda o solicitud presencial sin ciudad pregunta la ciudad y conserva la especialidad; «cualquiera» la omite. Los filtros (ciudad, especialidad, médico, fecha, hora) se combinan y se pueden cambiar o quitar sin reiniciar.
+2. **Disponibilidad real:** con fecha, `buscar_medico` muestra los horarios libres de cada médico según el servicio oficial (`generarSlotsDisponibles`); con fecha y hora, solo quienes están libres a esa hora; si nadie lo está, ofrece los horarios reales más cercanos.
+3. **Selección:** por número, orden («el segundo»), nombre o apellido. Los nombres tolerantes a mayúsculas, tildes y errores de transcripción exigen que todas las palabras coincidan y al menos una casi exactamente; varios candidatos piden aclarar y una coincidencia débil no selecciona.
+4. **Horario antes del motivo:** el motivo se pide solo después de validar el horario. Si no está libre se ofrecen alternativas con médico, fecha y hora, sin cambiar la selección.
+5. **Confirmación:** resumen con médico, fecha y motivo; autorización de un solo uso; el horario se revalida al confirmar y, si se ocupó, se conservan los datos y se ofrecen alternativas.
+6. **Cambiar de tema:** antes de leer un mensaje como respuesta al dato pendiente se decide si continúa, abandona o cambia de tema. Cambiar de tema descarta el borrador y las confirmaciones pendientes (un «sí» posterior no ejecuta nada) y atiende la nueva intención; nunca cancela una cita registrada. «Retoma la cita» recupera los datos, revalida y vuelve a pedir confirmación.
+
+## Audio y conexión
+- Bloqueo de reproducción del navegador y fallo de red son estados distintos. Si el navegador bloquea el audio se muestra «Activar audio»: el clic reanuda el `AudioContext` y la reproducción pendiente. No se reintenta en bucle ni se piden permisos de nuevo.
+- Los fallos transitorios de red al pedir la voz se reintentan dos veces con espera creciente; las peticiones rechazadas no se repiten. Si la voz falla, el texto sigue disponible.
+- Si cae el WebSocket, se reconecta solo hasta 5 veces (1, 2, 4, 8 y 15 s). El turno se recupera con el mismo `request_id`; de la respuesta recuperada solo se pronuncia lo que no se había encolado.

@@ -18,7 +18,7 @@ const plain = text => String(text || "").toLowerCase().normalize("NFD").replace(
 export function createBymaxVoiceController({ browser, generateVoice, notify, onTranscript, onPartial, onWake, onEnd = () => {}, onBarge = () => {}, isBusy }) {
   const Recognition = browser.SpeechRecognition || browser.webkitSpeechRecognition;
   let state = { mic: "off", active: false, playback: "idle", enabled: true, messageId: null, notice: "", error: "", supported: Boolean(Recognition),
-    call: false, muted: false, speechId: null, spokenText: "", speakingText: "" };
+    call: false, muted: false, speechId: null, spokenText: "", speakingText: "", audioBlocked: false };
   let config = { ...DEFAULT_VOICE };
   // Call mode: the microphone stays open while Bymax answers, so the user can talk over it.
   let callMode = false;
@@ -130,7 +130,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
     queue = [];
     current = null;
     engines.clear();
-    update({ playback: announce ? "stopped" : "idle", messageId: null, notice: "", speakingText: "" });
+    update({ playback: announce ? "stopped" : "idle", messageId: null, notice: "", speakingText: "", audioBlocked: false });
     if (announce) session.resume();
   }
 
@@ -149,7 +149,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
     browser.clearTimeout(playbackTimer);
     if (blocked) {
       // Never pretend it is playing: explain how to allow automatic audio.
-      update({ playback: "ready", notice: "El navegador bloqueó el audio automático. Toca la pantalla una vez o permite el sonido del sitio (icono de candado de la barra de direcciones) para escuchar las respuestas sin pulsar nada." });
+      update({ playback: "ready", audioBlocked: true, notice: "El navegador bloqueó el audio automático. Pulsa «Activar audio» (o toca la pantalla una vez) para escuchar las respuestas sin más pasos; también puedes permitir el sonido del sitio en el icono de candado de la barra de direcciones." });
     } else {
       stopPlayback(false);
       update({ playback: "error", messageId: null, error: message });
@@ -168,7 +168,7 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
 
       engines.set(item.id, item.engine);
       browser.dispatchEvent?.(new browser.CustomEvent("bymax:audio-timing", { detail: { response_id: item.id, event: "playing", at: browser.performance?.now() } }));
-      update({ playback: "speaking", notice: "Reproduciendo respuesta…", speechId: item.id, spokenText: speechLog.id === item.id ? speechLog.done : "", speakingText: item.text });
+      update({ playback: "speaking", audioBlocked: false, notice: "Reproduciendo respuesta…", speechId: item.id, spokenText: speechLog.id === item.id ? speechLog.done : "", speakingText: item.text });
       preloadNext();
       browser.clearTimeout(playbackTimer);
       playbackTimer = browser.setTimeout(() => playbackError(generation, "La reproducción se detuvo por tiempo máximo. Puedes reproducir el mensaje de nuevo."), 180000);
@@ -204,11 +204,27 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
     }
   }
 
+  // Transient network failures are retried a few times with growing waits; a
+  // rejected request (4xx) or a cancelled one is never repeated.
+  const RETRY_DELAYS = [400, 1200];
+  const waitRetry = (ms, signal) => new Promise((resolve, reject) => {
+    const timer = browser.setTimeout(resolve, ms);
+    signal?.addEventListener?.("abort", () => { browser.clearTimeout(timer); reject(new DOMException("Cancelled", "AbortError")); }, { once: true });
+  });
+  async function withRetry(call, signal) {
+    for (let attempt = 0; ; attempt += 1) {
+      try { return await call(); }
+      catch (error) {
+        if (signal?.aborted || !error?.transient || attempt >= RETRY_DELAYS.length) throw error;
+        await waitRetry(RETRY_DELAYS[attempt], signal);
+      }
+    }
+  }
   function requestAudio(item) {
     if (item.prepared) return item.prepared;
     item.abort = typeof AbortController !== "undefined" ? new AbortController() : null;
     let requested;
-    try { requested = generateVoice(item.text, Number(config.rate), item.abort?.signal); }
+    try { requested = withRetry(() => generateVoice(item.text, Number(config.rate), item.abort?.signal), item.abort?.signal); }
     catch (error) { requested = Promise.reject(error); }
     // A prefetched rejection is captured immediately, even before consumption.
     item.prepared = Promise.race([
@@ -358,8 +374,14 @@ export function createBymaxVoiceController({ browser, generateVoice, notify, onT
   // Called from a user gesture: prepares one reusable audio element and, when a
   // response was blocked, plays it now.
   let unlocked = false;
+  let audioContext = null;
   function unlockAudio() {
     if (disposed) return;
+    try {
+      const Context = browser.AudioContext || browser.webkitAudioContext;
+      if (!audioContext && Context) audioContext = new Context();
+      if (audioContext?.state === "suspended") audioContext.resume?.()?.catch?.(() => {});
+    } catch {}
     if (!unlocked && !current && browser.Audio) {
       try {
         if (!audio) audio = new browser.Audio();

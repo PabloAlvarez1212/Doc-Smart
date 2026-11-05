@@ -2,6 +2,7 @@
 .codex/
 .agents/
 .impeccable/
+.claude/
 skills-lock.json
 
 # Documentación de validación facial

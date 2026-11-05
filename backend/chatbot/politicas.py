@@ -25,3 +25,11 @@ RESULTADOS_MAX = _valor("RESULTADOS_MAX", 10)
 RESULTADOS_VIGENCIA_MINUTOS = _valor("RESULTADOS_VIGENCIA_MINUTOS", 30)
 # Precauciones adicionales por debajo de esta edad.
 EDAD_MAYORIA = _valor("EDAD_MAYORIA", 18)
+# Disponibilidad: horarios mostrados por médico y alternativas ofrecidas.
+HORARIOS_POR_MEDICO = _valor("HORARIOS_POR_MEDICO", 3)
+# Al elegir médico sin fecha: próximos horarios propuestos y días que se exploran.
+PROXIMOS_HORARIOS = _valor("PROXIMOS_HORARIOS", 3)
+DIAS_BUSQUEDA_HORARIOS = _valor("DIAS_BUSQUEDA_HORARIOS", 14)
+ALTERNATIVAS_MAX = _valor("ALTERNATIVAS_MAX", 4)
+# Preguntas que Bymax responde con una cita pendiente de confirmar antes de exigir una decisión.
+MAX_PREGUNTAS_EN_CONFIRMACION = _valor("MAX_PREGUNTAS_EN_CONFIRMACION", 3)

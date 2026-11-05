@@ -249,6 +249,10 @@ def _ultimo_texto(contents):
 
 def procesar_mensaje(historial, mensaje, streaming=False):
     mensaje_actual = str(mensaje or "").strip()
+    from chatbot.ai.filters import parametros_consulta_citas
+    consulta = parametros_consulta_citas(mensaje_actual)
+    if consulta is not None:
+        return RouterDecision(tool=True, tool_name="consultar_disponibilidad", parametros=consulta)
 
     # Los listados generales pueden resolverse sin consultar el router.
     # Una intención de cita o una fecha necesita extracción de contexto.

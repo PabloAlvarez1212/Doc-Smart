@@ -14,7 +14,9 @@ export default function BymaxComposer({ message, setMessage, image, setImage, er
       <button type="button" disabled={sending} onClick={() => onSend("Sí", true)}>Sí, confirmar</button>
       <button type="button" disabled={sending} onClick={() => onSend("No", true)}>No, cancelar</button>
     </div>}
-    {voice.playback === "ready" && <button type="button" className={styles.audioReady} onClick={() => voice.play("", voice.messageId)}><Play size={16}/> Reproducir audio listo</button>}
+    {voice.playback === "ready" && (voice.audioBlocked
+      ? <button type="button" className={styles.audioReady} onClick={() => voice.unlockAudio()}><Play size={16}/> Activar audio</button>
+      : <button type="button" className={styles.audioReady} onClick={() => voice.play("", voice.messageId)}><Play size={16}/> Reproducir audio listo</button>)}
     {!voice.enabled && <p className={styles.voiceNotice}>Puedes activar la voz en Configuración.</p>}
     {(error || voice.error) && <div className={styles.errorBanner} role="alert"><AlertCircle size={18}/><span>{error || voice.error}</span><button type="button" onClick={clearError} aria-label="Cerrar aviso"><X size={18}/></button></div>}
     {voice.notice && !voice.error && <p className={styles.voiceNotice} role="status">{voice.notice}</p>}
