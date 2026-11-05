@@ -41,3 +41,24 @@ def programarActualizacionCitaRealtime(cita):
         emitir,
         robust=True,
     )
+
+
+def programarActualizacionCalificacionRealtime(cita):
+    """Avisa al médico por WebSocket que recibió o cambió una calificación, para refrescar su dashboard."""
+    grupo = f"medico_{cita.id_medico_id}"
+    evento = {
+        "type": "send_appointment_update",
+        "tipo_evento": "CALIFICACION_RECIBIDA",
+        "cita": dict(CitaSerializer(cita).data),
+    }
+
+    def emitir():
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+        try:
+            async_to_sync(channel_layer.group_send)(grupo, evento)
+        except Exception:
+            logger.exception("Error enviando la calificación de la cita %s al grupo %s", cita.pk, grupo)
+
+    transaction.on_commit(emitir, robust=True)

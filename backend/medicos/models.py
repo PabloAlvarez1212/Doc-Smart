@@ -68,6 +68,26 @@ class Medico(models.Model):
         ],
         help_text="Duración de la consulta en minutos"
     )
+    # El registro médico se guarda cifrado; la huella permite detectar duplicados sin descifrar.
+    registro_medico_cifrado = models.TextField(blank=True, default="")
+    registro_medico_huella = models.CharField(max_length=64, null=True, blank=True, unique=True)
+    anios_experiencia = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MaxValueValidator(70)],
+    )
+    presentacion = models.TextField(blank=True, default="")
+    # Tarifa de la consulta en pesos colombianos; vacía si el médico aún no la define.
+    valor_consulta = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        validators=[MaxValueValidator(5000000)],
+    )
+
+    @property
+    def registro_medico(self):
+        from core.cifrado import descifrar_texto
+        return descifrar_texto(self.registro_medico_cifrado)
     # Propiedad requerida por el sistema de autenticación: indica que el médico está autenticado
     @property
     def is_authenticated(self):
