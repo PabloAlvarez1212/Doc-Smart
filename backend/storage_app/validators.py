@@ -66,7 +66,7 @@ def validar_archivo(archivo):
     validar_tipo_archivo(archivo)
 
 
-def validar_archivo_chat(archivo):
+def validar_archivo_chat(archivo, *, max_size=None):
     """Formatos limitados de chat; conserva el cursor de la transferencia."""
     from pathlib import Path
     import warnings
@@ -76,7 +76,7 @@ def validar_archivo_chat(archivo):
                'image/png': ('PNG', {'.png'}), 'image/webp': ('WEBP', {'.webp'}),
                'application/pdf': ('PDF', {'.pdf'})}
     validar_tipo_archivo(archivo, set(formats))
-    validar_tamano_archivo(archivo, (10 if mime == 'application/pdf' else 8) * 1024 * 1024)
+    validar_tamano_archivo(archivo, max_size or (10 if mime == 'application/pdf' else 8) * 1024 * 1024)
     expected, extensions = formats[mime]
     if Path(archivo.name).suffix.lower() not in extensions:
         raise ValidationError('La extensión no coincide con el tipo')
@@ -102,6 +102,31 @@ def validar_archivo_chat(archivo):
         raise ValidationError('Imagen inválida o demasiado grande')
     finally:
         archivo.seek(position)
+
+
+def validar_evidencia_reporte(archivo):
+    """Verifica contenido, extensión y tamaño sin confiar en el MIME declarado."""
+    from pypdf import PdfReader
+    from pypdf.errors import PyPdfError
+    validar_tipo_archivo(archivo, {'image/jpeg', 'image/png', 'application/pdf'})
+    validar_archivo_chat(archivo, max_size=10 * 1024 * 1024)
+    if archivo.content_type == 'application/pdf':
+        position = archivo.tell()
+        try:
+            archivo.seek(0)
+            reader = PdfReader(archivo, strict=True, root_object_recovery_limit=0,
+                               xref_stream_maximum_entries=100000)
+            if reader.is_encrypted:
+                raise ValidationError('Adjunta un PDF sin contraseña para que pueda revisarse.')
+            if reader.root_object.get('/Type') != '/Catalog' or not reader.pages:
+                raise ValidationError('El PDF no contiene páginas válidas.')
+            for pagina in reader.pages:
+                if pagina.get('/Type') != '/Page' or len(pagina.mediabox) != 4:
+                    raise ValidationError('El PDF contiene una página inválida.')
+        except (PyPdfError, OSError, ValueError, TypeError, KeyError, RecursionError) as error:
+            raise ValidationError('El archivo no contiene una estructura PDF válida.') from error
+        finally:
+            archivo.seek(position)
 
 
 def validar_archivo_seguimiento(archivo):

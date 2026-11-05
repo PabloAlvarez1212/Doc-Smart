@@ -159,7 +159,7 @@
                                 text-transform: uppercase;
                                 color: #2563eb;
                             ">
-                                NOTIFICACIÓN DE CITA MÉDICA
+                                {% if es_cuenta %}REPORTES Y SEGURIDAD{% else %}NOTIFICACIÓN DE CITA MÉDICA{% endif %}
                             </p>
 
                             <!-- TÍTULO -->
@@ -201,6 +201,7 @@
                             </p>
 
                             <!-- ======================== -->
+                            {% if not es_cuenta %}
                             <!-- ENCABEZADO DE DETALLES -->
                             <!-- ======================== -->
                             <table
@@ -829,6 +830,7 @@
                             <!-- ======================== -->
                             <!-- MENSAJE DESTACADO -->
                             <!-- ======================== -->
+                            {% endif %}
                             {% if mensaje_adicional %}
 
                             <table
@@ -922,7 +924,7 @@
                                                             border-radius: 9px;
                                                         "
                                                     >
-                                                        Ver mis citas &rarr;
+                                                        {% if es_cuenta %}Reportes y seguridad{% else %}Ver mis citas{% endif %} &rarr;
                                                     </a>
 
                                                 </td>
@@ -979,7 +981,7 @@
                             ">
                                 Este mensaje fue generado automáticamente
                                 por DocSmart para mantenerte informado
-                                sobre tus citas médicas.
+                                sobre {% if es_cuenta %}tu cuenta{% else %}tus citas médicas{% endif %}.
                                 Por favor, no respondas a este correo.
                             </p>
 

@@ -627,19 +627,14 @@ class PerfilPacienteView(APIView):
         except Exception as e:
             print(f"Error: {e}")
             return respuesta_error("Error interno en el servidor",status=500)
+
     def delete(self, request):
-        try:
-            resultado, status_code = eliminarUsuarioService(request.user.id)
-            if status_code != 200:
-                return respuesta_error(resultado,status=status_code)
-            response = respuesta_ok(mensaje=resultado)
-            response.delete_cookie('token',path='/')
-            response.delete_cookie('user_role',path='/')
-            response.delete_cookie('user_id',path='/')
-            return response
-        except Exception as e:
-            logger.exception("No se pudo eliminar el perfil del paciente")
-            return respuesta_error('Error interno del servidor',status=500)
+        return respuesta_error(
+            "Por seguridad y conservación de la información "
+            "médica, no está permitida la eliminación "
+            "de cuentas de pacientes desde la plataforma.",
+            status=403
+        )
 
 class PerfilAdminView(APIView):
     permission_classes = [IsAuthenticated,IsAdmin]

@@ -138,7 +138,7 @@ function ConversationScreen({ id, role, embedded, citaId }) {
             <Link className={styles.back} href={back} aria-label="Volver a Mis chats"><ArrowLeft size={18} aria-hidden="true" /><span>Mis chats</span></Link>
             <ChatAvatar participant={conversation.otro_participante} />
             <div className={styles.participantInfo}><div className={styles.nameLine}><h1>{conversation.otro_participante?.nombre} {conversation.otro_participante?.apellido}</h1><ChatPresence presence={state.remotePresence} /></div>
-              <p className={styles.meta}>Cita #{conversation.cita.id} · {formatDate(conversation.cita.fecha_programada)}</p></div>
+              <p className={styles.meta}>Cita {conversation.cita.codigo_cita} -{" "}{formatDate(conversation.cita.fecha_programada)}</p></div>
             <Button className={styles.refreshButton} disabled={busy} onClick={chat.refresh} aria-label="Actualizar conversación"><RefreshCw size={17} aria-hidden="true" /></Button>
           </div>
           <details className={styles.consultationInfo}><summary>Detalles de la consulta</summary>

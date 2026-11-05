@@ -190,6 +190,9 @@ def generarSlotsDisponibles(
 
     fin_dia = inicio_dia + timedelta(days=1)
 
+    from reportes.services import periodosSancionService
+    periodos_sancion = periodosSancionService(medico, inicio_dia, fin_dia)
+
     citas = obtenerCitasBloqueantes(
         medico,
         inicio_dia,
@@ -235,6 +238,12 @@ def generarSlotsDisponibles(
             # No mostrar horarios que incumplan
             # la anticipación mínima.
             if inicio_slot < limite_anticipacion:
+                inicio_slot += duracion
+                continue
+
+            if any(
+                inicio_slot < fecha_fin and fin_slot > fecha_inicio for fecha_inicio, fecha_fin in periodos_sancion
+            ):
                 inicio_slot += duracion
                 continue
 

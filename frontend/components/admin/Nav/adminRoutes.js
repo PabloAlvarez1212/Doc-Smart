@@ -11,6 +11,7 @@ import {
     Shield,
     Stethoscope,
     UserRoundCheck,
+    Flag,
 } from "lucide-react";
 
 // Páginas del panel administrativo agrupadas como se muestran en el sidebar, el menú móvil y la búsqueda.
@@ -21,6 +22,7 @@ export const adminGroups = [
             { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, hint: "Métricas generales" },
             { href: "/admin/patients", label: "Pacientes", icon: CircleUserRound, hint: "Gestión de pacientes" },
             { href: "/admin/doctors", label: "Médicos", icon: Stethoscope, hint: "Gestión de médicos" },
+            {href: "/admin/reports", label: "Reportes y sanciones", icon: Flag, hint: "Revisar reportes y gestionar sanciones",},
         ],
     },
     {

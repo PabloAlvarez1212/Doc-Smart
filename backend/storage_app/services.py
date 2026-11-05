@@ -1,4 +1,5 @@
 import boto3
+import logging
 
 from botocore.client import Config
 from botocore.exceptions import ClientError
@@ -88,14 +89,21 @@ def subir_archivo(
         archivo
     )
 
-    cliente.upload_fileobj(
-        archivo_protegido,
-        settings.AWS_STORAGE_BUCKET_NAME,
-        storage_key,
-        ExtraArgs={
-            "ContentType": content_type,
-        },
-    )
+    extra_args = {"ContentType": content_type}
+    # El bucket privado configurado controla el acceso (Railway no ofrece
+    # buckets públicos). No imponer ACL: varios proveedores S3 las desactivan.
+    try:
+        cliente.upload_fileobj(
+            archivo_protegido, settings.AWS_STORAGE_BUCKET_NAME,
+            storage_key, ExtraArgs=extra_args,
+        )
+    except Exception:
+        if categoria == "reportes_privado":
+            try:
+                cliente.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=storage_key)
+            except Exception:
+                logging.getLogger(__name__).exception("Evidencia pendiente de limpieza: %s", storage_key)
+        raise
 
     if not getattr(
         archivo,
@@ -286,7 +294,7 @@ def eliminar_archivo_usuario(archivo):
     el registro como inactivo en MySQL.
     """
 
-    if archivo.categoria == 'chat_citas_privado' or hasattr(archivo, 'adjunto_chat'):
+    if archivo.categoria in ('chat_citas_privado', 'reportes_privado') or hasattr(archivo, 'adjunto_chat') or hasattr(archivo, 'evidencia_reporte'):
         return False
     eliminado = eliminar_archivo(
         archivo.storage_key
