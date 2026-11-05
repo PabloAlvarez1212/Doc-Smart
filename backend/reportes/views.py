@@ -30,6 +30,7 @@ from .services import (
     previsualizarSancionService,
     listarCitasReportablesService,
     obtenerEvidenciaReporteService,
+    antecedentesReporteService,
 )
 
 
@@ -76,6 +77,7 @@ class ListarReportesView(APIView):
         resultado, codigo = listarReportesService(
             request.user,
             estado=estado,
+            situacion=request.query_params.get("situacion"),
         )
 
         if codigo != 200:
@@ -161,6 +163,16 @@ class MiSancionView(APIView):
             return respuesta_error(resultado, status = codigo)
 
         return respuesta_ok(data = resultado, status = 200)
+
+
+class AntecedentesReporteView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request, reporte_id):
+        resultado, codigo = antecedentesReporteService(request.user, reporte_id)
+        if codigo != 200:
+            return respuesta_error(resultado, status=codigo)
+        return respuesta_ok(data=resultado)
 
 
 class ListarUsuariosReportablesView(APIView):

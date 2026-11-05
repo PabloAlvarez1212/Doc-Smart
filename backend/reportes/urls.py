@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    AntecedentesReporteView,
     CrearReporteView,
     ListarReportesView,
     GestionarReporteView,
@@ -13,6 +14,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path("antecedentes/<int:reporte_id>/", AntecedentesReporteView.as_view(), name="antecedentes_reporte"),
     path("previsualizar/<int:reporte_id>/", PrevisualizarSancionView.as_view(), name="previsualizar_sancion"),
     path("citas-reportables/", CitasReportablesView.as_view(), name="citas_reportables"),
     path("evidencia/<int:reporte_id>/", EvidenciaReporteView.as_view(), name="evidencia_reporte"),

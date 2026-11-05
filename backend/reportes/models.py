@@ -21,6 +21,13 @@ class Reporte(models.Model):
         RESUELTO = "resuelto", "Resuelto"
         DESCARTADO = "descartado", "Descartado"
 
+    class Decision(models.TextChoices):
+        DESCARTAR = "descartar", "Descartado"
+        ADVERTIR = "advertir", "Advertido"
+        SANCIONAR = "sancionar", "Sancionado"
+
+    decision = models.CharField(max_length=10, choices=Decision.choices, blank=True, default="")
+
     paciente = models.ForeignKey(
         "users.Usuario", on_delete = models.PROTECT,
         related_name = "reportes_paciente"
@@ -89,6 +96,15 @@ class Reporte(models.Model):
     def __str__(self):
         return f"Reporte #{self.id} - {self.estado}"
 
+    def situacion_administrativa(self, ahora=None):
+        sancion = getattr(self, "sancion", None)
+        if sancion:
+            return sancion.estado_vigencia(ahora)
+        if self.estado == self.Estado.RESUELTO and self.decision == self.Decision.ADVERTIR:
+            return "advertido"
+        # Un resuelto antiguo sin sanción no demuestra que se haya advertido.
+        return self.estado
+
 
 class Sancion(models.Model):
     class Tipo(models.TextChoices):
@@ -146,13 +162,43 @@ class Sancion(models.Model):
 
     @property
     def esta_activa(self):
-        ahora = timezone.now()
+        return self.estado_vigencia() == "sancion_activa"
 
-        return (
-            self.anulada_en is None
-            and self.fecha_inicio <= ahora
-            and (self.fecha_fin is None or ahora < self.fecha_fin)
-        )
+    def estado_vigencia(self, ahora=None):
+        ahora = ahora or timezone.now()
+        if self.anulada_en is not None:
+            return "sancion_levantada"
+        if self.fecha_fin is not None and ahora >= self.fecha_fin:
+            return "sancion_finalizada"
+        if self.fecha_inicio <= ahora:
+            return "sancion_activa"
+        return "sancion_programada"
 
     def __str__(self):
         return f"Sanción #{self.id} - Reporte #{self.reporte_id}"
+
+
+class HistorialReporte(models.Model):
+    class Accion(models.TextChoices):
+        CREACION = "creacion", "Reporte registrado"
+        REVISION = "revision", "Revisión iniciada"
+        DESCARTAR = "descartar", "Reporte descartado"
+        ADVERTIR = "advertir", "Advertencia formal emitida"
+        SANCIONAR = "sancionar", "Suspensión aplicada"
+        REHABILITAR = "rehabilitar", "Suspensión levantada"
+
+    reporte = models.ForeignKey(Reporte, on_delete=models.PROTECT, related_name="historial_administrativo")
+    accion = models.CharField(max_length=12, choices=Accion.choices)
+    administrador = models.ForeignKey(
+        "users.Usuario", on_delete=models.PROTECT, null=True, blank=True,
+        related_name="decisiones_reportes",
+    )
+    fecha = models.DateTimeField(default=timezone.now, editable=False)
+    estado_anterior = models.CharField(max_length=15, blank=True, choices=Reporte.Estado.choices)
+    estado_nuevo = models.CharField(max_length=15, choices=Reporte.Estado.choices)
+    motivo = models.TextField(blank=True, default="")
+    respuesta_reportante = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["fecha", "pk"]
+        indexes = [models.Index(fields=["reporte", "fecha"])]

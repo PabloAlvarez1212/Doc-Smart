@@ -1,6 +1,10 @@
 
 from rest_framework import serializers
-from .models import Reporte, Sancion
+from .models import Reporte, Sancion, HistorialReporte
+
+
+def nombreAdministrador(usuario):
+    return f"{usuario.nombre} {usuario.apellido}".strip() if usuario else None
 
 
 class CrearReporteSerializer(serializers.Serializer):
@@ -45,11 +49,12 @@ class GestionarReporteSerializer(serializers.Serializer):
     ACCIONES = (
         ("revision", "En revisión"),
         ("descartar", "Descartar"),
+        ("advertir", "Advertir"),
         ("sancionar", "Sancionar"),
     )
 
     accion = serializers.ChoiceField(choices=ACCIONES)
-    tipo = serializers.ChoiceField(choices=Sancion.Tipo.choices, default=Sancion.Tipo.TEMPORAL)
+    tipo = serializers.ChoiceField(choices=Sancion.Tipo.choices, required=False)
     token_vista_previa = serializers.CharField(required=False, max_length=20000)
     observacion_reportante = serializers.CharField(required=False, allow_blank=True, max_length=2000)
 
@@ -66,9 +71,16 @@ class GestionarReporteSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
+        if attrs["accion"] != "revision" and not attrs.get("observacion_admin", "").strip():
+            raise serializers.ValidationError({"observacion_admin": "Escribe el motivo de la decisión administrativa."})
+        if attrs["accion"] != "sancionar":
+            for campo in ("tipo", "dias_suspension", "token_vista_previa"):
+                attrs.pop(campo, None)
+        if attrs["accion"] == "revision":
+            attrs.pop("observacion_admin", None)
+            attrs.pop("observacion_reportante", None)
         if attrs["accion"] == "sancionar":
-            if not attrs.get("observacion_admin", "").strip():
-                raise serializers.ValidationError({"observacion_admin": "Escribe el motivo administrativo."})
+            attrs.setdefault("tipo", Sancion.Tipo.TEMPORAL)
             if attrs["tipo"] == Sancion.Tipo.TEMPORAL and not attrs.get("dias_suspension"):
                 raise serializers.ValidationError({
                     "dias_suspension": [
@@ -82,7 +94,22 @@ class GestionarReporteSerializer(serializers.Serializer):
 
 
 class SancionSerializer(serializers.ModelSerializer):
-    esta_activa = serializers.BooleanField(read_only=True)
+    esta_activa = serializers.SerializerMethodField()
+    estado_vigencia = serializers.SerializerMethodField()
+    nombre_administrador = serializers.SerializerMethodField()
+    nombre_rehabilitador = serializers.SerializerMethodField()
+
+    def get_estado_vigencia(self, obj):
+        return obj.estado_vigencia(self.context.get("ahora"))
+
+    def get_esta_activa(self, obj):
+        return self.get_estado_vigencia(obj) == "sancion_activa"
+
+    def get_nombre_administrador(self, obj):
+        return nombreAdministrador(obj.aplicada_por)
+
+    def get_nombre_rehabilitador(self, obj):
+        return nombreAdministrador(obj.anulada_por)
 
     class Meta:
         model = Sancion
@@ -98,7 +125,22 @@ class SancionSerializer(serializers.ModelSerializer):
             "aplicada_por",
             "anulada_por",
             "motivo_anulacion",
+            "estado_vigencia", "nombre_administrador", "nombre_rehabilitador",
         ]
+        read_only_fields = fields
+
+
+class HistorialReporteSerializer(serializers.ModelSerializer):
+    nombre_administrador = serializers.SerializerMethodField()
+    accion_display = serializers.CharField(source="get_accion_display", read_only=True)
+
+    def get_nombre_administrador(self, obj):
+        return nombreAdministrador(obj.administrador)
+
+    class Meta:
+        model = HistorialReporte
+        fields = ["id", "accion", "accion_display", "administrador", "nombre_administrador",
+                  "fecha", "estado_anterior", "estado_nuevo", "motivo", "respuesta_reportante"]
         read_only_fields = fields
 
 
@@ -110,13 +152,34 @@ class ReporteSerializer(serializers.ModelSerializer):
     nombre_paciente = serializers.SerializerMethodField()
     nombre_medico = serializers.SerializerMethodField()
     codigo_cita = serializers.CharField(source="cita.codigo_cita", read_only=True, allow_null=True)
+    estado_administrativo = serializers.SerializerMethodField()
+    historial_administrativo = serializers.SerializerMethodField()
+    nombre_administrador = serializers.SerializerMethodField()
+    decision = serializers.SerializerMethodField()
+
+    def get_estado_administrativo(self, obj):
+        return obj.situacion_administrativa(self.context.get("ahora")) if self.context.get("es_admin") else obj.estado
+
+    def get_decision(self, obj):
+        return obj.decision if self.context.get("es_admin") else ""
+
+    def get_nombre_administrador(self, obj):
+        return nombreAdministrador(obj.revisado_por) if self.context.get("es_admin") else None
+
+    def get_historial_administrativo(self, obj):
+        if not self.context.get("es_admin"):
+            return []
+        return HistorialReporteSerializer(obj.historial_administrativo.all(), many=True).data
 
     def get_sancion(self, obj):
         sancion = getattr(obj, "sancion", None)
-        return SancionSerializer(sancion).data if self.context.get("es_admin") and sancion else None
+        return SancionSerializer(sancion, context=self.context).data if self.context.get("es_admin") and sancion else None
 
     def get_observacion_admin(self, obj):
-        return obj.observacion_admin if self.context.get("es_admin") else obj.observacion_reportante
+        if self.context.get("es_admin", False):
+            return obj.observacion_admin
+
+        return None
 
     def get_evidencia(self, obj):
         if not obj.evidencia_id or not obj.evidencia.activo:
@@ -159,6 +222,7 @@ class ReporteSerializer(serializers.ModelSerializer):
             "motivo_display",
             "evidencia",
             "observacion_reportante",
+            "decision", "estado_administrativo", "nombre_administrador", "historial_administrativo",
         ]
         read_only_fields = fields
 

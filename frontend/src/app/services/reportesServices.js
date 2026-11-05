@@ -115,3 +115,8 @@ export const descargarEvidenciaReporteService = async (reporteId) => {
         throw error;
     }
 };
+
+export const obtenerAntecedentesReporteService = async (reporteId) => {
+    const response = await api.get(`/reportes/antecedentes/${reporteId}/`);
+    return response.data.data;
+};

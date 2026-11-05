@@ -5,9 +5,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 import {
     Flag,
-    RefreshCw,
     ShieldAlert,
     ClipboardList,
+    Eye,
 } from "lucide-react";
 
 import {
@@ -21,9 +21,14 @@ import {
     listarCitasReportablesService,
     previsualizarSancionService,
     descargarEvidenciaReporteService,
+    obtenerAntecedentesReporteService,
 } from "../../src/app/services/reportesServices";
 
 import { obtenerPrimerError } from "../../src/app/utils/errrorUtils";
+import AdminPageHeader from "../admin/PageHeader/AdminPageHeader";
+import adminPageStyles from "../../src/app/admin/adminPages.module.css";
+import Modal from "../ui/Modal/Modal";
+import Pagination from "../ui/Pagination/Pagination";
 import styles from "./ReportsPanel.module.css";
 
 const ESTADOS = {
@@ -32,6 +37,45 @@ const ESTADOS = {
     resuelto: "Resuelto",
     descartado: "Descartado",
 };
+
+const ESTADOS_ADMIN = {
+    pendiente: "Pendientes",
+    en_revision: "En revisión",
+    descartado: "Descartados",
+    advertido: "Advertidos",
+    sancion_activa: "Sanciones activas",
+    sancion_finalizada: "Sanciones finalizadas",
+    sancion_levantada: "Sanciones levantadas",
+    resuelto: "Resueltos sin decisión registrada",
+    sancion_programada: "Sanciones programadas",
+};
+const GRUPOS_ADMIN = [
+    { valor: "todos", etiqueta: "Todos" },
+    { valor: "pendiente", etiqueta: "Pendientes", prioritario: true },
+    { valor: "en_revision", etiqueta: "En revisión", prioritario: true },
+    { valor: "sanciones", etiqueta: "Sanciones" },
+    { valor: "historial", etiqueta: "Historial" },
+];
+const ESTADOS_SANCIONES = ["sancion_activa", "sancion_finalizada", "sancion_levantada", "sancion_programada"];
+const ESTADOS_HISTORIAL = ["advertido", "descartado", "resuelto"];
+const REPORTES_POR_PAGINA = 8;
+const ERROR_RECARGA = "La operación se guardó, pero no fue posible actualizar los reportes. Se reintentará automáticamente.";
+const AVISO_SINCRONIZACION = "Los datos están pendientes de actualización. Las acciones se habilitarán al completar la actualización automática.";
+
+function coincideEstado(estado, filtro) {
+    if (filtro === "todos") return true;
+    if (filtro === "sanciones") return ESTADOS_SANCIONES.includes(estado);
+    if (filtro === "historial") return ESTADOS_HISTORIAL.includes(estado);
+    return estado === filtro;
+}
+
+const SITUACIONES = {
+    ...ESTADOS, advertido: "Advertido", sancion_activa: "Sanción activa",
+    sancion_finalizada: "Sanción finalizada", sancion_levantada: "Sanción levantada",
+    sancion_programada: "Sanción programada",
+};
+const ACCIONES = { descartar: "Descartar", advertir: "Advertir", sancionar: "Sancionar" };
+const CONFIRMACIONES = { descartar: "Confirmar descarte", advertir: "Confirmar advertencia", sancionar: "Ver vista previa" };
 
 const MOTIVOS = {
     incumplimiento: "Incumplimiento de la cita",
@@ -61,6 +105,7 @@ function mensajeError(error) {
     return (
         obtenerPrimerError(error?.response?.data?.errores) ||
         error?.response?.data?.mensaje ||
+        obtenerPrimerError(typeof error?.response?.data === "object" ? error.response.data : null) ||
         "No se pudo completar la operación."
     );
 }
@@ -75,8 +120,15 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
 
     const [cargando, setCargando] = useState(true);
     const [guardando, setGuardando] = useState(false);
+    const [actualizacionPendiente, setActualizacionPendiente] = useState(false);
     const [error, setError] = useState("");
     const [filtro, setFiltro] = useState("todos");
+    const [pagina, setPagina] = useState(1);
+    const [reporteSeleccionadoId, setReporteSeleccionadoId] = useState(null);
+    const [detalleAbierto, setDetalleAbierto] = useState(false);
+    const regresoDetalle = useRef(null);
+    const encabezadoLista = useRef(null);
+    const contenidoDetalle = useRef(null);
 
     const [formulario, setFormulario] = useState({
         id_reportado: "",
@@ -91,18 +143,21 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
     const [citas, setCitas] = useState([]);
     const [cargandoCitas, setCargandoCitas] = useState(false);
     const [ediciones, setEdiciones] = useState({});
+    const [antecedentes, setAntecedentes] = useState({});
+    const cargaActual = useRef(0);
     const [contextoCita, setContextoCita] = useState(null);
     const [cargandoContexto, setCargandoContexto] = useState(
         Boolean(citaInicial)
     );
 
-    const cargar = useCallback(async () => {
-        setCargando(true);
-        setError("");
+    const cargar = useCallback(async (silencioso = false) => {
+        const carga = ++cargaActual.current;
+        if (!silencioso) { setCargando(true); setError(""); }
 
         try {
             if (esAdmin) {
                 const lista = await listarReportesService();
+                if (carga !== cargaActual.current) return false;
                 setReportes(lista ?? []);
             } else {
                 const [lista, personas, sancion] = await Promise.all([
@@ -111,20 +166,61 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
                     obtenerMiSancionService(),
                 ]);
 
+                if (carga !== cargaActual.current) return false;
                 setReportes(lista ?? []);
                 setUsuarios(personas ?? []);
                 setMiSancion(sancion ?? null);
             }
+            setActualizacionPendiente(false);
+            setError((anterior) => anterior === ERROR_RECARGA ? "" : anterior);
+            return true;
         } catch (err) {
-            setError(mensajeError(err));
+            if (!silencioso && carga === cargaActual.current) setError(mensajeError(err));
+            return false;
         } finally {
-            setCargando(false);
+            if (carga === cargaActual.current) setCargando(false);
         }
     }, [esAdmin]);
 
     useEffect(() => {
         void cargar();
     }, [cargar]);
+
+    useEffect(() => {
+        const actualizar = () => {
+            if (!guardando && document.visibilityState === "visible") void cargar(true);
+        };
+        const intervalo = window.setInterval(actualizar, 30000);
+        window.addEventListener("focus", actualizar);
+        document.addEventListener("visibilitychange", actualizar);
+        return () => {
+            window.clearInterval(intervalo);
+            window.removeEventListener("focus", actualizar);
+            document.removeEventListener("visibilitychange", actualizar);
+        };
+    }, [cargar, guardando]);
+
+    const seleccionarAccion = (id, accion) => {
+        setEdiciones((previas) => ({ ...previas, [id]: accion
+            ? { accion, observacion_admin: "", observacion_reportante: "", tipo: "temporal", dias_suspension: 7 }
+            : undefined }));
+        setError("");
+    };
+
+    const consultarAntecedentes = async (reporte) => {
+        if (antecedentes[reporte.id]?.abierto) {
+            setAntecedentes((previos) => ({ ...previos, [reporte.id]: { ...previos[reporte.id], abierto: false } }));
+            return;
+        }
+        setAntecedentes((previos) => ({ ...previos, [reporte.id]: { abierto: true, cargando: true } }));
+        try {
+            const lista = await obtenerAntecedentesReporteService(reporte.id);
+            setAntecedentes((previos) => ({ ...previos, [reporte.id]: { abierto: true, lista } }));
+        } catch (err) {
+            setAntecedentes((previos) => ({ ...previos, [reporte.id]: undefined }));
+            setError(mensajeError(err));
+        }
+    };
 
     const actualizarFormulario = (campo, valor) => {
         setFormulario((anterior) => ({
@@ -286,12 +382,41 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
         }
     };
 
+    const mostrarConfirmacion = async (opciones) => {
+        const focoAnterior = document.activeElement;
+        const resultado = await Swal.fire({
+            ...(esAdmin ? {
+                customClass: { popup: styles.confirmationPopup },
+                keydownListenerCapture: true,
+                returnFocus: false,
+            } : {}),
+            ...opciones,
+        });
+        if (esAdmin) {
+            // Una decisión puede retirar el botón que abrió la confirmación.
+            const destino = focoAnterior?.isConnected && !focoAnterior.disabled
+                ? focoAnterior : contenidoDetalle.current;
+            destino?.focus({ preventScroll: true });
+        }
+        return resultado;
+    };
+
     const gestionar = async (reporte, accion) => {
-        if (guardando) return;
+        if (guardando || actualizacionPendiente) return;
         const valores = ediciones[reporte.id] ?? {};
-        const observacion = (valores.observacion_admin ?? reporte.observacion_admin ?? "").trim();
-        const datos = { accion, observacion_admin: observacion,
-            observacion_reportante: (valores.observacion_reportante ?? reporte.observacion_reportante ?? "").trim() };
+        if (accion !== "revision" && reporte.estado !== "en_revision") {
+            setError("Primero debes iniciar la revisión del reporte.");
+            return;
+        }
+        const observacion = (valores.observacion_admin ?? "").trim();
+        if (accion !== "revision" && !observacion) {
+            setError("Escribe el motivo de la decisión administrativa.");
+            return;
+        }
+        const datos = accion === "revision" ? { accion } : {
+            accion, observacion_admin: observacion,
+            observacion_reportante: (valores.observacion_reportante ?? "").trim(),
+        };
         if (accion === "sancionar") {
             datos.tipo = valores.tipo ?? "temporal";
             const dias = Number(valores.dias_suspension ?? 7);
@@ -310,7 +435,7 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
         setGuardando(true);
         setError("");
         try {
-            let detalle = "Se actualizará el estado del reporte.";
+            let detalle = accion === "advertir" ? "Se notificará al usuario reportado. Esta advertencia no suspende su cuenta ni cancela citas." : "Se actualizará el estado del reporte.";
             if (accion === "sancionar") {
                 const previa = await previsualizarSancionService(reporte.id, datos);
                 datos.token_vista_previa = previa.token_vista_previa;
@@ -324,8 +449,8 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
                     "Las fechas y las citas se verificarán de nuevo al confirmar.",
                 ].join("\n");
             }
-            const confirmacion = await Swal.fire({
-                title: accion === "sancionar" ? "¿Aplicar suspensión?" : accion === "descartar" ? "¿Descartar reporte?" : "¿Iniciar revisión?",
+            const confirmacion = await mostrarConfirmacion({
+                title: accion === "sancionar" ? "¿Aplicar suspensión?" : accion === "descartar" ? "¿Descartar reporte?" : accion === "advertir" ? "¿Emitir advertencia formal?" : "¿Iniciar revisión?",
                 text: detalle,
                 icon: "question",
                 showCancelButton: true,
@@ -333,12 +458,25 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
                 cancelButtonText: "Volver",
             });
             if (!confirmacion.isConfirmed) return;
-            await gestionarReporteService(reporte.id, datos);
-            await cargar();
-            await Swal.fire({ icon: "success", title: "Reporte actualizado", timer: 1800, showConfirmButton: false });
+            const respuesta = await gestionarReporteService(reporte.id, datos);
+            if (respuesta.data) {
+                setReportes((anteriores) => anteriores.map((actual) => actual.id === reporte.id ? respuesta.data : actual));
+            }
+            seleccionarAccion(reporte.id, null);
+            setAntecedentes({});
+            setActualizacionPendiente(true);
+            if (!await cargar()) {
+                setError(ERROR_RECARGA);
+                return;
+            }
+            await mostrarConfirmacion({ icon: "success", title: "Reporte actualizado", timer: 1800, showConfirmButton: false });
         } catch (err) {
+            if (err?.response?.status === 409) {
+                setActualizacionPendiente(true);
+                await cargar(true);
+            }
             setError(err?.response?.status === 409
-                ? `${mensajeError(err)} Vuelve a seleccionar Sancionar para revisar la vista previa actualizada.`
+                ? `${mensajeError(err)} Revisa el estado actual del reporte antes de volver a confirmar.`
                 : mensajeError(err));
         } finally {
             setGuardando(false);
@@ -346,7 +484,8 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
     };
 
     const anularSancion = async (sancionId) => {
-        const confirmacion = await Swal.fire({
+        if (guardando || actualizacionPendiente) return;
+        const confirmacion = await mostrarConfirmacion({
             title: "¿Habilitar usuario?",
             input: "textarea",
             inputLabel: "Motivo administrativo de la rehabilitación",
@@ -366,13 +505,22 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
 
         try {
             await anularSancionService(sancionId, confirmacion.value.trim());
-            await cargar();
+            setAntecedentes({});
+            setActualizacionPendiente(true);
+            if (!await cargar()) {
+                setError(ERROR_RECARGA);
+                return;
+            }
 
-            await Swal.fire({
+            await mostrarConfirmacion({
                 icon: "success",
                 title: "Suspensión levantada",
             });
         } catch (err) {
+            if (err?.response?.status === 409) {
+                setActualizacionPendiente(true);
+                await cargar(true);
+            }
             setError(mensajeError(err));
         } finally {
             setGuardando(false);
@@ -381,17 +529,279 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
 
     const reportesVisibles = reportes.filter(
         (reporte) =>
-            filtro === "todos" || reporte.estado === filtro
+            coincideEstado(esAdmin ? reporte.estado_administrativo : reporte.estado, filtro)
     );
 
-    const pendientes = reportes.filter(
-        (reporte) => reporte.estado === "pendiente"
-    ).length;
+    const conteos = Object.fromEntries(Object.keys(ESTADOS_ADMIN).map((estado) => [
+        estado, reportes.filter((reporte) => reporte.estado_administrativo === estado).length,
+    ]));
+    const grupoActivo = ESTADOS_SANCIONES.includes(filtro) ? "sanciones"
+        : ESTADOS_HISTORIAL.includes(filtro) ? "historial" : filtro;
+    const totalPaginas = Math.max(1, Math.ceil(reportesVisibles.length / REPORTES_POR_PAGINA));
+    const paginaActual = Math.min(pagina, totalPaginas);
+    const reportesPagina = reportesVisibles.slice(
+        (paginaActual - 1) * REPORTES_POR_PAGINA, paginaActual * REPORTES_POR_PAGINA
+    );
+    const reporteSeleccionado = reportes.find((reporte) => reporte.id === reporteSeleccionadoId);
+    const cambiarFiltro = (valor) => { setFiltro(valor); setPagina(1); };
+    const abrirDetalle = (reporte, evento) => {
+        regresoDetalle.current = { elemento: evento.currentTarget, scroll: window.scrollY };
+        setError("");
+        setReporteSeleccionadoId(reporte.id);
+        setDetalleAbierto(true);
+    };
+    const cerrarDetalle = () => {
+        if (guardando || Swal.isVisible()) return;
+        setDetalleAbierto(false);
+    };
+    const restaurarNavegacion = () => {
+        const regreso = regresoDetalle.current;
+        (regreso?.elemento?.isConnected ? regreso.elemento : encabezadoLista.current)?.focus({ preventScroll: true });
+        if (regreso) window.scrollTo({ top: regreso.scroll, behavior: "instant" });
+        seleccionarAccion(reporteSeleccionadoId, null);
+        setReporteSeleccionadoId(null);
+    };
+
+    const renderDetalleReporte = (reporte) => {
+        const sancion = reporte.sancion;
+        const sancionVigente = sancion?.estado_vigencia === "sancion_activa";
+        const situacion = esAdmin ? reporte.estado_administrativo : reporte.estado;
+        const edicion = ediciones[reporte.id];
+
+        const cerrado = [
+            "resuelto",
+            "descartado",
+        ].includes(reporte.estado);
+
+        const reportado =
+            reporte.reportante === "paciente"
+                ? reporte.nombre_medico
+                : reporte.nombre_paciente;
+        const informacion = (<>
+            <div className={styles.cardTop}>
+                <strong>
+                    Reporte #{reporte.id}
+                </strong>
+                <span
+                    className={esAdmin ? styles.adminStatus : styles.status}
+                    data-status={situacion}
+                >
+                    {SITUACIONES[situacion] || situacion}
+                </span>
+            </div>
+
+            <div className={styles.meta}>
+                <span>
+                    {formatearFecha(
+                        reporte.fecha_creacion
+                    )}
+                </span>
+                <span>
+                    Reportado por:{" "}
+                    {reporte.reportante === "paciente" ? reporte.nombre_paciente : reporte.nombre_medico}
+                </span>
+            </div>
+
+            <p>
+                <strong>Persona reportada:</strong>{" "}
+                {reportado || "Nombre no disponible"}
+            </p>
+
+            {reporte.codigo_cita && <p><strong>Cita relacionada:</strong> {reporte.codigo_cita}</p>}
+            <h3>{reporte.motivo_display || MOTIVOS[reporte.motivo] || reporte.motivo}</h3>
+            {reporte.otro_motivo && <p>{reporte.otro_motivo}</p>}
+            {reporte.evidencia && (
+                <button type="button" className={styles.secondary} disabled={guardando}
+                    onClick={() => descargarEvidencia(reporte)}>
+                    Descargar evidencia: {reporte.evidencia.nombre}
+                </button>
+            )}
+            <p className={styles.description}>
+                {reporte.descripcion}
+            </p>
+        </>);
+        const historial = (<>
+            {esAdmin && reporte.observacion_admin && (
+                <p className={styles.observation}>
+                    <strong>Motivo de la decisión administrativa:</strong>{" "}
+                    {reporte.observacion_admin}
+                </p>
+            )}
+
+            {/* Respuesta dirigida al reportante */}
+            {reporte.observacion_reportante && (
+                <p className={styles.observation}>
+                    <strong>Respuesta al reportante:</strong>{" "}
+                    {reporte.observacion_reportante}
+                </p>
+            )}
+            {sancion && (
+                <div className={styles.sanction}>
+                    <strong>
+                        {sancion.tipo === "indefinida" ? "Suspensión indefinida" : "Suspensión temporal"}
+                    </strong>
+                    <p>
+                        {formatearFecha(
+                            sancion.fecha_inicio
+                        )}{" "}
+                        —{" "}
+                        {sancion.fecha_fin ? formatearFecha(sancion.fecha_fin) : "Sin fecha de finalización"}
+                    </p>
+                    <p>
+                        {SITUACIONES[sancion.estado_vigencia] || "Estado no disponible"}
+                    </p>
+
+                    <p>Aplicada por: {sancion.nombre_administrador || reporte.nombre_administrador || "No registrado"}</p>
+                    <p>Motivo: {sancion.motivo}</p>
+                    {sancion.anulada_en && (
+                        <p>Habilitado el {formatearFecha(sancion.anulada_en)} por {sancion.nombre_rehabilitador || "administrador no registrado"}.
+                            {esAdmin && ` Motivo: ${sancion.motivo_anulacion || "Sin observación"}`}
+                        </p>
+                    )}
+
+                </div>
+            )}
+
+            {esAdmin && (
+                <>
+                    {reporte.fecha_revision && (
+                        <p className={styles.meta}>Revisión o resolución: {formatearFecha(reporte.fecha_revision)} · {reporte.nombre_administrador || "Administrador no registrado"}</p>
+                    )}
+                    {reporte.decision === "advertir" && <p className={styles.sanction}>Advertencia formal emitida. No genera suspensión ni cancelación de citas.</p>}
+                    <details className={styles.observation} open>
+                        <summary tabIndex={0}>Cambios de estado y decisiones</summary>
+                        {reporte.historial_administrativo?.length ? reporte.historial_administrativo.map((evento) => (
+                            <div key={evento.id}>
+                                <p><strong>{evento.accion_display}</strong> · {formatearFecha(evento.fecha)}</p>
+                                <p>{evento.accion === "creacion" ? "Registrado por el reportante" : evento.nombre_administrador || "Administrador no registrado"}</p>
+                                <p>{evento.estado_anterior ? `${ESTADOS[evento.estado_anterior]} → ` : ""}{ESTADOS[evento.estado_nuevo]}</p>
+                                {evento.motivo && <p>Motivo: {evento.motivo}</p>}
+                                {evento.respuesta_reportante && <p>Respuesta al reportante: {evento.respuesta_reportante}</p>}
+                            </div>
+                        )) : <p>No se guardaron transiciones históricas para este reporte. Se muestra únicamente la información disponible del caso.</p>}
+                    </details>
+                    <button type="button" className={styles.secondary}
+                        disabled={guardando || antecedentes[reporte.id]?.cargando}
+                        aria-expanded={Boolean(antecedentes[reporte.id]?.abierto)}
+                        onClick={() => consultarAntecedentes(reporte)}>
+                        {antecedentes[reporte.id]?.abierto ? "Ocultar antecedentes" : "Consultar antecedentes de la persona reportada"}
+                    </button>
+                    {antecedentes[reporte.id]?.abierto && (
+                        <div className={styles.sanction}>
+                            <strong>Otras advertencias y sanciones de {reportado}</strong>
+                            {antecedentes[reporte.id].cargando ? <p>Cargando antecedentes...</p> :
+                                antecedentes[reporte.id].lista?.length ? antecedentes[reporte.id].lista.map((anterior) => (
+                                    <div key={anterior.id}>
+                                        <p><strong>Reporte #{anterior.id}</strong> · {SITUACIONES[anterior.estado_administrativo]}</p>
+                                        <p>{formatearFecha(anterior.fecha_revision || anterior.fecha_creacion)} · {anterior.nombre_administrador || "Administrador no registrado"}</p>
+                                        <p>{anterior.observacion_admin || anterior.sancion?.motivo}</p>
+                                        {anterior.sancion && <p>{formatearFecha(anterior.sancion.fecha_inicio)} — {anterior.sancion.fecha_fin ? formatearFecha(anterior.sancion.fecha_fin) : "Sin fecha de finalización"}</p>}
+                                    </div>
+                                )) : <p>No hay otras advertencias o sanciones registradas.</p>}
+                        </div>
+                    )}
+                </>
+            )}
+        </>);
+        const acciones = (<>
+            {esAdmin && !cerrado && (
+                <div className={styles.adminActions}>
+                    <div className={styles.actionButtons}>
+                        {reporte.estado === "pendiente" ? (
+                            <button type="button" className={styles.primary} disabled={guardando || actualizacionPendiente}
+                                onClick={() => gestionar(reporte, "revision")}>Revisar</button>
+                        ) : reporte.estado === "en_revision" && Object.entries(ACCIONES).map(([accion, etiqueta]) => (
+                            <button key={accion} type="button" disabled={guardando || actualizacionPendiente}
+                                className={edicion?.accion === accion ? styles.primary : styles.secondary}
+                                aria-pressed={edicion?.accion === accion}
+                                onClick={() => seleccionarAccion(reporte.id, accion)}>{etiqueta}</button>
+                        ))}
+                    </div>
+                    {reporte.estado === "en_revision" && edicion?.accion && (
+                        <form className={styles.adminActions} onSubmit={(evento) => {
+                            evento.preventDefault();
+                            void gestionar(reporte, edicion.accion);
+                        }}>
+                            <strong>{ACCIONES[edicion.accion]} reporte #{reporte.id}</strong>
+                            <label>
+                                Motivo de la decisión administrativa
+                                <textarea rows={3} maxLength={2000} required disabled={guardando || actualizacionPendiente}
+                                    value={edicion.observacion_admin}
+                                    onChange={(e) => actualizarEdicion(reporte.id, "observacion_admin", e.target.value)} />
+                            </label>
+                            {edicion.accion !== "descartar" && <p className={styles.muted}>Este motivo se comunicará a la persona reportada.</p>}
+                            <label>
+                                Respuesta al reportante (opcional)
+                                <textarea rows={3} maxLength={2000} disabled={guardando || actualizacionPendiente}
+                                    value={edicion.observacion_reportante}
+                                    onChange={(e) => actualizarEdicion(reporte.id, "observacion_reportante", e.target.value)} />
+                            </label>
+                            {edicion.accion === "sancionar" && (
+                                <>
+                                    <label>Tipo de suspensión
+                                        <select value={edicion.tipo} disabled={guardando || actualizacionPendiente}
+                                            onChange={(e) => actualizarEdicion(reporte.id, "tipo", e.target.value)}>
+                                            <option value="temporal">Suspensión temporal</option>
+                                            <option value="indefinida">Suspensión indefinida</option>
+                                        </select>
+                                    </label>
+                                    {edicion.tipo === "temporal" && <label>Días de suspensión (1 a 30)
+                                        <input type="number" min="1" max="30" required disabled={guardando || actualizacionPendiente}
+                                            value={edicion.dias_suspension}
+                                            onChange={(e) => actualizarEdicion(reporte.id, "dias_suspension", e.target.value)} />
+                                    </label>}
+                                </>
+                            )}
+                            <div className={styles.actionButtons}>
+                                <button type="button" className={styles.secondary} disabled={guardando || actualizacionPendiente}
+                                    onClick={() => seleccionarAccion(reporte.id, null)}>Cancelar</button>
+                                <button type="submit" className={styles.primary} disabled={guardando || actualizacionPendiente}>
+                                    {CONFIRMACIONES[edicion.accion]}
+                                </button>
+                            </div>
+                        </form>
+                    )}
+                </div>
+            )}
+            {esAdmin && sancionVigente && (
+                <button type="button" className={styles.secondary} disabled={guardando || actualizacionPendiente}
+                    onClick={() => anularSancion(sancion.id)}>
+                    Habilitar usuario
+                </button>
+            )}
+            {esAdmin && cerrado && !sancionVigente && (
+                <p className={styles.muted}>Este reporte está cerrado. No hay acciones disponibles para su estado actual.</p>
+            )}
+        </>);
+        if (!esAdmin) return (
+            <article key={reporte.id} className={styles.reportCard}>
+                {informacion}{historial}{acciones}
+            </article>
+        );
+        return (
+            <div className={styles.detailSections}>
+                <section className={styles.detailSection} aria-labelledby="reporte-informacion">
+                    <h3 id="reporte-informacion">Información del reporte</h3>
+                    {informacion}
+                </section>
+                <section className={styles.detailSection} aria-labelledby="reporte-historial">
+                    <h3 id="reporte-historial">Historial administrativo</h3>
+                    {historial}
+                </section>
+                <section className={styles.detailSection} aria-labelledby="reporte-acciones" aria-busy={guardando}>
+                    <h3 id="reporte-acciones">Acciones administrativas</h3>
+                    {reporte.estado === "pendiente" && <p className={styles.muted}>Inicia la revisión para habilitar las decisiones de este reporte.</p>}
+                    {acciones}
+                </section>
+            </div>
+        );
+    };
 
     const titulo = esAdmin ? "Gestión de reportes" : "Reportes y seguridad";
 
     return (
-        <div className={styles.root} data-role={rol}>
+        <div className={`${styles.root} ${esAdmin ? adminPageStyles.page : ""}`} data-role={rol}>
+            {esAdmin ? <AdminPageHeader eyebrow="Seguridad" title={titulo} description="Revisa los casos y administra las sanciones." /> : (
             <header className={styles.hero}>
                 <div className={styles.heroIcon}>
                     <ShieldAlert size={26} />
@@ -411,20 +821,12 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
                     </p>
                 </div>
 
-                <button
-                    type="button"
-                    className={styles.secondary}
-                    onClick={cargar}
-                    disabled={cargando || guardando}
-                >
-                    <RefreshCw size={17} />
-                    Actualizar
-                </button>
             </header>
+            )}
 
-            {error && (
+            {(error || actualizacionPendiente) && !detalleAbierto && (
                 <div className={styles.error} role="alert">
-                    {error}
+                    {error || AVISO_SINCRONIZACION}
                 </div>
             )}
 
@@ -449,12 +851,7 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
             {!esAdmin && (
                 <nav
                     aria-label="Secciones de reportes"
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        gap: "12px",
-                    }}
+                    className={styles.personalNav}
                 >
                     <Link
                         href={rutaBase}
@@ -663,36 +1060,45 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
                 </section>
             )}
 
+            {!esAdmin && seccionActiva === "reportes" && miSancion?.advertencias?.length > 0 && (
+                <section className={`${styles.panel} ${styles.personalWarnings}`}>
+                    <h2>Mis advertencias</h2>
+                    {miSancion.advertencias.map((advertencia) => (
+                        <article key={advertencia.id} className={styles.observation}>
+                            <strong>Advertencia formal · {formatearFecha(advertencia.fecha_revision)}</strong>
+                            <p>{advertencia.observacion_admin}</p>
+                            <p>Esta advertencia no suspende tu cuenta ni cancela tus citas.</p>
+                        </article>
+                    ))}
+                </section>
+            )}
+
             {!esAdmin && seccionActiva === "reportes" && miSancion?.historial?.length > 0 && (
-                <section className={styles.panel}>
+                <section className={`${styles.panel} ${styles.personalSanctions}`}>
                     <h2>Mis sanciones</h2>
                     {miSancion.historial.map((sancion) => (
                         <article key={sancion.id} className={styles.sanction}>
                             <strong>{sancion.tipo === "indefinida" ? "Suspensión indefinida" : "Suspensión temporal"}</strong>
                             <p>{formatearFecha(sancion.fecha_inicio)} — {sancion.fecha_fin ? formatearFecha(sancion.fecha_fin) : "Sin fecha de finalización"}</p>
                             <p>{sancion.motivo}</p>
-                            <p>{sancion.anulada_en ? `Levantada el ${formatearFecha(sancion.anulada_en)}` : sancion.esta_activa ? "Activa" : "Finalizada"}</p>
+                            <p>{SITUACIONES[sancion.estado_vigencia] || "Estado no disponible"}</p>
                         </article>
                     ))}
                 </section>
             )}
 
-            {(esAdmin || seccionActiva === "reportes") && (
+            {!esAdmin && seccionActiva === "reportes" && (
                 <section className={styles.panel}>
                     <div className={styles.toolbar}>
                         <div className={styles.sectionHeading}>
                             <ClipboardList size={20} />
                             <div>
                                 <h2>
-                                    {esAdmin
-                                        ? "Reportes recibidos"
-                                        : "Historial de reportes"}
+                                    Historial de reportes
                                 </h2>
                                 <p>
                                     {reportes.length} reportes
-                                    {esAdmin
-                                        ? ` · ${pendientes} pendientes`
-                                        : ""}
+
                                 </p>
                             </div>
                         </div>
@@ -729,235 +1135,103 @@ export default function ReportsPanel({rol,citaInicial = null,seccionInicial = "r
                         </div>
                     ) : (
                         <div className={styles.list}>
-                            {reportesVisibles.map((reporte) => {
-                                const sancion = reporte.sancion;
-                                const sancionVigente =
-                                    sancion?.esta_activa && !sancion.anulada_en &&
-                                    (!sancion.fecha_fin || new Date(sancion.fecha_fin) > new Date());
-
-                                const cerrado = [
-                                    "resuelto",
-                                    "descartado",
-                                ].includes(reporte.estado);
-
-                                const reportado =
-                                    reporte.reportante === "paciente"
-                                        ? reporte.nombre_medico
-                                        : reporte.nombre_paciente;
-
-                                return (
-                                    <article
-                                        key={reporte.id}
-                                        className={styles.reportCard}
-                                    >
-                                        <div className={styles.cardTop}>
-                                            <strong>
-                                                Reporte #{reporte.id}
-                                            </strong>
-                                            <span
-                                                className={styles.status}
-                                                data-status={reporte.estado}
-                                            >
-                                                {ESTADOS[reporte.estado] ||
-                                                    reporte.estado}
-                                            </span>
-                                        </div>
-
-                                        <div className={styles.meta}>
-                                            <span>
-                                                {formatearFecha(
-                                                    reporte.fecha_creacion
-                                                )}
-                                            </span>
-                                            <span>
-                                                Reportado por:{" "}
-                                                {reporte.reportante === "paciente" ? reporte.nombre_paciente : reporte.nombre_medico}
-                                            </span>
-                                        </div>
-
-                                        <p>
-                                            <strong>Persona reportada:</strong>{" "}
-                                            {reportado || "Nombre no disponible"}
-                                        </p>
-
-                                        {reporte.codigo_cita && <p><strong>Cita relacionada:</strong> {reporte.codigo_cita}</p>}
-                                        <h3>{reporte.motivo_display || MOTIVOS[reporte.motivo] || reporte.motivo}</h3>
-                                        {reporte.otro_motivo && <p>{reporte.otro_motivo}</p>}
-                                        {reporte.evidencia && (
-                                            <button type="button" className={styles.secondary} disabled={guardando}
-                                                onClick={() => descargarEvidencia(reporte)}>
-                                                Descargar evidencia: {reporte.evidencia.nombre}
-                                            </button>
-                                        )}
-                                        <p className={styles.description}>
-                                            {reporte.descripcion}
-                                        </p>
-
-                                        {reporte.observacion_admin && (
-                                            <p className={styles.observation}>
-                                                <strong>Observación:</strong>{" "}
-                                                {reporte.observacion_admin}
-                                            </p>
-                                        )}
-
-                                        {esAdmin && reporte.observacion_reportante && (
-                                            <p className={styles.observation}><strong>Observación para el reportante:</strong> {reporte.observacion_reportante}</p>
-                                        )}
-                                        {sancion && (
-                                            <div className={styles.sanction}>
-                                                <strong>
-                                                    {sancion.tipo === "indefinida" ? "Suspensión indefinida" : "Suspensión temporal"}
-                                                </strong>
-                                                <p>
-                                                    {formatearFecha(
-                                                        sancion.fecha_inicio
-                                                    )}{" "}
-                                                    —{" "}
-                                                    {sancion.fecha_fin ? formatearFecha(sancion.fecha_fin) : "Sin fecha de finalización"}
-                                                </p>
-                                                <p>
-                                                    {sancion.anulada_en
-                                                        ? "Anulada"
-                                                        : sancionVigente
-                                                            ? "Activa"
-                                                            : "Finalizada"}
-                                                </p>
-
-                                                {sancion.anulada_en && (
-                                                    <p>Habilitado el {formatearFecha(sancion.anulada_en)}.
-                                                        {esAdmin && ` Motivo: ${sancion.motivo_anulacion || "Sin observación"}`}
-                                                    </p>
-                                                )}
-                                                {esAdmin && sancionVigente && (
-                                                    <button
-                                                        type="button"
-                                                        className={styles.secondary}
-                                                        disabled={guardando}
-                                                        onClick={() =>
-                                                            anularSancion(
-                                                                sancion.id
-                                                            )
-                                                        }
-                                                    >
-                                                        Habilitar usuario
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {esAdmin && !cerrado && (
-                                            <div className={styles.adminActions}>
-                                                <label>
-                                                    Nota administrativa / motivo de sanción (privado para el reportante)
-                                                    <textarea
-                                                        rows={3}
-                                                        maxLength={2000}
-                                                        disabled={guardando}
-                                                        value={
-                                                            ediciones[reporte.id]
-                                                                ?.observacion_admin ??
-                                                            reporte.observacion_admin ??
-                                                            ""
-                                                        }
-                                                        onChange={(e) =>
-                                                            actualizarEdicion(
-                                                                reporte.id,
-                                                                "observacion_admin",
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    />
-                                                </label>
-
-                                                <label>
-                                                    Observación para el reportante
-                                                    <textarea rows={3} maxLength={2000} disabled={guardando}
-                                                        value={ediciones[reporte.id]?.observacion_reportante ?? reporte.observacion_reportante ?? ""}
-                                                        onChange={(e) => actualizarEdicion(reporte.id, "observacion_reportante", e.target.value)} />
-                                                </label>
-                                                <label>
-                                                    Tipo de suspensión
-                                                    <select value={ediciones[reporte.id]?.tipo ?? "temporal"}
-                                                        disabled={guardando}
-                                                        onChange={(e) => actualizarEdicion(reporte.id, "tipo", e.target.value)}>
-                                                        <option value="temporal">Suspensión temporal</option>
-                                                        <option value="indefinida">Suspensión indefinida</option>
-                                                    </select>
-                                                </label>
-                                                {(ediciones[reporte.id]?.tipo ?? "temporal") === "temporal" && <label>
-                                                    Días de suspensión (1 a 30)
-                                                    <input
-                                                        type="number"
-                                                        disabled={guardando}
-                                                        min="1"
-                                                        max="30"
-                                                        value={
-                                                            ediciones[reporte.id]
-                                                                ?.dias_suspension ?? 7
-                                                        }
-                                                        onChange={(e) =>
-                                                            actualizarEdicion(
-                                                                reporte.id,
-                                                                "dias_suspension",
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    />
-                                                </label>}
-
-                                                <div className={styles.actionButtons}>
-                                                    {reporte.estado === "pendiente" && (
-                                                        <button
-                                                            type="button"
-                                                            className={styles.secondary}
-                                                            disabled={guardando}
-                                                            onClick={() =>
-                                                                gestionar(
-                                                                    reporte,
-                                                                    "revision"
-                                                                )
-                                                            }
-                                                        >
-                                                            Revisar
-                                                        </button>
-                                                    )}
-
-                                                    <button
-                                                        type="button"
-                                                        className={styles.secondary}
-                                                        disabled={guardando}
-                                                        onClick={() =>
-                                                            gestionar(
-                                                                reporte,
-                                                                "descartar"
-                                                            )
-                                                        }
-                                                    >
-                                                        Descartar
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        className={styles.primary}
-                                                        disabled={guardando}
-                                                        onClick={() =>
-                                                            gestionar(
-                                                                reporte,
-                                                                "sancionar"
-                                                            )
-                                                        }
-                                                    >
-                                                        Sancionar
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </article>
-                                );
-                            })}
+                            {reportesVisibles.map(renderDetalleReporte)}
                         </div>
                     )}
                 </section>
+            )}
+            {esAdmin && (
+                <section className={`${styles.panel} ${styles.adminPanel}`} aria-label="Reportes recibidos">
+                    <div className={styles.toolbar}>
+                        <div className={styles.sectionHeading}>
+                            <ClipboardList size={20} aria-hidden="true" />
+                            <div>
+                                <h2 ref={encabezadoLista} tabIndex={-1}>Reportes recibidos</h2>
+                                <p aria-live="polite">{reportes.length} reportes · {conteos.pendiente} pendientes · {conteos.en_revision} en revisión</p>
+                            </div>
+                        </div>
+                    </div>
+                    <nav className={styles.reportGroups} aria-label="Filtrar reportes por sección">
+                        {GRUPOS_ADMIN.map((grupo) => (
+                            <button key={grupo.valor} type="button"
+                                className={styles.groupButton} data-priority={grupo.prioritario || undefined}
+                                aria-pressed={grupoActivo === grupo.valor}
+                                onClick={() => cambiarFiltro(grupo.valor)}>
+                                {grupo.etiqueta}
+                                <span className={styles.groupCount}>{reportes.filter((reporte) => coincideEstado(reporte.estado_administrativo, grupo.valor)).length}</span>
+                            </button>
+                        ))}
+                    </nav>
+                    <div className={styles.toolbar}>
+                        <p className={styles.muted} role="status">
+                            {cargando ? "Cargando reportes…" : `${reportesVisibles.length} reportes · ${ESTADOS_ADMIN[filtro] || GRUPOS_ADMIN.find((grupo) => grupo.valor === filtro)?.etiqueta}`}
+                        </p>
+                        <label className={styles.filter}>
+                            Filtrar por estado
+                            <select value={filtro} onChange={(evento) => cambiarFiltro(evento.target.value)}>
+                                <option value="todos">Todos ({reportes.length})</option>
+                                <option value="sanciones">Todas las sanciones ({ESTADOS_SANCIONES.reduce((total, estado) => total + conteos[estado], 0)})</option>
+                                <option value="historial">Todo el historial ({ESTADOS_HISTORIAL.reduce((total, estado) => total + conteos[estado], 0)})</option>
+                                {Object.entries(ESTADOS_ADMIN).map(([estado, etiqueta]) => (
+                                    <option key={estado} value={estado}>{etiqueta} ({conteos[estado]})</option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
+                    {!cargando && (reportesVisibles.length === 0 ? (
+                        <div className={styles.empty}>
+                            <ClipboardList size={34} aria-hidden="true" />
+                            <h3>No hay reportes en esta categoría</h3>
+                            <p>Los reportes de este estado aparecerán aquí.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className={styles.compactList}>
+                                {reportesPagina.map((reporte) => (
+                                    <article key={reporte.id} className={styles.compactCard}>
+                                        <div className={styles.cardTop}>
+                                            <strong>Reporte #{reporte.id}</strong>
+                                            <span className={styles.adminStatus} data-status={reporte.estado_administrativo}>
+                                                {SITUACIONES[reporte.estado_administrativo] || reporte.estado_administrativo}
+                                            </span>
+                                        </div>
+                                        <dl className={styles.cardPeople}>
+                                            <div><dt>Persona reportada</dt><dd>{(reporte.reportante === "paciente" ? reporte.nombre_medico : reporte.nombre_paciente) || "Nombre no disponible"}</dd></div>
+                                            <div><dt>Reportante</dt><dd>{(reporte.reportante === "paciente" ? reporte.nombre_paciente : reporte.nombre_medico) || "Nombre no disponible"}</dd></div>
+                                        </dl>
+                                        <p className={styles.cardReason}><span>Motivo</span>{reporte.motivo_display || MOTIVOS[reporte.motivo] || reporte.motivo}</p>
+                                        <div className={styles.cardFooter}>
+                                            <time dateTime={reporte.fecha_creacion}>{formatearFecha(reporte.fecha_creacion)}</time>
+                                            <button type="button" className={styles.secondary}
+                                                aria-label={`Ver detalle del reporte ${reporte.id}`}
+                                                onClick={(evento) => abrirDetalle(reporte, evento)}>
+                                                <Eye size={16} aria-hidden="true" />Ver detalle
+                                            </button>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                            <Pagination paginaActual={paginaActual} totalPaginas={totalPaginas}
+                                totalRegistros={reportesVisibles.length} variant="admin"
+                                onCambiarPagina={setPagina} cargando={cargando} />
+                        </>
+                    ))}
+                </section>
+            )}
+            {esAdmin && (
+                <Modal abierto={detalleAbierto} onCerrar={cerrarDetalle} onExitComplete={restaurarNavegacion}
+                    titulo={`Reporte #${reporteSeleccionadoId}`} text="Detalle y gestión administrativa"
+                    width="880px" icon={<ClipboardList size={23} aria-hidden="true" />}
+                    footer={<div className={styles.modalFooter}>
+                        <span role="status">{guardando ? "Procesando la acción…" : ""}</span>
+                        <button type="button" className={styles.secondary} disabled={guardando} onClick={cerrarDetalle}>Cerrar detalle</button>
+                    </div>}>
+                    <div ref={contenidoDetalle} tabIndex={-1} className={styles.adminModal}>
+                        {(error || actualizacionPendiente) && <div className={styles.error} role="alert">{error || AVISO_SINCRONIZACION}</div>}
+                        {reporteSeleccionado ? renderDetalleReporte(reporteSeleccionado)
+                            : <p className={styles.muted}>El reporte ya no está disponible.</p>}
+                    </div>
+                </Modal>
             )}
         </div>
     );

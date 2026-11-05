@@ -7,7 +7,7 @@ import logging
 from django.core import signing
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -17,10 +17,31 @@ from citas.models import Cita
 from notificaciones.services import enviarNotificacion
 
 from .serializers import SancionSerializer
-from .models import Reporte, Sancion
+from .models import Reporte, Sancion, HistorialReporte
 from .serializers import ReporteSerializer
 
 logger = logging.getLogger(__name__)
+
+SITUACIONES_ADMIN = {
+    "pendiente", "en_revision", "descartado", "advertido", "sancion_activa",
+    "sancion_finalizada", "sancion_levantada", "resuelto", "sancion_programada",
+}
+
+
+def registrarDecision(reporte, accion, administrador=None, estado_anterior="", motivo="", respuesta=""):
+    return HistorialReporte.objects.create(
+        reporte=reporte, accion=accion, administrador=administrador,
+        estado_anterior=estado_anterior, estado_nuevo=reporte.estado,
+        motivo=motivo, respuesta_reportante=respuesta,
+    )
+
+
+def consultasReportes(reportes):
+    return reportes.select_related(
+        "paciente", "medico", "cita", "evidencia", "revisado_por",
+        "sancion__aplicada_por", "sancion__anulada_por",
+    ).prefetch_related(Prefetch("historial_administrativo",
+                               queryset=HistorialReporte.objects.select_related("administrador")))
 
 
 def esAdministrador(usuario):
@@ -168,11 +189,12 @@ def _crearReporte(usuario, datos, archivos_subidos):
         descripcion=datos["descripcion"],
         otro_motivo=datos.get("otro_motivo", ""), evidencia=evidencia,
     )
+    registrarDecision(reporte, HistorialReporte.Accion.CREACION)
     notificarUsuario(usuario, "Reporte registrado", "Tu reporte fue registrado y será revisado por administración.")
     return ReporteSerializer(reporte).data, 201
 
 
-def listarReportesService(usuario, estado=None):
+def listarReportesService(usuario, estado=None, situacion=None):
 
     if esAdministrador(usuario):
         reportes = Reporte.objects.all()
@@ -198,12 +220,13 @@ def listarReportesService(usuario, estado=None):
 
         reportes = reportes.filter(estado=estado)
 
-    reportes = reportes.select_related(
-        "paciente",
-        "medico",
-        "cita", "evidencia", "sancion",
-    )
-    return ReporteSerializer(reportes, many=True, context={"es_admin": esAdministrador(usuario)}).data, 200
+    if situacion and (not esAdministrador(usuario) or situacion not in SITUACIONES_ADMIN | {"todos"}):
+        return "Filtro administrativo no válido", 400
+    resultado = ReporteSerializer(consultasReportes(reportes), many=True,
+                                 context={"es_admin": esAdministrador(usuario), "ahora": timezone.now()}).data
+    if situacion and situacion != "todos":
+        resultado = [r for r in resultado if r["estado_administrativo"] == situacion]
+    return resultado, 200
 
 
 def usuarioReportado(reporte):
@@ -254,8 +277,8 @@ def previsualizarSancionService(administrador, reporte_id, datos):
     reporte = Reporte.objects.select_related("medico", "paciente").filter(pk=reporte_id).first()
     if not reporte:
         return "Reporte no encontrado", 404
-    if reporte.estado in (Reporte.Estado.RESUELTO, Reporte.Estado.DESCARTADO):
-        return "Este reporte ya fue cerrado", 409
+    if reporte.estado != Reporte.Estado.EN_REVISION:
+        return "Debes iniciar la revisión antes de previsualizar una sanción", 409
     sancionado = usuarioReportado(reporte)
     if tieneSancionActivaService(sancionado):
         return "El usuario ya tiene una sanción activa", 409
@@ -297,7 +320,14 @@ def gestionarReporteService(administrador, reporte_id, datos):
     if reporte.estado in (Reporte.Estado.RESUELTO, Reporte.Estado.DESCARTADO):
         return "Este reporte ya fue cerrado", 409
     accion = datos["accion"]
+    if accion not in ("revision", "descartar", "advertir", "sancionar"):
+        return "Acción no válida", 400
+    if accion != "revision" and reporte.estado != Reporte.Estado.EN_REVISION:
+        return "Debes iniciar la revisión antes de tomar una decisión", 409
     observacion = datos.get("observacion_admin", "").strip()
+    if accion != "revision" and (not observacion or len(observacion) > 2000):
+        return "Escribe el motivo de la decisión administrativa (máximo 2000 caracteres)", 400
+    estado_anterior = reporte.estado
     if accion == "revision" and reporte.estado == Reporte.Estado.EN_REVISION:
         return ReporteSerializer(reporte, context={"es_admin": True}).data, 200
     citas_canceladas = 0
@@ -335,16 +365,31 @@ def gestionarReporteService(administrador, reporte_id, datos):
         reporte.estado = Reporte.Estado.EN_REVISION
     elif accion == "descartar":
         reporte.estado = Reporte.Estado.DESCARTADO
+    elif accion == "advertir":
+        # Es una decisión formal, sin tocar sanciones, agendas ni permisos.
+        Usuario.objects.select_for_update().get(pk=reporte.paciente_id)
+        Medico.objects.select_for_update().get(pk=reporte.medico_id)
+        reporte.estado = Reporte.Estado.RESUELTO
+        notificarUsuario(usuarioReportado(reporte), "Advertencia formal",
+                         f"Administración emitió una advertencia. Motivo: {observacion}. Tu cuenta no ha sido suspendida por esta advertencia.")
+        from notificaciones.email_citas_services import enviarCorreoAdvertencia
+        transaction.on_commit(partial(enviarCorreoAdvertencia, reporte.pk), robust=True)
     else:
         return "Acción no válida", 400
-    reporte.observacion_admin = observacion
-    reporte.observacion_reportante = datos.get("observacion_reportante", "").strip()
+    if accion != "revision":
+        reporte.decision = accion
+        reporte.observacion_admin = observacion
+        reporte.observacion_reportante = datos.get("observacion_reportante", "").strip()
     reporte.revisado_por = administrador
     reporte.fecha_revision = timezone.now()
-    reporte.save(update_fields=["estado", "observacion_admin", "observacion_reportante", "revisado_por", "fecha_revision"])
+    reporte.save(update_fields=["estado", "decision", "observacion_admin", "observacion_reportante", "revisado_por", "fecha_revision"])
+    registrarDecision(reporte, accion, administrador, estado_anterior,
+                      observacion if accion != "revision" else "",
+                      reporte.observacion_reportante if accion != "revision" else "")
     reportante = reporte.paciente if reporte.reportante == Reporte.Reportante.PACIENTE else reporte.medico
     notificarUsuario(reportante, "Actualización de reporte",
                      f"Tu reporte #{reporte.id} cambió al estado: {reporte.get_estado_display()}.")
+    reporte = consultasReportes(Reporte.objects.filter(pk=reporte.pk)).get()
     resultado = ReporteSerializer(reporte, context={"es_admin": True}).data
     if accion == "sancionar":
         resultado["citas_canceladas"] = citas_canceladas
@@ -372,6 +417,8 @@ def anularSancionService(administrador, sancion_id, motivo):
     sancion.anulada_por = administrador
     sancion.motivo_anulacion = motivo.strip()
     sancion.save(update_fields=["anulada_en", "anulada_por", "motivo_anulacion"])
+    registrarDecision(reporte, HistorialReporte.Accion.REHABILITAR, administrador,
+                      reporte.estado, motivo.strip())
     notificarUsuario(sancionado, "Suspensión levantada",
                      "Administración levantó tu suspensión. Las citas canceladas no se restauran automáticamente.")
     from notificaciones.email_citas_services import enviarCorreoSancion
@@ -392,13 +439,34 @@ def obtenerMiSancionService(usuario):
     if not (isinstance(usuario, Medico) or
             isinstance(usuario, Usuario) and usuario.id_rol.nombre == "paciente"):
         return "No tienes permiso para consultar sanciones", 403
-    sanciones = sancionesUsuario(usuario)
+    sanciones = sancionesUsuario(usuario).select_related("aplicada_por", "anulada_por")
+    advertencias = reportesContraUsuario(usuario).filter(decision=Reporte.Decision.ADVERTIR,
+                                                        estado=Reporte.Estado.RESUELTO)
     ahora = timezone.now()
     sancion = sanciones.filter(Q(fecha_fin__isnull=True) | Q(fecha_fin__gt=ahora),
                               anulada_en__isnull=True, fecha_inicio__lte=ahora).first()
     return {"suspendido": sancion is not None,
-            "sancion": SancionSerializer(sancion).data if sancion else None,
-            "historial": SancionSerializer(sanciones, many=True).data}, 200
+            "sancion": SancionSerializer(sancion, context={"ahora": ahora}).data if sancion else None,
+            "historial": SancionSerializer(sanciones, many=True, context={"ahora": ahora}).data,
+            "advertencias": list(advertencias.values("id", "observacion_admin", "fecha_revision"))}, 200
+
+
+def reportesContraUsuario(usuario):
+    if isinstance(usuario, Medico):
+        return Reporte.objects.filter(medico=usuario, reportante=Reporte.Reportante.PACIENTE)
+    return Reporte.objects.filter(paciente=usuario, reportante=Reporte.Reportante.MEDICO)
+
+
+def antecedentesReporteService(administrador, reporte_id):
+    if not esAdministrador(administrador):
+        return "No tienes permisos de administrador", 403
+    reporte = Reporte.objects.select_related("paciente", "medico").filter(pk=reporte_id).first()
+    if not reporte:
+        return "Reporte no encontrado", 404
+    antecedentes = reportesContraUsuario(usuarioReportado(reporte)).exclude(pk=reporte.pk).filter(
+        Q(decision=Reporte.Decision.ADVERTIR) | Q(sancion__isnull=False))
+    return ReporteSerializer(consultasReportes(antecedentes), many=True,
+                             context={"es_admin": True, "ahora": timezone.now()}).data, 200
 
 
 def listarUsuariosReportablesService(usuario):

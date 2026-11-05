@@ -1755,3 +1755,26 @@ def enviarCorreoSancion(sancion_id, rehabilitacion=False):
         "mensaje_adicional": "Consulta tu situación desde Configuración → Reportes y seguridad.",
         "url_citas": f"{frontend}/{ruta}/reports" if frontend else None,
     })
+
+
+def enviarCorreoAdvertencia(reporte_id):
+    from reportes.models import Reporte
+    reporte = Reporte.objects.select_related("paciente", "medico").filter(
+        pk=reporte_id, decision=Reporte.Decision.ADVERTIR, estado=Reporte.Estado.RESUELTO,
+    ).first()
+    if not reporte:
+        logger.warning("Advertencia del reporte %s no encontrada para notificación", reporte_id)
+        return False
+    es_medico = reporte.reportante == Reporte.Reportante.PACIENTE
+    usuario = reporte.medico if es_medico else reporte.paciente
+    frontend = os.getenv("FRONTEND_URL", "").rstrip("/")
+    ruta = "doctor" if es_medico else "patient"
+    fecha = timezone.localtime(reporte.fecha_revision).strftime("%d/%m/%Y a las %H:%M %Z")
+    return enviarCorreoCita(usuario.correo, "Advertencia formal - DocSmart", {
+        "es_cuenta": True, "titulo": "Has recibido una advertencia formal", "nombre": usuario.nombre,
+        "mensaje": (f"Administración de DocSmart emitió una advertencia el {fecha}. "
+                    f"Motivo: {reporte.observacion_admin}. "
+                    "Esta advertencia no suspende tu cuenta, no cancela citas y no añade restricciones."),
+        "mensaje_adicional": "Puedes consultar la advertencia desde Configuración → Reportes y seguridad.",
+        "url_citas": f"{frontend}/{ruta}/reports" if frontend else None,
+    })
