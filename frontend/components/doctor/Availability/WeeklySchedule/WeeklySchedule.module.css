@@ -7,7 +7,6 @@
 .duration select{min-height:44px;padding:8px 30px 8px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--color-text);font:inherit;font-size:14px}
 .days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
 .dayCard{min-width:0;border:1px solid var(--border);border-radius:14px;background:var(--surface);transition:border-color 200ms,background-color 200ms;overflow:hidden}
-@media(hover:hover) and (pointer:fine){.dayCard:hover{border-color:var(--doctor-primary)}}
 .dayHeader{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px}
 .dayHeader h3{font-size:16px;line-height:1.35;font-weight:650}
 .statusActive,.statusInactive{display:block;margin-top:4px;font-size:12px;line-height:1.4}
@@ -40,3 +39,119 @@
 @media(max-width:480px){.timeRow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.deleteButton{grid-column:1/-1;justify-self:end;min-width:44px;margin-top:-4px;background:var(--surface-muted)}.timeField input{padding-inline:8px}}
 .timeField input,.duration select{border-color:var(--control-border)}
 .block{min-width:0}
+
+/* ── Rediseño: ajustes, resumen semanal, bloques y botones ─────────────── */
+.settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.setting{display:flex;align-items:flex-start;gap:14px;padding:16px;border:1px solid var(--border);border-radius:16px;background:var(--surface);transition:border-color 180ms,box-shadow 180ms}
+.setting:focus-within{border-color:var(--doctor-primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--doctor-primary) 16%,transparent)}
+.settingIcon{display:grid;flex:none;width:44px;height:44px;place-items:center;border-radius:13px;background:var(--doctor-positive-bg);color:var(--doctor-primary)}
+.settingBody{display:grid;flex:1;min-width:0;gap:6px}
+.settingLabel{font-size:12.5px;font-weight:650;color:var(--text-secondary)}
+.setting select{width:100%;min-height:44px;padding:8px 32px 8px 12px;border:1px solid var(--control-border);border-radius:11px;background:var(--surface);color:var(--color-text);font:inherit;font-size:15px;font-weight:600}
+.setting select:focus-visible,.money input:focus-visible{outline:none}
+.money{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--control-border);border-radius:11px;background:var(--surface);transition:border-color 160ms}
+.money:focus-within{border-color:var(--doctor-primary)}
+.money>span{font-size:16px;font-weight:700;color:var(--doctor-primary)}
+.money input{flex:1;min-width:0;border:0;background:transparent;color:var(--color-text);font:inherit;font-size:16px;font-weight:650;font-variant-numeric:tabular-nums;outline:none}
+.money input::placeholder{color:var(--text-secondary);font-weight:500}
+.money small{font-size:11.5px;font-weight:700;letter-spacing:.06em;color:var(--text-secondary)}
+.money:has(input[aria-invalid=true]){border-color:var(--ink-red)}
+.help,.helpError{font-size:12px;line-height:1.45}
+.help{color:var(--text-secondary)}.helpError{color:var(--ink-red);font-weight:600}
+
+.dayOn{border-color:color-mix(in srgb,var(--doctor-primary) 35%,var(--border))}
+.block{overflow:hidden}
+.timeField input{border-radius:11px;min-height:46px}
+.timeField input:focus-visible{outline:3px solid color-mix(in srgb,var(--doctor-primary) 22%,transparent);border-color:var(--doctor-primary)}
+.deleteButton{width:44px;border-radius:11px;transition:background-color 160ms,transform 140ms}
+.section .deleteButton:not(:disabled):hover{background:var(--tone-red)}
+.section .deleteButton:not(:disabled):active{transform:scale(.92)}
+
+.section .addButton{gap:8px;width:100%;justify-content:center;min-height:44px;margin:8px 0 18px;padding:0 14px;border:1.5px dashed color-mix(in srgb,var(--doctor-primary) 55%,transparent);border-radius:12px;background:transparent;color:var(--doctor-primary);font-size:13.5px;font-weight:650;transition:background-color 180ms,border-color 180ms,transform 140ms}
+.section .addButton:not(:disabled):hover{background:var(--doctor-positive-bg);border-color:var(--doctor-primary)}
+.section .addButton:not(:disabled):active{transform:scale(.98)}
+
+@media(max-width:760px){.settings{grid-template-columns:minmax(0,1fr)}}
+
+
+/* ── Rediseño de las tarjetas de cada día (mismo orden y mismo funcionamiento) ── */
+@media(prefers-reduced-motion:no-preference){
+  .setting,.dayCard{animation:cardRise 520ms cubic-bezier(.23,1,.32,1) both}
+  .setting:nth-child(2){animation-delay:60ms}
+  .dayCard:nth-child(1){animation-delay:80ms}.dayCard:nth-child(2){animation-delay:130ms}.dayCard:nth-child(3){animation-delay:180ms}
+  .dayCard:nth-child(4){animation-delay:230ms}.dayCard:nth-child(5){animation-delay:280ms}.dayCard:nth-child(6){animation-delay:330ms}.dayCard:nth-child(7){animation-delay:380ms}
+}
+@keyframes cardRise{from{opacity:0;transform:translateY(14px)}}
+
+.sectionHeader h2{font-size:24px;font-weight:700;letter-spacing:-.03em}
+.setting{border-radius:20px;padding:18px}
+.settingIcon{width:48px;height:48px;border-radius:15px}
+
+.dayCard{position:relative;border-radius:20px;background:color-mix(in srgb,var(--surface-muted) 55%,var(--surface));border-style:dashed;transition:background-color 260ms,border-color 260ms,box-shadow 260ms}
+.dayOn{border-style:solid;border-color:color-mix(in srgb,var(--doctor-primary) 32%,var(--border));background:var(--surface);box-shadow:0 14px 34px -22px color-mix(in srgb,var(--doctor-primary) 55%,transparent)}
+.dayHeader{justify-content:flex-start;gap:14px;padding:18px 20px}
+.dayHeader .switch{margin-left:auto}
+.dayBadge{display:grid;flex:none;width:46px;height:46px;place-items:center;border-radius:15px;background:var(--surface-muted);color:var(--text-secondary);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;transition:background-color 260ms,color 260ms,transform 360ms cubic-bezier(.34,1.32,.52,1)}
+.dayOn .dayBadge{background:var(--doctor-button);color:var(--doctor-on-primary);transform:rotate(-4deg)}
+.dayTitle{min-width:0}
+.dayHeader h3{font-size:17px;font-weight:700;letter-spacing:-.02em}
+.statusActive,.statusInactive{font-size:12.5px}
+.statusActive{font-weight:600}
+
+/* Interruptor tipo píldora con perilla elástica */
+.switch{flex:0 0 56px;width:56px;height:44px}
+.switch::before{inset:7px 0;border-radius:15px;background:var(--control-border);transition:background-color 260ms}
+.switch span{top:10px;left:4px;width:24px;height:24px;box-shadow:0 2px 6px rgb(0 0 0/28%);transition:transform 360ms cubic-bezier(.34,1.32,.52,1),width 200ms}
+.switchActive span{transform:translateX(24px)}
+.switch:active:not(:disabled) span{width:28px}
+.switchActive:active:not(:disabled) span{transform:translateX(20px)}
+
+.dayContent{padding:0 20px}
+.blocks{gap:10px;padding-top:2px}
+.block{padding:12px;border:1px solid var(--border);border-radius:16px;background:color-mix(in srgb,var(--surface-muted) 60%,var(--surface))}
+.timeRow{gap:8px}
+.timeField span{font-weight:600;letter-spacing:.02em}
+.timeField input{border-radius:12px;background:var(--surface);font-weight:600;transition:border-color 180ms,box-shadow 180ms}
+.timeField input:hover:not(:disabled){border-color:var(--text-secondary)}
+.deleteButton{align-self:end;width:44px;border-radius:12px}
+.section .addButton{margin:8px 0 18px;border-radius:14px}
+
+/* Cinta con las acciones al pie: igual que antes, solo con más cuerpo */
+.footer{border-radius:20px}
+
+
+/* Confirmación antes de guardar */
+.changeList{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.changeList li{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px 10px;padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:var(--surface-muted)}
+.changeList strong{grid-column:1/-1;font-size:.78rem;color:var(--text-secondary);font-weight:650}
+.changeList svg{color:var(--text-secondary)}
+.before{color:var(--text-secondary);font-size:.86rem;overflow-wrap:anywhere;text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--text-secondary) 50%,transparent)}
+.after{color:var(--color-text);font-size:.88rem;font-weight:650;overflow-wrap:anywhere}
+.modalSave,.modalCancel{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border-radius:12px;font:inherit;font-size:.9rem;font-weight:650;cursor:pointer;transition:background-color 180ms,transform 140ms}
+.modalSave{border:0;color:var(--doctor-on-primary,var(--action-on));background:var(--doctor-button,var(--action-primary-bg))}
+.modalSave:hover:not(:disabled){background:var(--doctor-button-hover,var(--action-primary-hover))}
+.modalCancel{border:1px solid var(--control-border);color:var(--color-text);background:transparent}
+.modalCancel:hover:not(:disabled){background:var(--surface-muted)}
+.modalSave:active:not(:disabled),.modalCancel:active:not(:disabled){transform:scale(.97)}
+.modalSave:disabled,.modalCancel:disabled{opacity:.6;cursor:wait}
+.modalSave:focus-visible,.modalCancel:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+
+/* El interruptor activo vuelve a ser verde (la regla de la base quedó tapada por el rediseño) */
+.switch.switchActive::before{background:var(--doctor-button)}
+.switch.switchActive span{background:var(--doctor-on-primary)}
+.dayOn .statusActive{color:var(--doctor-primary)}
+
+/* Botón de eliminar horario */
+.section .deleteButton{position:relative;overflow:hidden;width:46px;min-height:46px;border:1px solid color-mix(in srgb,var(--ink-red) 24%,transparent);border-radius:14px;background:var(--tone-red);color:var(--ink-red);transition:background-color 220ms,color 220ms,border-color 220ms,transform 160ms cubic-bezier(.34,1.32,.52,1),box-shadow 220ms}
+.section .deleteButton svg{position:relative;z-index:1;transform-origin:50% 90%}
+@media(hover:hover){
+  .section .deleteButton:not(:disabled):hover{background:var(--ink-red);color:var(--tone-red);border-color:transparent;box-shadow:0 8px 18px -8px color-mix(in srgb,var(--ink-red) 70%,transparent);transform:translateY(-1px)}
+  .section .deleteButton:not(:disabled):hover svg{animation:trashWiggle 520ms ease-in-out}
+}
+.section .deleteButton:not(:disabled):active{transform:scale(.86)}
+.section .deleteButton:not(:disabled):active svg{animation:trashDrop 260ms ease-in forwards}
+.section .deleteButton:focus-visible{outline:3px solid color-mix(in srgb,var(--ink-red) 40%,transparent);outline-offset:2px}
+@keyframes trashWiggle{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg) translateY(-1px)}45%{transform:rotate(12deg)}70%{transform:rotate(-7deg)}}
+@keyframes trashDrop{to{transform:translateY(3px) scale(.7);opacity:.4}}
+@media(prefers-reduced-motion:reduce){.section .deleteButton,.section .deleteButton svg{animation:none!important;transition:none!important}}
+@media(max-width:480px){.section .deleteButton{width:auto;min-width:46px}}

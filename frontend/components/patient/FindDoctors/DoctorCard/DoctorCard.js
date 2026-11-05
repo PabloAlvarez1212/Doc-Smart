@@ -2,16 +2,20 @@
 
 import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import Modal from "../../../ui/Modal/Modal";
+import LocationModal from "../../../ui/LocationModal/LocationModal";
 import Image from "next/image";
 import {
+    BadgeCheck,
+    Banknote,
     Building2,
     CalendarClock,
     CalendarPlus,
+    Heart,
     MapPin,
     Navigation,
     Stethoscope,
     UserRound,
+    Users,
 } from "lucide-react";
 
 import Button from "../../../ui/Button/Button";
@@ -29,10 +33,15 @@ function formatearFecha(fecha) {
     }).format(new Date(`${fecha}T00:00:00`));
 }
 
-export default function DoctorCard({ doctor, onSchedule, onViewProfile }) {
+const BURST = Array.from({ length: 8 }, (_, index) => index * 45);
+
+export default function DoctorCard({ doctor, onSchedule, onViewProfile, onToggleFavorito, index = 0 }) {
     const reduceMotion = useReducedMotion();
 
     const [mapaAbierto, setMapaAbierto] = useState(false);
+    const [latido, setLatido] = useState(0);
+
+    const favorito = Boolean(doctor.es_favorito);
 
     const tieneCoordenadas =
         doctor.latitud != null &&
@@ -82,37 +91,50 @@ export default function DoctorCard({ doctor, onSchedule, onViewProfile }) {
     const tieneDisponibilidad =
         Boolean(proximaDisponibilidad);
 
+    const esHoy = tieneDisponibilidad && proximaDisponibilidad.fecha === new Date().toLocaleDateString("sv-SE");
+
     const rating = getDoctorRatingPresentation(doctor);
 
-    return (
-        <article className={styles.card}>
+    const alternarFavorito = () => {
+        setLatido((valor) => valor + 1);
+        onToggleFavorito?.(doctor);
+    };
 
-            <div className={styles.identity}>
+    return (
+        <motion.article
+            className={styles.card}
+            initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduceMotion ? undefined : { opacity: 0, scale: .94, transition: { duration: .22 } }}
+            transition={{ duration: reduceMotion ? 0 : .45, delay: reduceMotion ? 0 : Math.min(index, 8) * .05, ease: [.23, 1, .32, 1] }}
+            layout={reduceMotion ? false : "position"}
+        >
+
+            <header className={styles.top}>
                 <div className={styles.photoFrame}>
                     <Image
-                        src={
-                            doctor.foto_perfil ||
-                            "/images/foto_default.png"
-                        }
+                        src={doctor.foto_perfil || "/images/foto_default.png"}
                         alt={`Foto de perfil de ${fullName}`}
-                        width={116}
-                        height={116}
+                        width={84}
+                        height={84}
                         className={styles.photo}
                     />
+                    {doctor.verificado && (
+                        <span className={styles.photoBadge} title="Médico verificado">
+                            <BadgeCheck size={16} aria-hidden="true" />
+                        </span>
+                    )}
                 </div>
 
                 <div className={styles.profile}>
                     <span className={styles.specialty}>
-                        <Stethoscope size={14} />
-                        {doctor.especialidad ||
-                            "Especialidad no especificada"}
+                        <Stethoscope size={14} aria-hidden="true" />
+                        {doctor.especialidad || "Especialidad no especificada"}
                     </span>
 
                     <h2>{fullName}</h2>
 
-                    <div
-                        className={styles.rating}
-                    >
+                    <div className={styles.rating}>
                         {rating.hasRatings ? (
                             <>
                                 <EstrellasCalificacion
@@ -128,158 +150,132 @@ export default function DoctorCard({ doctor, onSchedule, onViewProfile }) {
                             <span>{rating.opinionsLabel}</span>
                         )}
                     </div>
-
-                    {location && (
-                        <p className={styles.location}>
-                            <MapPin size={16} />
-                            {location}
-                        </p>
-                    )}
-
-                    {doctor.direccion && (
-                        tieneCoordenadas ? (
-                            <button
-                                type="button"
-                                className={styles.addressLink}
-                                onClick={() => setMapaAbierto(true)}
-                                aria-haspopup="dialog"
-                                aria-label={`Ver ubicación de ${fullName}`}
-                            >
-                                <Building2 size={16} aria-hidden="true" />
-
-                                <span>
-                                    {doctor.direccion}
-                                    <small>Ver ubicación y cómo llegar</small>
-                                </span>
-                            </button>
-                        ) : (
-                            <p className={styles.address}>
-                                <Building2 size={16} aria-hidden="true" />
-                                {doctor.direccion}
-                            </p>
-                        )
-                    )}
                 </div>
-            </div>
 
-            <div className={styles.schedule}>
-                <span
-                    className={styles.scheduleIcon}
-                    aria-hidden="true"
-                >
-                    <CalendarClock size={20} />
+                {onToggleFavorito && (
+                    <button
+                        type="button"
+                        className={`${styles.heart} ${favorito ? styles.heartOn : ""}`}
+                        onClick={alternarFavorito}
+                        aria-pressed={favorito}
+                        aria-label={favorito ? `Quitar a ${fullName} de favoritos` : `Guardar a ${fullName} en favoritos`}
+                    >
+                        <Heart size={20} aria-hidden="true" />
+                        {favorito && latido > 0 && !reduceMotion && (
+                            <span className={styles.burst} key={latido} aria-hidden="true">
+                                {BURST.map((angulo) => <i key={angulo} style={{ "--a": `${angulo}deg` }} />)}
+                            </span>
+                        )}
+                    </button>
+                )}
+            </header>
+
+            <p className={styles.trust}>
+                {doctor.verificado && (
+                    <span className={styles.verified}>
+                        <BadgeCheck size={14} aria-hidden="true" />
+                        Médico verificado
+                    </span>
+                )}
+                <span className={styles.attended}>
+                    <Users size={14} aria-hidden="true" />
+                    {doctor.pacientes_atendidos ?? 0} {doctor.pacientes_atendidos === 1 ? "paciente atendido" : "pacientes atendidos"}
                 </span>
+            </p>
 
-                <div>
-                    {tieneDisponibilidad ? (
-                        <>
-                            <strong>
-                                Próxima disponibilidad
-                            </strong>
+            {(location || doctor.direccion) && (
+                tieneCoordenadas && doctor.direccion ? (
+                    <button
+                        type="button"
+                        className={styles.place}
+                        onClick={() => setMapaAbierto(true)}
+                        aria-haspopup="dialog"
+                        aria-label={`Ver ubicación de ${fullName}`}
+                    >
+                        <span className={styles.placeIcon} aria-hidden="true"><MapPin size={18} /></span>
+                        <span className={styles.placeText}>
+                            <strong>{location || "Consultorio"}</strong>
+                            <span>{doctor.direccion}</span>
+                        </span>
+                        <span className={styles.placeCta}>
+                            Ver mapa
+                            <Navigation size={14} aria-hidden="true" />
+                        </span>
+                    </button>
+                ) : (
+                    <div className={styles.place} data-static="true">
+                        <span className={styles.placeIcon} aria-hidden="true"><MapPin size={18} /></span>
+                        <span className={styles.placeText}>
+                            <strong>{location || "Consultorio"}</strong>
+                            {doctor.direccion && <span>{doctor.direccion}</span>}
+                        </span>
+                    </div>
+                )
+            )}
 
-                            <p>
-                                {formatearFecha(
-                                    proximaDisponibilidad.fecha
-                                )}
-                                {" · "}
-                                {
-                                    proximaDisponibilidad.hora_inicio
-                                }
-                                {" - "}
-                                {
-                                    proximaDisponibilidad.hora_fin
-                                }
-                            </p>
-                        </>
-                    ) : (
-                        <>
-                            <strong>
-                                Sin disponibilidad próxima
-                            </strong>
-
-                            <p>
-                                Este profesional no tiene horarios
-                                disponibles por el momento.
-                            </p>
-                        </>
-                    )}
+            <div className={styles.facts}>
+                <div className={`${styles.slot} ${esHoy ? styles.slotToday : ""}`}>
+                    <span className={styles.slotIcon} aria-hidden="true"><CalendarClock size={19} /></span>
+                    <div>
+                        {tieneDisponibilidad ? (
+                            <>
+                                <small>{esHoy ? "Disponible hoy" : "Próxima disponibilidad"}</small>
+                                <strong>
+                                    {formatearFecha(proximaDisponibilidad.fecha)}
+                                </strong>
+                                <span>
+                                    {proximaDisponibilidad.hora_inicio} - {proximaDisponibilidad.hora_fin}
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <small>Sin disponibilidad</small>
+                                <span>Sin horarios por el momento.</span>
+                            </>
+                        )}
+                    </div>
                 </div>
+
+                {doctor.valor_consulta != null && (
+                    <div className={styles.priceBox}>
+                        <span className={styles.priceIcon} aria-hidden="true"><Banknote size={19} /></span>
+                        <div>
+                            <small>Valor de la consulta</small>
+                            <strong>{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(doctor.valor_consulta)}</strong>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className={styles.actions}>
-                <motion.button initial="rest" whileHover="hover" whileFocus="hover" type="button" className={styles.profileAction} onClick={() => onViewProfile?.(doctor)}>
-                    <motion.span aria-hidden="true" style={{ display: "inline-flex" }} variants={{ rest: { y: 0 }, hover: { y: reduceMotion ? 0 : -2 } }} transition={{ duration: .18, ease: "easeOut" }}><UserRound size={17} /></motion.span>
-                    Ver perfil y valoración
-                </motion.button>
+                <Button
+                    variant="secundary"
+                    className={styles.profileAction}
+                    onClick={() => onViewProfile?.(doctor)}
+                >
+                    <UserRound size={17} aria-hidden="true" />
+                    Ver perfil
+                </Button>
                 <Button
                     className={styles.primaryAction}
                     disabled={!tieneDisponibilidad}
                     onClick={() => onSchedule?.(doctor)}
                 >
-                    <CalendarPlus size={18} />
+                    <CalendarPlus size={18} aria-hidden="true" />
                     Agendar cita
                 </Button>
-
-                <small className={styles.actionHint}>
-                    {tieneDisponibilidad
-                        ? "Ver horarios disponibles"
-                        : "Sin horarios disponibles"}
-                </small>
             </div>
 
-            <Modal
+            <LocationModal
                 abierto={mapaAbierto}
                 onCerrar={() => setMapaAbierto(false)}
-                titulo="Ubicación del consultorio"
-                text={fullName}
-                width="760px"
-                icon={<MapPin size={24} aria-hidden="true" />}
-            >
-                <div className={styles.mapContent}>
-                    <p className={styles.mapAddress}>
-                        <Building2 size={18} aria-hidden="true" />
-                        {doctor.direccion}
-                    </p>
+                nombre={fullName}
+                direccion={doctor.direccion}
+                ciudad={location}
+                latitud={doctor.latitud}
+                longitud={doctor.longitud}
+            />
 
-                    {location && (
-                        <p className={styles.mapLocation}>{location}</p>
-                    )}
-
-                    {mapaAbierto && mapaUrl ? (
-                        <iframe
-                            title={`Ubicación del consultorio de ${fullName}`}
-                            src={mapaUrl}
-                            className={styles.mapFrame}
-                            loading="lazy"
-                            allowFullScreen
-                            referrerPolicy="no-referrer-when-downgrade"
-                        />
-                    ) : (
-                        <p role="status">
-                            El mapa no está disponible. Puedes consultar la
-                            ubicación en Google Maps.
-                        </p>
-                    )}
-
-                    {rutaUrl && (
-                        <a
-                            href={rutaUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.directionsLink}
-                        >
-                            <Navigation size={18} aria-hidden="true" />
-                            Cómo llegar
-                        </a>
-                    )}
-
-                    <p className={styles.mapNote}>
-                        Se abrirá Google Maps para elegir tu punto de salida
-                        y medio de transporte.
-                    </p>
-                </div>
-            </Modal>
-
-        </article>
+        </motion.article>
     );
 }

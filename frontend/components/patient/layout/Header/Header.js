@@ -7,7 +7,7 @@ import usePatient from "../../usePatient";
 import { useState } from "react";
 import SettingsComponent from "../../../ui/SettingsComponent/SettingsComponent";
 import Modal from "../../../ui/Modal/Modal";
-import { CalendarDays, FileHeart, House, KeyRound, MessagesSquare, Stethoscope, UserRound } from "lucide-react";
+import { CalendarDays, FileHeart, House, KeyRound, MessagesSquare, Stethoscope, UserRound, Settings } from "lucide-react";
 import { useNotificationsContext } from "../../../contex/NotificationsContext";
 export default function Header() {
   const {
@@ -22,7 +22,9 @@ export default function Header() {
     eliminarCuentaPaciente
   } = usePatient();
   return <div>
-            <DocSmartNav home="/patient/home" onSettings={() => setModal(true)} sections={["Atención", "Mi salud"]} notifications={{
+            <DocSmartNav home="/patient/home" onSettings={() => setModal(true)} sections={["Atención", "Mi salud"]} favorites={{
+      href: "/patient/favorites"
+    }} notifications={{
       href: "/patient/notifications",
       count: noLeidas ?? 0
     }} links={[{
@@ -55,7 +57,7 @@ export default function Header() {
       icon: Stethoscope,
       group: "Atención"
     }]} />
-            <Modal titulo="Acciones" abierto={modal} onCerrar={() => setModal(false)} headerVariant="white">
+            <Modal titulo="Configuración" text="Personaliza DocSmart a tu manera." abierto={modal} onCerrar={() => setModal(false)} headerVariant="white" width="620px" icon={<Settings size={22} aria-hidden="true" />}>
                 <SettingsComponent cerrarSesion={logoutUser} eliminarCuenta={eliminarCuentaPaciente} abrirCambiarContrasena={() => {
         setModal(false);
         setModalCambiarContrasena(true);
@@ -64,7 +66,7 @@ export default function Header() {
             <Modal titulo="Cambiar contraseña" abierto={modalCambiarContrasena} onCerrar={() => {
       setModalCambiarContrasena(false);
       setModal(true);
-    }} headerVariant="yellow" text="Mantén tu cuenta segura con una contraseña fuerte" width="500px" icon={<KeyRound size={45} />}>
+    }} headerVariant="white" text="Mantén tu cuenta segura con una contraseña fuerte" width="500px" icon={<KeyRound size={22} aria-hidden="true" />}>
                 <ResetPasswordFormComponent />
             </Modal>
         </div>;

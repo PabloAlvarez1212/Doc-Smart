@@ -23,6 +23,9 @@ export default function useAvailability() {
     const [duracionConsulta, setDuracionConsulta] =
         useState(30);
 
+    const [valorConsulta, setValorConsulta] =
+        useState(null);
+
     const [disponibilidad, setDisponibilidad] =
         useState([]);
 
@@ -58,6 +61,10 @@ export default function useAvailability() {
 
                 setDuracionConsulta(
                     data?.duracion_consulta ?? 30
+                );
+
+                setValorConsulta(
+                    data?.valor_consulta ?? null
                 );
 
                 setDisponibilidad(
@@ -142,6 +149,12 @@ export default function useAvailability() {
                 setDuracionConsulta(
                     data?.duracion_consulta
                     ?? datos.duracion_consulta
+                );
+
+                setValorConsulta(
+                    data && "valor_consulta" in data
+                        ? data.valor_consulta
+                        : datos.valor_consulta ?? null
                 );
 
                 setDisponibilidad(
@@ -318,6 +331,7 @@ const eliminarExcepcion =
     return {
         duracionConsulta,
         setDuracionConsulta,
+        valorConsulta,
 
         disponibilidad,
         setDisponibilidad,

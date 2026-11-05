@@ -62,6 +62,8 @@ class ProcesoRegistroUsuario(models.Model):
     ciudad_profesional=models.ForeignKey("catalogos.Ciudad",on_delete=models.PROTECT,null=True,blank=True)
     especialidad=models.ForeignKey("medicos.Especialidad",on_delete=models.PROTECT,null=True,blank=True)
     hoja_vida=models.ForeignKey("storage_app.Archivo",on_delete=models.PROTECT,null=True,blank=True,related_name="procesos_registro_medico")
+    registro_medico_cifrado=models.TextField(blank=True,default="")
+    registro_medico_huella=models.CharField(max_length=64,blank=True,default="")
     medico=models.OneToOneField("medicos.Medico",on_delete=models.SET_NULL,null=True,blank=True,related_name="proceso_registro")
     nombre_declarado=models.CharField(max_length=100)
     apellido_declarado=models.CharField(max_length=100)

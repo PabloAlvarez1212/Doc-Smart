@@ -361,7 +361,6 @@ export default function useAppointments() {
         try {
             await confirmarCitaService(id_cita);
         } catch (error) {
-            console.error("Error al confirmar cita:", error);
             throw error;
         }
         await actualizarDatos();

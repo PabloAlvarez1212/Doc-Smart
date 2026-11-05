@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
-import { Bell, LogIn, Settings } from "lucide-react";
+import { Bell, Heart, LogIn, Settings } from "lucide-react";
 import SectionMenu, { MenuToggle } from "../SectionMenu/SectionMenu";
 import menuStyles from "../SectionMenu/SectionMenu.module.css";
 import styles from "./DocSmartNav.module.css";
@@ -16,6 +16,7 @@ export default function DocSmartNav({
     links = [],
     sections = [],
     notifications,
+    favorites,
     home = "/",
     onSettings,
     sessionHome,
@@ -304,6 +305,18 @@ export default function DocSmartNav({
                                     {notifications.count > 99 ? "99+" : notifications.count}
                                 </motion.span>
                             )}
+                        </Link>
+                    )}
+
+                    {favorites && (
+                        <Link
+                            href={favorites.href}
+                            className={`${styles.iconButton} ${styles.favorite}`}
+                            aria-current={pathname === favorites.href || pathname.startsWith(`${favorites.href}/`) ? "page" : undefined}
+                            aria-label="Médicos favoritos"
+                            onClick={cerrarMenu}
+                        >
+                            <Heart size={19} strokeWidth={1.9} aria-hidden="true" />
                         </Link>
                     )}
 

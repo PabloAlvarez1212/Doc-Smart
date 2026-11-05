@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from catalogos.models import Ciudad, Rol
+from core.cifrado import cifrar_texto, huella_texto, normalizar_registro
 from storage_app.models import Archivo
 from storage_app.services import subir_archivo
 from users.models import ProcesoRegistroUsuario, Usuario
@@ -38,6 +39,14 @@ class DatosProfesionalesSerializer(serializers.Serializer):
     telefono=serializers.CharField(max_length=10)
     ciudad=serializers.PrimaryKeyRelatedField(queryset=Ciudad.objects.all())
     id_especialidad=serializers.PrimaryKeyRelatedField(queryset=Especialidad.objects.all())
+    registro_medico=serializers.RegexField(
+        r'^[A-Za-z0-9][A-Za-z0-9 .\-/]{3,24}$',
+        error_messages={
+            'required':'El registro médico es obligatorio',
+            'blank':'El registro médico es obligatorio',
+            'invalid':'Usa entre 4 y 25 caracteres: letras, números, puntos, guiones o diagonales',
+        },
+    )
     hoja_vida=serializers.FileField(allow_empty_file=False)
     validate_telefono=DatosAdicionalesRegistroSerializer.validate_telefono
     validate_hoja_vida=staticmethod(validar_hoja_vida_pdf)
@@ -66,6 +75,12 @@ def guardar_profesionales(datos):
             "general": ["Tus datos ya fueron confirmados y no se pueden modificar"]
         }, 400
 
+    huella = huella_texto(datos["registro_medico"])
+    if Medico.objects.filter(registro_medico_huella=huella).exists():
+        return {
+            "registro_medico": ["Este registro médico no se puede usar. Verifica el número."]
+        }, 400
+
     hoja_anterior = proceso.hoja_vida
 
     metadata = subir_archivo(
@@ -88,12 +103,16 @@ def guardar_profesionales(datos):
     proceso.ciudad_profesional = datos["ciudad"]
     proceso.especialidad = datos["id_especialidad"]
     proceso.hoja_vida = archivo
+    proceso.registro_medico_cifrado = cifrar_texto(normalizar_registro(datos["registro_medico"]))
+    proceso.registro_medico_huella = huella
 
     proceso.save(update_fields=[
         "telefono",
         "ciudad_profesional",
         "especialidad",
         "hoja_vida",
+        "registro_medico_cifrado",
+        "registro_medico_huella",
     ])
 
     if hoja_anterior:
@@ -109,14 +128,15 @@ def completar_medico(proceso_id):
     error=services.validarProcesoRegistro(proceso,'medico')
     if error:return error
     if not facial_cumplida(proceso,permitir_revision=True):return {'validacion_facial':['Completa la verificación facial']},403
-    if not all([proceso.documento_verificado,proceso.correo_verificado,proceso.documento_verificado_en,proceso.correo_verificado_en,proceso.nombre_verificado,proceso.apellido_verificado,proceso.numero_documento_verificado,proceso.fecha_nacimiento_verificada,proceso.telefono,proceso.ciudad_profesional_id,proceso.especialidad_id,proceso.hoja_vida_id,proceso.correo,proceso.contraseña_hash]):
+    if not all([proceso.documento_verificado,proceso.correo_verificado,proceso.documento_verificado_en,proceso.correo_verificado_en,proceso.nombre_verificado,proceso.apellido_verificado,proceso.numero_documento_verificado,proceso.fecha_nacimiento_verificada,proceso.telefono,proceso.ciudad_profesional_id,proceso.especialidad_id,proceso.hoja_vida_id,proceso.registro_medico_cifrado,proceso.registro_medico_huella,proceso.correo,proceso.contraseña_hash]):
         return {'general':['Completa la identidad, datos profesionales y verificación del correo']},403
     if not es_mayor(proceso.fecha_nacimiento_verificada):return {'fecha_nacimiento':['Debes ser mayor de edad']},400
     if Usuario.objects.filter(correo__iexact=proceso.correo).exists() or Medico.objects.filter(correo__iexact=proceso.correo).exists():return {'correo':['No fue posible completar el registro']},400
     if Usuario.objects.filter(cedula=proceso.numero_documento_verificado).exists() or Medico.objects.filter(cedula=proceso.numero_documento_verificado).exists():return {'numero_documento':['No fue posible completar el registro']},400
+    if Medico.objects.filter(registro_medico_huella=proceso.registro_medico_huella).exists():return {'registro_medico':['Este registro médico no se puede usar. Verifica el número.']},400
     rol=Rol.objects.filter(nombre__iexact='doctor').first()
     if not rol:return {'general':['Rol de médico no configurado']},503
-    medico=Medico.objects.create(nombre=proceso.nombre_verificado,apellido=proceso.apellido_verificado,cedula=proceso.numero_documento_verificado,tipo_documento=proceso.tipo_documento,fecha_nacimiento=proceso.fecha_nacimiento_verificada,telefono=proceso.telefono,correo=proceso.correo,contraseña=proceso.contraseña_hash,ciudad=proceso.ciudad_profesional,id_especialidad=proceso.especialidad,id_rol=rol,documento_verificado_en=proceso.documento_verificado_en,correo_verificado_en=proceso.correo_verificado_en)
+    medico=Medico.objects.create(nombre=proceso.nombre_verificado,apellido=proceso.apellido_verificado,cedula=proceso.numero_documento_verificado,tipo_documento=proceso.tipo_documento,fecha_nacimiento=proceso.fecha_nacimiento_verificada,telefono=proceso.telefono,correo=proceso.correo,contraseña=proceso.contraseña_hash,ciudad=proceso.ciudad_profesional,id_especialidad=proceso.especialidad,id_rol=rol,documento_verificado_en=proceso.documento_verificado_en,correo_verificado_en=proceso.correo_verificado_en,registro_medico_cifrado=proceso.registro_medico_cifrado,registro_medico_huella=proceso.registro_medico_huella)
     proceso.hoja_vida.medico=medico
     proceso.hoja_vida.save(update_fields=['medico'])
     solicitud=SolicitudValidacionMedico.objects.create(medico=medico,hoja_vida=proceso.hoja_vida,estado='pendiente')

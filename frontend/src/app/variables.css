@@ -8,3 +8,6 @@
 :root{--control-border:#7b8390}:root[data-theme="dark"]{--control-border:#777f8e}
 
 :root{--action-primary-bg:#2456a6;--action-primary-hover:#1d4b91;--action-success-bg:#17664e;--action-success-hover:#125a44;--action-on:#fff}
+
+/* Botones principales con el mismo cuerpo en reposo que al pasar el cursor, también en oscuro */
+:root[data-theme="dark"]{--brand-solid:#3a6ce0;--action-primary-bg:#3a6ce0;--action-primary-hover:#5a87ee;--action-success-bg:#258a66;--action-success-hover:#2fa077;--action-on:#fff}

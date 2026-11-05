@@ -1,4 +1,12 @@
 .page {
+    --dash-ok: #0e7a3c;
+    --dash-info: #2456a6;
+    --dash-bad: #b3263f;
+    --dash-warn: #a8640b;
+    --dash-orange: #c2570c;
+    --dash-purple: #7257b5;
+    --dash-muted: #64748b;
+    --dash-star: #d98a00;
     min-width: 0;
     min-height: 100%;
     overflow-x: clip;
@@ -54,4 +62,15 @@
 
 @media (prefers-reduced-motion: reduce) {
     .skeletonFilters, .skeletonMetric, .skeletonChart { animation: none; }
+}
+
+:global(html[data-theme="dark"]) .page {
+    --dash-ok: #5bdda7;
+    --dash-info: #91b8ff;
+    --dash-bad: #ff8a9c;
+    --dash-warn: #f3c58e;
+    --dash-orange: #ffb27a;
+    --dash-purple: #d0adf5;
+    --dash-muted: #bac3d1;
+    --dash-star: #f3b84b;
 }

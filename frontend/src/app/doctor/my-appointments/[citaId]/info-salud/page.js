@@ -61,6 +61,8 @@ export default function InfoPaciente() {
                                 ? `${datos.paciente.peso} kg` : "Sin informar"}</span>
                             <span>Estatura: {datos.paciente.estatura != null
                                 ? `${datos.paciente.estatura} m` : "Sin informar"}</span>
+                            <span>Género: {datos.paciente.genero_display || "Sin informar"}</span>
+                            <span>Tipo de sangre: {datos.paciente.tipo_sangre || "Sin informar"}</span>
                         </div>
                     </section>
 

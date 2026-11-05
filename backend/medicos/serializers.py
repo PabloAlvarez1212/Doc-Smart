@@ -59,6 +59,10 @@ class SolicitudValidacionMedicoSerializer(serializers.ModelSerializer):
     hoja_vida_nombre = serializers.CharField(source="hoja_vida.nombre_original",read_only=True)
     identidad_estado = serializers.SerializerMethodField()
     identidad_pendiente = serializers.SerializerMethodField()
+    registro_medico = serializers.SerializerMethodField()
+
+    def get_registro_medico(self, obj):
+        return obj.medico.registro_medico or None
 
     def _proceso(self, obj):
         # Relación inversa uno a uno: no existe para médicos creados antes de la verificación facial.
@@ -98,6 +102,7 @@ class SolicitudValidacionMedicoSerializer(serializers.ModelSerializer):
             "hoja_vida_nombre",
             "identidad_estado",
             "identidad_pendiente",
+            "registro_medico",
         ]
 
 class ReintentarSolicitudValidacionSerializer(
@@ -121,6 +126,9 @@ class MedicosPublicosSerializer(serializers.ModelSerializer):
     foto_perfil = serializers.SerializerMethodField()
 
     proxima_disponibilidad = serializers.SerializerMethodField()
+    verificado = serializers.SerializerMethodField()
+    miembro_desde = serializers.DateTimeField(source='fecha_creacion', read_only=True)
+    pacientes_atendidos = serializers.IntegerField(read_only=True, default=0)
 
     promedio_calificacion = serializers.FloatField(
         read_only=True,
@@ -145,8 +153,21 @@ class MedicosPublicosSerializer(serializers.ModelSerializer):
             'foto_perfil',
             'proxima_disponibilidad',
             'promedio_calificacion',
-            'total_calificaciones'
+            'total_calificaciones',
+            'correo',
+            'telefono',
+            'presentacion',
+            'anios_experiencia',
+            'valor_consulta',
+            'miembro_desde',
+            'pacientes_atendidos',
+            'verificado',
         ]
+
+    def get_verificado(self, obj):
+        # La lista pública solo incluye médicos aprobados por el administrador.
+        return True
+
     def get_departamento(self, obj):
         if obj.ciudad and obj.ciudad.departamento:
             return obj.ciudad.departamento.nombre
@@ -207,7 +228,24 @@ class MedicoPerfilSerializer(serializers.ModelSerializer):
     foto_perfil = serializers.SerializerMethodField()
 
     estado_validacion = serializers.SerializerMethodField()
-    
+    registro_medico = serializers.SerializerMethodField()
+    miembro_desde = serializers.DateTimeField(source='fecha_creacion', read_only=True)
+    pacientes_atendidos = serializers.SerializerMethodField()
+
+    def get_registro_medico(self, obj):
+        return obj.registro_medico or None
+
+    def get_pacientes_atendidos(self, obj):
+        from citas.models import Cita
+        from utils import ESTADO_CITA_COMPLETADA
+        return (
+            Cita.objects
+            .filter(id_medico=obj, id_estado__nombre__iexact=ESTADO_CITA_COMPLETADA)
+            .values('id_usuario')
+            .distinct()
+            .count()
+        )
+
     def get_edad(self, obj):
 
         hoy = date.today()
@@ -268,6 +306,12 @@ class MedicoPerfilSerializer(serializers.ModelSerializer):
             'foto_perfil',
             'estado_validacion',
             'documento_verificado_en',
+            'registro_medico',
+            'anios_experiencia',
+            'presentacion',
+            'valor_consulta',
+            'miembro_desde',
+            'pacientes_atendidos',
         ]
 
 
@@ -347,6 +391,28 @@ class EditarMedicoSerializer(serializers.Serializer):
         required=False,
         error_messages={
             'invalid': 'La especialidad debe ser un número válido'
+        }
+    )
+
+    anios_experiencia = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0,
+        max_value=70,
+        error_messages={
+            'invalid': 'Los años de experiencia deben ser un número',
+            'min_value': 'Los años de experiencia no pueden ser negativos',
+            'max_value': 'Los años de experiencia no pueden superar 70',
+        }
+    )
+
+    presentacion = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        trim_whitespace=True,
+        max_length=600,
+        error_messages={
+            'max_length': 'La presentación no puede superar 600 caracteres',
         }
     )
 
@@ -603,6 +669,18 @@ class ActualizarDisponibilidadMedicoSerializer(
                 "La duración máxima de una consulta "
                 "es de 180 minutos"
             ),
+        }
+    )
+
+    valor_consulta = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0,
+        max_value=5000000,
+        error_messages={
+            "invalid": "El valor de la consulta debe ser un número",
+            "min_value": "El valor de la consulta no puede ser negativo",
+            "max_value": "El valor de la consulta no puede superar 5.000.000",
         }
     )
 

@@ -10,6 +10,7 @@ export default function DoctorsList({
     onRetry,
     onSchedule,
     onViewProfile,
+    onToggleFavorito,
     hasActiveFilters = false,
     onClearFilters,
 }) {
@@ -46,10 +47,12 @@ export default function DoctorsList({
                 </div>
             ) : doctores.length > 0 ? (
                 <div className={styles.list}>
-                    {doctores.map((doctor) => (
+                    {doctores.map((doctor, index) => (
                         <DoctorCard
                             key={doctor.id}
+                            index={index}
                             doctor={doctor}
+                            onToggleFavorito={onToggleFavorito}
                             onSchedule={onSchedule}
                             onViewProfile={onViewProfile}
                         />

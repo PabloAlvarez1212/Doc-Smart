@@ -1,5 +1,6 @@
-import {Search, CalendarDays, X } from "lucide-react";
-import styles from "./FilterAppointments.module.css";
+"use client";
+
+import FilterBar from "../../../ui/FilterBar/FilterBar";
 
 export default function FilterAppointments({
     paciente,
@@ -8,54 +9,16 @@ export default function FilterAppointments({
     cambiarFecha,
     limpiarFiltros,
 }) {
-
-    const hayFiltros =
-        paciente.trim() !== "" ||
-        fecha !== "";
-
     return (
-        <section className={styles.container}>
-            <div className={styles.searchField}>
-                <Search
-                    size={18}
-                    aria-hidden="true"
-                />
-                <input
-                    type="text" aria-label="Buscar paciente"
-                    placeholder="Buscar paciente..."
-                    value={paciente}
-                    onChange={(e) =>
-                        cambiarPaciente(e.target.value)
-                    }
-                />
-            </div>
-
-            <div className={styles.dateField}>
-                <CalendarDays
-                    size={18}
-                    aria-hidden="true"
-                />
-                <input
-                    type="date" aria-label="Fecha de la cita"
-                    value={fecha}
-                    onChange={(e) =>
-                        cambiarFecha(e.target.value)
-                    }
-                />
-            </div>
-
-
-            {hayFiltros && (
-                <button
-                    type="button"
-                    className={styles.clearButton}
-                    onClick={limpiarFiltros}
-                >
-                    <X size={16} />
-                    Limpiar
-                </button>
-
-            )}
-        </section>
+        <FilterBar
+            searchValue={paciente}
+            onSearch={cambiarPaciente}
+            searchLabel="Buscar paciente"
+            placeholder="Paciente, cédula o correo"
+            onClear={limpiarFiltros}
+            filters={[
+                { key: "fecha", type: "date", label: "Fecha", value: fecha, onChange: cambiarFecha },
+            ]}
+        />
     );
 }

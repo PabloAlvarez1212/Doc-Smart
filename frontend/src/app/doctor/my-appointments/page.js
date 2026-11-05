@@ -1,5 +1,7 @@
 "use client";
 
+import { HeartPulse as ModalIconHealth } from "lucide-react";
+import { obtenerPrimerError } from "@/app/utils/errrorUtils";
 import { useState } from "react";
 import { CalendarClock, CalendarDays, CircleCheck, CircleX, ClipboardCheck, Clock3, Eye, FileHeart, FileUp } from "lucide-react";
 import useAppointments from "../../../../components/doctor/MyAppointments/useAppointments";
@@ -118,7 +120,10 @@ export default function MyAppointments() {
         try {
             await confirmarCita(cita.id);
         } catch (requestError) {
-            avisar("No pudimos confirmar la cita. Inténtalo de nuevo.", "error");
+            const motivo = obtenerPrimerError(requestError.response?.data?.errores);
+            avisar(typeof motivo === "string" && motivo.trim() && requestError.response?.status < 500
+                ? motivo
+                : "No pudimos confirmar la cita. Inténtalo de nuevo.", "error");
             throw requestError;
         }
         avisar(`Cita confirmada. ${cita.paciente} recibirá el aviso.`);
@@ -300,7 +305,9 @@ export default function MyAppointments() {
                 onCerrar={() => setCitaInfo(null)}
                 titulo="Información médica del paciente"
                 text={citaInfoVisible?.paciente || ""}
+                headerVariant="white"
                 width="800px"
+                icon={<ModalIconHealth size={22} aria-hidden="true" />}
             >
                 {citaInfoVisible && (
                     <InfoMedicaCard

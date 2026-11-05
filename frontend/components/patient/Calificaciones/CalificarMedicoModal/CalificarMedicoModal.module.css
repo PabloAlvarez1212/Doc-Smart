@@ -4,7 +4,7 @@
     flex: 0 0 auto;
     place-items: center;
     border-radius: 12px;
-    color: #2456a6;
+    color: var(--accent);
     background: #eaf1fb;
 }
 
@@ -118,7 +118,7 @@
 }
 
 .commentField textarea:focus-visible {
-    border-color: #2456a6;
+    border-color: var(--action-primary-bg);
     box-shadow: 0 0 0 3px rgb(36 86 166 / 14%);
 }
 
@@ -193,15 +193,15 @@
 }
 
 .primaryButton {
-    border: 1px solid #2456a6;
-    background: #2456a6;
+    border: 1px solid var(--action-primary-bg);
+    background: var(--action-primary-bg);
     color: #fff;
     box-shadow: 0 3px 10px rgb(36 86 166 / 16%);
 }
 
 .primaryButton:hover:not(:disabled) {
-    border-color: #1d4789;
-    background: #1d4789;
+    border-color: var(--action-primary-hover);
+    background: var(--action-primary-hover);
 }
 
 .secondaryButton {
@@ -267,7 +267,7 @@
 
 .registrationDate svg {
     flex: 0 0 auto;
-    color: #2456a6;
+    color: var(--accent);
 }
 
 .closedNotice {
@@ -297,7 +297,7 @@
     place-items: center;
     border-radius: 10px;
     background: #e7effb;
-    color: #2456a6;
+    color: var(--accent);
 }
 
 .visibilityCopy {
@@ -366,8 +366,8 @@
 }
 
 .visibilityChoice input:checked + span {
-    border-color: #2456a6;
-    background: #2456a6;
+    border-color: var(--action-primary-bg);
+    background: var(--action-primary-bg);
 }
 
 .visibilityChoice input:checked + span::after {

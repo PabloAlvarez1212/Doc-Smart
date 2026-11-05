@@ -14,14 +14,12 @@
 
 .btn:hover {
     transform: translateY(-2px);
-    opacity: 80%;
-
 }
 
 /*!Variantes*/
 .primary {
-    background-color: var(--brand-solid);
-    color: white;
+    background-color: var(--action-primary-bg, var(--brand-solid));
+    color: var(--action-on, white);
 }
 
 .warning {
@@ -78,8 +76,23 @@
 @media(prefers-reduced-motion:reduce){.btn:hover{transform:none}}
 
 .btn{transition:transform var(--motion-fast) var(--motion-ease),background-color var(--motion-fast),box-shadow var(--motion-fast);font-weight:600}.btn:hover{opacity:1}.btn:active{transform:scale(.98)}.secondary,.secundary{background:var(--surface-muted);border:1px solid var(--border);color:var(--text-primary)}.btn:disabled{opacity:1;color:var(--text-secondary);background:var(--surface-muted);border:1px solid var(--border);cursor:not-allowed;transform:none;box-shadow:none}.btn.loading{color:var(--text-secondary)}.btn.loading::after{display:none}.btn.loading .spinner{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}.btn:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
-@media(hover:hover) and (pointer:fine){.primary:not(:disabled):hover{background:#2445b4;box-shadow:0 5px 14px #1733a425}}
+@media(hover:hover) and (pointer:fine){.primary:not(:disabled):hover{background:var(--action-primary-hover,#2445b4)}}
 :global(body:has([data-doctor-workspace])) .primary:not(:disabled){background:var(--doctor-button);color:var(--doctor-on-primary);box-shadow:none}
 :global(body:has([data-doctor-workspace])) .primary:not(:disabled):hover{background:var(--doctor-button-hover)}
 :global(body:has([data-doctor-workspace])) .danger:not(:disabled){background:var(--action-danger-bg);color:var(--action-danger-on)}
 :global(body:has([data-doctor-workspace])) .btn:is(:hover,:active){transform:none}
+
+/* ── Animaciones de botones: brillo que cruza, elevación y rebote al pulsar ── */
+.btn { position: relative; overflow: hidden; isolation: isolate; transition: translate .2s cubic-bezier(.34, 1.32, .52, 1), scale .16s cubic-bezier(.34, 1.32, .52, 1), background-color .2s, box-shadow .25s, border-color .2s, color .2s; }
+.btn:not(.loading)::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(110deg, transparent 32%, rgb(255 255 255 / 30%) 50%, transparent 68%); transform: translateX(-130%); transition: transform .7s cubic-bezier(.23, 1, .32, 1); pointer-events: none; }
+.btn svg { transition: transform .3s cubic-bezier(.34, 1.32, .52, 1); }
+@media (hover: hover) and (pointer: fine) {
+    .btn:not(:disabled):hover { translate: 0 -2px; }
+    .btn:not(:disabled):hover::after { transform: translateX(130%); }
+    .btn:not(:disabled):hover svg { transform: translateX(2px) scale(1.12); }
+    .primary:not(:disabled):hover { box-shadow: 0 14px 26px -14px color-mix(in srgb, var(--action-primary-bg, #1733a4) 90%, transparent); }
+    .danger:not(:disabled):hover { box-shadow: 0 14px 26px -14px rgb(163 45 45 / 70%); }
+}
+.btn:not(:disabled):active { scale: .96; translate: 0 0; }
+.btn:not(:disabled):active svg { transform: scale(.9); }
+@media (prefers-reduced-motion: reduce) { .btn, .btn svg, .btn::after { transition: none; } .btn:hover { translate: 0 0; } }

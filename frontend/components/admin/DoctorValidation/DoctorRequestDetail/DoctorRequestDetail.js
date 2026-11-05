@@ -1,5 +1,6 @@
 "use client";
 
+import { ClipboardCheck as ModalIconReview } from "lucide-react";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { FileText, ScanFace, ShieldCheck, Stethoscope, UserRound } from "lucide-react";
@@ -89,7 +90,7 @@ export default function DoctorRequestDetail({
         : null;
 
     return (
-        <Modal abierto={open} onCerrar={onClose} titulo="Revisión de solicitud" headerVariant="white" width="900px">
+        <Modal abierto={open} onCerrar={onClose} titulo="Revisión de solicitud" text="Revisa los datos, la hoja de vida y la identidad antes de decidir." headerVariant="white" width="900px" icon={<ModalIconReview size={22} aria-hidden="true" />}>
             <article className={styles.detail}>
                 <header className={styles.summary}>
                     <span className={styles.avatar} aria-hidden="true"><UserRound size={24} /></span>
@@ -135,6 +136,7 @@ export default function DoctorRequestDetail({
                         <div className={styles.sectionTitle}><Stethoscope size={18} /><h3 id="professional-information-title">Información profesional</h3></div>
                         <dl className={styles.fieldsGrid}>
                             <DetailField label="Especialidad" value={request.especialidad} />
+                            <DetailField label="Registro médico" value={request.registro_medico || "Sin registrar"} />
                             <DetailField label="Dirección" value={request.direccion} />
                             <DetailField label="Ciudad" value={request.ciudad} />
                             <DetailField label="Departamento" value={request.departamento} />

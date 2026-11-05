@@ -2,8 +2,9 @@ from datetime import date, datetime, time, timedelta
 from citas.models import Cita
 from medicos.models import Medico
 from datetime import timedelta
-from django.db.models import Count,Q
-from django.db.models.functions import TruncDay, TruncWeek, TruncMonth, ExtractIsoWeekDay
+from django.db.models import Avg, Count, Q
+from django.db.models.functions import TruncDay, TruncWeek, TruncMonth, ExtractIsoWeekDay, ExtractHour
+from calificaciones.models import Calificacion
 from django.utils import timezone
 
 #! GRÁFICA 1: CITAS PROGRAMADAS VS COMPLETADAS
@@ -315,6 +316,167 @@ def obtenerDiasMayorDemandaService(citas, inicio, fin, zona_horaria):
 
     return graficaDemanda
 
+#! DEMANDA POR HORARIO (día de la semana × hora)
+
+NOMBRES_DIAS = {
+    1: "Lunes",
+    2: "Martes",
+    3: "Miércoles",
+    4: "Jueves",
+    5: "Viernes",
+    6: "Sábado",
+    7: "Domingo",
+}
+
+def obtenerDemandaHorariaService(citas, inicio, fin, zona_horaria):
+
+    registros = (
+        citas.filter(
+            fecha_programada__gte=inicio,
+            fecha_programada__lt=fin
+        )
+        .annotate(
+            dia=ExtractIsoWeekDay("fecha_programada", tzinfo=zona_horaria),
+            hora=ExtractHour("fecha_programada", tzinfo=zona_horaria),
+        )
+        .values("dia", "hora")
+        .annotate(total=Count("id"))
+        .order_by("dia", "hora")
+    )
+
+    return [
+        {
+            "dia_numero": registro["dia"],
+            "dia": NOMBRES_DIAS[registro["dia"]],
+            "hora": registro["hora"],
+            "cantidad": registro["total"],
+        }
+        for registro in registros
+    ]
+
+#! GRÁFICA 5: EVOLUCIÓN DE CALIFICACIONES
+
+def obtenerEvolucionCalificacionesService(medico, inicio, fin):
+
+    zona_horaria = timezone.get_current_timezone()
+
+    fecha_inicio = timezone.localtime(inicio, zona_horaria).date()
+    fecha_fin = timezone.localtime(fin, zona_horaria).date() - timedelta(days=1)
+
+    cantidad_dias = (fecha_fin - fecha_inicio).days + 1
+
+    # Misma agrupación que la evolución de citas
+    if cantidad_dias <= 31:
+        agrupacion = "dia"
+        funcion_fecha = TruncDay
+    elif cantidad_dias <= 90:
+        agrupacion = "semana"
+        funcion_fecha = TruncWeek
+    else:
+        agrupacion = "mes"
+        funcion_fecha = TruncMonth
+
+    # Se cuentan las calificaciones por la fecha en que el paciente las registró
+    registros = (
+        Calificacion.objects.filter(
+            id_cita__id_medico=medico,
+            fecha_creacion__gte=inicio,
+            fecha_creacion__lt=fin
+        )
+        .annotate(periodo=funcion_fecha("fecha_creacion", tzinfo=zona_horaria))
+        .values("periodo")
+        .annotate(total=Count("id"), promedio=Avg("puntuacion"))
+        .order_by("periodo")
+    )
+
+    por_periodo = {
+        registro["periodo"].date(): (registro["total"], registro["promedio"])
+        for registro in registros
+    }
+
+    if agrupacion == "dia":
+        periodo_actual = fecha_inicio
+    elif agrupacion == "semana":
+        periodo_actual = fecha_inicio - timedelta(days=fecha_inicio.weekday())
+    else:
+        periodo_actual = fecha_inicio.replace(day=1)
+
+    grafica = []
+
+    while periodo_actual <= fecha_fin:
+
+        total, promedio = por_periodo.get(periodo_actual, (0, None))
+
+        grafica.append({
+            "periodo": (
+                periodo_actual.strftime("%Y-%m")
+                if agrupacion == "mes"
+                else periodo_actual.isoformat()
+            ),
+            "cantidad": total,
+            "promedio": round(float(promedio), 2) if promedio is not None else None,
+        })
+
+        if agrupacion == "dia":
+            periodo_actual += timedelta(days=1)
+        elif agrupacion == "semana":
+            periodo_actual += timedelta(weeks=1)
+        elif periodo_actual.month == 12:
+            periodo_actual = periodo_actual.replace(year=periodo_actual.year + 1, month=1)
+        else:
+            periodo_actual = periodo_actual.replace(month=periodo_actual.month + 1)
+
+    return grafica
+
+#! TOTALES DE UN PERÍODO (también se usan para comparar con el anterior)
+
+def calcularTotalesPeriodoService(citas, medico, inicio, fin):
+
+    totalProgramadas = citas.filter(
+        fecha_programada__gte=inicio,
+        fecha_programada__lt=fin
+    ).count()
+
+    totalCompletadas = citas.filter(
+        id_estado__nombre__iexact="completada",
+        fecha_completada__isnull=False,
+        fecha_completada__gte=inicio,
+        fecha_completada__lt=fin
+    ).count()
+
+    totalCanceladas = citas.filter(
+        id_estado__nombre__iexact="cancelada",
+        fecha_cancelacion__isnull=False,
+        fecha_cancelacion__gte=inicio,
+        fecha_cancelacion__lt=fin
+    ).count()
+
+    asistencia = {
+        registro["estado"]: registro
+        for registro in obtenerAsistenciaPacientesService(citas, inicio, fin)
+    }
+
+    calificaciones = Calificacion.objects.filter(
+        id_cita__id_medico=medico,
+        fecha_creacion__gte=inicio,
+        fecha_creacion__lt=fin
+    ).aggregate(
+        promedio=Avg("puntuacion"),
+        total=Count("id")
+    )
+
+    promedio = calificaciones["promedio"]
+
+    return {
+        "total_programadas": totalProgramadas,
+        "total_completadas": totalCompletadas,
+        "total_canceladas": totalCanceladas,
+        "total_inasistencias": asistencia["Inasistencias"]["cantidad"],
+        "porcentaje_asistencia": asistencia["Asistencias"]["porcentaje"],
+        "promedio_calificacion": round(float(promedio), 2) if promedio is not None else None,
+        "total_calificaciones": calificaciones["total"],
+    }
+
 def obtenerEstadisticasMedicoService(
     fecha_inicio=None,
     fecha_fin=None,
@@ -444,6 +606,53 @@ def obtenerEstadisticasMedicoService(
         zona_horaria
     )
 
+    #! EVOLUCIÓN DE CALIFICACIONES
+
+    calificaciones = obtenerEvolucionCalificacionesService(
+        medico,
+        inicio,
+        fin
+    )
+
+    #! DEMANDA POR HORARIO
+
+    demandaHoraria = obtenerDemandaHorariaService(
+        citas,
+        inicio,
+        fin,
+        zona_horaria
+    )
+
+    #! COMPARACIÓN CON EL PERÍODO ANTERIOR (misma cantidad de días)
+
+    totalesActuales = calcularTotalesPeriodoService(
+        citas,
+        medico,
+        inicio,
+        fin
+    )
+
+    totalesAnteriores = None
+
+    try:
+        anteriorFin = fecha_inicio - timedelta(days=1)
+        anteriorInicio = anteriorFin - timedelta(days=cantidad_dias - 1)
+
+        totalesAnteriores = calcularTotalesPeriodoService(
+            citas,
+            medico,
+            timezone.make_aware(
+                datetime.combine(anteriorInicio, time.min),
+                zona_horaria
+            ),
+            timezone.make_aware(
+                datetime.combine(anteriorFin + timedelta(days=1), time.min),
+                zona_horaria
+            )
+        )
+    except (OverflowError, ValueError):
+        totalesAnteriores = None
+
     #! ESTADÍSTICAS GENERALES
 
     totalProgramadas = sum(
@@ -494,8 +703,12 @@ def obtenerEstadisticasMedicoService(
             "total_completadas": totalCompletadas,
             "total_canceladas": totalCanceladas,
             "total_inasistencias": totalInasistencias,
-            "porcentaje_asistencia": porcentajeAsistencia
+            "porcentaje_asistencia": porcentajeAsistencia,
+            "promedio_calificacion": totalesActuales["promedio_calificacion"],
+            "total_calificaciones": totalesActuales["total_calificaciones"]
         },
+
+        "estadisticas_anteriores": totalesAnteriores,
         
         "grafica_citas": evolucion,
 
@@ -503,6 +716,10 @@ def obtenerEstadisticasMedicoService(
 
         "grafica_asistencia": asistencia,
 
-        "grafica_demanda": demanda
+        "grafica_demanda": demanda,
+
+        "grafica_demanda_horaria": demandaHoraria,
+
+        "grafica_calificaciones": calificaciones
 
     }, 200

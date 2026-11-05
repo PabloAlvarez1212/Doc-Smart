@@ -1,8 +1,8 @@
 "use client";
 
-import { HeartPulse, LoaderCircle, LockKeyhole, Mail, Save, UserRound } from "lucide-react";
-import { useEffect, useState } from "react";
-import Swal from "sweetalert2";
+import { ArrowRight, Eye, EyeOff, HeartPulse, Info, LoaderCircle, LockKeyhole, Mail, Save, ShieldCheck, UserRound } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import Modal from "../../../ui/Modal/Modal";
 import Button from "../../../ui/Button/Button";
 import Input from "../../../ui/Input/Input";
 import InfoSalud from "./InfoSalud";
@@ -10,6 +10,8 @@ import styles from "./PersonalInfo.module.css";
 
 export default function PersonalInfo({perfil, actualizarPerfilPaciente, guardando, onCambiarCorreo, ocupadoCorreo=false, datosSalud=[], onAgregarSalud, onEditarSalud, onEliminarSalud}) {
     const [nombre,setNombre]=useState(""),[apellido,setApellido]=useState(""),[fechaNacimiento,setFechaNacimiento]=useState(""),[telefono,setTelefono]=useState(""),[peso,setPeso]=useState(""),[estatura,setEstatura]=useState("");
+    const [verCedula,setVerCedula]=useState(false);
+    const [pendiente,setPendiente]=useState(null);
     const [genero,setGenero]=useState(perfil?.genero ?? '');
     const [tipoSangre,setTipoSangre]=useState(perfil?.tipo_sangre ?? '');
 
@@ -25,22 +27,33 @@ export default function PersonalInfo({perfil, actualizarPerfilPaciente, guardand
         setTipoSangre(perfil.tipo_sangre ?? '');
     },[perfil?.id,perfil?.nombre,perfil?.apellido,perfil?.fecha_nacimiento,perfil?.telefono,perfil?.peso,perfil?.estatura,perfil?.genero,perfil?.tipo_sangre]);
 
+    const GENEROS={M:"Masculino",F:"Femenino",OTRO:"Otro",PREFIERO_NO_DECIR:"Prefiero no decir"};
+    const vacio=valor=>String(valor??"").trim()===""?"Sin dato":String(valor);
+
+    // Lo que cambia respecto a lo guardado: se muestra antes de confirmar.
+    const cambios=useMemo(()=>{
+        const lista=[];
+        if(telefono!==(perfil?.telefono??""))lista.push(["Teléfono",vacio(perfil?.telefono),vacio(telefono)]);
+        if(String(peso)!==String(perfil?.peso??""))lista.push(["Peso",perfil?.peso!=null?`${perfil.peso} kg`:"Sin dato",peso!==""?`${peso} kg`:"Sin dato"]);
+        if(String(estatura)!==String(perfil?.estatura??""))lista.push(["Estatura",perfil?.estatura!=null?`${perfil.estatura} m`:"Sin dato",estatura!==""?`${estatura} m`:"Sin dato"]);
+        if(genero!==(perfil?.genero??""))lista.push(["Género",GENEROS[perfil?.genero]||"Sin dato",GENEROS[genero]||"Sin dato"]);
+        if(tipoSangre!==(perfil?.tipo_sangre??""))lista.push(["Tipo de sangre",vacio(perfil?.tipo_sangre),vacio(tipoSangre)]);
+        return lista;
+    },[telefono,peso,estatura,genero,tipoSangre,perfil?.telefono,perfil?.peso,perfil?.estatura,perfil?.genero,perfil?.tipo_sangre]);
+
     const handleSubmit=async event=>{
         event.preventDefault();
-        if (guardando || ocupadoCorreo) return;
+        if (guardando || ocupadoCorreo || !cambios.length) return;
         const formData={nombre,apellido,fecha_nacimiento:fechaNacimiento,telefono,peso,estatura};
         if (genero) formData.genero=genero;
         if (tipoSangre) formData.tipo_sangre=tipoSangre;
-        const result=await Swal.fire({
-            title:"¿Actualizar información?",
-            text:"Se guardarán los cambios realizados en tu perfil.",
-            icon:"question",
-            showCancelButton:true,
-            confirmButtonText:"Sí, actualizar",
-            cancelButtonText:"Cancelar",
-            reverseButtons:true,
-        });
-        if(result.isConfirmed)await actualizarPerfilPaciente(formData);
+        setPendiente(formData);
+    };
+
+    const confirmar=async()=>{
+        if(!pendiente)return;
+        const ok=await actualizarPerfilPaciente(pendiente);
+        if(ok!==false)setPendiente(null);
     };
 
     return (
@@ -60,10 +73,19 @@ export default function PersonalInfo({perfil, actualizarPerfilPaciente, guardand
                     </ProfileField>
 
                     <ProfileField label="Cédula" htmlFor="cedula" locked>
-                        <Input id="cedula" aria-label="Cédula" name="cedula" value={perfil?.cedula??""} readOnly/>
+                        <div className={styles.secretField}>
+                            <Input id="cedula" aria-label="Cédula" name="cedula" value={verCedula ? (perfil?.cedula??"") : ocultarDocumento(perfil?.cedula)} readOnly/>
+                            <button type="button" className={styles.revealButton} onClick={()=>setVerCedula(v=>!v)} aria-pressed={verCedula} aria-label={verCedula?"Ocultar cédula":"Mostrar cédula"}>
+                                {verCedula ? <EyeOff size={18} aria-hidden="true"/> : <Eye size={18} aria-hidden="true"/>}
+                            </button>
+                        </div>
                     </ProfileField>
 
-                    <ProfileField label="Teléfono" htmlFor="telefono" className={styles.wideField}>
+                    <ProfileField label="Correo electrónico" htmlFor="correo" locked>
+                        <Input id="correo" aria-label="Correo electrónico" name="correo" value={perfil?.correo??""} readOnly/>
+                    </ProfileField>
+
+                    <ProfileField label="Teléfono" htmlFor="telefono">
                         <Input id="telefono" aria-label="Teléfono" name="telefono" value={telefono} onChange={e=>setTelefono(e.target.value)}/>
                     </ProfileField>
                 </div>
@@ -124,6 +146,33 @@ export default function PersonalInfo({perfil, actualizarPerfilPaciente, guardand
                     </Button>
                 </div>
             </footer>
+
+            <Modal
+                abierto={Boolean(pendiente)}
+                onCerrar={()=>{if(!guardando)setPendiente(null);}}
+                titulo="¿Guardar los cambios?"
+                text="Revisa lo que se va a actualizar en tu perfil."
+                width="520px"
+                icon={<ShieldCheck size={22} aria-hidden="true"/>}
+                footer={<>
+                    <button type="button" className={styles.modalCancel} onClick={()=>setPendiente(null)} disabled={guardando}>Seguir editando</button>
+                    <button type="button" className={styles.modalSave} onClick={confirmar} disabled={guardando}>
+                        {guardando?<><LoaderCircle size={17} className={styles.spinner} aria-hidden="true"/>Guardando...</>:<><Save size={17} aria-hidden="true"/>Confirmar y guardar</>}
+                    </button>
+                </>}
+            >
+                <ul className={styles.changeList}>
+                    {cambios.map(([campo,antes,despues])=>(
+                        <li key={campo}>
+                            <strong>{campo}</strong>
+                            <span className={styles.before}>{antes}</span>
+                            <ArrowRight size={15} aria-hidden="true"/>
+                            <span className={styles.after}>{despues}</span>
+                        </li>
+                    ))}
+                </ul>
+                <p className={styles.modalNote}><Info size={15} aria-hidden="true"/>Tu nombre, apellido, fecha de nacimiento y cédula no cambian desde aquí porque ya están verificados.</p>
+            </Modal>
         </form>
     );
 }
@@ -138,6 +187,13 @@ function ProfileSection({icon:Icon,title,description,medical=false,children}){
             {children}
         </section>
     );
+}
+
+// Muestra solo los últimos dígitos hasta que la persona decida revelar su documento.
+function ocultarDocumento(valor){
+    const texto=String(valor??"");
+    if(!texto)return "";
+    return texto.length<=3?"•".repeat(texto.length):`${"•".repeat(Math.min(texto.length-3,8))}${texto.slice(-3)}`;
 }
 
 function ProfileField({label,htmlFor,locked=false,unit,className="",children}){
