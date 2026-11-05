@@ -3,7 +3,6 @@
 import DocSmartNav from "../../../ui/DocSmartNav/DocSmartNav";
 import ResetPasswordFormComponent from "../../../ui/ResetPasswordComponent/ResetPasswordComponent";
 import useLogout from "../../../hooks/useLogout";
-import usePatient from "../../usePatient";
 import { useState } from "react";
 import SettingsComponent from "../../../ui/SettingsComponent/SettingsComponent";
 import Modal from "../../../ui/Modal/Modal";
@@ -15,12 +14,7 @@ export default function Header() {
   } = useNotificationsContext();
   const [modal, setModal] = useState(false);
   const [modalCambiarContrasena, setModalCambiarContrasena] = useState(false);
-  const {
-    logoutUser
-  } = useLogout();
-  const {
-    eliminarCuentaPaciente
-  } = usePatient();
+  const {logoutUser} = useLogout();
   return <div>
             <DocSmartNav home="/patient/home" onSettings={() => setModal(true)} sections={["Atención", "Mi salud"]} notifications={{
       href: "/patient/notifications",
@@ -56,10 +50,15 @@ export default function Header() {
       group: "Atención"
     }]} />
             <Modal titulo="Acciones" abierto={modal} onCerrar={() => setModal(false)} headerVariant="white">
-                <SettingsComponent reportesHref="/patient/reports" cerrarSesion={logoutUser} eliminarCuenta={eliminarCuentaPaciente} abrirCambiarContrasena={() => {
-        setModal(false);
-        setModalCambiarContrasena(true);
-      }} />
+              <SettingsComponent
+                  reportesHref="/patient/reports"
+                  onReportesClick={() => setModal(false)}
+                  cerrarSesion={logoutUser}
+                  abrirCambiarContrasena={() => {
+                      setModal(false);
+                      setModalCambiarContrasena(true);
+                  }}
+              />
             </Modal>
             <Modal titulo="Cambiar contraseña" abierto={modalCambiarContrasena} onCerrar={() => {
       setModalCambiarContrasena(false);

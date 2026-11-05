@@ -5,13 +5,14 @@ import { ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import ThemeSelector from "../Theme/ThemeSelector";
 import Style from "./SettingsComponent.module.css";
-import { KeyIcon, ChevronRight, LogOutIcon, TrashIcon } from "lucide-react";
+import { KeyIcon, ChevronRight, LogOutIcon} from "lucide-react";
 export default function SettingsComponent({
-  abrirCambiarContrasena,
-  eliminarCuenta,
-  cerrarSesion,
-  reportesHref = null,
+    abrirCambiarContrasena,
+    cerrarSesion,
+    reportesHref = null,
+    onReportesClick,
 }) {
+
   const [voice, setVoice] = useState(null);
   useEffect(() => {
     const receive = event => setVoice(event.detail);
@@ -65,6 +66,7 @@ export default function SettingsComponent({
                 {reportesHref && (
                     <Link
                         href={reportesHref}
+                        onClick={onReportesClick}
                         className={`${Style.card} ${Style.cardLink}`}
                     >
                         <div className={Style.titleContainer}>
@@ -101,18 +103,6 @@ export default function SettingsComponent({
                     </div>
                     <ChevronRight size={28} />
                 </button>
-                {eliminarCuenta && <button type="button" className={Style.card} onClick={eliminarCuenta}>
-                        <div className={Style.titleContainer}>
-                            <div className={Style.containerEliminarIcon}>
-                                <TrashIcon color="#E05362" />
-                            </div>
-                            <div className={Style.textContainer}>
-                                <h3 className={Style.textEliminar}>Eliminar cuenta</h3>
-                                <p>Elimina permanentemente tu cuenta</p>
-                            </div>
-                        </div>
-                        <ChevronRight size={28} />
-                    </button>}
             </div>
         </div>;
 }

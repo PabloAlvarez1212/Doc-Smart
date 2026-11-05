@@ -26,16 +26,21 @@ logger = logging.getLogger(__name__)
 # Los exports de cierre se importan al final, después de definir serializar_agenda.
 
 def serializar_agenda(funcion):
-    """Todas las entradas oficiales comparten el bloqueo de agenda del médico."""
+    """Reservas y sanciones comparten el orden paciente -> médico -> cita."""
     @wraps(funcion)
     @transaction.atomic
     def protegida(*args, **kwargs):
         if funcion.__name__ == "crearCitaService":
             datos = args[0] if args else kwargs["datos"]
             medico_id = datos.get("id_medico")
+            paciente_id = args[1] if len(args) > 1 else kwargs.get("usuario_id")
         else:
             cita_id = args[0] if args else kwargs["id"]
-            medico_id = Cita.objects.filter(pk=cita_id).values_list("id_medico_id", flat=True).first()
+            participantes = Cita.objects.filter(pk=cita_id).values("id_medico_id", "id_usuario_id").first()
+            medico_id = participantes["id_medico_id"] if participantes else None
+            paciente_id = participantes["id_usuario_id"] if participantes else None
+        if paciente_id:
+            Usuario.objects.select_for_update().get(pk=paciente_id)
         if medico_id:
             Medico.objects.select_for_update().get(pk=medico_id)
         return funcion(*args, **kwargs)
@@ -673,7 +678,7 @@ def crearCitaService(
 
     if tieneSancionActivaService(usuario):
         return(
-            "Tu cuenta está suspendida temporalmente. "
+            "Tu cuenta está suspendida. "
             "No puedes agendar citas.", 403
         )
 
@@ -845,10 +850,10 @@ def editarCitaService(id, datos, solicitante):
     if not cita:
         return 'Cita no encontrada o no te pertenece', 404
 
-    if tieneSancionActivaService(solicitante):
+    if tieneSancionActivaService(solicitante) or tieneSancionActivaService(cita.id_usuario):
         return (
-            "Tu cuenta está suspendida temporalmente. "
-            "No puedes reprogramar citas.", 403
+            "Una cuenta involucrada está suspendida. "
+            "No puedes reprogramar esta cita.", 403
         )
 
     if cita.id_estado.nombre.lower() == 'inasistencia_paciente':
@@ -1059,8 +1064,10 @@ def cancelarCitaService(id, solicitante, motivo_cancelacion=None):
     )
 
 
-@serializar_agenda
+@transaction.atomic
 def cancelarCitaPorSancionService(id, sancionado):
+    # gestionarReporteService ya bloqueó las agendas. No adquirir pacientes
+    # después del médico: invertiría el orden de las reservas concurrentes.
     cita = Cita.objects.select_for_update().filter(pk=id).first()
 
     if not cita:
@@ -1078,12 +1085,14 @@ def cancelarCitaPorSancionService(id, sancionado):
     if not autorizado:
         return "La cita no pertenece al usuario sancionado", 403
 
+    if cita.fecha_programada < timezone.now():
+        return "La cita ya comenzó. Revisa nuevamente las citas afectadas", 409
+
     return _cancelarCitaInterna(
         cita,
         cancelada_por=Cita.ResponsableCancelacion.SISTEMA,
         motivo_cancelacion=(
-            "Cancelación automática por suspensión temporal "
-            "de una cuenta involucrada."
+            "Cancelación por una medida administrativa de DocSmart."
         ),
     )
 
@@ -1150,7 +1159,7 @@ def _cancelarCitaInterna(
     # Evitar recordatorios de citas canceladas.
     RecordatorioCita.objects.filter(
         id_cita=cita,
-        estado_envio="pendiente",
+        estado_envio__in=["pendiente", "procesando", "fallido"],
     ).update(estado_envio="cancelado")
 
     # Cerrar la conversación asociada a la cita.
@@ -1185,14 +1194,14 @@ def _cancelarCitaInterna(
     # Mensajes para los involucrados.
     if cancelacion_sistema:
         mensaje_paciente = (
-            f"Tu cita del {fecha_fmt} con el Dr. "
+            f"Tu cita {cita.codigo_cita} del {fecha_fmt} con el Dr. "
             f"{cita.id_medico.nombre} {cita.id_medico.apellido} "
             "fue cancelada por una medida administrativa de DocSmart. "
             "Puedes consultar otras citas disponibles."
         )
 
         mensaje_medico = (
-            f"Tu cita del {fecha_fmt} con el paciente "
+            f"Tu cita {cita.codigo_cita} del {fecha_fmt} con el paciente "
             f"{cita.id_usuario.nombre} {cita.id_usuario.apellido} "
             "fue cancelada por una medida administrativa de DocSmart."
         )
@@ -1236,8 +1245,10 @@ def _cancelarCitaInterna(
         },
     )
 
-    # El servicio actual de correos admite cancelaciones
-    # realizadas por pacientes o médicos.
+    from citas.realtime import programarActualizacionCitaRealtime
+    programarActualizacionCitaRealtime(cita)
+
+    # Todos los efectos externos se ejecutan tras confirmar la transacción.
     transaction.on_commit(
         lambda cita_id=cita.pk, actor=cancelada_por: (
             enviarCorreosCitaCancelada(cita_id, actor)
@@ -1448,10 +1459,10 @@ def confirmarCitaService(id, medico_id):
     if not cita:
         return 'Cita no encontrada o no te pertenece', 404
 
-    if tieneSancionActivaService(cita.id_medico):
+    if tieneSancionActivaService(cita.id_medico) or tieneSancionActivaService(cita.id_usuario):
         return(
-            "Tu cuenta está suspendida temporalmente. "
-            "No puedes confirmar citas."
+            "Una cuenta involucrada está suspendida. "
+            "No puedes confirmar esta cita.", 403
         )
 
     estado_actual = cita.id_estado.nombre.strip().lower()

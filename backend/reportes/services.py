@@ -1,5 +1,10 @@
 
 from datetime import timedelta
+from functools import partial
+import hashlib
+import json
+import logging
+from django.core import signing
 
 from django.db import transaction
 from django.db.models import Q
@@ -15,6 +20,8 @@ from .serializers import SancionSerializer
 from .models import Reporte, Sancion
 from .serializers import ReporteSerializer
 
+logger = logging.getLogger(__name__)
+
 
 def esAdministrador(usuario):
     return (
@@ -23,32 +30,21 @@ def esAdministrador(usuario):
     )
 
 
+def sancionesUsuario(usuario):
+    if isinstance(usuario, Medico):
+        return Sancion.objects.filter(reporte__medico_id=usuario.pk,
+                                     reporte__reportante=Reporte.Reportante.PACIENTE)
+    if isinstance(usuario, Usuario):
+        return Sancion.objects.filter(reporte__paciente_id=usuario.pk,
+                                     reporte__reportante=Reporte.Reportante.MEDICO)
+    return Sancion.objects.none()
+
+
 def tieneSancionActivaService(usuario):
     ahora = timezone.now()
-
-    filtros = {}
-
-    if isinstance(usuario, Medico):
-        filtros = {
-            "reporte__medico_id": usuario.pk,
-            "reporte__reportante": Reporte.Reportante.PACIENTE,
-        }
-
-    elif isinstance(usuario, Usuario):
-        filtros = {
-            "reporte__paciente_id": usuario.pk,
-            "reporte__reportante": Reporte.Reportante.MEDICO,
-        }
-
-    else:
-        return False
-
-    return Sancion.objects.filter(
-        **filtros,
-        anulada_en__isnull=True,
-        fecha_inicio__lte=ahora,
-        fecha_fin__gt=ahora,
-    ).exists()
+    return sancionesUsuario(usuario).filter(
+        Q(fecha_fin__isnull=True) | Q(fecha_fin__gt=ahora),
+        anulada_en__isnull=True, fecha_inicio__lte=ahora).exists()
 
 
 def notificarUsuario(usuario, titulo, mensaje):
@@ -66,8 +62,24 @@ def notificarUsuario(usuario, titulo, mensaje):
     )
 
 
-@transaction.atomic
 def crearReporteService(usuario, datos):
+    archivos_subidos = []
+    try:
+        with transaction.atomic():
+            return _crearReporte(usuario, datos, archivos_subidos)
+    except Exception:
+        from storage_app.services import eliminar_archivo
+        for key in archivos_subidos:
+            try:
+                if not eliminar_archivo(key):
+                    logger.error("Evidencia pendiente de limpieza: %s", key)
+            except Exception:
+                logger.exception("No se pudo limpiar la evidencia: %s", key)
+        logger.exception("No se pudo registrar el reporte")
+        return "No se pudo guardar el reporte. Intenta nuevamente.", 503
+
+
+def _crearReporte(usuario, datos, archivos_subidos):
 
     if isinstance(usuario, Usuario) and usuario.id_rol.nombre == "paciente":
         paciente = usuario
@@ -102,8 +114,9 @@ def crearReporteService(usuario, datos):
     else:
         return "No tienes permiso para crear reportes", 403
 
-    if usuario.acceso_bloqueado or tieneSancionActivaService(usuario):
-        return "Tu cuenta no puede crear reportes actualmente", 403
+    # Mismo orden que reservas/sanciones; también serializa reintentos.
+    Usuario.objects.select_for_update().get(pk=paciente.pk)
+    Medico.objects.select_for_update().get(pk=medico.pk)
 
     # Debe existir una relación previa mediante una cita.
     citas = Cita.objects.filter(
@@ -122,19 +135,29 @@ def crearReporteService(usuario, datos):
         if not cita:
             return "La cita no pertenece a estos usuarios", 400
 
-    # Evitar reportes abiertos duplicados entre las mismas personas.
-    reporte_abierto = Reporte.objects.filter(
-        paciente=paciente,
-        medico=medico,
-        reportante=reportante,
-        estado__in=[
-            Reporte.Estado.PENDIENTE,
-            Reporte.Estado.EN_REVISION,
-        ]
+    duplicado = Reporte.objects.filter(
+        paciente=paciente, medico=medico, reportante=reportante, cita=cita,
+        motivo=datos["motivo"], otro_motivo=datos.get("otro_motivo", ""),
+        descripcion=datos["descripcion"],
     ).exists()
+    if duplicado:
+        return "Ya registraste un reporte sobre este mismo incidente", 409
 
-    if reporte_abierto:
-        return "Ya tienes un reporte pendiente contra este usuario", 400
+    evidencia = None
+    if datos.get("evidencia"):
+        from storage_app.services import subir_archivo, determinar_tipo_archivo
+        from storage_app.models import Archivo
+        from storage_app.validators import validar_evidencia_reporte
+        archivo = datos["evidencia"]
+        validar_evidencia_reporte(archivo)
+        metadata = subir_archivo(archivo, "reportes_privado",
+                                "medico" if isinstance(usuario, Medico) else "usuario", usuario.pk)
+        archivos_subidos.append(metadata["key"])
+        evidencia = Archivo.objects.create(
+            **({"medico": usuario} if isinstance(usuario, Medico) else {"usuario": usuario}),
+            nombre_original=metadata["nombre"], storage_key=metadata["key"],
+            content_type=metadata["tipo"], tamano=metadata["tamano"],
+            tipo=determinar_tipo_archivo(metadata["tipo"]), categoria="reportes_privado")
 
     reporte = Reporte.objects.create(
         paciente=paciente,
@@ -143,8 +166,9 @@ def crearReporteService(usuario, datos):
         reportante=reportante,
         motivo=datos["motivo"],
         descripcion=datos["descripcion"],
+        otro_motivo=datos.get("otro_motivo", ""), evidencia=evidencia,
     )
-
+    notificarUsuario(usuario, "Reporte registrado", "Tu reporte fue registrado y será revisado por administración.")
     return ReporteSerializer(reporte).data, 201
 
 
@@ -177,265 +201,205 @@ def listarReportesService(usuario, estado=None):
     reportes = reportes.select_related(
         "paciente",
         "medico",
-        "cita",
+        "cita", "evidencia", "sancion",
     )
+    return ReporteSerializer(reportes, many=True, context={"es_admin": esAdministrador(usuario)}).data, 200
 
-    return ReporteSerializer(reportes, many=True).data, 200
+
+def usuarioReportado(reporte):
+    return reporte.medico if reporte.reportante == Reporte.Reportante.PACIENTE else reporte.paciente
+
+
+def citasAfectadas(usuario, inicio, fin):
+    filtro = Q(id_medico=usuario) if isinstance(usuario, Medico) else Q(id_usuario=usuario)
+    citas = Cita.objects.filter(filtro, fecha_programada__gte=inicio).filter(
+        Q(id_estado__nombre__iexact="pendiente") | Q(id_estado__nombre__iexact="confirmada")
+        | Q(id_estado__nombre__iexact="reprogramada"))
+    if fin is not None:
+        citas = citas.filter(fecha_programada__lt=fin)
+    return citas.order_by("pk")
+
+
+def datosSuspension(datos, inicio):
+    tipo = datos.get("tipo", Sancion.Tipo.TEMPORAL)
+    dias = datos.get("dias_suspension")
+    if tipo not in Sancion.Tipo.values:
+        raise ValidationError({"tipo": "Tipo de suspensión inválido."})
+    if not datos.get("observacion_admin", "").strip():
+        raise ValidationError({"observacion_admin": "Escribe el motivo administrativo."})
+    if tipo == Sancion.Tipo.TEMPORAL:
+        if type(dias) is not int or not 1 <= dias <= 30:
+            raise ValidationError({"dias_suspension": "Indica entre 1 y 30 días."})
+        return tipo, inicio + timedelta(days=dias)
+    if dias is not None:
+        raise ValidationError({"dias_suspension": "Una suspensión indefinida no lleva duración."})
+    return tipo, None
+
+
+def huellaVistaPrevia(reporte, administrador, datos, filas):
+    payload = {"reporte": reporte.pk, "admin": administrador.pk,
+               "tipo": datos.get("tipo", "temporal"), "dias": datos.get("dias_suspension"),
+               "motivo": datos.get("observacion_admin", "").strip(),
+               "observacion": datos.get("observacion_reportante", "").strip(), "citas": filas}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+
+
+def filasVistaPrevia(citas):
+    return list(citas.values("id", "codigo_cita", "fecha_programada", "id_estado_id"))
+
+
+def previsualizarSancionService(administrador, reporte_id, datos):
+    if not esAdministrador(administrador):
+        return "No tienes permisos de administrador", 403
+    reporte = Reporte.objects.select_related("medico", "paciente").filter(pk=reporte_id).first()
+    if not reporte:
+        return "Reporte no encontrado", 404
+    if reporte.estado in (Reporte.Estado.RESUELTO, Reporte.Estado.DESCARTADO):
+        return "Este reporte ya fue cerrado", 409
+    sancionado = usuarioReportado(reporte)
+    if tieneSancionActivaService(sancionado):
+        return "El usuario ya tiene una sanción activa", 409
+    inicio = timezone.now()
+    tipo, fin = datosSuspension(datos, inicio)
+    filas = filasVistaPrevia(citasAfectadas(sancionado, inicio, fin))
+    token = signing.dumps({"huella": huellaVistaPrevia(reporte, administrador, datos, filas)},
+                          salt="reportes.sancion.preview")
+    return {"nombre_sancionado": f"{sancionado.nombre} {sancionado.apellido}".strip(),
+            "tipo": tipo, "dias_suspension": datos.get("dias_suspension"),
+            "fecha_inicio": inicio, "fecha_fin": fin, "cantidad_citas": len(filas),
+            "citas": [{"codigo_cita": f["codigo_cita"], "fecha_programada": f["fecha_programada"]} for f in filas],
+            "token_vista_previa": token}, 200
+
+
+def bloquearAgendaSancion(sancionado):
+    # Las FK de notificaciones también bloquean destinatarios en MySQL.
+    # Bloquear todos los pacientes antes del médico evita invertir ese orden.
+    if isinstance(sancionado, Medico):
+        pacientes = set(Cita.objects.filter(id_medico=sancionado).values_list("id_usuario_id", flat=True))
+        list(Usuario.objects.select_for_update().filter(pk__in=pacientes).order_by("pk"))
+        Medico.objects.select_for_update().get(pk=sancionado.pk)
+        actuales = set(Cita.objects.filter(id_medico=sancionado).values_list("id_usuario_id", flat=True))
+        if not actuales.issubset(pacientes):
+            raise ValidationError({"citas": "La agenda cambió. Solicita una nueva vista previa."})
+    else:
+        Usuario.objects.select_for_update().get(pk=sancionado.pk)
+        ids = Cita.objects.filter(id_usuario=sancionado).values("id_medico_id")
+        list(Medico.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
 
 
 @transaction.atomic
 def gestionarReporteService(administrador, reporte_id, datos):
-
     if not esAdministrador(administrador):
         return "No tienes permisos de administrador", 403
-
-    reporte = Reporte.objects.select_for_update().filter(
-        pk=reporte_id
-    ).first()
-
+    reporte = Reporte.objects.select_for_update().filter(pk=reporte_id).first()
     if not reporte:
         return "Reporte no encontrado", 404
-
-    if reporte.estado in [
-        Reporte.Estado.RESUELTO,
-        Reporte.Estado.DESCARTADO,
-    ]:
-        return "Este reporte ya fue cerrado", 400
-
+    if reporte.estado in (Reporte.Estado.RESUELTO, Reporte.Estado.DESCARTADO):
+        return "Este reporte ya fue cerrado", 409
     accion = datos["accion"]
     observacion = datos.get("observacion_admin", "").strip()
-    ahora = timezone.now()
-
-    if accion == "revision":
+    if accion == "revision" and reporte.estado == Reporte.Estado.EN_REVISION:
+        return ReporteSerializer(reporte, context={"es_admin": True}).data, 200
+    citas_canceladas = 0
+    if accion == "sancionar":
+        sancionado = usuarioReportado(reporte)
+        if type(sancionado) is type(administrador) and sancionado.pk == administrador.pk:
+            return "No puedes sancionarte a ti mismo", 403
+        bloquearAgendaSancion(sancionado)
+        if tieneSancionActivaService(sancionado):
+            return "El usuario ya tiene una sanción activa", 409
+        ahora = timezone.now()
+        tipo, fin = datosSuspension(datos, ahora)
+        filas = filasVistaPrevia(citasAfectadas(sancionado, ahora, fin).select_for_update())
+        try:
+            previa = signing.loads(datos.get("token_vista_previa", ""),
+                                   salt="reportes.sancion.preview", max_age=600)
+        except signing.BadSignature:
+            return "Solicita una nueva vista previa antes de confirmar", 409
+        if previa.get("huella") != huellaVistaPrevia(reporte, administrador, datos, filas):
+            return "Las citas o la sanción cambiaron. Revisa una nueva vista previa", 409
+        sancion = Sancion.objects.create(reporte=reporte, tipo=tipo, aplicada_por=administrador,
+                                        motivo=observacion, fecha_inicio=ahora, fecha_fin=fin)
+        from citas.services import cancelarCitaPorSancionService
+        for fila in filas:
+            resultado, codigo = cancelarCitaPorSancionService(fila["id"], sancionado)
+            if codigo != 200:
+                raise ValidationError({"citas": [resultado]})
+            citas_canceladas += 1
+        reporte.estado = Reporte.Estado.RESUELTO
+        duracion = "indefinidamente" if fin is None else f"durante {datos['dias_suspension']} días"
+        notificarUsuario(sancionado, "Cuenta suspendida", f"Tu cuenta fue suspendida {duracion}. Motivo: {observacion}")
+        from notificaciones.email_citas_services import enviarCorreoSancion
+        transaction.on_commit(partial(enviarCorreoSancion, sancion.pk), robust=True)
+    elif accion == "revision":
         reporte.estado = Reporte.Estado.EN_REVISION
-
     elif accion == "descartar":
         reporte.estado = Reporte.Estado.DESCARTADO
-
-    elif accion == "sancionar":
-        dias = datos.get("dias_suspension")
-
-        if not isinstance(dias, int) or not 1 <= dias <= 30:
-            return "La suspensión debe durar entre 1 y 30 días", 400
-
-        # El sancionado es siempre quien recibió el reporte.
-        if reporte.reportante == Reporte.Reportante.PACIENTE:
-            sancionado = Medico.objects.select_for_update().get(
-                pk=reporte.medico_id
-            )
-        else:
-            sancionado = Usuario.objects.select_for_update().get(
-                pk=reporte.paciente_id
-            )
-
-        if tieneSancionActivaService(sancionado):
-            return "El usuario ya tiene una sanción activa", 400
-
-        fecha_fin = ahora + timedelta(days=dias)
-
-        sancion = Sancion.objects.create(
-            reporte=reporte,
-            motivo=observacion or reporte.motivo,
-            fecha_inicio=ahora,
-            fecha_fin=fecha_fin,
-        )
-
-        # Cancelar citas que ocurran durante la suspensión.
-        filtro_citas = (
-            Q(id_medico=sancionado)
-            if isinstance(sancionado, Medico)
-            else Q(id_usuario=sancionado)
-        )
-
-        citas = Cita.objects.filter(
-            filtro_citas,
-            fecha_programada__gte=ahora,
-            fecha_programada__lt=fecha_fin,
-        ).filter(
-            Q(id_estado__nombre__iexact="pendiente")
-            | Q(id_estado__nombre__iexact="confirmada")
-            | Q(id_estado__nombre__iexact="reprogramada")
-        ).order_by("id")
-
-        # Se implementará en citas/services.py.
-        from citas.services import cancelarCitaPorSancionService
-
-        citas_canceladas = 0
-
-        for cita_id in citas.values_list("id", flat=True):
-            resultado, codigo = cancelarCitaPorSancionService(
-                cita_id,
-                sancionado,
-            )
-
-            if codigo != 200:
-                raise ValidationError({
-                    "citas": [resultado]
-                })
-
-            citas_canceladas += 1
-
-        reporte.estado = Reporte.Estado.RESUELTO
-
-        notificarUsuario(
-            sancionado,
-            "Cuenta suspendida",
-            (
-                f"Tu cuenta fue suspendida durante {dias} días. "
-                f"Motivo: {sancion.motivo}"
-            )
-        )
-
     else:
         return "Acción no válida", 400
-
     reporte.observacion_admin = observacion
+    reporte.observacion_reportante = datos.get("observacion_reportante", "").strip()
     reporte.revisado_por = administrador
-    reporte.fecha_revision = ahora
-
-    reporte.save(update_fields=[
-        "estado",
-        "observacion_admin",
-        "revisado_por",
-        "fecha_revision",
-    ])
-
-    reportante = (
-        reporte.paciente
-        if reporte.reportante == Reporte.Reportante.PACIENTE
-        else reporte.medico
-    )
-
-    notificarUsuario(
-        reportante,
-        "Actualización de reporte",
-        f"Tu reporte #{reporte.id} cambió al estado: {reporte.get_estado_display()}."
-    )
-
-    resultado = ReporteSerializer(reporte).data
-
+    reporte.fecha_revision = timezone.now()
+    reporte.save(update_fields=["estado", "observacion_admin", "observacion_reportante", "revisado_por", "fecha_revision"])
+    reportante = reporte.paciente if reporte.reportante == Reporte.Reportante.PACIENTE else reporte.medico
+    notificarUsuario(reportante, "Actualización de reporte",
+                     f"Tu reporte #{reporte.id} cambió al estado: {reporte.get_estado_display()}.")
+    resultado = ReporteSerializer(reporte, context={"es_admin": True}).data
     if accion == "sancionar":
         resultado["citas_canceladas"] = citas_canceladas
-
     return resultado, 200
 
 
 @transaction.atomic
-def anularSancionService(administrador, sancion_id):
-
+def anularSancionService(administrador, sancion_id, motivo):
     if not esAdministrador(administrador):
         return "No tienes permisos de administrador", 403
-
-    sancion = Sancion.objects.select_for_update().filter(
-        pk=sancion_id
-    ).first()
-
-    if not sancion:
+    if not isinstance(motivo, str) or not motivo.strip() or len(motivo.strip()) > 2000:
+        return "Indica el motivo administrativo de la rehabilitación (máximo 2000 caracteres)", 400
+    referencia = Sancion.objects.filter(pk=sancion_id).values("reporte_id").first()
+    if not referencia:
         return "Sanción no encontrada", 404
-
-    if sancion.anulada_en:
-        return "Esta sanción ya fue anulada", 400
-
-    if sancion.fecha_fin <= timezone.now():
-        return "Esta sanción ya finalizó", 400
-
+    reporte = Reporte.objects.select_for_update().get(pk=referencia["reporte_id"])
+    sancionado = usuarioReportado(reporte)
+    if type(sancionado) is type(administrador) and sancionado.pk == administrador.pk:
+        return "No puedes habilitarte a ti mismo", 403
+    bloquearAgendaSancion(sancionado)
+    sancion = Sancion.objects.select_for_update().get(pk=sancion_id)
+    if not sancion.esta_activa:
+        return "Esta suspensión ya no está vigente", 409
     sancion.anulada_en = timezone.now()
     sancion.anulada_por = administrador
-
-    sancion.save(update_fields=[
-        "anulada_en",
-        "anulada_por",
-    ])
-
-    reporte = sancion.reporte
-
-    sancionado = (
-        reporte.medico
-        if reporte.reportante == Reporte.Reportante.PACIENTE
-        else reporte.paciente
-    )
-
-    notificarUsuario(
-        sancionado,
-        "Suspensión anulada",
-        "Tu suspensión fue levantada por el administrador."
-    )
-
-    return "Sanción anulada correctamente", 200
-
+    sancion.motivo_anulacion = motivo.strip()
+    sancion.save(update_fields=["anulada_en", "anulada_por", "motivo_anulacion"])
+    notificarUsuario(sancionado, "Suspensión levantada",
+                     "Administración levantó tu suspensión. Las citas canceladas no se restauran automáticamente.")
+    from notificaciones.email_citas_services import enviarCorreoSancion
+    transaction.on_commit(partial(enviarCorreoSancion, sancion.pk, rehabilitacion=True), robust=True)
+    return "Usuario habilitado correctamente", 200
 
 
 def periodosSancionService(usuario, inicio, fin):
     if inicio >= fin:
         return []
-
-    if isinstance(usuario, Medico):
-        filtros = {
-            "reporte__medico_id": usuario.pk,
-            "reporte__reportante": Reporte.Reportante.PACIENTE,
-        }
-
-    elif isinstance(usuario, Usuario):
-        filtros = {
-            "reporte__paciente_id": usuario.pk,
-            "reporte__reportante": Reporte.Reportante.MEDICO,
-        }
-
-    else:
-        return []
-
-    return list(
-        Sancion.objects.filter(
-            **filtros,
-            anulada_en__isnull=True,
-            fecha_inicio__lt=fin,
-            fecha_fin__gt=inicio,
-        ).values_list(
-            "fecha_inicio",
-            "fecha_fin",
-        )
-    )
+    periodos = sancionesUsuario(usuario).filter(
+        Q(fecha_fin__isnull=True) | Q(fecha_fin__gt=inicio),
+        anulada_en__isnull=True, fecha_inicio__lt=fin).values_list("fecha_inicio", "fecha_fin")
+    return [(max(desde, inicio), min(hasta, fin) if hasta else fin) for desde, hasta in periodos]
 
 
 def obtenerMiSancionService(usuario):
-    ahora = timezone.now()
-
-    if isinstance(usuario, Medico):
-        sanciones = Sancion.objects.filter(
-            reporte__medico_id=usuario.pk,
-            reporte__reportante=Reporte.Reportante.PACIENTE,
-        )
-
-    elif (
-        isinstance(usuario, Usuario)
-        and usuario.id_rol.nombre.strip().lower() == "paciente"
-    ):
-        sanciones = Sancion.objects.filter(
-            reporte__paciente_id=usuario.pk,
-            reporte__reportante=Reporte.Reportante.MEDICO,
-        )
-
-    else:
+    if not (isinstance(usuario, Medico) or
+            isinstance(usuario, Usuario) and usuario.id_rol.nombre == "paciente"):
         return "No tienes permiso para consultar sanciones", 403
+    sanciones = sancionesUsuario(usuario)
+    ahora = timezone.now()
+    sancion = sanciones.filter(Q(fecha_fin__isnull=True) | Q(fecha_fin__gt=ahora),
+                              anulada_en__isnull=True, fecha_inicio__lte=ahora).first()
+    return {"suspendido": sancion is not None,
+            "sancion": SancionSerializer(sancion).data if sancion else None,
+            "historial": SancionSerializer(sanciones, many=True).data}, 200
 
-    sancion = (
-        sanciones.filter(
-            anulada_en__isnull=True,
-            fecha_inicio__lte=ahora,
-            fecha_fin__gt=ahora,
-        )
-        .order_by("-fecha_inicio")
-        .first()
-    )
-
-    return {
-        "suspendido": sancion is not None,
-        "sancion": (
-            SancionSerializer(sancion).data
-            if sancion
-            else None
-        ),
-    }, 200
 
 def listarUsuariosReportablesService(usuario):
     if (
@@ -510,3 +474,29 @@ def obtenerContextoCitaReporteService(usuario, cita_id):
             f"{reportado.nombre} {reportado.apellido}"
         ).strip(),
     }, 200
+
+
+def listarCitasReportablesService(usuario, reportado_id):
+    if isinstance(usuario, Medico) and usuario.esta_aprobado:
+        citas = Cita.objects.filter(id_medico=usuario, id_usuario_id=reportado_id)
+    elif isinstance(usuario, Usuario) and usuario.id_rol.nombre == "paciente":
+        citas = Cita.objects.filter(id_usuario=usuario, id_medico_id=reportado_id)
+    else:
+        return "No tienes permiso para consultar citas", 403
+    return list(citas.order_by("-fecha_programada").values("id", "codigo_cita", "fecha_programada")), 200
+
+
+def obtenerEvidenciaReporteService(usuario, reporte_id):
+    reportes = Reporte.objects.select_related("evidencia")
+    if esAdministrador(usuario):
+        pass
+    elif isinstance(usuario, Medico):
+        reportes = reportes.filter(medico=usuario, reportante=Reporte.Reportante.MEDICO)
+    elif isinstance(usuario, Usuario) and usuario.id_rol.nombre == "paciente":
+        reportes = reportes.filter(paciente=usuario, reportante=Reporte.Reportante.PACIENTE)
+    else:
+        return "No tienes permiso para consultar evidencias", 403
+    reporte = reportes.filter(pk=reporte_id, evidencia__activo=True).first()
+    if not reporte:
+        return "Evidencia no encontrada", 404
+    return reporte.evidencia, 200

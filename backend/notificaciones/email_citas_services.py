@@ -617,7 +617,7 @@ def enviarCorreosCitaCancelada(cita_id, cancelada_por):
     cancelada_por_texto = {
         "paciente": "Paciente",
         "medico": "Medico",
-        "sistema": "Sistema DocSmart",
+        "sistema": "Administración de DocSmart",
     }
 
     # 8. URL del frontend
@@ -720,7 +720,7 @@ def enviarCorreosCitaCancelada(cita_id, cancelada_por):
 
         "fecha_cancelacion": fecha_cancelacion_fmt,
 
-        "cancelada_por": cancelada_por_texto,
+        "cancelada_por": cancelada_por_texto[cancelada_por],
 
         "mensaje_adicional": (
             "Esta cita ya no se encuentra activa. "
@@ -770,7 +770,7 @@ def enviarCorreosCitaCancelada(cita_id, cancelada_por):
 
         "fecha_cancelacion": fecha_cancelacion_fmt,
 
-        "cancelada_por": cancelada_por_texto,
+        "cancelada_por": cancelada_por_texto[cancelada_por],
 
         "mensaje_adicional": (
             "Esta cita ha sido cancelada y "
@@ -1720,3 +1720,38 @@ def enviarCorreoInasistenciaPaciente(cita_id):
         asunto="Inasistencia registrada en tu cita - DocSmart",
         contexto=contexto
     )
+
+def enviarCorreoSancion(sancion_id, rehabilitacion=False):
+    """Reutiliza Resend y la plantilla existente; el llamador lo agenda tras commit."""
+    from reportes.models import Sancion, Reporte
+    sancion = Sancion.objects.select_related("reporte__paciente", "reporte__medico").filter(pk=sancion_id).first()
+    if not sancion:
+        logger.warning("Sanción %s no encontrada para notificación", sancion_id)
+        return False
+    medico = sancion.reporte.reportante == Reporte.Reportante.PACIENTE
+    usuario = sancion.reporte.medico if medico else sancion.reporte.paciente
+    def fecha(valor):
+        return timezone.localtime(valor).strftime("%d/%m/%Y a las %H:%M %Z")
+    if rehabilitacion:
+        if not sancion.anulada_en:
+            return False
+        titulo = "Tu suspensión fue levantada"
+        mensaje = (f"Administración de DocSmart levantó tu suspensión el {fecha(sancion.anulada_en)}. "
+                   "Puedes volver a utilizar las funciones permitidas, siempre que no existan otras restricciones independientes. "
+                   "Las citas canceladas anteriormente no se restauran automáticamente.")
+    else:
+        titulo = "Tu cuenta fue suspendida"
+        modalidad = "indefinida" if sancion.fecha_fin is None else "temporal"
+        fin = "Sin fecha prevista de finalización; requiere rehabilitación administrativa." if sancion.fecha_fin is None else f"Finalización: {fecha(sancion.fecha_fin)}."
+        restricciones = ("No puedes recibir reservas en los horarios restringidos ni confirmar o reprogramar citas durante la suspensión."
+                        if medico else "No puedes agendar nuevas citas ni reprogramar citas durante la suspensión.")
+        mensaje = (f"Tu cuenta tiene una suspensión {modalidad}. Motivo administrativo: {sancion.motivo}. "
+                   f"Inicio: {fecha(sancion.fecha_inicio)}. {fin} {restricciones} "
+                   "Puedes iniciar sesión, presentar reportes y consultar tus notificaciones.")
+    frontend = os.getenv("FRONTEND_URL", "").rstrip("/")
+    ruta = "doctor" if medico else "patient"
+    return enviarCorreoCita(usuario.correo, f"{titulo} - DocSmart", {
+        "es_cuenta": True, "titulo": titulo, "nombre": usuario.nombre, "mensaje": mensaje,
+        "mensaje_adicional": "Consulta tu situación desde Configuración → Reportes y seguridad.",
+        "url_citas": f"{frontend}/{ruta}/reports" if frontend else None,
+    })

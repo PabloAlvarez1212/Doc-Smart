@@ -1,7 +1,16 @@
 from django.db import models
 from django.utils import timezone
+from django.core.validators import MaxLengthValidator
 
 class Reporte(models.Model):
+    class Motivo(models.TextChoices):
+        INCUMPLIMIENTO = "incumplimiento", "Incumplimiento de la cita"
+        TRATO = "trato_inadecuado", "Trato inadecuado"
+        CONDUCTA = "conducta_profesional", "Conducta poco profesional"
+        ACOSO = "acoso", "Acoso o comportamiento inapropiado"
+        SEGURIDAD = "seguridad", "Problema de seguridad"
+        OTRO = "otro", "Otro motivo"
+
     class Reportante(models.TextChoices):
         PACIENTE = "paciente", "Paciente"
         MEDICO = "medico", "Medico"
@@ -32,8 +41,14 @@ class Reporte(models.Model):
         choices = Reportante.choices
     )
 
-    motivo = models.CharField(max_length = 150)
-    descripcion = models.TextField()
+    motivo = models.CharField(max_length=150, choices=Motivo.choices)
+    otro_motivo = models.CharField(max_length=150, blank=True, default="")
+    descripcion = models.TextField(validators=[MaxLengthValidator(2000)])
+    evidencia = models.OneToOneField(
+        "storage_app.Archivo", on_delete=models.PROTECT,
+        null=True, blank=True, related_name="evidencia_reporte",
+    )
+    observacion_reportante = models.TextField(blank=True, default="")
 
     estado = models.CharField(
         max_length = 15,
@@ -76,6 +91,16 @@ class Reporte(models.Model):
 
 
 class Sancion(models.Model):
+    class Tipo(models.TextChoices):
+        TEMPORAL = "temporal", "Suspensión temporal"
+        INDEFINIDA = "indefinida", "Suspensión indefinida"
+
+    tipo = models.CharField(max_length=10, choices=Tipo.choices, default=Tipo.TEMPORAL)
+    aplicada_por = models.ForeignKey(
+        "users.Usuario", on_delete=models.PROTECT, null=True, blank=True,
+        related_name="sanciones_aplicadas",
+    )
+    motivo_anulacion = models.TextField(blank=True, default="")
 
     reporte = models.OneToOneField(
         Reporte,
@@ -86,7 +111,7 @@ class Sancion(models.Model):
     motivo = models.TextField()
 
     fecha_inicio = models.DateTimeField()
-    fecha_fin = models.DateTimeField()
+    fecha_fin = models.DateTimeField(null=True, blank=True)
 
     fecha_creacion = models.DateTimeField(
         auto_now_add=True
@@ -109,12 +134,15 @@ class Sancion(models.Model):
         ordering = ["-fecha_creacion"]
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(
-                    fecha_fin__gt=models.F("fecha_inicio")
+                condition=(
+                    models.Q(tipo="indefinida", fecha_fin__isnull=True)
+                    | models.Q(tipo="temporal", fecha_fin__isnull=False,
+                               fecha_fin__gt=models.F("fecha_inicio"))
                 ),
                 name="sancion_fechas_validas"
             )
         ]
+        indexes = [models.Index(fields=["anulada_en", "fecha_fin", "fecha_inicio"])]
 
     @property
     def esta_activa(self):
@@ -122,7 +150,8 @@ class Sancion(models.Model):
 
         return (
             self.anulada_en is None
-            and self.fecha_inicio <= ahora < self.fecha_fin
+            and self.fecha_inicio <= ahora
+            and (self.fecha_fin is None or ahora < self.fecha_fin)
         )
 
     def __str__(self):

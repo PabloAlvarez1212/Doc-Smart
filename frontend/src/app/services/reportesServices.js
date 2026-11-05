@@ -50,9 +50,10 @@ export const gestionarReporteService = async (
 // ANULAR SANCIÓN - ADMIN
 // ==========================================
 
-export const anularSancionService = async (sancionId) => {
+export const anularSancionService = async (sancionId, motivo) => {
     const response = await api.patch(
-        `/reportes/sanciones/${sancionId}/anular/`
+        `/reportes/sanciones/${sancionId}/anular/`,
+        { motivo }
     );
 
     return response.data;
@@ -87,4 +88,30 @@ export const obtenerContextoReporteCitaService = async (citaId) => {
     );
 
     return response.data.data;
+};
+
+export const listarCitasReportablesService = async (idReportado) => {
+    const response = await api.get("/reportes/citas-reportables/", {
+        params: { id_reportado: idReportado },
+    });
+    return response.data.data;
+};
+
+export const previsualizarSancionService = async (reporteId, datos) => {
+    const response = await api.post(`/reportes/previsualizar/${reporteId}/`, datos);
+    return response.data.data;
+};
+
+export const descargarEvidenciaReporteService = async (reporteId) => {
+    try {
+        const response = await api.get(`/reportes/evidencia/${reporteId}/`, { responseType: "blob" });
+        return response.data;
+    } catch (error) {
+        if (error.response?.data instanceof Blob) {
+            try {
+                error.response.data = JSON.parse(await error.response.data.text());
+            } catch { /* Conserva el error HTTP si no contiene JSON. */ }
+        }
+        throw error;
+    }
 };
