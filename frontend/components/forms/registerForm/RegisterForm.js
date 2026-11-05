@@ -73,22 +73,22 @@ export default function RegisterForm({role,setRole}) {
     const previousStep=useRef(step)
     useEffect(()=>{if(previousStep.current!==step){previousStep.current=step;titleRef.current?.focus()}},[step])
     const medical=role==='medico'
-    const faseFacial=step===2&&documentoVerificado&&!facialListo
+    const faseFacial=step===3&&!facialListo
     // Estado de las imágenes: el haz láser corre mientras se valida; el resultado las sella o las marca.
     const estadoDocumento=documentoVerificado?'verificado':loading?'validando':Object.keys(erroresDocumento).length>0?'error':'idle'
-    const labels=['Datos personales','Documento y verificación facial',medical?'Datos profesionales':'Datos adicionales','Correo y contraseña','Verificación de correo']
+    const labels=['Datos personales','Documento de identidad','Verificación facial',medical?'Datos profesionales':'Datos adicionales','Correo y contraseña','Verificación de correo']
     // Se puede corregir todo hasta que el dato se verifique: el documento en el paso 1 y el correo en los siguientes.
     const locked=loading || (step===1?documentoVerificado:correoVerificado)
     const field=(name,label,props={})=><Field key={name} {...{name,label,form,errors,handleChange,locked,feedback}} {...props} />
     return <form className={styles.form} onSubmit={handleSubmit} aria-busy={loading} noValidate>
         <VerificationStatus state={feedback} />
-        <div className={styles.progress} role="progressbar" aria-valuemin={1} aria-valuemax={5} aria-valuenow={step} aria-valuetext={labels[step-1]} aria-label="Progreso del registro">
+        <div className={styles.progress} role="progressbar" aria-valuemin={1} aria-valuemax={6} aria-valuenow={step} aria-valuetext={labels[step-1]} aria-label="Progreso del registro">
             {labels.map((label,i)=><span key={label} data-complete={i<step} />)}
         </div>
         <AnimatePresence initial={false} mode="wait" onExitComplete={()=>titleRef.current?.focus()}>
             <motion.div className={styles.inputs} key={step} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-4}} transition={{duration:reduced?0:.18}} onAnimationComplete={()=>{if(step>1)titleRef.current?.focus()}}>
-                <h3 ref={titleRef} tabIndex={-1} className={styles.stepTitle}>Paso {step} de 5 · {labels[step-1]}</h3>
-                {((step===1&&documentoVerificado)||([3,4].includes(step)&&correoVerificado))&&<p className={styles.savedNotice}>Estos datos ya fueron verificados y no se pueden modificar.</p>}
+                <h3 ref={titleRef} tabIndex={-1} className={styles.stepTitle}>Paso {step} de 6 · {labels[step-1]}</h3>
+                {((step===1&&documentoVerificado)||([4,5].includes(step)&&correoVerificado))&&<p className={styles.savedNotice}>Estos datos ya fueron verificados y no se pueden modificar.</p>}
                 {step===1&&<>
                     {field('nombre','Nombre',{autoComplete:'given-name'})}
                     {field('apellido','Apellido',{autoComplete:'family-name'})}
@@ -103,9 +103,13 @@ export default function RegisterForm({role,setRole}) {
                         onFrente={setDocumentoFrente} onReverso={setDocumentoReverso} estado={estadoDocumento}
                         deshabilitado={loading||documentoVerificado} errorFrente={errors.documento_frente||errors.documento} errorReverso={errors.documento_reverso} />
                     {['nombre','apellido','numero_documento','fecha_nacimiento'].filter(key=>errors[key]).map(key=><p key={key} className={styles.error}>{errors[key]}</p>)}
-                    {faseFacial&&<ValidacionFacial role={role} procesoId={procesoId} onListo={handleFacialListo} />}
                 </>}
                 {step===3&&<>
+                    {facialListo
+                        ?<VerificationHeader Icon={CheckCircle2} title="Identidad verificada">Tu rostro coincide con tu documento. Continúa con tu registro.</VerificationHeader>
+                        :<ValidacionFacial role={role} procesoId={procesoId} onListo={handleFacialListo} />}
+                </>}
+                {step===4&&<>
                     {field('telefono','Teléfono celular',{type:'tel',autoComplete:'tel'})}
                     {medical?<>
                         {field('departamento_filtro','Departamento',{options:departamentos.map(d=>[String(d.id_departamento??d.id),d.nombre_departamento??d.nombre])})}
@@ -119,13 +123,13 @@ export default function RegisterForm({role,setRole}) {
                         <div className={styles.twoColumns}>{field('genero','Género',{options:generos})}{field('tipo_sangre','Tipo de sangre',{options:sangre})}</div>
                     </>}
                 </>}
-                {step===4&&<>
+                {step===5&&<>
                     {field('correo','Correo electrónico',{type:'email',autoComplete:'email'})}
                     {field('contraseña','Contraseña',{type:'password',autoComplete:'new-password'})}
                     <p className={styles.savedNotice}>Al menos 8 caracteres, mayúscula, minúscula, número y carácter especial (por ejemplo !). No uses comillas, &amp;, &lt;, &gt; o barra invertida.</p>
                     {field('confirmar_contraseña','Confirmar contraseña',{type:'password',autoComplete:'new-password'})}
                 </>}
-                {step===5&&<>
+                {step===6&&<>
                     <VerificationHeader Icon={MailCheck} title="Verifica tu correo">Ingresa el código enviado a {form.correo}</VerificationHeader>
                     <Button type="button" variant="secondary" onClick={handleReenviarOtp} disabled={loading||correoVerificado}>Reenviar código</Button>
                     <div className={styles.otpBlock}>
@@ -138,7 +142,7 @@ export default function RegisterForm({role,setRole}) {
                 {errors.general&&<p className={styles.error} role="alert">{errors.general}</p>}
                 <div className={styles.buttons}>
                     <Button type="button" variant="secondary" onClick={handleBack} disabled={loading}>Atrás</Button>
-                    {!faseFacial&&<Button type="submit" variant="primary" disabled={loading}>{loading?'Verificando…':step===2?(documentoVerificado?'Continuar':'Verificar documento'):step===4?'Enviar código':step===5?(correoVerificado?'Completar registro':'Verificar y completar'):'Continuar'}</Button>}
+                    {!faseFacial&&<Button type="submit" variant="primary" disabled={loading}>{loading?'Verificando…':step===2?(documentoVerificado?'Continuar':'Verificar documento'):step===5?'Enviar código':step===6?(correoVerificado?'Completar registro':'Verificar y completar'):'Continuar'}</Button>}
                 </div>
             </motion.div>
         </AnimatePresence>

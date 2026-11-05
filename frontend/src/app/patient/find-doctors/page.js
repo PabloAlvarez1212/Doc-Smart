@@ -18,6 +18,7 @@ export default function FindDoctorsPage() {
 
     const {
         doctores,
+        toggleFavorito,
         especialidades,
         departamentos,
         ciudades,
@@ -67,6 +68,7 @@ export default function FindDoctorsPage() {
                 onRetry={retry}
                 onSchedule={setDoctorSeleccionado}
                 onViewProfile={setPerfilSeleccionado}
+                onToggleFavorito={toggleFavorito}
                 hasActiveFilters={hasActiveFilters}
                 onClearFilters={limpiarFiltros}
             />

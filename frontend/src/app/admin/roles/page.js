@@ -1,5 +1,6 @@
 "use client";
 
+import { ShieldCheck as ModalIconCatalog } from "lucide-react";
 import FormCatalogo from "../../../../components/forms/CatalogoForm/FormCatalogo";
 import { useCrud } from "../../../../components/hooks/useCrud";
 import DataTable from "../../../../components/ui/DataTable/DataTable";
@@ -55,6 +56,9 @@ export default function Roles() {
                 abierto={crud.modalAbierto}
                 onCerrar={crud.cerrarModal}
                 titulo={crud.modoEdicion ? "Editar Rol" : "Nuevo Rol"}
+                text="Los roles determinan qué puede hacer cada persona."
+                headerVariant="white"
+                icon={<ModalIconCatalog size={22} aria-hidden="true" />}
             >
                 <FormCatalogo
                     formData={crud.formData}

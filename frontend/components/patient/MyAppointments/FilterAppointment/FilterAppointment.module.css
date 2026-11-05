@@ -48,3 +48,26 @@
 .field input::placeholder { color:var(--text-secondary); opacity:1; }
 .field :is(input,select):hover:not(:disabled) { border-color:var(--color-dark); }
 @media(prefers-reduced-motion:reduce) { .field input,.field select { transition:none; } }
+
+
+/* ── Filtros con el diseño del dashboard del médico ──────────────────────── */
+.filterPanel { border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
+.filterPanel::before, .filterPanel::after { display: none !important; }
+.heading { position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important;margin:0!important;padding:0!important;border:0!important }
+.controls { display: flex !important; flex-wrap: wrap; align-items: flex-end; gap: 14px 18px; padding: 0 !important; }
+.field > :is(label, span:first-child) { color: var(--text-secondary); font-size: .72rem; font-weight: 600; }
+.field :is(input, select) { height: 38px; min-height: 38px !important; padding: 0 12px; border: 1px solid var(--control-border) !important; border-radius: 12px !important; background: var(--surface); color: var(--color-text); font: inherit; font-size: .85rem; transition: border-color .16s, box-shadow .16s; }
+.field :is(input, select):focus-visible { outline: 0; border-color: var(--accent) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.searchControl { min-height: 38px !important; border: 1px solid var(--control-border) !important; border-radius: 12px !important; background: var(--surface); transition: border-color .16s, box-shadow .16s; }
+.searchControl:focus-within { border-color: var(--accent) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent) !important; }
+.searchControl input { height: auto !important; min-height: 0 !important; border: 0 !important; box-shadow: none !important; background: transparent !important; }
+.clearButtonNone { display: inline-flex; align-items: center; gap: 8px; height: 38px; min-height: 38px !important; padding: 0 16px !important; border: 1px solid var(--control-border) !important; border-radius: 12px !important; background: transparent !important; color: var(--text-secondary) !important; font-size: .85rem; font-weight: 650; }
+.clearButtonNone:not(:disabled):hover { background: var(--surface-muted) !important; color: var(--color-text) !important; }
+
+
+
+/* ── Filtros de la maqueta: campos de 46 px, píldoras de 36 px y foco con halo suave ── */
+.field select, .field input { height: 46px !important; min-height: 46px !important; border: 1px solid var(--line-2, var(--control-border)) !important; border-radius: 12px !important; font-size: .9rem !important; }
+.searchControl { min-height: 46px !important; border-radius: 12px !important; }
+.field select, .field input:focus-visible, .searchControl:focus-within { border-color: var(--accent) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent) !important; }
+.clearButton { height: 46px !important; min-height: 46px !important; border-radius: 12px !important; }

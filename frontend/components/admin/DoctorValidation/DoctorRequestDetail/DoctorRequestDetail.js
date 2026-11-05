@@ -1,5 +1,6 @@
 "use client";
 
+import { ClipboardCheck as ModalIconReview } from "lucide-react";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { FileText, ScanFace, ShieldCheck, Stethoscope, UserRound } from "lucide-react";
@@ -89,7 +90,7 @@ export default function DoctorRequestDetail({
         : null;
 
     return (
-        <Modal abierto={open} onCerrar={onClose} titulo="Revisión de solicitud" headerVariant="white" width="900px">
+        <Modal abierto={open} onCerrar={onClose} titulo="Revisión de solicitud" text="Revisa los datos, la hoja de vida y la identidad antes de decidir." headerVariant="white" width="900px" icon={<ModalIconReview size={22} aria-hidden="true" />}>
             <article className={styles.detail}>
                 <header className={styles.summary}>
                     <span className={styles.avatar} aria-hidden="true"><UserRound size={24} /></span>

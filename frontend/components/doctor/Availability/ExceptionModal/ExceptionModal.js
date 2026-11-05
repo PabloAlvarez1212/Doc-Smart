@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendarOff as ModalIconCalendar } from "lucide-react";
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion as m, useReducedMotion } from 'motion/react';
 import { Plus, Trash2, LoaderCircle } from 'lucide-react';
@@ -82,7 +83,7 @@ export default function ExceptionModal({
   }
   return <Modal abierto={open} headerVariant="white" onCerrar={() => {
     if (!saving && !pending.current) onClose();
-  }} titulo={edit ? 'Editar excepción' : 'Nueva excepción'} text="Ajusta la atención para una fecha específica." width="620px">
+  }} titulo={edit ? 'Editar excepción' : 'Nueva excepción'} text="Ajusta la atención para una fecha específica." width="620px" icon={<ModalIconCalendar size={22} aria-hidden="true" />}>
   <form ref={formRef} className={styles.form} onSubmit={submit}>
    <fieldset className={styles.fields} disabled={saving}>
     <label className={styles.field}>Fecha<input aria-label="Fecha" aria-invalid={Boolean(fieldErrors.fecha)} aria-describedby={fieldErrors.fecha ? "exception-date-error" : undefined} type="date" value={form.fecha} disabled={saving || edit} required onChange={e => change('fecha', e.target.value)} />{fieldErrors.fecha && <span id="exception-date-error" role="alert" className={styles.error}>{errorText(fieldErrors.fecha)}</span>}</label>

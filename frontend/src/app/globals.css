@@ -68,3 +68,23 @@ body:has([data-appointments-page]) .swal2-textarea::placeholder{color:var(--text
 body:has([data-appointments-page]) :is(.swal2-textarea,.swal2-input,.swal2-confirm,.swal2-cancel):focus-visible{outline:2px solid var(--focus)!important;outline-offset:3px}
 body:has([data-appointments-page]) .swal2-validation-message{background:var(--tone-red)!important;color:var(--ink-red)!important}
 @media(prefers-reduced-motion:reduce){body:has([data-appointments-page]) .swal2-popup{animation:none!important;transition:none!important}}
+
+/* Respuesta táctil en todos los botones: rebote suave al pulsar */
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active { scale: .97; }
+button, [role="button"] { transition-property: scale, translate, background-color, border-color, color, box-shadow, opacity, transform; transition-duration: .16s; transition-timing-function: cubic-bezier(.34, 1.32, .52, 1); }
+@media (prefers-reduced-motion: reduce) { button:active, [role="button"]:active { scale: 1; } }
+
+
+/* Filtros en píldoras, igual que el dashboard del médico: la opción activa lleva el color principal del rol */
+.filtro-grupo { display: grid; gap: 5px; min-width: 0; }
+.filtro-grupo > span:first-child { color: var(--text-secondary); font-size: .72rem; font-weight: 600; }
+.filtro-pildoras { display: flex; flex-wrap: wrap; gap: 6px; }
+.filtro-pildoras button { height: 38px; padding: 0 16px; border: 1px solid var(--control-border); border-radius: 999px; background: var(--surface); color: var(--text-secondary); font: inherit; font-size: .85rem; font-weight: 600; white-space: nowrap; cursor: pointer; transition: background-color .18s, color .18s, border-color .18s, translate .16s cubic-bezier(.34, 1.32, .52, 1), scale .16s cubic-bezier(.34, 1.32, .52, 1); }
+.filtro-pildoras button:disabled { cursor: wait; opacity: .7; }
+.filtro-pildoras button[aria-pressed="true"] { border-color: transparent; background: var(--action-primary-bg, var(--brand-solid)); color: var(--action-on, #fff); }
+@media (hover: hover) { .filtro-pildoras button[aria-pressed="false"]:not(:disabled):hover { border-color: var(--accent); color: var(--color-text); translate: 0 -1px; } }
+.filtro-pildoras button:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .filtro-pildoras button { transition: none; } }
+
+.filtro-pildoras button { height: 36px; font-size: .85rem; }

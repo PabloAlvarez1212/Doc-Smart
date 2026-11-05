@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import {
     getEspecialidadesService,
     listarMedicosDisponiblesServices,
+    agregarFavoritoService,
+    quitarFavoritoService,
 } from "@/app/services/doctorServices";
 import {
     getCiudadesPorDepartamentoService,
@@ -161,8 +163,24 @@ export default function useFindDoctors() {
         setCiudades([]);
     };
 
+    // Guarda o quita un favorito al instante y deshace el cambio si el servidor lo rechaza.
+    const toggleFavorito = async (doctor) => {
+        const nuevo = !doctor.es_favorito;
+        const marcar = (valor) => setDoctores((prev) => prev.map((item) => (item.id === doctor.id ? { ...item, es_favorito: valor } : item)));
+
+        marcar(nuevo);
+
+        try {
+            if (nuevo) await agregarFavoritoService(doctor.id);
+            else await quitarFavoritoService(doctor.id);
+        } catch {
+            marcar(!nuevo);
+        }
+    };
+
     return {
         doctores,
+        toggleFavorito,
         especialidades,
         departamentos,
         ciudades,

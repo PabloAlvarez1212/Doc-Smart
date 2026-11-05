@@ -64,7 +64,7 @@
     min-height: 44px;
     padding: 12px 20px;
     border-radius: 10px;
-    background: #1733a4;
+    background: var(--action-primary-bg);
     color: #ffffff;
     font-weight: 600;
     text-decoration: none;

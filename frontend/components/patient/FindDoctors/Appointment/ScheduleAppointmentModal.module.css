@@ -703,3 +703,31 @@
         animation: none;
     }
 }
+
+/* ── Animaciones y transiciones al agendar ── */
+@media (prefers-reduced-motion: no-preference) {
+    .doctor, .detailsPanel, .schedulePanel { animation: stepIn .5s cubic-bezier(.23, 1, .32, 1) both; }
+    .detailsPanel { animation-delay: 70ms; }
+    .schedulePanel { animation-delay: 130ms; }
+    .slots > * { animation: slotIn .4s cubic-bezier(.23, 1, .32, 1) both; }
+    .slots > *:nth-child(2) { animation-delay: 30ms; }.slots > *:nth-child(3) { animation-delay: 60ms; }.slots > *:nth-child(4) { animation-delay: 90ms; }
+    .slots > *:nth-child(5) { animation-delay: 120ms; }.slots > *:nth-child(6) { animation-delay: 150ms; }.slots > *:nth-child(n+7) { animation-delay: 180ms; }
+    .selectionSummary { animation: summaryIn .45s cubic-bezier(.34, 1.32, .52, 1) both; }
+    .confirmation { animation: stepIn .55s cubic-bezier(.23, 1, .32, 1) both; }
+    .confirmationIcon { animation: iconPop .7s cubic-bezier(.34, 1.32, .52, 1) .15s both; }
+    .summaryCard { animation: stepIn .5s cubic-bezier(.23, 1, .32, 1) .25s both; }
+    .confirmationActions { animation: stepIn .5s cubic-bezier(.23, 1, .32, 1) .35s both; }
+}
+@keyframes stepIn { from { opacity: 0; transform: translateY(14px); } }
+@keyframes slotIn { from { opacity: 0; transform: scale(.9) translateY(6px); } }
+@keyframes summaryIn { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+@keyframes iconPop { from { opacity: 0; transform: scale(.4) rotate(-20deg); } 60% { transform: scale(1.15) rotate(4deg); } }
+
+.slot { transition: background-color .2s, color .2s, border-color .2s, transform .18s cubic-bezier(.34, 1.32, .52, 1), box-shadow .2s; }
+.slot:not(:disabled):active { transform: scale(.93); }
+@media (hover: hover) { .slot:not(:disabled):not(.selected):hover { transform: translateY(-2px); box-shadow: 0 8px 16px -10px rgb(15 23 42 / 40%); } }
+.slot.selected { transform: translateY(-1px) scale(1.03); box-shadow: 0 10px 20px -10px color-mix(in srgb, var(--accent) 70%, transparent); }
+.confirmButton, .primaryAction, .secondaryAction, .cancelButton { transition: background-color .2s, transform .16s cubic-bezier(.34, 1.32, .52, 1), box-shadow .2s; }
+.confirmButton:not(:disabled):hover, .primaryAction:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 12px 22px -12px color-mix(in srgb, var(--accent) 80%, transparent); }
+.confirmButton:not(:disabled):active, .primaryAction:not(:disabled):active, .secondaryAction:not(:disabled):active, .cancelButton:not(:disabled):active { transform: scale(.96); }
+@media (prefers-reduced-motion: reduce) { .slot, .confirmButton, .primaryAction, .secondaryAction, .cancelButton { transition: none; } }

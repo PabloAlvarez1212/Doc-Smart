@@ -38,6 +38,7 @@ class MedicoSerializer(serializers.ModelSerializer):
         return solicitud.estado
 class UsuarioPerfilSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source='id_rol.nombre')
+    miembro_desde = serializers.DateTimeField(source='fecha_creacion', read_only=True)
     edad = serializers.SerializerMethodField()
     class Meta:
         model  = Usuario
@@ -56,6 +57,7 @@ class UsuarioPerfilSerializer(serializers.ModelSerializer):
             'edad',
             'rol',
             'foto_perfil',
+            'miembro_desde',
         ]
     def get_edad(self, obj):
         return calcular_edad(obj.fecha_nacimiento)
@@ -442,7 +444,7 @@ class PrevisualizarRostroSerializer(serializers.Serializer):
 class OmitirFacialSerializer(serializers.Serializer):
     proceso_id = serializers.UUIDField()
     motivo = serializers.ChoiceField(
-        choices=["sin_foto_documento", "camara_no_disponible", "accesibilidad", "sin_consentimiento"]
+        choices=["sin_foto_documento", "camara_no_disponible", "accesibilidad"]
     )
 
 
@@ -451,7 +453,7 @@ class EstadoFacialSerializer(serializers.Serializer):
 
 
 class ResolverRevisionFacialSerializer(serializers.Serializer):
-    decision = serializers.ChoiceField(choices=["aprobar", "rechazar", "legitimo", "bloquear"])
+    decision = serializers.ChoiceField(choices=["aprobar", "rechazar", "legitimo", "bloquear", "habilitar"])
     motivo = serializers.CharField(required=False, allow_blank=True, max_length=500)
 
 

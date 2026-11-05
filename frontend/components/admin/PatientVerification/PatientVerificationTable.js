@@ -8,6 +8,7 @@ import { formatearSimilitud } from "./similitud";
 
 const ESTADOS = {
     posterior: { label: "Por confirmar", tone: "revision" },
+    bloqueadas: { label: "Bloqueada", tone: "rechazado" },
     revision: { label: "En revisión", tone: "revision" },
     aprobado: { label: "Aprobada", tone: "aprobado" },
     rechazado: { label: "Rechazada", tone: "rechazado" },
@@ -46,7 +47,7 @@ export default function PatientVerificationTable({ datos, cargando, error, onRei
         { key: "motivo", label: "Motivo", render: (v) => MOTIVOS[v] ?? (v || "—") },
         { key: "similitud", label: "Similitud", render: (v) => formatearSimilitud(v) ?? "—" },
         { key: "fecha", label: "Fecha", render: (v) => { const f = formatearFecha(v); return `${f.fecha}, ${f.hora}`; } },
-        { key: "estado_facial", label: "Estado", render: (v, f) => <EstadoFacial estado={f.revision_posterior === "pendiente" ? "posterior" : v} /> },
+        { key: "estado_facial", label: "Estado", render: (v, f) => <EstadoFacial estado={f.revision_posterior === "pendiente" ? "posterior" : f.revision_posterior === "bloqueado" ? "bloqueadas" : v} /> },
         {
             key: "acciones", label: "Acciones", render: (_, fila) => (
                 <button type="button" className={styles.actionButton} onClick={() => onVer(fila)}

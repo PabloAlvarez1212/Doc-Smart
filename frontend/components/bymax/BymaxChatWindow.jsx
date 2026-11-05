@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { AudioLines, ChevronDown, ChevronLeft, Phone, PhoneOff, Play, Plus, ShieldCheck, Square, Trash2, WifiOff, X } from "lucide-react";
+import { AudioLines, ChevronDown, ChevronLeft, MessageCircle, MessagesSquare, Phone, PhoneOff, Play, Plus, ShieldCheck, Square, Trash2, WifiOff, X } from "lucide-react";
 import BymaxMessage from "./BymaxMessage";
 import BymaxComposer from "./BymaxComposer";
 import BymaxCallScreen from "./BymaxCallScreen";
@@ -79,11 +79,11 @@ export default function BymaxChatWindow({ open, close, status, label, chats, cha
     <aside ref={historyRef} className={`${styles.sidebar} ${sidebar ? styles.sidebarOpen : ""}`} aria-label="Historial de Bymax" inert={settings || !sidebar}>
       <div className={styles.brand}><Image src="/icons/asistente_bymax.png" alt="" width={42} height={42}/><div><strong>Bymax</strong><small>Tu asistente de salud</small></div><button type="button" className={styles.historyClose} onClick={closeHistory} aria-label="Cerrar historial de Bymax"><X size={20}/></button></div>
       <button type="button" className={styles.newChat} onClick={newChat} disabled={loading}><Plus size={18}/> Nueva conversación</button>
-      <p className={styles.historyTitle}>Tus conversaciones</p>
+      <p className={styles.historyTitle}>Tus conversaciones{chats.length > 0 && <span>{chats.length}</span>}</p>
       <nav className={styles.history} aria-label="Conversaciones">
-        {!chats.length && <p className={styles.historyEmpty}>{loading ? "Cargando historial…" : "Tus conversaciones aparecerán aquí. Crea una para comenzar."}</p>}
+        {!chats.length && <div className={styles.historyEmpty}><span aria-hidden="true"><MessagesSquare size={22}/></span><p>{loading ? "Cargando historial…" : "Tus conversaciones aparecerán aquí. Crea una para comenzar."}</p></div>}
         {chats.map(chat => <div className={`${styles.chatItem} ${chat.id === chatId ? styles.chatActive : ""}`} key={chat.id}>
-          <button type="button" onClick={() => loadChat(chat.id)} aria-current={chat.id === chatId ? "page" : undefined}><strong>{chat.titulo || "Nueva conversación"}</strong><small>{chat.ultima_interaccion || chat.fecha ? new Date(chat.ultima_interaccion || chat.fecha).toLocaleDateString("es-CO", { day: "numeric", month: "short" }) : "Ahora"}</small></button>
+          <button type="button" onClick={() => loadChat(chat.id)} aria-current={chat.id === chatId ? "page" : undefined}><span className={styles.chatIcon} aria-hidden="true"><MessageCircle size={16}/></span><span className={styles.chatText}><strong>{chat.titulo || "Nueva conversación"}</strong><small>{chat.ultima_interaccion || chat.fecha ? new Date(chat.ultima_interaccion || chat.fecha).toLocaleDateString("es-CO", { day: "numeric", month: "short" }) : "Ahora"}</small></span></button>
           <button type="button" className={styles.deleteChat} onClick={event => deleteChat(chat.id, event)} aria-label={`Eliminar ${chat.titulo || "conversación"}`}><Trash2 size={16}/></button>
         </div>)}
       </nav>

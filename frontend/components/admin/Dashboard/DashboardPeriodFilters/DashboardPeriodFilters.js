@@ -46,24 +46,23 @@ export default function DashboardPeriodFilters({
             </div>
 
             <div className={styles.filterControls}>
-                <label className={styles.filterField} htmlFor={`${idPrefix}-year`}>
+                <div className="filtro-grupo" role="group" aria-label={`Año de las estadísticas de ${moduleName}`}>
                     <span>Año</span>
-                    <span className={styles.selectWrapper}>
-                        <select
-                            id={`${idPrefix}-year`}
-                            value={selectedYear}
-                            onChange={(event) => onYearChange(event.target.value)}
-                            disabled={loading || !availableYears.length}
-                            aria-label={`Seleccionar año de las estadísticas de ${moduleName}`}
-                        >
-                            {!availableYears.length && <option value="">Sin años disponibles</option>}
-                            {availableYears.map((year) => (
-                                <option value={year} key={year}>{year}</option>
-                            ))}
-                        </select>
-                        <ChevronDown size={15} aria-hidden="true" />
-                    </span>
-                </label>
+                    <div className="filtro-pildoras">
+                        {!availableYears.length && <button type="button" aria-pressed="false" disabled>Sin años disponibles</button>}
+                        {availableYears.map((year) => (
+                            <button
+                                key={year}
+                                type="button"
+                                aria-pressed={String(selectedYear) === String(year)}
+                                disabled={loading}
+                                onClick={() => onYearChange(String(year))}
+                            >
+                                {year}
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
                 <label className={styles.filterField} htmlFor={`${idPrefix}-month`}>
                     <span>Mes</span>

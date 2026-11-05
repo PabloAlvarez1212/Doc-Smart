@@ -1,6 +1,7 @@
 "use client";
 
-import { FileText, ScanFace, ShieldCheck, UserRound } from "lucide-react";
+import { ScanFace as ModalIconShield } from "lucide-react";
+import { FileText, LockOpen, ScanFace, ShieldCheck, UserRound } from "lucide-react";
 import Button from "../../ui/Button/Button";
 import Modal from "../../ui/Modal/Modal";
 import formatearFecha from "@/app/utils/fechaFormaterUtils";
@@ -32,11 +33,12 @@ export default function PatientVerificationDetail({ detalle, onClose, onResolver
     const consentimiento = detalle.consentimiento_en ? formatearFecha(detalle.consentimiento_en) : null;
     const resoluble = detalle.estado_facial === "revision";
     const porConfirmar = detalle.revision_posterior === "pendiente";
+    const bloqueada = detalle.revision_posterior === "bloqueado" && detalle.acceso_bloqueado;
     const registrado = detalle.registrado_en ? formatearFecha(detalle.registrado_en) : null;
     const esMedico = detalle.tipo_registro === "medico";
 
     return (
-        <Modal abierto={Boolean(detalle)} onCerrar={onClose} titulo="Verificación de identidad" headerVariant="white" width="980px">
+        <Modal abierto={Boolean(detalle)} onCerrar={onClose} titulo="Verificación de identidad" text="Compara el documento y el rostro del paciente con los datos registrados." headerVariant="white" width="980px" icon={<ModalIconShield size={22} aria-hidden="true" />}>
             <article className={styles.detail}>
                 <header className={styles.summary}>
                     <span className={styles.avatar} aria-hidden="true"><UserRound size={24} /></span>
@@ -47,12 +49,15 @@ export default function PatientVerificationDetail({ detalle, onClose, onResolver
                     </div>
                     <div className={styles.currentStatus}>
                         <small>Estado de la verificación</small>
-                        <EstadoFacial estado={porConfirmar ? "posterior" : detalle.estado_facial} />
+                        <EstadoFacial estado={porConfirmar ? "posterior" : bloqueada ? "bloqueadas" : detalle.estado_facial} />
                     </div>
                 </header>
 
                 {detalle.acceso_bloqueado && (
-                    <p className={styles.aviso} role="status">El acceso de esta persona está bloqueado.</p>
+                    <p className={styles.aviso} role="status">
+                        El acceso de esta persona está bloqueado.
+                        {detalle.motivo_bloqueo && <> Motivo: {detalle.motivo_bloqueo}</>}
+                    </p>
                 )}
                 {porConfirmar && (
                     <p className={styles.aviso} role="status">
@@ -99,6 +104,14 @@ export default function PatientVerificationDetail({ detalle, onClose, onResolver
                             <Button size="sm" variant="danger" disabled={procesando} onClick={() => onResolver("bloquear")}>Bloquear acceso</Button>
                             <Button size="sm" disabled={procesando} loading={procesando} onClick={() => onResolver("legitimo")}>
                                 <ShieldCheck size={17} /> Es legítimo
+                            </Button>
+                        </footer>
+                    )}
+
+                    {bloqueada && (
+                        <footer className={styles.actions}>
+                            <Button size="sm" disabled={procesando} loading={procesando} onClick={() => onResolver("habilitar")}>
+                                <LockOpen size={17} /> Habilitar cuenta
                             </Button>
                         </footer>
                     )}

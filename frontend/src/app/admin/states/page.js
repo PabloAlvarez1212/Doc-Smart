@@ -1,5 +1,6 @@
 "use client";
 
+import { Flag as ModalIconCatalog } from "lucide-react";
 import FormCatalogo from "../../../../components/forms/CatalogoForm/FormCatalogo";
 import Modal from "../../../../components/ui/Modal/Modal";
 import { useCrud } from "../../../../components/hooks/useCrud";
@@ -55,6 +56,9 @@ export default function States() {
                 abierto={crud.modalAbierto}
                 onCerrar={crud.cerrarModal}
                 titulo={crud.modoEdicion ? "Editar Estado" : "Nuevo Estado"}
+                text="Los estados describen en qué punto está una cita."
+                headerVariant="white"
+                icon={<ModalIconCatalog size={22} aria-hidden="true" />}
             >
                 <FormCatalogo
                     formData={crud.formData}

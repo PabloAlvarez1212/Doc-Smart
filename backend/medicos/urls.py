@@ -8,6 +8,8 @@ from .views import (
     PerfilMedicoView,
     FotoPerfilMedicoView,
     MedicosDisponiblesView,
+    FavoritosMedicosView,
+    FavoritoMedicoView,
     ListarSolicitudesValidacionView,
     MetricasValidacionMedicosView,
     HojaVidaSolicitudValidacionView,
@@ -41,6 +43,8 @@ urlpatterns = [
     path('perfil/foto/', FotoPerfilMedicoView.as_view(), name='foto-perfil-medico'),
     #!Listar medicos disponibles
     path('disponibles/',MedicosDisponiblesView.as_view(),name="medicos-disponibles"),
+    path('favoritos/',FavoritosMedicosView.as_view(),name="medicos-favoritos"),
+    path('favoritos/<int:id_medico>/',FavoritoMedicoView.as_view(),name="medico-favorito"),
     #!Listar medicos con estado pendiente y rechazados.
     path("solicitudes-validacion/",ListarSolicitudesValidacionView.as_view(),name="listar-solicitudes-validacion"),
     #!Listar numero de medicos por estado

@@ -1,5 +1,6 @@
 "use client";
 
+import { HeartPulse as ModalIconHealth } from "lucide-react";
 import { obtenerPrimerError } from "@/app/utils/errrorUtils";
 import { useState } from "react";
 import { CalendarClock, CalendarDays, CircleCheck, CircleX, ClipboardCheck, Clock3, Eye, FileHeart, FileUp } from "lucide-react";
@@ -304,7 +305,9 @@ export default function MyAppointments() {
                 onCerrar={() => setCitaInfo(null)}
                 titulo="Información médica del paciente"
                 text={citaInfoVisible?.paciente || ""}
+                headerVariant="white"
                 width="800px"
+                icon={<ModalIconHealth size={22} aria-hidden="true" />}
             >
                 {citaInfoVisible && (
                     <InfoMedicaCard

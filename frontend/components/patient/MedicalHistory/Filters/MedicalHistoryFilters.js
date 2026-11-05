@@ -1,46 +1,29 @@
-import { RotateCcw, Search } from "lucide-react";
-import Button from "../../../ui/Button/Button";
-import styles from "./MedicalHistoryFilters.module.css";
+import FilterBar from "../../../ui/FilterBar/FilterBar";
+
+const PERIODS = [
+    { value: "3months", label: "Últimos 3 meses" },
+    { value: "6months", label: "Últimos 6 meses" },
+    { value: "year", label: "Este año" },
+];
+const ORDERINGS = [
+    { value: "fecha_creacion", label: "Más antiguos" },
+    { value: "-version_actual", label: "Mayor versión" },
+    { value: "version_actual", label: "Menor versión" },
+];
 
 export default function MedicalHistoryFilters({ filters, professionals, onChange, onReset }) {
-    const hasFilters = filters.search !== ""
-        || filters.period !== "all"
-        || filters.doctor !== "all"
-        || filters.ordering !== "-fecha_creacion";
-
     return (
-        <section className={styles.filters} aria-label="Filtros del historial clínico">
-            <label className={styles.search}>
-                <span className={styles.visuallyHidden}>Buscar en el historial</span><Search size={20} aria-hidden="true" />
-                <input type="search" value={filters.search} placeholder="Buscar por médico, código de cita, diagnóstico o motivo" onChange={(event) => onChange("search", event.target.value)} />
-            </label>
-            <label className={styles.field}>
-                <span>Periodo</span>
-                <select value={filters.period} onChange={(event) => onChange("period", event.target.value)}>
-                    <option value="all">Todos</option><option value="3months">Últimos 3 meses</option><option value="6months">Últimos 6 meses</option><option value="year">Este año</option>
-                </select>
-            </label>
-            <label className={styles.field}>
-                <span>Profesional</span>
-                <select value={filters.doctor} onChange={(event) => onChange("doctor", event.target.value)}>
-                    <option value="all">Todos los médicos</option>
-                    {professionals.map((professional) => (
-                        <option key={professional.nombre} value={professional.nombre}>
-                            {professional.nombre}
-                        </option>
-                    ))}
-                </select>
-            </label>
-            <label className={styles.field}>
-                <span>Ordenar por</span>
-                <select value={filters.ordering} onChange={(event) => onChange("ordering", event.target.value)}>
-                    <option value="-fecha_creacion">Más recientes</option>
-                    <option value="fecha_creacion">Más antiguos</option>
-                    <option value="-version_actual">Mayor versión</option>
-                    <option value="version_actual">Menor versión</option>
-                </select>
-            </label>
-            <Button className={styles.reset} variant="secundary" onClick={onReset} disabled={!hasFilters}><RotateCcw size={17} aria-hidden="true" /> Limpiar</Button>
-        </section>
+        <FilterBar
+            searchValue={filters.search}
+            onSearch={(value) => onChange("search", value)}
+            searchLabel="Buscar en el historial"
+            placeholder="Buscar por médico, código, diagnóstico o motivo"
+            onClear={onReset}
+            filters={[
+                { key: "period", label: "Periodo", value: filters.period === "all" ? "" : filters.period, options: PERIODS, allLabel: "Todo el historial", onChange: (value) => onChange("period", value || "all") },
+                { key: "doctor", label: "Profesional", value: filters.doctor === "all" ? "" : filters.doctor, options: professionals.map((professional) => ({ value: professional.nombre, label: professional.nombre })), allLabel: "Todos los médicos", onChange: (value) => onChange("doctor", value || "all") },
+                { key: "ordering", label: "Orden", value: filters.ordering === "-fecha_creacion" ? "" : filters.ordering, options: ORDERINGS, allLabel: "Más recientes", onChange: (value) => onChange("ordering", value || "-fecha_creacion") },
+            ]}
+        />
     );
 }

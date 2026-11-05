@@ -142,3 +142,27 @@
 .searchField,.dateField{min-height:44px;flex-shrink:0;border-color:var(--control-border)}
 .searchField input,.dateField input{min-height:42px}
 @media(max-width:760px){.searchField{flex:none}}
+
+
+/* ── Filtros con el diseño del dashboard del médico ──────────────────────── */
+.container { border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
+.container::before, .container::after { display: none !important; }
+.headingNone { position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important;margin:0!important;padding:0!important;border:0!important }
+.container { display: flex !important; flex-wrap: wrap; align-items: flex-end; gap: 14px 18px; padding: 0 !important; }
+.dateField > :is(label, span:first-child) { color: var(--text-secondary); font-size: .72rem; font-weight: 600; }
+.dateField :is(input, select) { height: 38px; min-height: 38px !important; padding: 0 12px; border: 1px solid var(--control-border) !important; border-radius: 12px !important; background: var(--surface); color: var(--color-text); font: inherit; font-size: .85rem; transition: border-color .16s, box-shadow .16s; }
+.dateField :is(input, select):focus-visible { outline: 0; border-color: var(--accent) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.searchField { min-height: 38px !important; border: 1px solid var(--control-border) !important; border-radius: 12px !important; background: var(--surface); transition: border-color .16s, box-shadow .16s; }
+.searchField:focus-within { border-color: var(--accent) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent) !important; }
+.searchField input { height: auto !important; min-height: 0 !important; border: 0 !important; box-shadow: none !important; background: transparent !important; }
+.clearButton { display: inline-flex; align-items: center; gap: 8px; height: 38px; min-height: 38px !important; padding: 0 16px !important; border: 1px solid var(--control-border) !important; border-radius: 12px !important; background: transparent !important; color: var(--text-secondary) !important; font-size: .85rem; font-weight: 650; }
+.clearButton:not(:disabled):hover { background: var(--surface-muted) !important; color: var(--color-text) !important; }
+
+.clearButton { margin-left: auto; }
+
+
+/* ── Filtros de la maqueta: campos de 46 px, píldoras de 36 px y foco con halo suave ── */
+.dateField input { height: 46px !important; min-height: 46px !important; border: 1px solid var(--line-2, var(--control-border)) !important; border-radius: 12px !important; font-size: .9rem !important; }
+.searchField, .dateField { min-height: 46px !important; border-radius: 12px !important; }
+.dateField input:focus-visible, .searchField, .dateField:focus-within { border-color: var(--accent) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent) !important; }
+.clearButton { height: 46px !important; min-height: 46px !important; border-radius: 12px !important; }

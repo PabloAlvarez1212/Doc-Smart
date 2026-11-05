@@ -12,6 +12,7 @@ import useAdminRealtimeRefresh from "../useAdminRealtimeRefresh";
 
 export const FILTROS = [
     { key: "posterior", label: "Por confirmar" },
+    { key: "bloqueadas", label: "Bloqueadas" },
     { key: "revision", label: "En revisión" },
     { key: "aprobado", label: "Aprobadas" },
     { key: "rechazado", label: "Rechazadas" },
@@ -120,7 +121,37 @@ export default function usePatientVerification({ estadoInicial } = {}) {
         }
     };
 
+    // Cuenta bloqueada por anomalías: se habilita cuando la persona escribió al administrador y validó su información.
+    const habilitar = async () => {
+        if (!detalle || ocupado.current) return false;
+        const confirmacion = await Swal.fire({
+            icon: "question",
+            title: "¿Habilitar esta cuenta?",
+            text: "Hazlo solo después de validar la información de la persona por correo. Podrá volver a ingresar con normalidad.",
+            showCancelButton: true,
+            confirmButtonText: "Habilitar cuenta",
+            cancelButtonText: "Cancelar",
+        });
+        if (!confirmacion.isConfirmed) return false;
+        ocupado.current = true;
+        setProcesando(true);
+        try {
+            await resolverRevisionFacialService(detalle.proceso_id, "habilitar");
+            setDetalle(null);
+            await cargar();
+            Swal.fire({ icon: "success", title: "Cuenta habilitada", timer: 2200, showConfirmButton: false });
+            return true;
+        } catch (e) {
+            Swal.fire({ icon: "error", title: "No se pudo habilitar la cuenta", text: obtenerPrimerError(e.response?.data?.errores) || "Inténtalo de nuevo." });
+            return false;
+        } finally {
+            ocupado.current = false;
+            setProcesando(false);
+        }
+    };
+
     const resolver = async (decision) => {
+        if (decision === "habilitar") return habilitar();
         if (decision === "legitimo" || decision === "bloquear") return resolverPosterior(decision);
         if (!detalle || ocupado.current) return false;
         const aprobar = decision === "aprobar";

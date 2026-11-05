@@ -167,3 +167,13 @@
         max-width: 100%;
     }
 }
+
+
+/* ── Mismo control que los filtros del dashboard del médico ── */
+.select :global(.select-search__control) { min-height: 38px; border-color: var(--control-border); border-radius: 12px; }
+.select :global(.select-search__control:hover) { border-color: var(--text-secondary); }
+.select :global(.select-search__control:focus-within) { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); outline: 0; }
+
+
+/* Mismo alto que los campos de la maqueta */
+.select :global(.select-search__control) { min-height: 46px; }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Radio as ModalIconCatalog } from "lucide-react";
 import FormCatalogo from "../../../../components/forms/CatalogoForm/FormCatalogo";
 import Modal from "../../../../components/ui/Modal/Modal";
 import { useCrud } from "../../../../components/hooks/useCrud";
@@ -55,6 +56,9 @@ export default function Channel() {
                 abierto={crud.modalAbierto}
                 onCerrar={crud.cerrarModal}
                 titulo={crud.modoEdicion ? "Editar Medio" : "Nuevo Medio"}
+                text="Define el medio por el que se contacta a los usuarios."
+                headerVariant="white"
+                icon={<ModalIconCatalog size={22} aria-hidden="true" />}
             >
                 <FormCatalogo
                     formData={crud.formData}

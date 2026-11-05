@@ -22,7 +22,9 @@ export default function Header() {
     eliminarCuentaPaciente
   } = usePatient();
   return <div>
-            <DocSmartNav home="/patient/home" onSettings={() => setModal(true)} sections={["Atención", "Mi salud"]} notifications={{
+            <DocSmartNav home="/patient/home" onSettings={() => setModal(true)} sections={["Atención", "Mi salud"]} favorites={{
+      href: "/patient/favorites"
+    }} notifications={{
       href: "/patient/notifications",
       count: noLeidas ?? 0
     }} links={[{

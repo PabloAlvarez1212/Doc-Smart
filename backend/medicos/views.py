@@ -22,6 +22,10 @@ from medicos.services import (
     actualizarFotoPerfilMedicoService,
     eliminarFotoPerfilMedicoService,
     listarMedicosPublicosService,
+    idsFavoritosPacienteService,
+    listarFavoritosPacienteService,
+    agregarFavoritoService,
+    quitarFavoritoService,
     listarSolicitudesValidacionService,
     obtenerMetricasValidacionMedicosService,
     obtenerHojaVidaSolicitudService,
@@ -700,12 +704,54 @@ class MedicosDisponiblesView(APIView):
                 calificacion_minima=calificacion_minima
             )
 
+            if status_code == 200:
+                favoritos = set(idsFavoritosPacienteService(request.user))
+                for medico in respuesta:
+                    medico["es_favorito"] = medico["id"] in favoritos
+
             return respuesta_ok(data=respuesta,mensaje="Lista de médicos públicos",status=status_code)
 
         except Exception as e:
             print("Error en el servidor:", e)
             return respuesta_error(mensaje="Error interno en el servidor",status=500)
 
+
+
+class FavoritosMedicosView(APIView):
+    """Médicos guardados por el paciente, con la misma información que la búsqueda."""
+    permission_classes = [IsAuthenticated, IsPaciente]
+
+    def get(self, request):
+        try:
+            datos, status_code = listarFavoritosPacienteService(request.user)
+            if status_code != 200:
+                return respuesta_error(datos, status=status_code)
+            return respuesta_ok(data=datos, mensaje="Médicos favoritos", status=status_code)
+        except Exception:
+            logger.exception("No se pudieron listar los favoritos")
+            return respuesta_error("Error interno en el servidor", status=500)
+
+
+class FavoritoMedicoView(APIView):
+    permission_classes = [IsAuthenticated, IsPaciente]
+
+    def post(self, request, id_medico):
+        try:
+            datos, status_code = agregarFavoritoService(request.user, id_medico)
+            if status_code != 200:
+                return respuesta_error(datos, status=status_code)
+            return respuesta_ok(data=datos, mensaje="Médico guardado en favoritos", status=status_code)
+        except Exception:
+            logger.exception("No se pudo guardar el favorito")
+            return respuesta_error("Error interno en el servidor", status=500)
+
+    def delete(self, request, id_medico):
+        try:
+            datos, status_code = quitarFavoritoService(request.user, id_medico)
+            return respuesta_ok(data=datos, mensaje="Médico quitado de favoritos", status=status_code)
+        except Exception:
+            logger.exception("No se pudo quitar el favorito")
+            return respuesta_error("Error interno en el servidor", status=500)
 
 
 class DisponibilidadMedicoView(APIView):

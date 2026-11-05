@@ -1,8 +1,6 @@
 "use client";
 
-import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
-import SelectSearch from "../../../ui/SelectSearch/SelectSearch";
-import styles from "./ValidationFilters.module.css";
+import FilterBar from "../../../ui/FilterBar/FilterBar";
 
 export default function ValidationFilters({
     especialidades,
@@ -17,61 +15,19 @@ export default function ValidationFilters({
     busqueda,
     setBusqueda,
 }) {
-
     return (
-        <section className={styles.panel} aria-labelledby="validation-filters-title">
-            <div className={styles.heading}>
-                <span className={styles.headingIcon}><SlidersHorizontal size={17} /></span>
-                <div>
-                    <h2 id="validation-filters-title">Filtrar solicitudes</h2>
-                    <p>Controles preparados para la futura integración.</p>
-                </div>
-            </div>
-
-            <div className={styles.controls} role="search">
-                <label className={`${styles.field} ${styles.searchField}`}>
-                    <span>Buscar médico</span>
-                    <span className={styles.searchControl}>
-                        <Search size={17} aria-hidden="true" />
-                        <input type="search" placeholder="Nombre o cédula" aria-label="Buscar médico por nombre o cédula" value={busqueda}
-                            onChange={(e) => setBusqueda(e.target.value)} />
-                    </span>
-                </label>
-
-                <div className={styles.field}>
-                    <label htmlFor="request-specialty">Especialidad</label>
-                    <SelectSearch className={styles.selectControl} inputId="request-specialty" ariaLabel="Filtrar por especialidad" placeholder="Todas" opciones={especialidades} onChange={setEspecialidadSeleccionada} value={especialidadSelecionada} />
-                </div>
-
-                <div className={styles.field}>
-                    <label htmlFor="request-status">Estado</label>
-                    <SelectSearch className={styles.selectControl} inputId="request-status" ariaLabel="Filtrar por estado" placeholder="Todos" opciones={estados} onChange={setEstadoSeleccionado} value={estadoSeleccionado} />
-                </div>
-
-                <div className={styles.field}>
-                    <label htmlFor="request-department">Departamento</label>
-                    <SelectSearch className={styles.selectControl} inputId="request-department" ariaLabel="Filtrar por departamento" placeholder="Todos los departamentos" opciones={departamentos} onChange={setDepartamentoSeleccionado} value={departamentoSeleccionado} />
-                </div>
-
-                <div className={styles.field}>
-                    <label htmlFor="request-city">Ciudad</label>
-                    <SelectSearch
-                        className={styles.selectControl}
-                        inputId="request-city"
-                        ariaLabel="Filtrar por ciudad"
-                        placeholder={departamentoSeleccionado ? "Todas las ciudades" : "Seleccione departamento"}
-                        value={ciudadSeleccionada}
-                        opciones={ciudades}
-                        onChange={setCiudadSeleccionada}
-                        disabled={!departamentoSeleccionado}
-                    />
-                </div>
-
-                <button type="button" className={styles.clearButton} onClick={limpiarFiltros}>
-                    <RotateCcw size={15} aria-hidden="true" />
-                    Limpiar
-                </button>
-            </div>
-        </section>
+        <FilterBar
+            searchValue={busqueda}
+            onSearch={setBusqueda}
+            searchLabel="Buscar médico por nombre o cédula"
+            placeholder="Nombre o cédula"
+            onClear={limpiarFiltros}
+            filters={[
+                { key: "estado", label: "Estado", value: estadoSeleccionado, options: estados ?? [], allLabel: "Todos", onChange: setEstadoSeleccionado },
+                { key: "especialidad", label: "Especialidad", value: especialidadSelecionada, options: especialidades ?? [], allLabel: "Todas", onChange: setEspecialidadSeleccionada },
+                { key: "departamento", label: "Departamento", value: departamentoSeleccionado, options: departamentos ?? [], allLabel: "Todos", onChange: setDepartamentoSeleccionado },
+                { key: "ciudad", label: "Ciudad", value: ciudadSeleccionada, options: ciudades ?? [], allLabel: "Todas", disabled: !departamentoSeleccionado, onChange: setCiudadSeleccionada },
+            ]}
+        />
     );
 }

@@ -23,6 +23,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.core.files.storage import default_storage
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from storage_app.models import Archivo
@@ -1312,12 +1313,14 @@ def contarVerificacionesPorConfirmar():
 
 def listarRevisionesFacialesService(estado=Estado.REVISION):
     from django.db.models import Count
-    if estado not in ESTADOS_REVISION and estado != "posterior":
+    if estado not in ESTADOS_REVISION and estado not in ("posterior", "bloqueadas"):
         estado = Estado.REVISION
     # Los médicos se revisan dentro de su solicitud médica, no en este panel.
     pacientes = ProcesoRegistroUsuario.objects.filter(tipo_registro="paciente")
     if estado == "posterior":
         procesos = pacientes.filter(revision_posterior="pendiente")
+    elif estado == "bloqueadas":
+        procesos = pacientes.filter(revision_posterior="bloqueado", usuario__acceso_bloqueado=True).select_related("usuario")
     else:
         procesos = pacientes.filter(estado_facial=estado)
     if estado == Estado.REVISION:
@@ -1332,6 +1335,7 @@ def listarRevisionesFacialesService(estado=Estado.REVISION):
         .values("estado_facial").annotate(n=Count("id"))
     })
     conteos["posterior"] = contarVerificacionesPorConfirmar()
+    conteos["bloqueadas"] = pacientes.filter(revision_posterior="bloqueado", usuario__acceso_bloqueado=True).count()
     return {
         "resultados": [{
             "proceso_id": str(p.id), "tipo_registro": p.tipo_registro,
@@ -1339,8 +1343,10 @@ def listarRevisionesFacialesService(estado=Estado.REVISION):
             "tipo_documento": p.tipo_documento, "cedula": p.numero_documento_declarado,
             "estado_facial": p.estado_facial, "motivo": p.motivo_facial,
             "similitud": p.similitud_facial, "intentos": p.intentos_facial,
-            "correo": p.correo if estado == "posterior" else p.correo_contacto_facial,
+            "correo": p.correo if estado in ("posterior", "bloqueadas") else p.correo_contacto_facial,
             "revision_posterior": p.revision_posterior, "fecha": p.completado_en or p.actualizado_en,
+            "bloqueado_en": p.usuario.bloqueado_en if estado == "bloqueadas" and p.usuario else None,
+            "motivo_bloqueo": p.usuario.motivo_bloqueo if estado == "bloqueadas" and p.usuario else "",
         } for p in procesos.order_by("-actualizado_en")[:200]],
         "conteos": conteos,
     }, 200
@@ -1349,7 +1355,7 @@ def listarRevisionesFacialesService(estado=Estado.REVISION):
 def detalleRevisionFacialService(proceso_id, revisor=None):
     p = ProcesoRegistroUsuario.objects.select_related(
         "foto_documento_facial", "selfie_facial", "documento", "documento_reverso", "usuario", "medico"
-    ).filter(id=proceso_id, estado_facial__in=ESTADOS_REVISION).first()
+    ).filter(Q(estado_facial__in=ESTADOS_REVISION) | Q(revision_posterior="bloqueado"), id=proceso_id).first()
     if not p:
         return {"general": ["Revisión no encontrada"]}, 404
     logger.info("Revisión facial del proceso %s consultada por %s", p.id, revisor)
@@ -1363,6 +1369,8 @@ def detalleRevisionFacialService(proceso_id, revisor=None):
         "acceso_bloqueado": bool((p.medico if p.tipo_registro == "medico" else p.usuario) and
                                  (p.medico if p.tipo_registro == "medico" else p.usuario).acceso_bloqueado),
         "correo_enviado": p.correo_facial_enviado,
+        "motivo_bloqueo": (p.usuario.motivo_bloqueo if p.usuario and p.usuario.acceso_bloqueado else ""),
+        "bloqueado_en": (p.usuario.bloqueado_en if p.usuario and p.usuario.acceso_bloqueado else None),
         "estado_facial": p.estado_facial, "motivo": p.motivo_facial,
         "similitud": p.similitud_facial, "intentos": p.intentos_facial,
         "umbrales": {"aprobado": settings.FACIAL_UMBRAL_APROBADO, "revision": settings.FACIAL_UMBRAL_REVISION},
@@ -1511,6 +1519,29 @@ def resolverRevisionPosteriorService(proceso_id, decision, motivo, revisor):
     logger.info("Revisión posterior %s del proceso %s por %s", decision, p.id, revisor)
     enviado = _enviar_correo_bloqueo(p, cuenta, motivo) if bloquear else None
     return {"revision_posterior": p.revision_posterior, "correo_enviado": enviado}, 200
+
+
+def habilitarCuentaBloqueadaService(proceso_id, revisor):
+    """Vuelve a habilitar la cuenta de un paciente bloqueado por anomalías en su verificación,
+    una vez que la persona se comunicó con el administrador y validó su información."""
+    with transaction.atomic():
+        p = (ProcesoRegistroUsuario.objects.select_for_update()
+             .filter(id=proceso_id, tipo_registro="paciente", revision_posterior="bloqueado").first())
+        cuenta = p.usuario if p else None
+        if not p or not cuenta or not cuenta.acceso_bloqueado:
+            return {"general": ["No hay una cuenta bloqueada por verificación para este registro"]}, 404
+        cuenta.acceso_bloqueado = False
+        cuenta.motivo_bloqueo = ""
+        cuenta.bloqueado_en = None
+        cuenta.save(update_fields=["acceso_bloqueado", "motivo_bloqueo", "bloqueado_en"])
+        p.revision_posterior = "legitimo"
+        p.revisado_facial_por = str(revisor)[:150]
+        p.revisado_facial_en = timezone.now()
+        p.save(update_fields=["revision_posterior", "revisado_facial_por", "revisado_facial_en"])
+    from notificaciones.realtime import programarActualizacionDashboardRealtime
+    programarActualizacionDashboardRealtime('CUENTA_HABILITADA', ('resumen', 'pacientes', 'verificaciones'))
+    logger.info("Cuenta del proceso %s habilitada de nuevo por %s", p.id, revisor)
+    return {"revision_posterior": p.revision_posterior}, 200
 
 
 # ─── Médicos: la identidad se resuelve dentro de la solicitud médica ─────────
