@@ -1,6 +1,6 @@
 "use client";
 
-import {CalendarDays,Clock3,MapPin,MessageSquareText,Stethoscope,TicketCheck,UserRound,ClipboardList,} from "lucide-react";
+import {CalendarDays,Clock3,MapPin,MessageSquareText,Stethoscope,TicketCheck,UserRound,ClipboardList,TriangleAlert,} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import formatearFecha, { formatearFechaResolucion } from "@/app/utils/fechaFormaterUtils";
@@ -37,6 +37,9 @@ export default function AppointmentDetailsModal({
     const debeMostrarHistorial = mostrarHistorialClinico && statusKey === "completada";
     const historialId = cita?.historial_id;
     const citaId = cita?.id;
+    const reportHref = Number.isSafeInteger(Number(citaId)) && Number(citaId) > 0
+        ? `/${counterpart === "paciente" ? "doctor" : "patient"}/reports?cita=${citaId}`
+        : null;
     const historialDeEstaCita = historialClinico && String(historialClinico.cita_id) === String(citaId)
         ? historialClinico
         : null;
@@ -151,18 +154,44 @@ export default function AppointmentDetailsModal({
                         <span>Ir al chat</span>
                     </Link>
                 )}
-                                <div className={styles.summary}>
+                <div className={styles.summary}>
                     <div>
                         <span className={styles.summaryLabel}>Estado actual</span>
                         <p>Información de solo lectura</p>
                     </div>
                     <div className={styles.statusSummary}>
-                        <span className={`${styles.status} ${styles[statusKey] || ""}`}>
-                            {capitalize(data.status)}
-                        </span>
-                        {statusMoment && <time className={styles.statusDate} dateTime={statusMoment.at}>
-                            {statusMoment.label} {formatearFechaResolucion(statusMoment.at)}
-                        </time>}
+                        <div className={styles.statusLine}>
+                            <span
+                                className={`${styles.status} ${styles[statusKey] || ""}`}
+                            >
+                                {capitalize(data.status)}
+                            </span>
+
+                            {reportHref && (
+                                <Link
+                                    href={reportHref}
+                                    className={styles.reportIcon}
+                                    aria-label="Reportar problema con esta cita"
+                                    data-tooltip="Reportar problema con esta cita"
+                                    onClick={onCerrar}
+                                >
+                                    <TriangleAlert
+                                        size={19}
+                                        aria-hidden="true"
+                                    />
+                                </Link>
+                            )}
+                        </div>
+
+                        {statusMoment && (
+                            <time
+                                className={styles.statusDate}
+                                dateTime={statusMoment.at}
+                            >
+                                {statusMoment.label}{" "}
+                                {formatearFechaResolucion(statusMoment.at)}
+                            </time>
+                        )}
                     </div>
                 </div>
 

@@ -4,8 +4,16 @@ import { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
 import { motion, useReducedMotion } from "motion/react";
-import { ChevronDown, ChevronRight, Search, Settings, ShieldCheck } from "lucide-react";
+import {
+    ChevronDown,
+    ChevronRight,
+    Search,
+    Settings,
+    ShieldCheck,
+} from "lucide-react";
+
 import SectionMenu, { MenuToggle } from "../../ui/SectionMenu/SectionMenu";
 import menuStyles from "../../ui/SectionMenu/SectionMenu.module.css";
 import CommandPalette from "./CommandPalette";
@@ -15,9 +23,17 @@ import styles from "./Nav.module.css";
 const brand = (
     <>
         <span className={styles.face}>
-            <Image src="/images/logoCara.png" width={26} height={26} alt="" priority />
+            <Image
+                src="/images/logoCara.png"
+                width={26}
+                height={26}
+                alt=""
+                priority
+            />
         </span>
-        <span className={styles.wordmark}>Doc<strong>Smart</strong></span>
+        <span className={styles.wordmark}>
+            Doc<strong>Smart</strong>
+        </span>
     </>
 );
 

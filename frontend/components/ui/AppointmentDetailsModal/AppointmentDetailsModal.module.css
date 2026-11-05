@@ -312,3 +312,75 @@
         transform: none;
     }
 }
+
+
+.statusLine {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.reportIcon {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border-radius: 10px;
+    color: var(--ink-orange, #d97706);
+    background: var(--tone-orange, #fff3dc);
+    text-decoration: none;
+    transition: background .2s ease, transform .2s ease;
+}
+
+.reportIcon:hover {
+    transform: scale(1.07);
+    background: var(--surface-muted);
+}
+
+.reportIcon:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+}
+
+.reportIcon::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: calc(100% + 9px);
+    right: 0;
+    z-index: 20;
+    width: max-content;
+    max-width: 230px;
+    padding: 9px 12px;
+    border-radius: 9px;
+    background: var(--color-text);
+    color: var(--surface);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: normal;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .15s ease;
+}
+
+.reportIcon:hover::after,
+.reportIcon:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reportIcon {
+        transition: none;
+    }
+
+    .reportIcon:hover {
+        transform: none;
+    }
+}

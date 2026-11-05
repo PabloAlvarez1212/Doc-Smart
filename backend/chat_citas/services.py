@@ -50,10 +50,12 @@ def citaContextual(conv, ahora=None):
 
 
 def _bloquear_cita(cita_id):
-    """Dentro de atomic: médico → cita; nunca bloquear otro médico después."""
-    medico_id = Cita.objects.filter(pk=cita_id).values_list('id_medico_id', flat=True).first()
-    if medico_id is None:
+    """Dentro de atomic: paciente → médico → cita, igual que reservas y sanciones."""
+    participantes = Cita.objects.filter(pk=cita_id).values('id_usuario_id', 'id_medico_id').first()
+    if participantes is None:
         return None
+    medico_id = participantes['id_medico_id']
+    Usuario.objects.select_for_update().get(pk=participantes['id_usuario_id'])
     Medico.objects.select_for_update().get(pk=medico_id)
     cita = Cita.objects.select_for_update().filter(pk=cita_id).first()
     if cita is not None and cita.id_medico_id != medico_id:

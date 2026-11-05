@@ -16,7 +16,6 @@ def _filas(cursor, qn, tabla, pk, columna):
 
 
 def descifrar_documentos(apps, schema_editor):
-    from core.cifrado import descifrar_documento
     from django.db import transaction
 
     conexion = schema_editor.connection
@@ -40,7 +39,7 @@ def descifrar_documentos(apps, schema_editor):
             if not valor:
                 continue
 
-            claro = descifrar_documento(valor)
+            claro = descifrar_documento_estricto(valor)
 
             if not claro or len(claro) > 30:
                 raise RuntimeError(
