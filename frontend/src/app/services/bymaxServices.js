@@ -75,7 +75,11 @@ export const bymaxService = {
       );
       return progressive ? { stream: response.data } : response.data;
     } catch (error) {
-      throw new Error(detalleError(error, "No fue posible generar la voz neuronal de Bymax."));
+      const wrapped = new Error(detalleError(error, "No fue posible generar la voz neuronal de Bymax."));
+      wrapped.status = error?.response?.status;
+      // Sin respuesta del servidor (red caída, corte): es transitorio y puede reintentarse.
+      wrapped.transient = !error?.response && error?.code !== "ERR_CANCELED" && !signal?.aborted;
+      throw wrapped;
     }
   },
 };

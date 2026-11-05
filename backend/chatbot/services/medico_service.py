@@ -156,6 +156,50 @@ class MedicoService:
                 return nombre
         return None
 
+    # Palabras que acompañan a un nombre en una frase pero no lo identifican.
+    RELLENO_NOMBRE = {
+        "oye", "hey", "ey", "hola", "bymax", "doctor", "doctora", "dr", "dra", "con", "el", "la",
+        "los", "las", "de", "del", "medico", "medica", "quiero", "agenda", "agendame", "cita",
+        "busca", "buscar", "quisiera", "necesito", "para", "por", "favor", "si", "un", "una", "al",
+        "elijo", "escojo", "prefiero", "mejor", "que", "ese", "esa", "pues", "entonces", "ok",
+    }
+
+    @staticmethod
+    def candidatos_por_nombre(texto, pool, prioritarios=()):
+        """Médicos cuyo nombre coincide con el texto, tolerando tildes, mayúsculas y
+        errores de transcripción. Todas las palabras del texto deben coincidir y al
+        menos una casi exactamente: una coincidencia débil nunca produce candidato.
+        Si alguno de los recién mostrados coincide, solo se devuelven esos."""
+        tokens = [
+            token for token in MedicoService._normalizar(re.sub(r"[^\w\s]", " ", texto or "")).split()
+            if token not in MedicoService.RELLENO_NOMBRE and len(token) >= 3 and not token.isdigit()
+        ]
+        if not tokens or len(tokens) > 3:
+            return []
+        encontrados = []
+        for medico in pool:
+            nombres = MedicoService._normalizar(f"{medico.nombre} {medico.apellido}").split()
+            puntajes = [max(SequenceMatcher(None, token, nombre).ratio() for nombre in nombres) for token in tokens]
+            minimo = [0.85 if len(token) == 3 else 0.80 for token in tokens]
+            if all(p >= m for p, m in zip(puntajes, minimo)) and max(puntajes) >= 0.9:
+                encontrados.append((sum(puntajes) / len(puntajes), medico))
+        encontrados.sort(key=lambda par: -par[0])
+        medicos = [medico for _, medico in encontrados]
+        recientes = [m for m in medicos if m.pk in set(prioritarios)]
+        return recientes or medicos
+
+    @staticmethod
+    def resolver_ciudad_suelta(texto):
+        """Ciudad nombrada sola («Medellín») como respuesta a «¿en qué ciudad?»."""
+        normalizado = MedicoService._normalizar(re.sub(r"[^\w\s]", " ", texto or ""))
+        if not normalizado or len(normalizado.split()) > 5:
+            return None
+        for nombre in sorted(Ciudad.objects.values_list("nombre", flat=True), key=len, reverse=True):
+            ciudad = MedicoService._normalizar(nombre)
+            if ciudad and MedicoService._contiene(normalizado, ciudad):
+                return nombre
+        return None
+
     @staticmethod
     def extraer_criterios(texto):
         criterios = {

@@ -9,7 +9,7 @@ import BymaxChatWindow from "./BymaxChatWindow";
 import BymaxDoctorContext from "./BymaxDoctorContext";
 import useBymaxIdentity from "./useBymaxIdentity";
 import { takeSpeechUnits, flushSpeechBuffer, SPEECH_MAX_WAIT_MS, SPEECH_FIRST_WAIT_MS } from "./bymaxSpeechUnits.mjs";
-import { matchesTurn, latencyTrace, recoverResponse, esAfirmacionDictada } from "./bymaxTurn.mjs";
+import { matchesTurn, latencyTrace, recoverResponse, textoPendienteDeVoz, esperaDeReconexion } from "./bymaxTurn.mjs";
 import { assistantState } from "./bymaxPresentation.mjs";
 
 const SALUDO = "Hola, soy Bymax, tu asistente virtual de DocSmart. ¿En qué puedo ayudarte el dia de hoy?";
@@ -47,6 +47,7 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
   const fileRef = useRef(null);
   const launcherRef = useRef(null);
   const socketRef = useRef(null);
+  const reconnectRef = useRef({ attempts: 0, timer: null });
   const turnRef = useRef(null);
   const sendingRef = useRef(false);
   const sendRef = useRef(null);
@@ -61,15 +62,8 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
     generateVoice: bymaxService.generarVoz,
     available: Boolean(chatId) && !cargando,
     onEnd: () => { setMensaje(""); setMensajes(previous => [...previous, normalizarMensaje({remitente:"bot", texto:"Conversación terminada. Di «Bymax» cuando quieras volver a conversar."})]); },
-    onTranscript: text => {
-      if (confirmationRef.current && esAfirmacionDictada(text)) {
-        setMensaje(text);
-        setError("Por seguridad no confirmo operaciones por voz. Revisa los datos y usa el botón «Sí, confirmar».");
-        voiceRef.current?.completeTurn();
-        return;
-      }
-      sendRef.current?.(text);
-    },
+    // Confirmar o cancelar por voz o por chat tiene el mismo efecto: el backend decide con la frase completa.
+    onTranscript: text => { sendRef.current?.(text); },
     onPartial: text => setMensaje(text), onWake: abrirVentana,
     // Hablar encima de una respuesta la corta y cancela lo que faltaba por generar.
     onBarge: () => cancelRef.current?.(),
@@ -178,7 +172,7 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
     const socket = bymaxService.crearSocket(chatId);
     socketRef.current = socket;
     setConnection("connecting");
-    socket.onopen = () => setConnection("connected");
+    socket.onopen = () => { reconnectRef.current.attempts = 0; setConnection("connected"); };
     function finish() {
       turnRef.current = null;
       sendingRef.current = false;
@@ -218,6 +212,7 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
         turn.received = true;
         const fragment = String(data.contenido || "");
         turn.buffer += fragment;
+        turn.full = (turn.full || "") + fragment;
         setMensajes(previous => previous.map(item => item.id === turn.id ? {...item,texto:item.texto + fragment} : item));
         speakFragments(turn);
       } else if (data.tipo === "fin") {
@@ -238,9 +233,17 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
     socket.onerror = () => setConnection("disconnected");
     socket.onclose = async () => {
       setConnection("disconnected");
+      // Transient drop: reconnect on its own, a few times, waiting longer each time.
+      const reconnect = reconnectRef.current;
+      const delay = esperaDeReconexion(reconnect.attempts);
+      if (delay !== null) {
+        reconnect.attempts += 1;
+        clearTimeout(reconnect.timer);
+        reconnect.timer = setTimeout(() => setConnectionAttempt(value => value + 1), delay);
+      }
       const turn = turnRef.current;
       if (turn?.chatId !== chatId || !turn.websocket) return;
-      voiceRef.current?.stopPlayback();
+      // Audio already requested keeps playing; only the missing part is added afterwards.
       setError("Se interrumpió la conexión. Recuperando el mismo mensaje…");
       // Same idempotency key: recovery can never repeat a confirmed appointment.
       try {
@@ -251,6 +254,13 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
         if (turnRef.current !== turn) return;
         setMensajes(previous => previous.map(item => item.id === turn.id ? {...item,texto:response.respuesta,resultado:response.resultado} : item));
         turn.mark("complete");
+        // Speak only what was not already queued, so nothing is read twice.
+        const pending = textoPendienteDeVoz(response.respuesta, turn.full, turn.buffer);
+        if (pending !== null) {
+          clearTimeout(turn.flushTimer);
+          turn.buffer = pending;
+          speakFragments(turn, true);
+        }
         setError("");
         finish();
       } catch {
@@ -263,6 +273,7 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
     return () => {
       socket.onopen = socket.onmessage = socket.onerror = socket.onclose = null;
       socket.close();
+      clearTimeout(reconnectRef.current.timer);
       if (socketRef.current === socket) socketRef.current = null;
     };
   }, [chatId, connectionAttempt, cancelTurn]);
@@ -346,7 +357,7 @@ export default function BymaxAssistant({ modo = "paciente", actorKey }) {
   return <>
     <BymaxLauncher {...draggable} status={status} label={label} open={ventanaAbierta} buttonRef={launcherRef}/>
     <BymaxChatWindow open={ventanaAbierta} close={close} status={status} label={label} chats={chats} chatId={chatId} messages={mensajes} loading={cargando} sending={enviando} streamingId={streamingId}
-      connection={connection} reconnect={() => setConnectionAttempt(value => value + 1)}
+      connection={connection} reconnect={() => { reconnectRef.current.attempts = 0; setConnectionAttempt(value => value + 1); }}
       modo={modo} identity={identity} onOpenClinical={() => {
         setVentanaAbierta(false);
         setCopilotoAbierto(true);

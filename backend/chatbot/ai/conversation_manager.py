@@ -35,6 +35,8 @@ from chatbot.ai.router import PATRON_CONSULTA_MEDICA, PATRON_SOLICITUD_CITA, pro
 from chatbot.ai.tool_manager import ToolManager
 
 from chatbot.ai.conversation_state import ConversationState
+from chatbot.ai.intencion import ayuda_funciones, clasificar_confirmacion, decidir as decidir_intencion, solicita_retomar
+from chatbot.politicas import MAX_PREGUNTAS_EN_CONFIRMACION
 from chatbot.politicas import EDAD_MAYORIA
 
 from chatbot.ai.flow_manager import FlowManager
@@ -61,7 +63,8 @@ class ConversationManager:
             return ConversationManager._procesar(chat, mensaje, streaming)
         # Serializar el consumo de confirmaciones incluso entre REST y WS.
         respuesta = str(mensaje).strip().lower().rstrip('.!?')
-        if respuesta in FlowManager.RESPUESTAS_AFIRMATIVAS and getattr(chat, 'pk', None):
+        if (respuesta in FlowManager.RESPUESTAS_AFIRMATIVAS or clasificar_confirmacion(mensaje) == "confirma") \
+                and getattr(chat, 'pk', None):
             from chatbot.models import Chat
             with transaction.atomic():
                 chat = Chat.objects.select_for_update().get(pk=chat.pk)
@@ -185,27 +188,35 @@ class ConversationManager:
 
         alarma = senales_alarma(state.mensaje)
 
-        # Cambiar de rumbo no deja la operación anterior atrapada.
-        if chat.estado_conversacion != "normal" and (
-            solicita_cancelar_flujo(state.mensaje)
-            or ConversationManager._es_nueva_busqueda(state.mensaje)
-        ):
-            ConversationFlow.finalizar(chat)
-            if solicita_cancelar_flujo(state.mensaje):
+        # Una lectura de citas existentes también funciona durante un borrador,
+        # sin interpretarla como consentimiento ni como motivo de consulta.
+        from chatbot.ai.filters import parametros_consulta_citas
+        consulta = parametros_consulta_citas(state.mensaje)
+        if consulta is not None:
+            return ConversationManager._ejecutar_decision(chat, state, RouterDecision(
+                tool=True, tool_name="consultar_disponibilidad", parametros=consulta), alarma)
+
+        # Antes de leer el mensaje como respuesta al dato pendiente: ¿continúa la
+        # operación, la abandona o cambia de tema? Cambiar de tema descarta el
+        # borrador (datos y confirmaciones) y atiende la nueva intención; nunca
+        # cancela una cita ya registrada.
+        if chat.estado_conversacion != "normal" and decidir_intencion(chat, state.mensaje) == "abandona":
+            explicito = solicita_cancelar_flujo(state.mensaje)
+            FlowManager.abandonar(chat)
+            if explicito:
                 return LanguageService.adaptar(
                     "Entendido. Cancelé la operación actual y no hice cambios.",
                     state.mensaje,
                 )
 
-        # Mientras el flujo espera un texto libre (p. ej. el motivo de la
-        # consulta), el mensaje es la respuesta aunque describa síntomas.
+        # Con una cita pendiente de confirmar, una pregunta o un comentario se responde sin
+        # perder el borrador; tras las preguntas permitidas se exige decidir.
         if (
-            chat.estado_conversacion != "normal"
-            and PATRON_CONSULTA_MEDICA.search(state.mensaje)
-            and not PATRON_SOLICITUD_CITA.search(state.mensaje)
-            and not FlowManager.campo_libre_pendiente(chat)
+            chat.estado_conversacion.startswith("confirmar:")
+            and clasificar_confirmacion(state.mensaje) == "consulta"
+            and not FlowManager.cambia_datos(chat, state.mensaje)
         ):
-            ConversationFlow.finalizar(chat)
+            return ConversationManager._consulta_en_confirmacion(chat, state, streaming, alarma)
 
         if chat.estado_conversacion != "normal":
             resultado = FlowManager.continuar(chat, state.mensaje)
@@ -216,37 +227,23 @@ class ConversationManager:
                 )
 
             if resultado:
-
-                state.decision = resultado
-
-                ConversationManager._resolver(
-                    chat,
-                    state
-                )
-
-                ConversationManager._preparar_confirmacion(
-                    chat,
-                    state,
-                )
-
-                ConversationManager._preparar_seleccion(
-                    chat,
-                    state,
-                )
-
-                return ConversationManager._con_alerta(state.respuesta, alarma)
+                return ConversationManager._ejecutar_decision(chat, state, resultado, alarma)
 
         if chat.estado_conversacion == "normal":
+            if solicita_retomar(state.mensaje):
+                retomada = FlowManager.retomar(chat)
+                if isinstance(retomada, str):
+                    return LanguageService.adaptar(retomada, state.mensaje)
+                return ConversationManager._ejecutar_decision(chat, state, retomada, alarma)
+            ayuda = ayuda_funciones(state.mensaje)
+            if ayuda:
+                return LanguageService.adaptar(ayuda, state.mensaje)
             referencia = FlowManager.resolver_referencia(chat, state.mensaje)
             if isinstance(referencia, str):
                 return LanguageService.adaptar(referencia, state.mensaje)
             decision = referencia or FlowManager.resolver_busqueda(chat, state.mensaje)
             if decision is not None:
-                state.decision = decision
-                ConversationManager._resolver(chat, state)
-                ConversationManager._preparar_confirmacion(chat, state)
-                ConversationManager._preparar_seleccion(chat, state)
-                return ConversationManager._con_alerta(state.respuesta, alarma)
+                return ConversationManager._ejecutar_decision(chat, state, decision, alarma)
 
         ConversationManager._cargar_memoria(
             chat,
@@ -355,14 +352,70 @@ class ConversationManager:
         return f"{texto}\n\n{resultado}".strip()
 
     @staticmethod
-    def _es_nueva_busqueda(mensaje):
-        """Búsqueda explícita con criterios del catálogo, no un motivo de consulta."""
-        from chatbot.services.medico_service import MedicoService
-        return (
-            solicita_buscar_profesional(mensaje)
-            and not PATRON_SOLICITUD_CITA.search(mensaje)
-            and bool(MedicoService.extraer_criterios(mensaje))
-        )
+    def _consulta_en_confirmacion(chat, state, streaming, alarma):
+        """Responde lo que el usuario pregunta sin ejecutar ni descartar la operación pendiente."""
+        from chatbot.ai import router as _router
+        memoria = dict(chat.contexto_temporal or {})
+        n = int(memoria.get("_preguntas_conf", 0)) + 1
+        memoria["_preguntas_conf"] = n
+        chat.contexto_temporal = memoria
+        chat.save(update_fields=["contexto_temporal"])
+        pendiente = FlowManager._resumen_estado(chat) or (
+            "Tienes una operación pendiente. Responde «sí» para confirmar o «no» para cancelar.")
+        if n > MAX_PREGUNTAS_EN_CONFIRMACION:
+            return LanguageService.adaptar(
+                "Ya respondí tus preguntas. Para seguir necesito que decidas ahora: "
+                "confirma o cancela la cita. " + pendiente, state.mensaje)
+        ConversationManager._cargar_memoria(chat, state)
+        state.historial.insert(0, {"role": "user", "parts": [{"text": (
+            f"Nota del sistema: el usuario tiene esta operación pendiente de confirmar: {pendiente} "
+            "Responde con claridad y brevedad la pregunta que hace, con orientación general y sin "
+            "diagnosticar. No confirmes ni canceles nada ni afirmes que la cita está agendada: la "
+            "decisión es suya. Termina recordando en una línea que la cita sigue pendiente y que "
+            "puede responder «sí» para confirmar o «no» para cancelar.")}]})
+        ultimo = state.historial[-1]["parts"][-1]["text"] if state.historial else ""
+        if ultimo != state.mensaje:
+            state.historial.append({"role": "user", "parts": [{"text": state.mensaje}]})
+        if streaming:
+            return {"stream": True, "contents": state.historial}
+        texto, _ = FiltroPromesas.limpiar(_router.preguntar_openai(state.historial) or "")
+        return ConversationManager._con_alerta(f"{texto}\n\n{pendiente}".strip(), alarma)
+
+    @staticmethod
+    def _ejecutar_decision(chat, state, decision, alarma=False):
+        state.decision = decision
+        ConversationManager._resolver(chat, state)
+        ConversationManager._preparar_confirmacion(chat, state)
+        ConversationManager._preparar_seleccion(chat, state)
+        respuesta = state.respuesta
+        prefijo = getattr(decision, "prefijo", None)
+        if prefijo:
+            if isinstance(respuesta, dict) and isinstance(respuesta.get("message"), str):
+                respuesta = {**respuesta, "message": f"{prefijo} {respuesta['message']}"}
+            elif isinstance(respuesta, str):
+                respuesta = f"{prefijo} {respuesta}"
+        return ConversationManager._con_alerta(respuesta, alarma)
+
+    @staticmethod
+    def _aplicar_resultado_tool(chat, state):
+        """Estados que dejan las herramientas: dato pendiente, alternativas, búsqueda terminada."""
+        resultado = state.tool_result
+        if not isinstance(resultado, dict):
+            return
+        nombre = state.decision.tool_name
+        datos = resultado["data"] if isinstance(resultado.get("data"), dict) else {}
+        if resultado.get("requires_input"):
+            ConversationFlow.iniciar(chat, nombre)
+            ConversationFlow.guardar(chat, datos)
+        elif resultado.get("requires_alternative"):
+            ConversationFlow.iniciar(chat, nombre)
+            ConversationFlow.guardar(chat, datos.get("conservar", {}))
+            FlowManager.guardar_alternativas(chat, datos.get("alternativas", []))
+        elif nombre == "buscar_medico":
+            if datos.get("alternativas"):
+                FlowManager.guardar_alternativas(chat, datos["alternativas"])
+            if resultado.get("success", True):
+                ConversationFlow.finalizar(chat)
 
     @staticmethod
     def _nota_menor(usuario):
@@ -509,6 +562,7 @@ class ConversationManager:
 
             state.respuesta = state.tool_result
             ConversationManager._recordar_resultados(chat, state)
+            ConversationManager._aplicar_resultado_tool(chat, state)
 
             # Un error de operación no pierde los datos que el paciente acaba
             # de aportar. Se reintentará la previsualización, nunca el consumo
@@ -517,7 +571,8 @@ class ConversationManager:
                 if not state.tool_result.get('success', False):
                     ConversationFlow.iniciar(chat, state.decision.tool_name)
                     ConversationFlow.guardar(chat, {k: v for k, v in (state.decision.parametros or {}).items() if k != 'confirmado'})
-                elif not state.tool_result.get('requires_confirmation') and not state.tool_result.get('requires_selection'):
+                elif not any(state.tool_result.get(k) for k in (
+                        'requires_confirmation', 'requires_selection', 'requires_input', 'requires_alternative')):
                     ConversationFlow.finalizar(chat)
 
         else:

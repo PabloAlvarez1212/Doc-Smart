@@ -40,3 +40,17 @@ export function esAfirmacionDictada(texto) {
   const limpio = String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
   return limpio.split(" ").length <= 4 && AFIRMACION.test(limpio);
 }
+
+// After a dropped connection the recovered text may be longer than what was already
+// streamed. Only the part not yet spoken is returned (null if the texts diverge).
+export function textoPendienteDeVoz(recuperado, dicho, sinHablar) {
+  const texto = String(recuperado || ""), previo = String(dicho || ""), resto = String(sinHablar || "");
+  if (!texto.startsWith(previo)) return null;
+  return texto.slice(previo.length - resto.length);
+}
+
+// Waits (ms) before each automatic reconnection; after the last one the user reconnects by hand.
+export const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 15000];
+export function esperaDeReconexion(intentos) {
+  return intentos >= 0 && intentos < RECONNECT_DELAYS.length ? RECONNECT_DELAYS[intentos] : null;
+}

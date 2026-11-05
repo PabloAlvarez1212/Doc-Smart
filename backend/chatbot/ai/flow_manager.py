@@ -25,7 +25,9 @@ from chatbot.ai.filters import (
 )
 from chatbot.ai.motivos_cancelacion import normalizar_motivo_cancelacion
 from datetime import timedelta
+from types import SimpleNamespace
 from django.utils import timezone
+from chatbot.politicas import ALTERNATIVAS_MAX
 
 class FlowManager:
 
@@ -57,6 +59,15 @@ class FlowManager:
         return "\n".join(lineas)
 
     @staticmethod
+    def _marcar_aclarando(chat):
+        """Se acaba de preguntar «¿cuál?»: la próxima referencia responde a esa pregunta."""
+        memoria = dict(chat.contexto_temporal or {})
+        if memoria.get("_resultados"):
+            memoria["_resultados"] = {**memoria["_resultados"], "aclarando": True}
+            chat.contexto_temporal = memoria
+            chat.save(update_fields=["contexto_temporal"])
+
+    @staticmethod
     def guardar_resultados(chat, data):
         """Conserva resultados acotados y vigentes para referencias posteriores."""
         medicos = [
@@ -68,6 +79,7 @@ class FlowManager:
             contexto["_resultados"] = {
                 "medicos": medicos, "fecha": data.get("fecha"),
                 "creado": timezone.now().isoformat(),
+                "aclarando": bool(data.get("aclarando")),
             }
         else:
             contexto.pop("_resultados", None)
@@ -90,26 +102,175 @@ class FlowManager:
         return timezone.now() - creado <= timedelta(minutes=RESULTADOS_VIGENCIA_MINUTOS)
 
     @staticmethod
+    def guardar_alternativas(chat, items):
+        """Horarios alternativos ofrecidos (acotados y vigentes) para elegirlos después."""
+        memoria = dict(chat.contexto_temporal or {})
+        if items:
+            memoria["_alternativas"] = {"items": list(items)[:ALTERNATIVAS_MAX], "creado": timezone.now().isoformat()}
+        else:
+            memoria.pop("_alternativas", None)
+        chat.contexto_temporal = memoria
+        chat.save(update_fields=["contexto_temporal"])
+
+    @staticmethod
+    def _elegir_alternativa(chat, mensaje):
+        """Alternativa elegida por número, orden u hora. Devuelve dict, texto de aclaración o None."""
+        from chatbot.services.cita_service import CitaService
+        memoria = dict(getattr(chat, "contexto_temporal", None) or {})
+        registro = memoria.get("_alternativas")
+        if not registro or not FlowManager._vigente(registro):
+            return None
+        items = registro["items"]
+        texto = normalizar_intencion(mensaje)
+        elegida = None
+        referencia = int(texto) - 1 if texto.isdigit() else referencia_resultado(mensaje)
+        if isinstance(referencia, int) and -len(items) <= referencia < len(items):
+            elegida = items[referencia]
+        else:
+            hora = extraer_hora(mensaje)
+            if hora is not None and hora[0] != "ambigua":
+                dia = CitaService.extraer_dia(mensaje)
+                coincidentes = []
+                for item in items:
+                    local = timezone.localtime(timezone.datetime.fromisoformat(item["fecha"]))
+                    if (local.hour, local.minute) == tuple(hora) and (dia is None or local.date() == dia):
+                        coincidentes.append(item)
+                if len(coincidentes) == 1:
+                    elegida = coincidentes[0]
+                elif len(coincidentes) > 1:
+                    lineas = ["Hay varias opciones a esa hora. ¿Cuál prefieres?"]
+                    for item in coincidentes:
+                        local = timezone.localtime(timezone.datetime.fromisoformat(item["fecha"]))
+                        lineas.append(f"- Dr(a). {item['nombre']} — {local.strftime('%d/%m/%Y a las %H:%M')}")
+                    return "\n".join(lineas)
+        if elegida is not None:
+            memoria.pop("_alternativas", None)
+            chat.contexto_temporal = memoria
+            chat.save(update_fields=["contexto_temporal"])
+        return elegida
+
+    @staticmethod
+    def resolver_nombre(chat, mensaje, forzar=False):
+        """«Oye Quiroz», «olí Quiroz»: candidatos por nombre, priorizando los médicos mostrados.
+
+        Un único candidato claro se selecciona y se confirma brevemente; varios piden
+        elegir entre ellos; una coincidencia débil no selecciona nada.
+        """
+        from chatbot.services.cita_service import CitaService
+        from chatbot.services.medico_service import MedicoService
+        memoria = getattr(chat, "contexto_temporal", None) or {}
+        resultados = memoria.get("_resultados")
+        recientes = (resultados.get("medicos") if resultados and FlowManager._vigente(resultados) else None) or []
+        if not recientes and not forzar:
+            return None
+        if len(normalizar_intencion(mensaje).split()) > 8:
+            return None
+        if recientes:
+            pool = [SimpleNamespace(pk=m["id_medico"], nombre=m.get("nombre", ""), apellido="") for m in recientes]
+        else:
+            contexto = ConversationFlow.obtener(chat)
+            pool = list(MedicoService.buscar_medicos(
+                especialidad=contexto.get("especialidad"),
+                ciudad=None if contexto.get("ciudad_omitida") else contexto.get("ciudad"),
+            )[:100])
+        candidatos = MedicoService.candidatos_por_nombre(mensaje, pool, prioritarios={m.pk for m in pool})
+        if not candidatos:
+            return None
+        if len(candidatos) > 1:
+            descripciones = {m["id_medico"]: m for m in recientes}
+            lineas = ["Hay varios médicos con ese nombre. ¿Cuál prefieres?"]
+            for indice, medico in enumerate(candidatos[:5], start=1):
+                datos = descripciones.get(medico.pk, {})
+                lineas.append(f"{indice}. Dr(a). {datos.get('nombre') or (medico.nombre + ' ' + medico.apellido)} — "
+                              f"{datos.get('especialidad', '')}, {datos.get('ciudad', '')}")
+            FlowManager.guardar_resultados(chat, {"aclarando": True, "medicos": [
+                {"id_medico": m.pk, "nombre": descripciones.get(m.pk, {}).get("nombre") or f"{m.nombre} {m.apellido}".strip(),
+                 "especialidad": descripciones.get(m.pk, {}).get("especialidad", ""),
+                 "ciudad": descripciones.get(m.pk, {}).get("ciudad", "")} for m in candidatos[:5]]})
+            return "\n".join(lineas)
+        elegido = candidatos[0]
+        datos = {m["id_medico"]: m for m in recientes}.get(elegido.pk, {})
+        nombre = datos.get("nombre") or f"{elegido.nombre} {elegido.apellido}".strip()
+        detalle = ", ".join(p for p in (datos.get("especialidad"), datos.get("ciudad")) if p)
+        prefijo = f"Seleccioné al Dr(a). {nombre}" + (f" ({detalle})." if detalle else ".")
+        contexto = ConversationFlow.obtener(chat)
+        parametros = {**{k: contexto[k] for k in ("especialidad", "ciudad", "fecha", "fecha_dia", "motivo_consulta")
+                         if contexto.get(k)}, "id_medico": elegido.pk}
+        fecha = CitaService.extraer_fecha_relativa(mensaje)
+        if fecha is not None:
+            parametros["fecha"] = timezone.localtime(fecha).strftime("%Y-%m-%d %H:%M")
+        elif CitaService.extraer_dia(mensaje) is not None:
+            parametros["fecha_dia"] = CitaService.extraer_dia(mensaje).isoformat()
+        elif not parametros.get("fecha") and resultados and resultados.get("fecha"):
+            parametros["fecha"] = resultados["fecha"]
+        return FlowManager._con_prefijo(FlowManager.iniciar(chat, "agendar_cita", parametros), prefijo)
+
+    @staticmethod
+    def _con_prefijo(resultado, prefijo):
+        """Confirma brevemente la selección antes de la siguiente pregunta o resultado."""
+        if isinstance(resultado, str):
+            return f"{prefijo} {resultado}"
+        resultado.prefijo = prefijo
+        return resultado
+
+    @staticmethod
+    def abandonar(chat):
+        """Descarta el borrador: datos, confirmación y transitorios. No toca citas registradas."""
+        base = chat.estado_conversacion.split(":")[-1]
+        datos = ConversationFlow.obtener(chat)
+        memoria = dict(chat.contexto_temporal or {})
+        if base in ("agendar_cita", "reprogramar_cita") and datos:
+            borrador = {k: datos[k] for k in ("id_medico", "especialidad", "ciudad", "ciudad_omitida", "fecha",
+                                              "motivo_consulta", "codigo_cita") if datos.get(k)}
+            if borrador:
+                memoria["_borrador"] = {"flujo": base, "datos": borrador, "creado": timezone.now().isoformat()}
+        for clave in ("_alternativas", "_hora_ambigua", "_fecha_previa"):
+            memoria.pop(clave, None)
+        chat.contexto_temporal = memoria
+        ConversationFlow.finalizar(chat)
+
+    @staticmethod
+    def retomar(chat):
+        """Retoma el último borrador solo si el usuario lo pide: revalida y vuelve a confirmar."""
+        memoria = dict(getattr(chat, "contexto_temporal", None) or {})
+        borrador = memoria.pop("_borrador", None)
+        if not borrador or not FlowManager._vigente(borrador):
+            return "No tengo una solicitud pendiente para retomar. Cuéntame qué necesitas."
+        chat.contexto_temporal = memoria
+        chat.save(update_fields=["contexto_temporal"])
+        return FlowManager.iniciar(chat, borrador["flujo"], borrador["datos"])
+
+    @staticmethod
     def resolver_referencia(chat, mensaje):
         """«Agenda con el segundo», «con ese médico»: usa los resultados guardados.
 
         Solo actúa ante una petición explícita del usuario y con resultados
         vigentes. Si la referencia es ambigua, pregunta.
         """
+        elegida = FlowManager._elegir_alternativa(chat, mensaje)
+        if isinstance(elegida, str):
+            return elegida
+        if elegida:
+            return FlowManager.iniciar(chat, "agendar_cita", {
+                "id_medico": elegida["id_medico"], "fecha": elegida["fecha"]})
         referencia = referencia_resultado(mensaje)
         resultados = (getattr(chat, "contexto_temporal", None) or {}).get("_resultados")
-        if referencia is None or not solicita_agendar_referencia(mensaje):
+        if referencia is None:
+            return FlowManager.resolver_nombre(chat, mensaje)
+        if not solicita_agendar_referencia(mensaje) and not (resultados or {}).get("aclarando"):
             return None
         if not resultados or not FlowManager._vigente(resultados):
             return None
         medicos = resultados.get("medicos") or []
         if referencia == "unico":
             if len(medicos) != 1:
+                FlowManager._marcar_aclarando(chat)
                 return FlowManager._pedir_aclaracion(medicos)
             elegido = medicos[0]
         elif -len(medicos) <= referencia < len(medicos):
             elegido = medicos[referencia]
         else:
+            FlowManager._marcar_aclarando(chat)
             return FlowManager._pedir_aclaracion(medicos)
 
         from chatbot.services.cita_service import CitaService
@@ -117,9 +278,13 @@ class FlowManager:
         parametros = {"id_medico": elegido["id_medico"]}
         if fecha is not None:
             parametros["fecha"] = timezone.localtime(fecha).strftime("%Y-%m-%d %H:%M")
+        elif CitaService.extraer_dia(mensaje) is not None:
+            parametros["fecha_dia"] = CitaService.extraer_dia(mensaje).isoformat()
         elif resultados.get("fecha"):
             parametros["fecha"] = resultados["fecha"]
-        return FlowManager.iniciar(chat, "agendar_cita", parametros)
+        detalle = ", ".join(p for p in (elegido.get("especialidad"), elegido.get("ciudad")) if p)
+        prefijo = f"Seleccioné al Dr(a). {elegido.get('nombre')}" + (f" ({detalle})." if detalle else ".")
+        return FlowManager._con_prefijo(FlowManager.iniciar(chat, "agendar_cita", parametros), prefijo)
 
     @staticmethod
     def completar_referencia_cita(chat, mensaje, flujo, parametros):
@@ -150,8 +315,52 @@ class FlowManager:
         flujo = FLOWS.get(estado)
         paso = FlowManager._primer_paso_faltante(flujo, contexto)
         if paso is not None:
-            return paso["pregunta"]
+            return FlowManager._pregunta(paso, contexto, chat)
         return RouterDecision(tool=True, tool_name=flujo["tool"], parametros=contexto)
+
+    @staticmethod
+    def _pregunta(paso, contexto, chat=None):
+        """Pregunta pendiente. Con médico ya elegido, la de fecha propone sus próximos
+        horarios libres (al menos 3, con fecha) y los deja elegibles por número."""
+        if paso["campo"] != "fecha":
+            return paso["pregunta"]
+        from chatbot.politicas import DIAS_BUSQUEDA_HORARIOS, PROXIMOS_HORARIOS
+        from chatbot.services.cita_service import CitaService
+        from chatbot.services.medico_service import MedicoService
+        if chat is not None and chat.estado_conversacion.split(':')[-1] == 'reprogramar_cita':
+            cita = (CitaService.obtener_cita_usuario_codigo(contexto['codigo_cita'], chat.id_usuario)
+                    if contexto.get('codigo_cita') else
+                    CitaService.obtener_cita_usuario(contexto.get('id_cita'), chat.id_usuario))
+            if cita is None:
+                return 'No encontré esa cita entre tus citas. Indícame el código de la cita que quieres reprogramar.'
+            medico = cita.id_medico
+        else:
+            medico = MedicoService.obtener_por_id(contexto["id_medico"]) if contexto.get('id_medico') else None
+        if medico is None:
+            return paso["pregunta"]
+        dia = CitaService.extraer_dia(contexto["fecha_dia"]) if contexto.get("fecha_dia") else None
+        if dia:
+            desde = timezone.make_aware(
+                timezone.datetime.combine(dia, timezone.datetime.min.time()), timezone.get_current_timezone())
+            horarios = [h for h in CitaService.proximos_horarios(medico, desde, 40, 0)]
+            horarios = [h for h in horarios if h.date() == dia][:max(PROXIMOS_HORARIOS, 3)]
+        else:
+            horarios = CitaService.proximos_horarios(medico, timezone.now(), max(PROXIMOS_HORARIOS, 3), DIAS_BUSQUEDA_HORARIOS)
+        quien = f"Dr(a). {medico.nombre} {medico.apellido}"
+        if not horarios:
+            if chat is not None:
+                FlowManager.guardar_alternativas(chat, [])
+            return (f"{quien} no tiene horarios libres {'ese día' if dia else f'en los próximos {DIAS_BUSQUEDA_HORARIOS} días'}. "
+                    "¿Quieres probar otra fecha u otro médico?")
+        if chat is not None:
+            FlowManager.guardar_alternativas(chat, [
+                {"id_medico": medico.pk, "nombre": f"{medico.nombre} {medico.apellido}".strip(), "fecha": h.isoformat()}
+                for h in horarios])
+        nombres = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+        lineas = [f"{i}. {nombres[h.weekday()].capitalize()} {h.strftime('%d/%m/%Y')} a las {h.strftime('%H:%M')}"
+                  for i, h in enumerate(horarios, start=1)]
+        return (f"Horarios más cercanos disponibles de {quien}:\n" + "\n".join(lineas)
+                + "\nElige uno (número u hora) o dime otra fecha.")
 
     @staticmethod
     def _cambio_de_fecha_contextual(chat, mensaje):
@@ -292,51 +501,78 @@ class FlowManager:
             )
         return f"Sigo con tu solicitud. Aún me falta un dato. {paso['pregunta']}"
 
+    QUITAR_FILTRO = re.compile(
+        r"\b(sin|quita\w*|elimina\w*|borra\w*|olvida\w*)\b.{0,25}\b(ciudad|especialidad|fecha|dia|hora)\b|"
+        r"\b(cualquier|todas las) (ciudad|ciudades|especialidad|especialidades)\b")
+
     @staticmethod
     def resolver_busqueda(chat, mensaje):
         """Búsqueda o disponibilidad de médicos registrados, sin crear citas.
 
-        Solo aplica sin operación pendiente. Devuelve una RouterDecision que
-        ejecuta ``buscar_medico`` con los datos conservados, o None.
+        Combina los filtros activos con lo que aporta el mensaje: se pueden
+        cambiar o quitar sin reiniciar. Solo aplica sin operación pendiente.
+        Devuelve una RouterDecision que ejecuta ``buscar_medico``, o None.
         """
+        from chatbot.ai.intencion import tema_ajeno, solicita_ciudades
         from chatbot.ai.router import PATRON_SOLICITUD_CITA
-        from chatbot.services.cita_service import CitaService
-        from chatbot.services.medico_service import MedicoService
 
         if PATRON_SOLICITUD_CITA.search(mensaje):
             return None
 
-        ultima = (getattr(chat, "contexto_temporal", None) or {}).get("_ultima_cita") or {}
-        previos = {
-            clave: ultima[clave] for clave in ("especialidad", "ciudad") if ultima.get(clave)
+        memoria = getattr(chat, "contexto_temporal", None) or {}
+        ultima = memoria.get("_ultima_cita") or {}
+        activos = {
+            clave: ultima[clave] for clave in ("especialidad", "ciudad", "ciudad_omitida", "fecha") if ultima.get(clave)
         }
-        busca = solicita_buscar_profesional(mensaje)
-        fecha = CitaService.extraer_fecha_relativa(mensaje)
+        texto = normalizar_intencion(mensaje)
+        ciudades = solicita_ciudades(mensaje)
+        busca = solicita_buscar_profesional(mensaje) or bool(re.search(
+            r"\b(?:otro|otra) (?:medico|medica|doctor|doctora)\b", texto))
+        quita = FlowManager.QUITAR_FILTRO.search(texto)
+        datos = FlowManager._extraer_datos_busqueda(mensaje, activos, "buscar_medico")
+        estado = es_consulta_estado(mensaje) and ultima.get("especialidad")
 
+        # Un refinamiento corto («ahora en Bogotá», «mañana a las 10») sobre una búsqueda activa.
+        refinamiento = bool(activos) and not busca and bool(datos or quita) \
+            and len(texto.split()) <= 9 and not tema_ajeno(mensaje)
+        disponibilidad = bool(activos) and pregunta_disponibilidad(mensaje) and bool(datos)
+
+        if not (busca or refinamiento or disponibilidad or estado or ciudades):
+            return None
+
+        parametros = dict(activos)
+        # Una búsqueda nueva de profesionales no hereda el horario de una cita anterior.
         if busca:
-            parametros = MedicoService.extraer_criterios(mensaje)
-            if not parametros and previos and (fecha is not None or pregunta_disponibilidad(mensaje)):
-                parametros = dict(previos)
-            if not parametros:
-                return None
-            if fecha is not None:
-                parametros["fecha"] = timezone.localtime(fecha).strftime("%Y-%m-%d %H:%M")
-            return RouterDecision(tool=True, tool_name="buscar_medico", parametros=parametros)
-
-        if previos and fecha is not None and pregunta_disponibilidad(mensaje):
-            parametros = {**previos, **MedicoService.extraer_criterios(mensaje)}
-            parametros["fecha"] = timezone.localtime(fecha).strftime("%Y-%m-%d %H:%M")
-            return RouterDecision(tool=True, tool_name="buscar_medico", parametros=parametros)
-
-        if es_consulta_estado(mensaje) and ultima.get("especialidad"):
-            parametros = {
-                clave: ultima[clave]
-                for clave in ("especialidad", "ciudad", "fecha")
-                if ultima.get(clave)
-            }
-            return RouterDecision(tool=True, tool_name="buscar_medico", parametros=parametros)
-
-        return None
+            parametros.pop("fecha", None)
+        for clave, valor in datos.items():
+            if valor is None:
+                parametros.pop(clave, None)
+            else:
+                parametros[clave] = valor
+        if quita:
+            for clave, palabras in (("ciudad", ("ciudad",)), ("especialidad", ("especialidad",)),
+                                    ("fecha", ("fecha", "dia", "hora"))):
+                if any(palabra in texto for palabra in palabras):
+                    parametros.pop(clave, None)
+                    if clave == "ciudad":
+                        parametros["ciudad_omitida"] = True
+        if parametros.get("ciudad"):
+            parametros.pop("ciudad_omitida", None)
+        if ciudades:
+            parametros.pop("ciudad", None)
+            parametros.pop("fecha", None)
+            parametros.update(ciudad_omitida=True, listar_ciudades=True)
+        if not any(parametros.get(k) for k in ("especialidad", "ciudad", "ciudad_omitida")):
+            return None
+        decision = RouterDecision(tool=True, tool_name="buscar_medico", parametros=parametros)
+        descartados = []
+        if activos.get("ciudad") and not parametros.get("ciudad"):
+            descartados.append("ciudad")
+        if activos.get("fecha") and not parametros.get("fecha"):
+            descartados.append("fecha y hora")
+        if descartados:
+            decision.prefijo = "Quité el filtro de " + " y ".join(descartados) + " para esta búsqueda."
+        return decision
 
     @staticmethod
     def iniciar(chat, nombre_flujo, parametros=None):
@@ -361,7 +597,7 @@ class FlowManager:
         paso = FlowManager._primer_paso_faltante(flujo, contexto)
 
         if paso is not None:
-            return paso["pregunta"]
+            return FlowManager._pregunta(paso, contexto, chat)
 
         return RouterDecision(
             tool=True,
@@ -462,6 +698,31 @@ class FlowManager:
                 nueva_accion,
                 parametros,
             )
+        if chat.estado_conversacion in ("agendar_cita", "reprogramar_cita"):
+            elegida = FlowManager._elegir_alternativa(chat, mensaje)
+            if isinstance(elegida, str):
+                return elegida
+            if elegida:
+                contexto = ConversationFlow.obtener(chat)
+                return FlowManager.iniciar(chat, chat.estado_conversacion, {
+                    **contexto, "id_medico": elegida["id_medico"], "fecha": elegida["fecha"]})
+            if chat.estado_conversacion == 'agendar_cita' and not ConversationFlow.obtener(chat).get("id_medico"):
+                por_nombre = FlowManager.resolver_nombre(chat, mensaje, forzar=True)
+                if por_nombre:
+                    return por_nombre
+
+        if chat.estado_conversacion in ('agendar_cita', 'reprogramar_cita') and pregunta_disponibilidad(mensaje):
+            from chatbot.services.cita_service import CitaService
+            contexto = ConversationFlow.obtener(chat)
+            dia = CitaService.extraer_dia(mensaje)
+            if dia is None:
+                dia = CitaService.extraer_dia(contexto.get('fecha_dia') or contexto.get('fecha') or '')
+            if dia is None:
+                return '¿Para qué día quieres consultar los horarios disponibles?'
+            ConversationFlow.guardar(chat, {'fecha_dia': dia.isoformat()})
+            return FlowManager._pregunta({'campo': 'fecha', 'pregunta': '¿Qué horario prefieres?'},
+                                         ConversationFlow.obtener(chat), chat)
+
         cambio = FlowManager._cambio_de_fecha_contextual(chat, mensaje)
         if isinstance(cambio, str):
             return cambio
@@ -512,7 +773,7 @@ class FlowManager:
                                 and respuesta not in FlowManager.RESPUESTAS_AFIRMATIVAS):
             parametros = FlowManager._extraer_seguimiento(chat, mensaje, chat.estado_conversacion, contexto)
             if not parametros and paso is not None:
-                return paso['pregunta']
+                return FlowManager._pregunta(paso, contexto, chat)
             if parametros:
                 ConversationFlow.guardar(chat, parametros)
                 contexto = ConversationFlow.obtener(chat)
@@ -520,7 +781,7 @@ class FlowManager:
         paso = FlowManager._primer_paso_faltante(flujo, contexto)
 
         if paso is not None:
-            return paso["pregunta"]
+            return FlowManager._pregunta(paso, contexto, chat)
 
         return RouterDecision(
             tool=True,
@@ -529,8 +790,26 @@ class FlowManager:
         )
 
     @staticmethod
+    def _horario_verificado(contexto):
+        """El horario de este médico y esta fecha ya fue validado por la herramienta."""
+        from chatbot.services.cita_service import CitaService
+        fecha = CitaService.normalizar_fecha(contexto.get("fecha"))
+        firma = contexto.get("horario_verificado")
+        return bool(firma and contexto.get("id_medico") and fecha is not None
+                    and firma == f"{contexto['id_medico']}|{fecha.isoformat()}")
+
+    @staticmethod
     def _primer_paso_faltante(flujo, contexto):
         for paso in flujo["pasos"]:
+
+            # El motivo se pide solo después de comprobar que el horario existe.
+            if paso.get("tras") == "horario_verificado" and not FlowManager._horario_verificado(contexto):
+                continue
+
+            if paso["campo"] == "fecha" and contexto.get("fecha_dia") and not (
+                    contexto.get("fecha") or contexto.get("fecha_programada")):
+                dia = str(contexto["fecha_dia"])
+                return {**paso, "pregunta": f"¿A qué hora prefieres el {dia[8:10]}/{dia[5:7]}?"}
 
             if paso["campo"] == "motivo_cancelacion":
                 motivo = normalizar_motivo_cancelacion(
@@ -568,8 +847,58 @@ class FlowManager:
         return None
 
     @staticmethod
+    def _extraer_datos_busqueda(mensaje, contexto, accion):
+        """Filtros que aporta el mensaje: ciudad, especialidad, día y hora. Sin modelo."""
+        from chatbot.ai.intencion import OMITIR_FILTRO
+        from chatbot.services.cita_service import CitaService
+        from chatbot.services.medico_service import MedicoService
+        datos = {}
+        texto = normalizar_intencion(mensaje)
+        criterios = MedicoService.extraer_criterios(mensaje)
+        datos.update(criterios)
+        if "ciudad" not in datos:
+            if OMITIR_FILTRO.search(texto):
+                datos["ciudad_omitida"] = True
+            else:
+                ciudad = MedicoService.resolver_ciudad_suelta(mensaje)
+                if ciudad:
+                    datos["ciudad"] = ciudad
+        elif contexto.get("ciudad_omitida"):
+            datos["ciudad_omitida"] = None
+        if datos.get("ciudad"):
+            datos["ciudad_omitida"] = None
+        dia = CitaService.extraer_dia(mensaje)
+        hora = extraer_hora(mensaje)
+        base = dia or (CitaService.extraer_dia(contexto["fecha_dia"]) if contexto.get("fecha_dia") else None)
+        if hora is not None and hora[0] != "ambigua" and base is not None:
+            datos["fecha"] = f"{base.isoformat()} {hora[0]:02d}:{hora[1]:02d}"
+            datos["fecha_dia"] = None
+        elif dia is not None:
+            # Con solo el día: la búsqueda muestra sus horarios; agendar pregunta la hora.
+            datos["fecha" if accion == "buscar_medico" else "fecha_dia"] = dia.isoformat()
+        return {k: v for k, v in datos.items() if v is not None or k in ("ciudad_omitida", "fecha_dia")}
+
+    @staticmethod
     def _extraer_seguimiento(chat, mensaje, accion, contexto):
-        
+        if accion == 'reprogramar_cita':
+            from chatbot.services.cita_service import CitaService
+            fecha = CitaService.extraer_fecha_relativa(mensaje)
+            if fecha is not None:
+                return {'fecha': fecha.isoformat()}
+            dia = CitaService.extraer_dia(mensaje)
+            hora = extraer_hora(mensaje)
+            base = dia or CitaService.extraer_dia(contexto.get('fecha_dia') or '')
+            if base is not None and hora is not None and hora[0] != 'ambigua':
+                return {'fecha': f'{base.isoformat()} {hora[0]:02d}:{hora[1]:02d}'}
+            if dia is not None:
+                return {'fecha_dia': dia.isoformat(), 'fecha': None, 'fecha_programada': None}
+        if accion in ("buscar_medico", "agendar_cita") and not chat.estado_conversacion.startswith("confirmar:") \
+                and FlowManager.campo_libre_pendiente(chat) != "motivo_consulta":
+            datos = FlowManager._extraer_datos_busqueda(mensaje, contexto, accion)
+            if datos:
+                return datos
+
+
         if (accion == "agendar_cita"and chat.estado_conversacion == "agendar_cita"):
             paso = FlowManager._primer_paso_faltante(
                 FLOWS["agendar_cita"], contexto
@@ -581,6 +910,11 @@ class FlowManager:
                 from chatbot.ai.router import PATRON_CONSULTA_MEDICA
                 motivo = str(mensaje or "").strip()
                 respuesta = normalizar_intencion(motivo)
+                if re.fullmatch(
+                    r"(?:por favor )?(?:agenda\s*me|agenda|agendala|agendamela|reserva\s*me|reservala|confirma\s*me|confirmala)"
+                    r"(?: (?:la|una|esa|mi) cita)?(?: por favor)?", respuesta
+                ):
+                    return {}
                 # Una pregunta sin síntomas no describe el motivo.
                 if "?" in motivo and not PATRON_CONSULTA_MEDICA.search(motivo):
                     return {}
@@ -646,20 +980,44 @@ class FlowManager:
         return {k: v for k, v in (decision.parametros or {}).items() if k != 'confirmado' and v not in (None, '')}
 
     @staticmethod
+    def _motivo_nuevo(mensaje):
+        """«El motivo es …», «cambia el motivo a …»: motivo corregido, validado por longitud."""
+        texto = str(mensaje or "").strip()
+        coincidencia = re.match(r"^(?:el\s+)?motivo\s+(?:es|ser[ií]a|ser[aá])\s*:?\s*(.+)$", texto, re.I | re.S) or \
+            re.match(r"^(?:cambia(?:r)?|corrige|corregir|actualiza(?:r)?)\s+(?:el\s+)?motivo\s*(?:a|por|:)\s*(.+)$", texto, re.I | re.S)
+        motivo = coincidencia.group(1).strip() if coincidencia else ""
+        return motivo if 1 <= len(motivo) <= FlowManager.MAX_MOTIVO else None
+
+    @staticmethod
+    def cambia_datos(chat, mensaje):
+        """¿El mensaje corrige hora, fecha, motivo o médico de la operación pendiente?"""
+        memoria = getattr(chat, "contexto_temporal", None) or {}
+        return bool(
+            parece_cambio_fecha(mensaje) or referencia_horario_anterior(mensaje)
+            or FlowManager._motivo_nuevo(mensaje) or parece_cambio_busqueda(mensaje)
+            or memoria.get("_hora_ambigua")
+        )
+
+    @staticmethod
     def _continuar_confirmacion(chat, mensaje):
 
-        respuesta = mensaje.strip().lower().rstrip(".!?")
+        from chatbot.ai.intencion import clasificar_confirmacion
+        clase = clasificar_confirmacion(mensaje)
 
-        if respuesta in FlowManager.RESPUESTAS_NEGATIVAS:
+        if clase == "cancela":
             ConversationFlow.finalizar(chat)
             return "Entendido. La operación fue cancelada y no hice cambios."
 
-        if respuesta not in FlowManager.RESPUESTAS_AFIRMATIVAS:
+        if clase != "confirma":
             contexto = ConversationFlow.obtener(chat)
             accion = chat.estado_conversacion.split(':', 1)[1]
-            parametros = FlowManager._extraer_seguimiento(chat, mensaje, accion, contexto)
-            if parametros:
-                return FlowManager.iniciar(chat, accion, {**contexto, **parametros})
+            nuevo_motivo = FlowManager._motivo_nuevo(mensaje)
+            if nuevo_motivo:
+                return FlowManager.iniciar(chat, accion, {**contexto, "motivo_consulta": nuevo_motivo})
+            if parece_cambio_busqueda(mensaje):
+                parametros = FlowManager._extraer_seguimiento(chat, mensaje, accion, contexto)
+                if parametros:
+                    return FlowManager.iniciar(chat, accion, {**contexto, **parametros})
             return "Por seguridad, responde «sí» para confirmar o «no» para cancelar."
 
         tool_name = chat.estado_conversacion.split(":", 1)[1]
@@ -711,24 +1069,13 @@ class FlowManager:
                 seleccion = opciones[indice]
 
         if seleccion is None and texto:
-            puntuados = sorted(
-                (
-                    (
-                        SequenceMatcher(
-                            None,
-                            texto,
-                            normalizar_intencion(opcion.get("nombre", "")),
-                        ).ratio(),
-                        opcion,
-                    )
-                    for opcion in opciones
-                ),
-                key=lambda elemento: elemento[0],
-                reverse=True,
-            )
-
-            if puntuados and puntuados[0][0] >= 0.55:
-                seleccion = puntuados[0][1]
+            from chatbot.services.medico_service import MedicoService
+            pool = [SimpleNamespace(pk=o["id_medico"], nombre=o.get("nombre", ""), apellido="") for o in opciones]
+            candidatos = MedicoService.candidatos_por_nombre(mensaje, pool)
+            if len(candidatos) == 1:
+                seleccion = next(o for o in opciones if o["id_medico"] == candidatos[0].pk)
+            elif len(candidatos) > 1:
+                return FlowManager._pedir_aclaracion([o for o in opciones if o["id_medico"] in {c.pk for c in candidatos}])
 
         if seleccion is None:
             referencia = referencia_resultado(mensaje)
@@ -747,6 +1094,9 @@ class FlowManager:
             "id_medico": seleccion["id_medico"],
             "fecha": contexto.get("fecha"),
         }
+        for clave in ("especialidad", "ciudad", "ciudad_omitida"):
+            if contexto.get(clave):
+                parametros[clave] = contexto[clave]
 
         if tool_name == "agendar_cita":
             parametros["motivo_consulta"] = contexto.get("motivo_consulta")

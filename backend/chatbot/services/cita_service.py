@@ -89,29 +89,107 @@ class CitaService:
     @staticmethod
     def extraer_fecha_relativa(texto):
         """«mañana a las 10 a.m.» → fecha local. Sin hora exacta no inventa un slot."""
-        texto = str(texto or "").lower()
-        dia = re.search(r"\b(pasado mañana|mañana|hoy)\b", texto)
-        if dia is None:
+        from chatbot.ai.filters import extraer_hora
+        dia = CitaService.extraer_dia(texto)
+        hora = extraer_hora(texto)
+        if dia is None or hora is None or hora[0] == "ambigua":
             return None
-        hora = re.search(
-            r"(?:a\s+las\s+)?\b(\d{1,2})(?::(\d{2}))?\s*"
-            r"(a\.?\s?m\.?|p\.?\s?m\.?|de la mañana|de la tarde|de la noche)?",
-            texto[dia.end():],
+        return timezone.make_aware(
+            datetime.combine(dia, datetime.min.time()).replace(hour=hora[0], minute=hora[1]),
+            timezone.get_current_timezone(),
         )
-        if hora is None:
-            return None
-        periodo = (hora.group(3) or "").replace(".", "").replace(" ", "")
-        minuto = hora.group(2) or "00"
-        if periodo:
-            sufijo = "am" if periodo in ("am", "delamañana") else "pm"
-            return CitaService.normalizar_fecha(
-                f"{dia.group(1)} a las {hora.group(1)}:{minuto} {sufijo}"
-            )
-        if hora.group(2) or int(hora.group(1)) > 12:
-            return CitaService.normalizar_fecha(
-                f"{dia.group(1)} a las {hora.group(1)}:{minuto}"
-            )
+
+    DIAS_SEMANA = {"lunes": 0, "martes": 1, "miercoles": 2, "jueves": 3,
+                   "viernes": 4, "sabado": 5, "domingo": 6}
+
+    @staticmethod
+    def extraer_dia(texto):
+        """Día local mencionado: hoy, mañana, pasado mañana, un día de la semana
+        o «8 de noviembre». Usa la fecha y la zona horaria configuradas."""
+        t = unicodedata.normalize("NFKD", str(texto or "").lower())
+        t = "".join(c for c in t if not unicodedata.combining(c))
+        t = re.sub(r"\bde la manana\b", " ", t)  # «7 de la mañana» es una hora
+        hoy = timezone.localdate()
+        iso = re.search(r"\b(\d{4})-(\d{2})-(\d{2})\b", t)
+        if iso:
+            try:
+                return datetime(int(iso.group(1)), int(iso.group(2)), int(iso.group(3))).date()
+            except ValueError:
+                return None
+        if re.search(r"\bpasado manana\b", t):
+            return hoy + timedelta(days=2)
+        if re.search(r"\bmanana\b", t):
+            return hoy + timedelta(days=1)
+        if re.search(r"\bhoy\b", t):
+            return hoy
+        explicita = re.search(r"\b(\d{1,2}) de ([a-z]+)(?: de (\d{4}))?\b", t)
+        if explicita and explicita.group(2) in CitaService.MESES:
+            anio = int(explicita.group(3) or hoy.year)
+            try:
+                dia = datetime(anio, CitaService.MESES[explicita.group(2)], int(explicita.group(1))).date()
+            except ValueError:
+                return None
+            if not explicita.group(3) and dia < hoy:
+                dia = dia.replace(year=dia.year + 1)
+            return dia
+        semana = re.search(r"\b(?:el |este |proximo )?(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b", t)
+        if semana:
+            falta = (CitaService.DIAS_SEMANA[semana.group(1)] - hoy.weekday()) % 7
+            return hoy + timedelta(days=falta or 7)
         return None
+
+    @staticmethod
+    def horarios_del_dia(medico, dia):
+        """Horas (HH:MM) realmente libres del médico ese día, según el servicio oficial."""
+        from medicos.services_disponibilidad import generarSlotsDisponibles
+        return [slot["hora_inicio"] for slot in generarSlotsDisponibles(medico, dia)]
+
+    @staticmethod
+    def alternativas(medico, fecha, limite=4, dias=7):
+        """Horarios libres más cercanos a ``fecha`` (misma jornada y días siguientes)."""
+        objetivo = timezone.localtime(fecha)
+        encontrados = []
+        for desplazamiento in range(dias + 1):
+            dia = objetivo.date() + timedelta(days=desplazamiento)
+            for hhmm in CitaService.horarios_del_dia(medico, dia):
+                hora, minuto = (int(parte) for parte in hhmm.split(":"))
+                inicio = timezone.make_aware(
+                    datetime.combine(dia, datetime.min.time()).replace(hour=hora, minute=minuto),
+                    timezone.get_current_timezone(),
+                )
+                if inicio != objetivo:
+                    encontrados.append(inicio)
+        cercanos = sorted(encontrados, key=lambda inicio: abs((inicio - objetivo).total_seconds()))[:limite]
+        return sorted(cercanos)
+
+    @staticmethod
+    def horarios_cercanos(horas, momento=None, n=3):
+        """Las ``n`` horas (HH:MM) libres más cercanas a ``momento`` (o las primeras), en orden."""
+        if momento is None:
+            return list(horas)[:n]
+        objetivo = timezone.localtime(momento)
+        minutos = objetivo.hour * 60 + objetivo.minute
+        distancia = lambda hhmm: abs(int(hhmm[:2]) * 60 + int(hhmm[3:5]) - minutos)
+        return sorted(sorted(horas, key=distancia)[:n])
+
+    @staticmethod
+    def proximos_horarios(medico, desde, n=3, dias=14):
+        """Próximos ``n`` horarios libres del médico a partir de ``desde``, con su fecha."""
+        desde = timezone.localtime(desde)
+        encontrados = []
+        for desplazamiento in range(dias + 1):
+            dia = desde.date() + timedelta(days=desplazamiento)
+            for hhmm in CitaService.horarios_del_dia(medico, dia):
+                hora, minuto = (int(parte) for parte in hhmm.split(":"))
+                inicio = timezone.make_aware(
+                    datetime.combine(dia, datetime.min.time()).replace(hour=hora, minute=minuto),
+                    timezone.get_current_timezone(),
+                )
+                if inicio >= desde:
+                    encontrados.append(inicio)
+                if len(encontrados) >= n:
+                    return encontrados
+        return encontrados
 
     @staticmethod
     def horario_disponible(medico, fecha, excluir_cita_id=None):

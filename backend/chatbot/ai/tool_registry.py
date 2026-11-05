@@ -79,7 +79,9 @@ TOOLS = {
         nombre="consultar_disponibilidad",
         descripcion=(
             "Consulta las próximas citas médicas del usuario autenticado "
-            "e incluye el id necesario para reprogramarlas o cancelarlas."
+            "e incluye el id necesario para reprogramarlas o cancelarlas. "
+            "Acepta estado=pendiente_confirmacion para solicitudes pendientes o reprogramadas "
+            "que esperan confirmación, o estado=confirmada. No confirma ni modifica citas."
         ),
         funcion=ConsultarDisponibilidadTool(),
         categoria="citas",

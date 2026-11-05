@@ -26,12 +26,12 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
   let recognition = null;
   let active = false, disposed = false, hidden = Boolean(browser.document?.hidden);
   let phase = "off", running = false, stopping = false, intentional = false, closing = false;
-  let failures = 0, restartTimer, startTimer, stableTimer, quietTimer, idleTimer, turnTimer, closeTimer, endTimer;
+  let failures = 0, restartTimer, startTimer, stableTimer, quietTimer, idleTimer, turnTimer, closeTimer, endTimer, recoverTimer;
   let conversation = false;
   let mode = "wake", sessionId = 0, lastResultAt = 0, metrics = {}, shown = "", rawLength = 0;
   // The browser closes a quiet microphone by itself (no-speech, or after a long silence). That is
   // normal while Bymax talks and the user listens, so it must not count as a failure.
-  let startedAt = 0, benignEnd = false;
+  let startedAt = 0, benignEnd = false, errorCounted = false;
   const checked = new Set();
   const state = (mic, notice = "", error) => { phase = mic; if (!disposed) notify({mic, active, notice, ...(error !== undefined ? {error} : {})}); };
   const emitMetric = (event, elapsed) => {
@@ -41,7 +41,7 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
   const clearCapture = () => { for (const timer of [quietTimer, idleTimer, turnTimer, closeTimer]) browser.clearTimeout(timer); };
   const clearTimers = () => {
     clearCapture();
-    for (const timer of [restartTimer, startTimer, stableTimer]) browser.clearTimeout(timer);
+    for (const timer of [restartTimer, startTimer, stableTimer, recoverTimer]) browser.clearTimeout(timer);
     restartTimer = null;
   };
   const resetTurn = () => { dictation.reset(); metrics = {}; checked.clear(); shown = ""; };
@@ -57,8 +57,7 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
       endTimer = browser.setTimeout(() => {
         if (!running) return;
         if (phase === "ended" || phase === "stopped") return;
-        active = false;
-        state("error", "", "El navegador no confirmó el cierre del micrófono. Recarga la página para volver a activarlo.");
+        recoverRecognition();
       }, 3000);
       try { recognition.abort(); } catch { running = stopping = false; }
     }
@@ -86,9 +85,59 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
     if (kept.text) onPartial(kept.text, kept);
     state("error", "", errors[code] || "El reconocimiento se interrumpió varias veces. Pulsa Activar para volver a intentarlo.");
   }
-  function resume(delay = 350) {
+  function resume(delay = 120) {
     if (disposed || !active || hidden || running || restartTimer != null || !canListen()) return;
     restartTimer = browser.setTimeout(() => { restartTimer = null; startCapture(); }, delay);
+  }
+  // A recognizer that keeps failing is replaced by a fresh one (the permission already granted is kept).
+  function discardRecognition() {
+    browser.clearTimeout(startTimer);
+    browser.clearTimeout(stableTimer);
+    const old = recognition;
+    recognition = null;
+    if (!old) return;
+    old.onstart = old.onspeechstart = old.onresult = old.onerror = old.onend = null;
+    try { old.abort(); } catch {}
+    running = stopping = false;
+  }
+  function recoverRecognition() {
+    if (disposed || !active) return;
+    dictation.commitSession();
+    for (const timer of [startTimer, stableTimer, endTimer, recoverTimer]) browser.clearTimeout(timer);
+    discardRecognition();
+    intentional = false;
+    state("recovering", "Reconectando la escucha…");
+    resume(Math.min(1500, 150 * 2 ** Math.min(failures, 3)));
+  }
+  // Supervisor: whatever event gets lost (an `end` that never arrives, a timer cleared by another
+  // path), a session that should be listening and is not starts again within half a second.
+  let supervising = false;
+  function ensureListening() {
+    if (disposed || !active || hidden || running || stopping || closing || restartTimer != null) return;
+    if (["error", "stopped", "ended"].includes(phase) || !canListen()) return;
+    startCapture();
+  }
+  function supervise() {
+    if (supervising || disposed) return;
+    supervising = true;
+    const tick = () => browser.setTimeout(() => {
+      if (disposed || !active) { supervising = false; return; }
+      ensureListening();
+      tick();
+    }, 500);
+    tick();
+  }
+  // «Reconectando la escucha…» never lasts long: if the microphone did not come back, rebuild the
+  // recognizer and retry; only if that fails too it is said with an actionable message.
+  function watchRecovery() {
+    browser.clearTimeout(recoverTimer);
+    recoverTimer = browser.setTimeout(() => {
+      if (disposed || !active || phase !== "recovering" || running) return;
+      restartTimer = null;
+      discardRecognition();
+      startCapture();
+      recoverTimer = browser.setTimeout(() => { if (active && phase === "recovering" && !running) recoverRecognition(); }, 4000);
+    }, 3000);
   }
 
   // ---- Turn lifecycle ------------------------------------------------------
@@ -208,19 +257,19 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
       if (["not-allowed", "service-not-allowed", "audio-capture", "language-not-supported"].includes(event.error)) { fail(event.error); return; }
       // Recover only after onend releases the existing microphone session.
       if (["no-speech", "aborted"].includes(event.error)) benignEnd = true;
-      else failures += 1;
-      if (failures >= 4) fail(event.error);
-      else {
+      else { failures += 1; errorCounted = true; } // counted once: onend must not add it again
+      {
         state("recovering", "El reconocimiento se interrumpió. Esperando su cierre…");
         browser.clearTimeout(startTimer);
-        startTimer = browser.setTimeout(() => fail(event.error), 3000);
+        startTimer = browser.setTimeout(recoverRecognition, 3000);
       }
     };
     recognition.onend = () => {
       const wasIntentional = intentional;
       // A microphone that stayed open for a while, or closed on a quiet «no-speech», just rested.
       const natural = benignEnd || (startedAt > 0 && now() - startedAt >= 4000);
-      benignEnd = false; startedAt = 0;
+      const counted = errorCounted;
+      benignEnd = false; startedAt = 0; errorCounted = false;
       running = stopping = false;
       browser.clearTimeout(endTimer);
       intentional = false;
@@ -233,16 +282,21 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
       dictation.commitSession();
       const keepTurn = !wasIntentional && mode === "request" && dictation.hasText();
       if (!keepTurn) clearCapture();
-      if (!wasIntentional && !keepTurn) { if (natural) failures = 0; else failures += 1; }
-      if (failures >= 4) { fail(); return; }
+      if (!wasIntentional && !keepTurn) { if (natural) failures = 0; else if (!counted) failures += 1; }
+      if (failures >= 2 && !wasIntentional && !natural) discardRecognition();
       mode = conversation ? "request" : "wake";
-      state("recovering", "Reconectando la escucha…");
-      resume(wasIntentional ? 350 : keepTurn ? 200 : natural ? 150 : Math.min(8000, 500 * 2 ** failures));
+      if (canListen()) {
+        state("recovering", "Reconectando la escucha…");
+        watchRecovery();
+      } else state("paused", ""); // Bymax is answering: listening returns by itself afterwards
+      // Reconnect at once; only repeated immediate failures wait a little (never more than 1.5 s).
+      resume(wasIntentional || natural ? 50 : keepTurn ? 100 : Math.min(1500, 150 * 2 ** failures));
     };
     return recognition;
   }
   function startCapture() {
-    if (disposed || !active || hidden || running || !canListen()) return;
+    if (disposed || !active || hidden || running) return;
+    if (!canListen()) return; // the supervisor starts it as soon as listening is allowed
     // A restart inside the same turn keeps the confirmed text.
     sessionId = dictation.beginSession();
     checked.clear();
@@ -252,11 +306,18 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
       const instance = obtain();
       running = true;
       state("starting", "Preparando micrófono… Si el navegador lo solicita, permite el acceso.");
-      startTimer = browser.setTimeout(() => { if (running) fail("start-timeout"); }, 12000);
+      startTimer = browser.setTimeout(() => { if (running) { failures += 1; recoverRecognition(); } }, 12000);
       instance.start();
-    } catch {
-      running = false;
-      fail("start-timeout");
+    } catch (error) {
+      // «Already started» (a previous session not fully closed): replace the recognizer and retry.
+      if (error?.name === "InvalidStateError") {
+        discardRecognition();
+        state("recovering", "Reconectando la escucha…");
+        resume(200);
+        return;
+      }
+      failures += 1;
+      recoverRecognition();
     }
   }
   function start(nextMode = "wake") {
@@ -273,6 +334,7 @@ export function createVoiceSession({ browser, notify, onTranscript, onPartial, o
     resetTurn();
     clearTimers();
     if (hidden) { state("suspended", "Vuelve a la página para activar la escucha."); return; }
+    supervise();
     startCapture(); // No await before start: preserves a click's user activation.
   }
   // Last resort for a call whose microphone stopped answering: a fresh recognizer, ignoring the old one.

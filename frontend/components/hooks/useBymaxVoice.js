@@ -103,6 +103,7 @@ export default function useBymaxVoice(options) {
   const play = useCallback((text, id) => controller.current?.play(text, id), []);
   const enqueue = useCallback((text, id) => controller.current?.enqueue(text, id), []);
   const clearError = useCallback(() => controller.current?.clearError(), []);
+  const unlockAudio = useCallback(() => controller.current?.unlockAudio(), []);
   const manualEdit = useCallback(text => controller.current?.manualEdit(text), []);
   const discardDictation = useCallback(() => controller.current?.discardDictation(), []);
   // Llamada: escucha continua, interrupción al hablar encima y respuestas habladas sin botón.
@@ -114,5 +115,5 @@ export default function useBymaxVoice(options) {
     controller.current?.stopPlayback();
     setConfig(previous => { const value = { ...previous, ...next }; save("bymax_configuracion_voz", JSON.stringify(value)); return value; });
   }, [save]);
-  return { ...state, config, voices, beginTurn, completeTurn, stopPlayback, play, enqueue, clearError, updateConfig, manualEdit, discardDictation, startCall, endCall, setMuted, interrupt };
+  return { ...state, config, voices, beginTurn, completeTurn, stopPlayback, play, enqueue, clearError, updateConfig, manualEdit, discardDictation, unlockAudio, startCall, endCall, setMuted, interrupt };
 }

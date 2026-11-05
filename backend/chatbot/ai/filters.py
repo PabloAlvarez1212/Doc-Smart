@@ -248,10 +248,28 @@ def solicita_buscar_profesional(texto):
     ))
 
 
+def parametros_consulta_citas(texto):
+    """Consulta de citas propias existentes; nunca una orden de escritura."""
+    texto = normalizar_intencion(texto)
+    if not re.search(r"\bcitas?\b", texto):
+        return None
+    if re.search(r"\b(cancel\w*|reprogram\w*|agenda\w*|reserva\w*|confirma|confirmame|confirmalas|confirmala)\b", texto):
+        return None
+    if not re.search(r"\b(mis citas|mi cita|tengo|teng[oa] pendientes|me quedan|he solicitado)\b", texto):
+        return None
+    if re.search(r"\b(pendientes?|sin confirmar|por confirmar|no confirmadas?)\b", texto):
+        return {"estado": "pendiente_confirmacion"}
+    if re.search(r"\bconfirmadas?\b", texto):
+        return {"estado": "confirmada"}
+    if re.search(r"\b(ver|mirar|revis\w*|consult\w*|muestr\w*|dime|cuales|que|proximas|listar)\b", texto):
+        return {}
+    return None
+
+
 def pregunta_disponibilidad(texto):
     texto = normalizar_intencion(texto)
     return bool(re.search(
-        r"\b(disponible|disponibles|disponibilidad|libre|libres|atiende|atienden)\b|"
+        r"\b(disponible|disponibles|disponibilidad|disponibilidades|horarios|libre|libres|atiende|atienden)\b|"
         r"\bhay (algun|alguna|un|una)\b",
         texto,
     ))
@@ -457,8 +475,9 @@ def extraer_hora(texto):
     t = re.sub(r"a\.\s?m\.?", "am", re.sub(r"p\.\s?m\.?", "pm", _sin_tildes(texto)))
     for palabra, valor in _NUMEROS.items():
         t = re.sub(rf"\ba las {palabra}\b", f"a las {valor}", t)
-    m = re.search(r"\b(?:a las\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|de la manana|de la tarde|de la noche)?\b", t)
-    if not m or not (re.search(r"\ba las\b", t) or m.group(2) or m.group(3)):
+    candidatos = re.finditer(r"\b(?:a las\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|de la manana|de la tarde|de la noche)?\b", t)
+    m = next((m for m in candidatos if m.group(0).startswith('a las') or m.group(2) or m.group(3)), None)
+    if not m:
         return None
     hora, minuto, periodo = int(m.group(1)), int(m.group(2) or 0), m.group(3)
     if minuto > 59 or hora > 23:
