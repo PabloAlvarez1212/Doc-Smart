@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowDown, ArrowRight, BellRing, HeartPulse, LockKeyhole, Mic, ScanFace, Stethoscope } from 'lucide-react';
 import Reveal from '../Reveal';
+import InstallButton from './InstallButton';
 import home from '../home.module.css';
 import styles from './Hero.module.css';
 
@@ -52,6 +53,7 @@ export default function Hero() {
           <Link href="#como-funciona" className={home.soft}>
             Ver cómo funciona <ArrowDown size={18} aria-hidden="true" />
           </Link>
+          <InstallButton />
         </div>
 
         <div className={styles.audience}>

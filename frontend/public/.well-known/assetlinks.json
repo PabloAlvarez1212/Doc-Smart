@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "site.docsmart.app",
+      "sha256_cert_fingerprints": [
+        "7A:66:A8:98:9F:0E:74:09:BA:E9:E7:6C:16:AB:4E:D8:44:1F:63:4A:9A:F3:59:1E:DA:BF:72:B0:89:6A:EF:07"
+      ]
+    }
+  }
+]
