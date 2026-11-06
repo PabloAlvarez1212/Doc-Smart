@@ -581,36 +581,68 @@ def _lista_puntos(malla, cara, x0=0.0, y0=0.0, escala=1.0):
     return [[round((float(px) - x0) * escala, 1), round((float(py) - y0) * escala, 1)] for px, py in origen]
 
 
+ESCALAS_DOCUMENTO = (1.0, 0.6, 0.4, 0.25)
+
+
+def _rostros_en_escalas(fuente, minimo=0.55):
+    """Rostros de una vista del documento, probando varios tamaños.
+
+    El detector rinde mejor con rostros de unos 80 a 250 px. En una foto de cédula tomada de cerca el rostro puede
+    medir 400 px o más, y entonces el detector casi no lo reconoce aunque se vea perfecto; reducir la imagen lo
+    resuelve. Las cajas y puntos se devuelven en las coordenadas de la vista original."""
+    for escala in ESCALAS_DOCUMENTO:
+        vista = fuente if escala == 1.0 else cv2.resize(fuente, None, fx=escala, fy=escala, interpolation=cv2.INTER_AREA)
+        if min(vista.shape[:2]) < 120:
+            break
+        caras = [c for c in _rostros(vista) if c[14] >= minimo]
+        if caras:
+            if escala != 1.0:
+                caras = [np.concatenate([c[:14] / escala, c[14:]]) for c in caras]
+            return caras
+    return []
+
+
 def _buscar_rostro_documento(img):
     """(fuente, cara, dudosa): el rostro de la fotografía del documento, o (None, None, False) si no aparece.
 
-    Primero la zona de la fotografía y luego toda la imagen; si no hay rostro, las demás orientaciones, porque la
-    cédula suele fotografiarse de lado o al revés. Solo como último recurso se acepta una detección menos segura,
-    y entonces se marca `dudosa` para que el servicio no apruebe ni rechace por sí solo."""
+    Primero la zona de la fotografía y luego toda la imagen, cada una en varios tamaños; si no hay rostro, las demás
+    orientaciones, porque la cédula suele fotografiarse de lado o al revés. Solo como último recurso se acepta una
+    detección menos segura, y entonces se marca `dudosa` para que el servicio no apruebe ni rechace por sí solo."""
     vertical = img.shape[0] > img.shape[1]
     giros = ([cv2.ROTATE_90_CLOCKWISE, cv2.ROTATE_90_COUNTERCLOCKWISE, None, cv2.ROTATE_180] if vertical
              else [None, cv2.ROTATE_90_CLOCKWISE, cv2.ROTATE_90_COUNTERCLOCKWISE, cv2.ROTATE_180])
+    vistas = []
+    for giro in giros:
+        base = img if giro is None else cv2.rotate(img, giro)
+        vistas.append((True, _zona_foto(base)))
+        vistas.append((False, base))
+    detectadas = {}
+
+    def evaluar(i, minimo):
+        """Candidato de la vista i con al menos esa seguridad, o None. Cada vista se detecta una sola vez."""
+        en_zona, fuente = vistas[i]
+        if i not in detectadas:
+            detectadas[i] = _rostros_en_escalas(fuente)
+        caras = [c for c in detectadas[i] if c[14] >= minimo]
+        if not caras:
+            return None
+        (rx, ry), (lx, ly), (_, ny), (_, rmy), (_, lmy) = _puntos(caras[0])
+        inclinacion = abs(math.degrees(math.atan2(ly - ry, lx - rx)))
+        if not (min(ry, ly) < ny < max(rmy, lmy)):
+            inclinacion += 180  # nariz fuera de lugar: el rostro está al revés
+        return (inclinacion <= 25, en_zona, float(caras[0][14]), -inclinacion, fuente, caras[0])
+
+    if not vertical:
+        # Caso normal (cédula horizontal, fotografía a la izquierda): detección clara y derecha, sin seguir buscando.
+        primero = evaluar(0, 0.7)
+        if primero and primero[0] and primero[2] >= 0.85:
+            return primero[4], primero[5], False
     for minimo in (0.7, 0.55):
-        candidatos = []
-        for giro in giros:
-            base = img if giro is None else cv2.rotate(img, giro)
-            for en_zona, fuente in ((True, _zona_foto(base)), (False, base)):
-                caras = [c for c in _rostros(fuente) if c[14] >= minimo]
-                if not caras:
-                    continue
-                (rx, ry), (lx, ly), (_, ny), (_, rmy), (_, lmy) = _puntos(caras[0])
-                inclinacion = abs(math.degrees(math.atan2(ly - ry, lx - rx)))
-                if not (min(ry, ly) < ny < max(rmy, lmy)):
-                    inclinacion += 180  # nariz fuera de lugar: el rostro está al revés
-                derecho = inclinacion <= 25
-                if derecho and en_zona and caras[0][14] >= 0.85 and not vertical:
-                    return fuente, caras[0], minimo < 0.7   # detección clara en la zona de la foto, en la orientación normal: no hace falta seguir
-                candidatos.append((derecho, float(caras[0][14]), -inclinacion, fuente, caras[0]))
-                break
+        candidatos = [c for c in (evaluar(i, minimo) for i in range(len(vistas))) if c]
         if candidatos:
-            # Se prefiere el rostro derecho y, entre esos, el de mayor seguridad: así un falso positivo en una
-            # orientación incorrecta no gana a la fotografía real en la orientación correcta.
-            _, _, _, fuente, cara = max(candidatos, key=lambda c: c[:3])
+            # Se prefiere el rostro derecho y, entre esos, el de la zona de la foto y el de mayor seguridad: así un
+            # falso positivo en una orientación incorrecta no gana a la fotografía real en la correcta.
+            *_, fuente, cara = max(candidatos, key=lambda c: c[:4])
             return fuente, cara, minimo < 0.7
     return None, None, False
 
