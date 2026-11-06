@@ -1,0 +1,146 @@
+.editor {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.escena {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--surface-muted);
+}
+
+.area {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+    line-height: 0;
+    user-select: none;
+}
+
+.lienzo {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 38vh;
+}
+
+/* Recuadro de recorte: lo de afuera se oscurece. */
+.recorte {
+    position: absolute;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    cursor: move;
+    touch-action: none;
+}
+
+.recorte[data-completo='true'] {
+    border-style: dashed;
+}
+
+.esquina {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 2px solid #fff;
+    border-radius: 6px;
+    background: var(--focus);
+    touch-action: none;
+}
+
+.esquina:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+}
+
+.si { top: -11px; left: -11px; cursor: nwse-resize; }
+.sd { top: -11px; right: -11px; cursor: nesw-resize; }
+.ii { bottom: -11px; left: -11px; cursor: nesw-resize; }
+.id { bottom: -11px; right: -11px; cursor: nwse-resize; }
+
+@media (pointer: coarse) {
+    .esquina {
+        width: 30px;
+        height: 30px;
+    }
+
+    .si { top: -15px; left: -15px; }
+    .sd { top: -15px; right: -15px; }
+    .ii { bottom: -15px; left: -15px; }
+    .id { bottom: -15px; right: -15px; }
+}
+
+.controles {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.fila {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.titulo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 4px;
+    color: var(--color-dark);
+    font-size: 0.85rem;
+    font-weight: 650;
+}
+
+.deslizador {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr) 56px;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+}
+
+.deslizador input {
+    width: 100%;
+    accent-color: var(--focus);
+}
+
+.deslizador output {
+    color: var(--color-text);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.estado,
+.consejo {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.error {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--tone-red);
+    color: var(--ink-red);
+    font-size: 0.85rem;
+}
+
+@media (max-width: 420px) {
+    .deslizador {
+        grid-template-columns: 70px minmax(0, 1fr) 48px;
+        gap: 8px;
+    }
+}
