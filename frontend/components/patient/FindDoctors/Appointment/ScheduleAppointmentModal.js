@@ -121,7 +121,7 @@ export default function ScheduleAppointmentModal({ doctor, onClose }) {
         } catch (error) {
             const responseData = error?.response?.data;
             const message =
-                responseData?.mensaje ||
+                responseData?.errores?.detalle ||
                 responseData?.detail ||
                 obtenerPrimerError(responseData) ||
                 "No fue posible agendar la cita.";
