@@ -36,7 +36,7 @@
     height: 44px;
     place-items: center;
     border-radius: 12px;
-    color: #9aa8b9;
+    color: var(--star-inactive);
     cursor: pointer;
     transition:
         color 160ms ease-out,
@@ -52,28 +52,28 @@
 
 .starButton:hover,
 .input:focus-visible + .starButton {
-    background: #fff6dc;
-    color: #b96e00;
+    background: var(--star-hover-bg);
+    color: var(--star-ink);
     transform: translateY(-1px) scale(1.04);
 }
 
 .input:focus-visible + .starButton {
-    outline: 3px solid rgb(36 86 166 / 22%);
+    outline: 3px solid var(--focus);
     outline-offset: 2px;
 }
 
 .active,
 .activeStar {
-    color: #d98700;
+    color: var(--star-active);
 }
 
 .inactiveStar {
-    color: #a6b1bf;
+    color: var(--star-inactive);
 }
 
 .input:checked + .starButton {
-    background: #fff4ce;
-    color: #a95f00;
+    background: var(--star-hover-bg);
+    color: var(--star-ink);
 }
 
 .root:disabled .starButton {
@@ -119,7 +119,7 @@
 
 .starFill {
     overflow: hidden;
-    color: #d98700;
+    color: var(--star-active);
 }
 
 .starFill svg {
