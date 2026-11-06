@@ -89,6 +89,7 @@ export default function Doctors() {
       <AdminPageHeader eyebrow="Personas" title="Médicos" description="Consulta y administra los profesionales aprobados en DocSmart." />
       <section className={pageStyles.tableSection} aria-label="Listado de médicos">
         <FilterBar
+          stacked
           searchValue={crud.busqueda}
           onSearch={crud.setBusqueda}
           searchLabel="Buscar médico por nombre, apellido o cédula"

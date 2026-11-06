@@ -10,8 +10,10 @@ import styles from "./FilterBar.module.css";
  * Cada chip muestra su nombre; al elegir un valor se rellena con el color del rol y muestra la elección.
  *
  * filters: [{ key, label, type: "select" | "date", value, onChange, options?: [{ value, label }], allLabel?, disabled?, hint? }]
+ * stacked: en tablet (≤ 900 px) los filtros pasan a 2 columnas y en móvil (≤ 640 px) a una, a ancho completo,
+ *          en lugar de la fila con desplazamiento horizontal.
  */
-export default function FilterBar({ searchValue, onSearch, searchLabel = "Buscar", placeholder = "Buscar", filters = [], onClear }) {
+export default function FilterBar({ searchValue, onSearch, searchLabel = "Buscar", placeholder = "Buscar", filters = [], onClear, stacked = false }) {
     const [openKey, setOpenKey] = useState(null);
     const rootRef = useRef(null);
     const activeCount = filters.filter((filter) => String(filter.value ?? "") !== "").length;
@@ -33,7 +35,7 @@ export default function FilterBar({ searchValue, onSearch, searchLabel = "Buscar
     }, [openKey]);
 
     return (
-        <section className={styles.bar} aria-label="Filtros" role="search" ref={rootRef}>
+        <section className={`${styles.bar} ${stacked ? styles.stacked : ""}`} aria-label="Filtros" role="search" ref={rootRef}>
             {typeof onSearch === "function" && (
                 <label className={styles.search}>
                     <span className={styles.srOnly}>{searchLabel}</span>

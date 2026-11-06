@@ -17,6 +17,7 @@ export default function ValidationFilters({
 }) {
     return (
         <FilterBar
+            stacked
             searchValue={busqueda}
             onSearch={setBusqueda}
             searchLabel="Buscar médico por nombre o cédula"
