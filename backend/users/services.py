@@ -1407,14 +1407,19 @@ def completarRegistroUsuarioService(proceso_id):
     serializer = UsuarioSerializer(usuario)
     return serializer.data, 201
 
-def listarPacientesService(page=None, page_size=10, search=None):
+def listarPacientesService(page=None, page_size=10, search=None, estado=None):
     usuarios = Usuario.objects.filter(id_rol__nombre__iexact = "paciente")
 
     if search:
-        usuarios = usuarios.filter(
-            Q(nombre__icontains=search.strip()) | Q(cedula__icontains=search.strip())
-        )
-    usuarios = usuarios.order_by('nombre')
+        for termino in search.strip().split():
+            usuarios = usuarios.filter(
+                Q(nombre__icontains=termino) |
+                Q(apellido__icontains=termino) |
+                Q(cedula__icontains=termino)
+            )
+    if estado in ("activo", "bloqueado"):
+        usuarios = usuarios.filter(acceso_bloqueado=(estado == "bloqueado"))
+    usuarios = usuarios.order_by('nombre', 'apellido', 'id')
 
     if page is None:
         serializer = UsuarioSerializer(usuarios, many=True)
@@ -1423,6 +1428,7 @@ def listarPacientesService(page=None, page_size=10, search=None):
         page_size = int(page_size)
     except (TypeError, ValueError):
         page_size = 10
+    page_size = max(1, min(page_size, 100))
 
     paginator = Paginator(usuarios, page_size)
     page_obj = paginator.get_page(page)
@@ -1510,17 +1516,6 @@ def editarUsuarioService(id,datos):
 
     serializer=UsuarioPerfilSerializer(usuario)
     return serializer.data,200
-
-def eliminarUsuarioService(id):
-    usuario = Usuario.objects.filter(id=id).first()
-    if not usuario:
-        return 'Usuario no encontrado', 404
-    es_paciente = usuario.id_rol.nombre == 'paciente'
-    usuario.delete()
-    if es_paciente:
-        from notificaciones.realtime import programarActualizacionDashboardRealtime
-        programarActualizacionDashboardRealtime('PACIENTE_ELIMINADO', ('resumen', 'pacientes'))
-    return 'Usuario eliminado correctamente', 200
 
 def obtenerDashboardPacienteInicioService(id):
     fecha_actual = timezone.localtime()

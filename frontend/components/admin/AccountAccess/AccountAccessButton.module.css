@@ -1,0 +1,22 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-muted);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lock { color: #a32d2d; }
+.unlock { color: #2455a4; }
+.button:hover:not(:disabled) { background: #eaf1fb; }
+.button:focus-visible { outline: 2px solid #2455a4; outline-offset: 2px; }
+.button:disabled { opacity: 0.55; cursor: wait; }

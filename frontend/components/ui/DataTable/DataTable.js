@@ -65,6 +65,7 @@ export default function DataTable({
   textoConteo,
   valorBusqueda,
   onBuscar,
+  renderAcciones,
 }) {
   const [busquedaLocal, setBusquedaLocal] = useState("");
   const busqueda = typeof onBuscar === "function" ? (valorBusqueda ?? "") : busquedaLocal;
@@ -182,24 +183,28 @@ export default function DataTable({
                   {mostrarAcciones && (
                     <td className={styles.td} data-label="Acciones">
                       <div className={`${styles.acciones} ${centrarAcciones ? styles.centrarAcciones : ''}`}>
-                        {mostrarEditar && (
-                          <button
-                            className={`${styles.accionBtn} ${styles.editar}`}
-                            onClick={() => onEditar?.(item)}
-                            title="Editar"
-                            aria-label={`Editar ${item.nombre ?? "registro"}`}
-                          >
-                            <Pencil size={16} />
-                          </button>
+                        {renderAcciones ? renderAcciones(item) : (
+                          <>
+                            {mostrarEditar && (
+                              <button
+                                className={`${styles.accionBtn} ${styles.editar}`}
+                                onClick={() => onEditar?.(item)}
+                                title="Editar"
+                                aria-label={`Editar ${item.nombre ?? "registro"}`}
+                              >
+                                <Pencil size={16} />
+                              </button>
+                            )}
+                            <button
+                              className={`${styles.accionBtn} ${styles.eliminar}`}
+                              onClick={() => onEliminar?.(item)}
+                              title="Eliminar"
+                              aria-label={`Eliminar ${item.nombre ?? "registro"}`}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
                         )}
-                        <button
-                          className={`${styles.accionBtn} ${styles.eliminar}`}
-                          onClick={() => onEliminar?.(item)}
-                          title="Eliminar"
-                          aria-label={`Eliminar ${item.nombre ?? "registro"}`}
-                        >
-                          <Trash2 size={16} />
-                        </button>
                       </div>
                     </td>
                   )}

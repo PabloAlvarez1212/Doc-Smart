@@ -35,3 +35,24 @@ def programarActualizacionDashboardRealtime(tipo_evento, secciones):
             logger.exception("Error enviando invalidación del dashboard: %s", tipo_evento)
 
     transaction.on_commit(emitir, robust=True)
+
+def grupo_acceso_cuenta(tipo, cuenta_id):
+    if tipo not in ("paciente", "medico"):
+        raise ValueError("Tipo de cuenta inválido")
+    return f"cuenta_{tipo}_{int(cuenta_id)}"
+
+
+def programarCierreConexionesCuenta(tipo, cuenta_id):
+    grupo = grupo_acceso_cuenta(tipo, cuenta_id)
+
+    def cerrar():
+        canal = get_channel_layer()
+        if canal is None:
+            logger.warning("Channel Layer no disponible para cerrar conexiones de cuenta")
+            return
+        try:
+            async_to_sync(canal.group_send)(grupo, {"type": "access_revoked"})
+        except Exception:
+            logger.exception("No se pudieron cerrar conexiones de %s %s", tipo, cuenta_id)
+
+    transaction.on_commit(cerrar, robust=True)

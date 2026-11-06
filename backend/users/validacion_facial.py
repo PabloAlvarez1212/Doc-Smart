@@ -1536,7 +1536,8 @@ def resolverRevisionPosteriorService(proceso_id, decision, motivo, revisor):
             cuenta.motivo_bloqueo = motivo
             cuenta.bloqueado_en = timezone.now()
             cuenta.save(update_fields=["acceso_bloqueado", "motivo_bloqueo", "bloqueado_en"])
-            from notificaciones.realtime import programarActualizacionDashboardRealtime
+            from notificaciones.realtime import programarActualizacionDashboardRealtime, programarCierreConexionesCuenta
+            programarCierreConexionesCuenta(p.tipo_registro, cuenta.pk)
             programarActualizacionDashboardRealtime(
                 'CUENTA_BLOQUEADA',
                 ('resumen', 'medicos') if p.tipo_registro == "medico" else ('resumen', 'pacientes', 'verificaciones'),
@@ -1566,6 +1567,13 @@ def habilitarCuentaBloqueadaService(proceso_id, revisor):
         cuenta.motivo_bloqueo = ""
         cuenta.bloqueado_en = None
         cuenta.save(update_fields=["acceso_bloqueado", "motivo_bloqueo", "bloqueado_en"])
+        from users.account_access_email import programar_correo_cambio_acceso
+        programar_correo_cambio_acceso(
+            cuenta_id=cuenta.pk,
+            correo=cuenta.correo,
+            nombre=cuenta.nombre,
+            bloqueado=False,
+        )
         p.revision_posterior = "legitimo"
         p.revisado_facial_por = str(revisor)[:150]
         p.revisado_facial_en = timezone.now()

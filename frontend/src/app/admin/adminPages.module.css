@@ -25,6 +25,10 @@
 }
 .field select:hover { border-color: var(--border); }
 .field select:focus-visible { border-color: #2563eb; outline: 3px solid rgba(37, 99, 235, .14); outline-offset: 0; }
+.filterNotice { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -8px 0 14px; color: var(--text-secondary); font-size: .84rem; }
+.filterNotice button { border: 0; padding: 3px 5px; background: none; color: var(--accent); font: inherit; font-weight: 650; cursor: pointer; }
+.filterNotice button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.filterNotice button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
 @media (max-width: 640px) {
     .page { gap: 20px; }

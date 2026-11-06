@@ -5,6 +5,8 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from rest_framework.exceptions import ValidationError
 from chatbot.middleware import _usuario_desde_token
+from medicos.models import Medico
+from notificaciones.realtime import grupo_acceso_cuenta
 from .access import cargarConversacionVisible, identidadActor
 from .exceptions import ChatError
 from .models import Mensaje
@@ -47,6 +49,9 @@ class ChatCitasConsumer(AsyncJsonWebsocketConsumer):
             return
         self.group = f'chat_citas_{self.conversacion_id}'
         await self.channel_layer.group_add(self.group, self.channel_name)
+        tipo_cuenta = 'medico' if isinstance(self.actor, Medico) else 'paciente'
+        self.access_group = grupo_acceso_cuenta(tipo_cuenta, self.actor.pk)
+        await self.channel_layer.group_add(self.access_group, self.channel_name)
         self.presence_identity, self.counterpart = await database_sync_to_async(presence.renovar)(
             self.channel_name, self.conversacion_id, self.actor)
         self.presence_group = presence.grupo(self.counterpart)
@@ -58,6 +63,8 @@ class ChatCitasConsumer(AsyncJsonWebsocketConsumer):
         self.presence_task = asyncio.create_task(self._poll_presence())
 
     async def disconnect(self, code):
+        if hasattr(self, 'access_group'):
+            await self.channel_layer.group_discard(self.access_group, self.channel_name)
         task = getattr(self, 'presence_task', None)
         if task:
             task.cancel()
@@ -71,6 +78,9 @@ class ChatCitasConsumer(AsyncJsonWebsocketConsumer):
             await self._signal_presence()
         if hasattr(self, 'group'):
             await self.channel_layer.group_discard(self.group, self.channel_name)
+
+    async def access_revoked(self, event):
+        await self.close(code=4403)
 
     async def _signal_presence(self):
         await self.channel_layer.group_send(presence.grupo(self.presence_identity), {'type': 'presence_changed'})

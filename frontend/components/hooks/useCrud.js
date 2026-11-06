@@ -33,6 +33,17 @@ export function useCrud({
 
   // ── Paginación (solo se usa si paginado = true) ─────────
   const [pagina, setPagina] = useState(1);
+  const [filtros, actualizarFiltros] = useState({});
+  const setFiltro = (nombre, valor) => {
+    setPagina(1);
+    actualizarFiltros((actuales) => ({ ...actuales, [nombre]: valor }));
+  };
+  const limpiarFiltros = () => {
+    setPagina(1);
+    actualizarFiltros({});
+    actualizarBusqueda("");
+    setBusquedaAplicada("");
+  };
   const [busqueda, actualizarBusqueda] = useState("");
   const [busquedaAplicada, setBusquedaAplicada] = useState("");
   const setBusqueda = (valor) => {
@@ -58,7 +69,7 @@ export function useCrud({
       try {
         const paginaAConsultar = paginaOverride ?? pagina;
         const res = paginado
-          ? await getService(paginaAConsultar, busquedaAplicada)
+          ? await getService(paginaAConsultar, busquedaAplicada, filtros)
           : await getService();
 
         // Una respuesta más antigua que la última petición no debe pisar los datos nuevos.
@@ -90,7 +101,7 @@ export function useCrud({
         if (peticion === ultimaPeticion.current) setCargando(false);
       }
     },
-    [getService, paginado, pagina, busquedaAplicada]
+    [getService, paginado, pagina, busquedaAplicada, filtros]
   );
 
   useEffect(() => {
@@ -197,6 +208,9 @@ export function useCrud({
     // ── expuesto solo relevante cuando paginado = true ──────
     pagina,
     setPagina,
+    filtros,
+    setFiltro,
+    limpiarFiltros,
     busqueda,
     setBusqueda,
     paginacion,

@@ -6,6 +6,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 from medicos.models import Medico
 from users.models import Usuario
+from .realtime import grupo_acceso_cuenta
 
 from .models import Notificacion
 
@@ -46,11 +47,15 @@ class NotificacionConsumer(AsyncWebsocketConsumer):
             await self.close(code=4403)
             return
 
+        tipo_cuenta = "medico" if isinstance(usuario, Medico) else "paciente"
+        self.access_group = grupo_acceso_cuenta(tipo_cuenta, usuario.pk)
+
         try:
             await self.channel_layer.group_add(
                 self.room_group_name,
                 self.channel_name,
             )
+            await self.channel_layer.group_add(self.access_group, self.channel_name)
         except Exception:
             logger.exception(
                 "WS NOTIFICACIONES - error agregando conexión al channel layer"
@@ -69,6 +74,8 @@ class NotificacionConsumer(AsyncWebsocketConsumer):
         )
 
     async def disconnect(self, close_code):
+        if hasattr(self, "access_group"):
+            await self.channel_layer.group_discard(self.access_group, self.channel_name)
         if hasattr(self, "room_group_name"):
             try:
                 await self.channel_layer.group_discard(
@@ -79,6 +86,9 @@ class NotificacionConsumer(AsyncWebsocketConsumer):
                 logger.exception(
                     "WS NOTIFICACIONES - error eliminando conexión del channel layer"
                 )
+
+    async def access_revoked(self, event):
+        await self.close(code=4403)
 
     async def send_notification_count(self, event):
         payload = {

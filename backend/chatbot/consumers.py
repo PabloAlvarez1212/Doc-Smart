@@ -21,6 +21,7 @@ from chatbot.models import Chat, Mensaje
 from chatbot.services.chat_service import ChatService
 from chatbot.ai.doctor_conversation import DOCTOR_SYSTEM_PROMPT
 from medicos.models import Medico
+from notificaciones.realtime import grupo_acceso_cuenta
 
 
 logger = logging.getLogger(__name__)
@@ -74,6 +75,10 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4404)
             return
 
+        tipo_cuenta = "medico" if isinstance(usuario, Medico) else "paciente"
+        self.access_group = grupo_acceso_cuenta(tipo_cuenta, usuario.pk)
+        await self.channel_layer.group_add(self.access_group, self.channel_name)
+
         await self.accept()
         await self.send_json({"tipo": "conectado", "id_chat": self.id_chat})
 
@@ -81,6 +86,13 @@ class BymaxConsumer(AsyncJsonWebsocketConsumer):
         # Una desconexión no revierte una operación ya confirmada. Se termina
         # y persiste su resultado para recuperar el mismo turno al reconectar.
         self.desconectado = True
+        if hasattr(self, "access_group"):
+            await self.channel_layer.group_discard(self.access_group, self.channel_name)
+
+    async def access_revoked(self, event):
+        self._cancelar_respuesta()
+        self.desconectado = True
+        await self.close(code=4403)
 
     def _cancelar_respuesta(self, response_id=None, request_id=None):
         estado = getattr(self, "respuesta_actual", None)

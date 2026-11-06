@@ -6,16 +6,24 @@ import AdminPageHeader from "../../../../components/admin/PageHeader/AdminPageHe
 import pageStyles from "../adminPages.module.css"
 import { useCrud } from "../../../../components/hooks/useCrud";
 import useAdminRealtimeRefresh from "../../../../components/admin/useAdminRealtimeRefresh";
-import { getPacientesService, deletePacienteService } from "@/app/services/adminServices";
+import { getPacientesService } from "@/app/services/adminServices";
+import useAccountAccess from "../../../../components/admin/AccountAccess/useAccountAccess";
+import AccountAccessButton from "../../../../components/admin/AccountAccess/AccountAccessButton";
+import FilterBar from "../../../../components/ui/FilterBar/FilterBar";
+
+const estadosCuenta = [
+    { value: "activo", label: "Activos" },
+    { value: "bloqueado", label: "Bloqueados" },
+];
 
 export default function Patients() {
     const crud = useCrud({
         getService: getPacientesService,
-        eliminarService: deletePacienteService,
         paginado: true,
     })
+    const { cambiarAcceso, cuentaEnProceso } = useAccountAccess("paciente", crud.recargarSilencioso)
     useAdminRealtimeRefresh("pacientes", crud.recargarSilencioso, {
-        pausado: crud.modalAbierto || crud.guardando || crud.eliminando,
+        pausado: cuentaEnProceso !== null,
     })
     const columnas = [
         {
@@ -45,8 +53,19 @@ export default function Patients() {
     ];
     return (
         <div className={pageStyles.page}>
-            <AdminPageHeader eyebrow="Personas" title="Pacientes" description="Consulta las cuentas de pacientes y gestiona su permanencia en el sistema." />
+            <AdminPageHeader eyebrow="Personas" title="Pacientes" description="Consulta las cuentas de pacientes y administra su acceso al sistema." />
             <section className={pageStyles.tableSection} aria-label="Listado de pacientes">
+                <FilterBar
+                    searchValue={crud.busqueda}
+                    onSearch={crud.setBusqueda}
+                    searchLabel="Buscar paciente por nombre, apellido o cédula"
+                    placeholder="Nombre, apellido o cédula"
+                    filters={[{
+                        key: "estado", label: "Acceso", value: crud.filtros.estado ?? "",
+                        options: estadosCuenta, allLabel: "Todos", onChange: (valor) => crud.setFiltro("estado", valor),
+                    }]}
+                    onClear={crud.limpiarFiltros}
+                />
                 <DataTable
                     titulo="Pacientes"
                     columnas={columnas}
@@ -55,11 +74,12 @@ export default function Patients() {
                     datos={crud.datos}
                     mostrarEditar={false}
                     centrarAcciones={true}
-                    onEliminar={crud.eliminar}
-                    campoBusqueda="cedula"
-                    placeholderBusqueda="Buscar por cédula..."
-                    valorBusqueda={crud.busqueda}
-                    onBuscar={crud.setBusqueda}
+                    renderAcciones={(item) => <AccountAccessButton cuenta={item} onCambiar={cambiarAcceso} disabled={cuentaEnProceso !== null} />}
+                    mostrarBusqueda={false}
+                    emptyTitle={crud.busqueda || crud.filtros.estado ? "Sin pacientes para estos filtros" : "Aún no hay pacientes"}
+                    emptyDescription="Prueba otro nombre, apellido, cédula o estado de acceso."
+                    indiceInicial={(crud.pagina - 1) * crud.paginacion.page_size}
+                    textoConteo={`${crud.paginacion.count} pacientes encontrados`}
                     mostrarEncabezado={false}
                 />
 

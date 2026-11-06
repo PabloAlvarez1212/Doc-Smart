@@ -1,5 +1,6 @@
 from django.urls import path
-from django.urls import path
+
+from .admin_account_access import CambioAccesoCuentaView
 
 from .views import (
     LoginView,
@@ -45,7 +46,7 @@ from .views import (
 )
 
 urlpatterns = [
-
+    path("admin/cuentas/<str:tipo>/<int:cuenta_id>/acceso/", CambioAccesoCuentaView.as_view()),
     path("login/",LoginView.as_view()),
     path('solicitar-cambio/', SolicitarCambioView.as_view()),
     path("cambiar-contraseña/",CambiarContraseñaView.as_view()),

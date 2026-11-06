@@ -1,16 +1,17 @@
 import api from "./api"
 
-export const getPacientesService = async (page, search) =>
-    (await api.get('/usuarios/', { params: { page, page_size: 10, search } })).data
+export const getPacientesService = async (page, search, filtros = {}) =>
+    (await api.get('/usuarios/', { params: { page, page_size: 10, search, estado: filtros.estado || undefined } })).data
 
-export const deletePacienteService = async (id) =>
-    (await api.delete(`/usuarios/${id}/`)).data
+export const getDoctoresService = async (page, search, filtros = {}) =>
+    (await api.get('/medicos/', { params: {
+        page, page_size: 10, search,
+        estado: filtros.estado || undefined,
+        especialidad: filtros.especialidad || undefined,
+    } })).data
 
-export const getDoctoresService = async (page, search) =>
-    (await api.get('/medicos/', { params: { page, page_size: 10, search } })).data
-
-export const deleteDoctorService = async (id) =>
-    (await api.delete(`/medicos/${id}/`)).data
+export const cambiarAccesoCuentaService = async (tipo, id, bloqueado, motivo = "") =>
+    (await api.patch(`/admin/cuentas/${tipo}/${id}/acceso/`, { bloqueado, motivo })).data
 
 export const listarSolicitudesMedicosValidacionService = async function (filtros = {}, signal) {
     const response = await api.get("/medicos/solicitudes-validacion/", {

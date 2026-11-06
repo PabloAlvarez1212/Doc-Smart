@@ -40,8 +40,42 @@ logger = logging.getLogger(__name__)
 # ── SERVICIOS DE MÉDICOS ──────────────────────────────────────────────────────
 
 # Retorna la lista completa de médicos aprobados.
-def listarMedicosService():
-    medicos = filtrarMedicosAprobados(Medico.objects.all())
+def listarMedicosService(page=None, page_size=10, search=None, estado=None, especialidad=None):
+    medicos = filtrarMedicosAprobados(
+        Medico.objects.select_related('id_rol', 'id_especialidad', 'ciudad__departamento')
+    )
+
+    if search:
+        for termino in search.strip().split():
+            medicos = medicos.filter(
+                Q(nombre__icontains=termino) |
+                Q(apellido__icontains=termino) |
+                Q(cedula__icontains=termino)
+            )
+    if estado in ("activo", "bloqueado"):
+        medicos = medicos.filter(acceso_bloqueado=(estado == "bloqueado"))
+    if especialidad is not None:
+        medicos = medicos.filter(id_especialidad_id=especialidad)
+    medicos = medicos.order_by('nombre', 'apellido', 'id')
+
+    if page is not None:
+        try:
+            page_size = int(page_size)
+        except (TypeError, ValueError):
+            page_size = 10
+        page_size = max(1, min(page_size, 100))
+        paginator = Paginator(medicos, page_size)
+        page_obj = paginator.get_page(page)
+        serializer = MedicoSerializer(page_obj.object_list, many=True)
+        return {
+            "resultados": serializer.data,
+            "paginacion": {
+                "count": paginator.count,
+                "total_pages": paginator.num_pages,
+                "current_page": page_obj.number,
+                "page_size": page_size,
+            },
+        }, 200
 
     serializer = MedicoSerializer(medicos,many=True)
 
@@ -56,7 +90,7 @@ def listarMedicosPublicosService(
     ids=None
 ):
 
-    medicos = filtrarMedicosAprobados(
+    medicos = medicosAprobadosActivos(
         Medico.objects.select_related(
             'id_especialidad',
             'ciudad',
@@ -715,22 +749,6 @@ def actualizarMedicoService(id_medico, data):
 
     return MedicoPerfilSerializer(medico).data, 200
 
-
-# Elimina un médico por su ID
-def eliminarMedicoService(id_medico):
-
-    medico = Medico.objects.filter(
-        id=id_medico
-    ).first()
-
-    if not medico:
-        return 'Médico no encontrado', 404
-
-    medico.delete()
-    from notificaciones.realtime import programarActualizacionDashboardRealtime
-    programarActualizacionDashboardRealtime('MEDICO_ELIMINADO', ('resumen', 'medicos', 'solicitudes_medicos'))
-
-    return 'Médico eliminado correctamente', 200
 
 
 # ── SERVICIOS DE ESPECIALIDADES ───────────────────────────────────────────────
@@ -2060,7 +2078,7 @@ def listarFavoritosPacienteService(paciente):
 
 
 def agregarFavoritoService(paciente, id_medico):
-    medico = filtrarMedicosAprobados(Medico.objects.filter(id=id_medico)).first()
+    medico = medicosAprobadosActivos(Medico.objects.filter(id=id_medico)).first()
 
     if not medico:
         return "Médico no encontrado", 404

@@ -17,9 +17,7 @@ from django.utils import timezone
 from rest_framework.response import Response
 from django.template.loader import render_to_string
 
-MENSAJE_CUENTA_BLOQUEADA = (
-    "Tu acceso a DocSmart fue bloqueado tras la revisión de tu verificación de identidad."
-)
+MENSAJE_CUENTA_BLOQUEADA = "Tu acceso a DocSmart está bloqueado."
 
 
 def mensaje_bloqueo(cuenta):

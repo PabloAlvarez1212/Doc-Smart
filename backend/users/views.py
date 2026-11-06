@@ -25,7 +25,6 @@ from users.services import (
     listarPacientesService,
     obtenerUsuarioService,
     editarUsuarioService,
-    eliminarUsuarioService,
     obtenerDashboardPacienteInicioService,
     actualizarFotoPerfilPacienteService,
     eliminarFotoPerfilPacienteService,
@@ -722,9 +721,12 @@ class UsuarioListView(APIView):
             page = request.query_params.get('page')
             page_size = request.query_params.get('page_size', 10)
             search = request.query_params.get('search')
+            estado_cuenta = request.query_params.get('estado')
+            if estado_cuenta not in (None, "", "activo", "bloqueado"):
+                return respuesta_error("Estado de cuenta no válido", status=400)
 
             resultado, status_code = listarPacientesService(
-                page=page, page_size=page_size, search=search,
+                page=page, page_size=page_size, search=search, estado=estado_cuenta,
             )
             return respuesta_ok(data=resultado, status=status_code)
         except Exception as e:
@@ -762,16 +764,6 @@ class UsuarioDetailView(APIView):
             return respuesta_ok(data=resultado, mensaje='Usuario actualizado correctamente')
         except Exception as e:
             logger.exception("No se pudo actualizar el usuario")
-            return respuesta_error('Error interno del servidor', status=500)
-
-    def delete(self, request, pk):
-        try:
-            resultado, status_code = eliminarUsuarioService(pk)
-            if status_code != 200:
-                return respuesta_error(resultado, status=status_code)
-            return respuesta_ok(mensaje=resultado)
-        except Exception as e:
-            logger.exception("No se pudo eliminar el usuario")
             return respuesta_error('Error interno del servidor', status=500)
 
 class DashboardInicioPacienteView(APIView):

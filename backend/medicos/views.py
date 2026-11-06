@@ -10,7 +10,6 @@ from medicos.services import (
     listarMedicosService,
     obtenerMedicoService,
     actualizarMedicoService,
-    eliminarMedicoService,
     listarEspecialidadesService,
     obtenerEspecialidadService,
     crearEspecialidadService,
@@ -103,10 +102,29 @@ class MedicoListView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request):
         try:
-            resultado, status_code = listarMedicosService()
+            page = request.query_params.get('page')
+            page_size = request.query_params.get('page_size', 10)
+            search = request.query_params.get('search')
+            estado_cuenta = request.query_params.get('estado')
+            especialidad = request.query_params.get('especialidad')
+            if estado_cuenta not in (None, "", "activo", "bloqueado"):
+                return respuesta_error("Estado de cuenta no válido", status=400)
+            if especialidad not in (None, ""):
+                try:
+                    especialidad = int(especialidad)
+                    if especialidad < 1:
+                        raise ValueError()
+                except ValueError:
+                    return respuesta_error("Especialidad no válida", status=400)
+            else:
+                especialidad = None
+            resultado, status_code = listarMedicosService(
+                page=page, page_size=page_size, search=search,
+                estado=estado_cuenta, especialidad=especialidad,
+            )
             return respuesta_ok(resultado, status=status_code)
-        except Exception as e:
-            print(f'Error: {e}')
+        except Exception:
+            logger.exception("No se pudo listar los médicos del panel administrativo")
             return respuesta_error("Error interno en el servidor", status=500)
 
 #Vista admin: Lista los medicos que estan en pendientes y rechazados
@@ -386,18 +404,6 @@ class MedicoDetailView(APIView):
         except Exception as e:
             print(f"Error: {e}")
             return respuesta_error("Error interno en el servidor", status=500)
-
-    # Elimina un médico por su ID
-    def delete(self, request, id_medico):
-        try:
-            resultado, status_code = eliminarMedicoService(id_medico)
-            if status_code != 200:
-                return respuesta_error(resultado, status=status_code)
-            return respuesta_ok(mensaje=resultado, status=status_code)
-        except Exception as e:
-            print(f'Error: {e}')
-            return respuesta_error("Error interno en el servidor", status=500)
-
 
 # ── VISTAS DE ESPECIALIDADES ──────────────────────────────────────────────────
 

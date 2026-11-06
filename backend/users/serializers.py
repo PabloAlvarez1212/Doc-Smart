@@ -17,19 +17,21 @@ class UsuarioSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Usuario
-        fields = ['id','nombre','apellido','correo','rol','telefono','cedula','genero','tipo_sangre']
+        fields = ['id','nombre','apellido','correo','rol','telefono','cedula','genero','tipo_sangre','acceso_bloqueado']
 
 class MedicoSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source='id_rol.nombre')
     especialidad = serializers.CharField(source='id_especialidad.nombre')    # Nombre de la especialidad
-    ciudad = serializers.CharField(source='ciudad.nombre')                   # Nombre de la ciudad
-    departamento = serializers.CharField(source='ciudad.departamento.nombre') # Departamento de la ciudad
+    ciudad = serializers.CharField(source='ciudad.nombre', allow_null=True)                   # Nombre de la ciudad
+    departamento = serializers.CharField(source='ciudad.departamento.nombre', allow_null=True) # Departamento de la ciudad
     estado_validacion = serializers.SerializerMethodField()
     class Meta:
         model = Medico
-        fields = ['id', 'nombre', 'apellido', 'correo', 'rol','telefono','especialidad', 'ciudad', 'departamento', 'direccion','cedula','estado_validacion']
+        fields = ['id', 'nombre', 'apellido', 'correo', 'rol','telefono','especialidad', 'ciudad', 'departamento', 'direccion','cedula','estado_validacion','acceso_bloqueado']
         
     def get_estado_validacion(self, obj):
+        if hasattr(obj, 'estado_ultima_solicitud'):
+            return obj.estado_ultima_solicitud
         solicitud = obj.ultima_solicitud_validacion
 
         if not solicitud:
