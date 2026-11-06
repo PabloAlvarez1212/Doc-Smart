@@ -17,17 +17,15 @@ export default function AdminLayout({ children }) {
   useInactivityLogout();
 
   const router = useRouter();
-  const { perfil, loading, error } = useProfile();
+  const { perfil, loading, error, reintentar } = useProfile();
 
   useEffect(() => {
     if (loading) return;
 
     if (
       error === "NO_AUTENTICADO" ||
-      error === "ERROR_PERFIL" ||
       error === "NO_AUTORIZADO" ||
-      !perfil ||
-      perfil.rol !== "admin"
+      (!error && (!perfil || perfil.rol !== "admin"))
     ) {
       router.replace("/login");
     }
@@ -35,6 +33,16 @@ export default function AdminLayout({ children }) {
 
   if (loading) {
     return <p>Cargando...</p>;
+  }
+
+  if (error === "ERROR_PERFIL") {
+    return (
+      <main className={Styles.profileError} role="alert">
+        <h1>No pudimos cargar el panel</h1>
+        <p>Comprueba tu conexión e inténtalo de nuevo.</p>
+        <button type="button" onClick={reintentar}>Reintentar</button>
+      </main>
+    );
   }
 
   if (

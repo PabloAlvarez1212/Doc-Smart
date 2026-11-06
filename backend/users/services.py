@@ -1411,7 +1411,9 @@ def listarPacientesService(page=None, page_size=10, search=None):
     usuarios = Usuario.objects.filter(id_rol__nombre__iexact = "paciente")
 
     if search:
-        usuarios = usuarios.filter(nombre__icontains=search)
+        usuarios = usuarios.filter(
+            Q(nombre__icontains=search.strip()) | Q(cedula__icontains=search.strip())
+        )
     usuarios = usuarios.order_by('nombre')
 
     if page is None:

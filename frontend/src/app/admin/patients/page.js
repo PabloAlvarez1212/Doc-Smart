@@ -10,7 +10,7 @@ import { getPacientesService, deletePacienteService } from "@/app/services/admin
 
 export default function Patients() {
     const crud = useCrud({
-        getService: (page, search) => getPacientesService(page, search),
+        getService: getPacientesService,
         eliminarService: deletePacienteService,
         paginado: true,
     })
@@ -58,6 +58,8 @@ export default function Patients() {
                     onEliminar={crud.eliminar}
                     campoBusqueda="cedula"
                     placeholderBusqueda="Buscar por cédula..."
+                    valorBusqueda={crud.busqueda}
+                    onBuscar={crud.setBusqueda}
                     mostrarEncabezado={false}
                 />
 

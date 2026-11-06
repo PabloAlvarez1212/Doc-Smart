@@ -1,20 +1,23 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { obtenerPerfilAdmin } from "@/app/services/adminServices"
 export default function useProfile() {
     const [perfil, setPerfil] = useState(null)
     const [error, setError] = useState(null)
     const [loading, setLoading] = useState(true)
-    useEffect(() => {
-        cargarPerfilAdmin();
-    }, [])
-    const cargarPerfilAdmin = async () => {
+    const ultimaPeticion = useRef(0)
+    const cargarPerfilAdmin = useCallback(async () => {
+        const peticion = ++ultimaPeticion.current
         try {
             setLoading(true)
             setError(null)
             const data = await obtenerPerfilAdmin();
-            setPerfil(data.data);
+            if (!data?.data || typeof data.data !== "object") {
+                throw new Error("Respuesta de perfil inválida")
+            }
+            if (peticion === ultimaPeticion.current) setPerfil(data.data);
         } catch (error) {
+            if (peticion !== ultimaPeticion.current) return
             const status = error.response?.status
 
             if (status === 401) {
@@ -23,23 +26,20 @@ export default function useProfile() {
                 setError("NO_AUTORIZADO")
             } else {
                 setError("ERROR_PERFIL")
-                
-                console.error(
-                    "Error al obtener perfil del administrador:",
-                    error
-                )
             }
-
             setPerfil(null)
-
         } finally {
-            setLoading(false)
+            if (peticion === ultimaPeticion.current) setLoading(false)
         }
-
-    }
+    }, [])
+    useEffect(() => {
+        cargarPerfilAdmin();
+        return () => { ultimaPeticion.current += 1; }
+    }, [cargarPerfilAdmin])
     return {
         perfil,
         loading,
         error,
+        reintentar: cargarPerfilAdmin,
     };
 }
