@@ -3,6 +3,7 @@ from django.urls import path
 from calificaciones.views import (
     CrearCalificacionView,
     ActualizarCalificacionView,
+    EliminarCalificacionView,
     ListarCalificacionesMedicoView,
     ObtenerPromedioCalificacionesMedicoView,
     ActualizarVisibilidadCalificacionView,
@@ -13,6 +14,7 @@ urlpatterns = [
     
     path("crear/",CrearCalificacionView.as_view(),name="crear_calificacion"),
     path("actualizar/<int:id_calificacion>/",ActualizarCalificacionView.as_view(),name="actualizar_calificacion"),
+    path("eliminar/<int:id_calificacion>/",EliminarCalificacionView.as_view(),name="eliminar_calificacion"),
     path("medico/<int:id_medico>/",ListarCalificacionesMedicoView.as_view(),name="listar_calificaciones_medico"),
     path("medico/<int:id_medico>/promedio/",ObtenerPromedioCalificacionesMedicoView.as_view(),name="obtener_promedio_calificaciones_medico"),
     path("visibilidad/<int:id_calificacion>/",ActualizarVisibilidadCalificacionView.as_view(),name="actualizar_visibilidad_calificacion"),

@@ -8,8 +8,10 @@ import {
     LoaderCircle,
     Star,
     Stethoscope,
+    Trash2,
 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import Swal from "sweetalert2";
 import Modal from "../../../ui/Modal/Modal";
 import useCalificacion from "../useCalificacion";
 import {
@@ -48,12 +50,16 @@ export default function CalificarMedicoModal({
         crearCalificacion,
         actualizarCalificacion,
         actualizarVisibilidad,
+        eliminarCalificacion,
         enviando,
         error,
         actualizandoVisibilidad,
         errorVisibilidad,
+        eliminando,
+        errorEliminar,
         limpiarError,
         limpiarErrorVisibilidad,
+        limpiarErrorEliminar,
     } = useCalificacion();
 
     const presentation = getCalificacionPresentation(cita);
@@ -75,10 +81,11 @@ export default function CalificarMedicoModal({
         setForceReadOnly(false);
         limpiarError();
         limpiarErrorVisibilidad();
+        limpiarErrorEliminar();
     }, [abierto, cita?.id]);
 
     const cerrar = () => {
-        if (!enviando && !actualizandoVisibilidad) onCerrar?.();
+        if (!enviando && !actualizandoVisibilidad && !eliminando) onCerrar?.();
     };
 
     const handleExitComplete = () => {
@@ -91,6 +98,7 @@ export default function CalificarMedicoModal({
         setForceReadOnly(false);
         limpiarError();
         limpiarErrorVisibilidad();
+        limpiarErrorEliminar();
         onExitComplete?.();
     };
 
@@ -149,13 +157,56 @@ export default function CalificarMedicoModal({
         }
     };
 
+    const handleEliminar = async () => {
+        const idCalificacion = cita?.calificacion?.id;
+        if (!idCalificacion || enviando || actualizandoVisibilidad || eliminando) return;
+
+        const confirmacion = await Swal.fire({
+            title: "¿Eliminar tu calificación?",
+            text: "Esta acción no se puede deshacer. Podrás calificar la atención de nuevo.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+        });
+        if (!confirmacion.isConfirmed) return;
+
+        try {
+            const response = await eliminarCalificacion({ idCalificacion });
+            if (response?.ignored) return;
+            await onRefresh?.();
+            await onSuccess?.("delete", response);
+        } catch {
+            // El hook expone un mensaje con el error del servidor.
+        }
+    };
+
+    const ocupado = enviando || actualizandoVisibilidad || eliminando;
+    const deleteButton = mode !== "create" && cita?.calificacion?.id ? (
+        <button
+            type="button"
+            className={styles.dangerButton}
+            onClick={handleEliminar}
+            disabled={ocupado}
+            aria-label={`Eliminar mi calificación de la atención con ${medico}`}
+        >
+            {eliminando ? (
+                <LoaderCircle className={styles.spinner} size={17} aria-hidden="true" />
+            ) : (
+                <Trash2 size={17} aria-hidden="true" />
+            )}
+            {eliminando ? "Eliminando..." : "Eliminar"}
+        </button>
+    ) : null;
+
     const footer = isEditable ? (
         <>
+            {deleteButton}
             <button
                 type="button"
                 className={styles.secondaryButton}
                 onClick={cerrar}
-                disabled={enviando || actualizandoVisibilidad}
+                disabled={ocupado}
             >
                 Cancelar
             </button>
@@ -163,7 +214,7 @@ export default function CalificarMedicoModal({
                 type="submit"
                 form={formId}
                 className={styles.primaryButton}
-                disabled={enviando || actualizandoVisibilidad || puntuacion < 1 || comentario.length > 1000}
+                disabled={ocupado || puntuacion < 1 || comentario.length > 1000}
             >
                 {enviando ? (
                     <>
@@ -179,9 +230,12 @@ export default function CalificarMedicoModal({
             </button>
         </>
     ) : (
-        <button type="button" className={styles.primaryButton} onClick={cerrar} disabled={actualizandoVisibilidad}>
-            Cerrar
-        </button>
+        <>
+            {deleteButton}
+            <button type="button" className={styles.primaryButton} onClick={cerrar} disabled={ocupado}>
+                Cerrar
+            </button>
+        </>
     );
 
     return (
@@ -333,6 +387,13 @@ export default function CalificarMedicoModal({
                         {errorVisibilidad && <p className={styles.visibilityError} role="alert"><AlertCircle size={16} aria-hidden="true" />{errorVisibilidad}</p>}
                     </div>
                 </section>
+
+                {errorEliminar && (
+                    <div className={styles.feedback} role="alert">
+                        <AlertCircle size={18} aria-hidden="true" />
+                        <span>{errorEliminar}</span>
+                    </div>
+                )}
             </div>
         </Modal>
     );

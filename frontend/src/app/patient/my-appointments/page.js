@@ -123,7 +123,11 @@ export default function MyAppointments() {
 
     const confirmarCalificacion = (mode) => {
         setModalCalificacion(false);
-        alCerrar(() => avisar(mode === "create" ? "Gracias por calificar la atención." : "Tu calificación quedó actualizada."));
+        const mensajes = {
+            create: "Gracias por calificar la atención.",
+            delete: "Tu calificación fue eliminada.",
+        };
+        alCerrar(() => avisar(mensajes[mode] ?? "Tu calificación quedó actualizada."));
     };
 
     const renderCita = (cita, indice) => {

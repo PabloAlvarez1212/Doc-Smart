@@ -2,7 +2,7 @@ from users.models import Usuario
 from medicos.models import Medico
 from citas.models import Cita
 from calificaciones.models import Calificacion
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from datetime import timedelta
 from django.utils import timezone
 from utils import ESTADO_CITA_COMPLETADA
@@ -73,6 +73,32 @@ def actualizarCalificacionServices(data,id_calificacion,usuario):
     programarActualizacionCalificacionRealtime(calificacion.id_cita)
 
     return "Campos actualizados correctamente.",200
+
+def eliminarCalificacionServices(id_calificacion,usuario):
+
+    if not isinstance(usuario,Usuario):
+        return "Debes de ser un paciente para eliminar una calificacion.",403
+
+    if usuario.id_rol.nombre.lower() != "paciente":
+        return "Debes de ser un paciente para eliminar una calificacion.",403
+
+    with transaction.atomic():
+        calificacion = Calificacion.objects.select_for_update().filter(id=id_calificacion).first()
+
+        if not calificacion:
+            return "La calificación no existe.",404
+
+        if calificacion.id_cita.id_usuario_id != usuario.id:
+            return "No puedes eliminar una calificación que no es tuya.",403
+
+        id_cita = calificacion.id_cita_id
+        calificacion.delete()
+
+        # Se vuelve a leer la cita para que el aviso al médico ya no incluya la calificación borrada.
+        programarActualizacionDashboardRealtime("CALIFICACION_ELIMINADA", ("resumen",))
+        programarActualizacionCalificacionRealtime(Cita.objects.get(id=id_cita))
+
+    return "Calificación eliminada correctamente.",200
 
 #Listar las calificaciones que son públicas de cada médico
 def listarCalificacionesMedicoService(id_medico):

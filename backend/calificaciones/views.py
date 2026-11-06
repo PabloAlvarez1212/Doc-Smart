@@ -64,6 +64,27 @@ class ActualizarCalificacionView(APIView):
             status=codigo
         )
 
+# ELIMINAR CALIFICACIÓN
+
+class EliminarCalificacionView(APIView):
+
+    permission_classes = [IsAuthenticated,IsPaciente]
+
+    def delete(self, request, id_calificacion):
+
+        resultado, codigo = eliminarCalificacionServices(
+            id_calificacion=id_calificacion,
+            usuario=request.user
+        )
+
+        if codigo != 200:
+            return respuesta_error(resultado, status=codigo)
+
+        return respuesta_ok(
+            mensaje=resultado,
+            status=codigo
+        )
+
 # LISTAR CALIFICACIONES DE UN MÉDICO (VISTA PÚBLICA)
 
 class ListarCalificacionesMedicoView(APIView):

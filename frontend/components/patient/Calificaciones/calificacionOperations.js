@@ -48,6 +48,11 @@ export function createCalificacionVisibilitySubmitter({ actualizarVisibilidadSer
     };
 }
 
+export function getEliminarCalificacionError(error) {
+    return obtenerPrimerError(error?.response?.data?.errores)
+        || "No fue posible eliminar la calificación. Inténtalo nuevamente.";
+}
+
 export function getCalificacionError(error) {
     return obtenerPrimerError(error?.response?.data?.errores)
         || "No fue posible guardar la calificación. Inténtalo nuevamente.";

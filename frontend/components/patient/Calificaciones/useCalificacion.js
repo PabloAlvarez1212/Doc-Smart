@@ -5,11 +5,13 @@ import {
     actualizarCalificacionService,
     actualizarVisibilidadCalificacionService,
     crearCalificacionService,
+    eliminarCalificacionService,
 } from "@/app/services/calificacionServices";
 import {
     createCalificacionSubmitter,
     createCalificacionVisibilitySubmitter,
     getCalificacionError,
+    getEliminarCalificacionError,
     getVisibilidadCalificacionError,
 } from "./calificacionOperations";
 
@@ -18,10 +20,13 @@ export default function useCalificacion() {
     const busyRef = useRef(false);
     const visibilitySubmitterRef = useRef(null);
     const visibilityBusyRef = useRef(false);
+    const deleteBusyRef = useRef(false);
     const [enviando, setEnviando] = useState(false);
     const [error, setError] = useState("");
     const [actualizandoVisibilidad, setActualizandoVisibilidad] = useState(false);
     const [errorVisibilidad, setErrorVisibilidad] = useState("");
+    const [eliminando, setEliminando] = useState(false);
+    const [errorEliminar, setErrorEliminar] = useState("");
 
     if (!submitterRef.current) {
         submitterRef.current = createCalificacionSubmitter({
@@ -78,14 +83,34 @@ export default function useCalificacion() {
         }
     };
 
+    const eliminarCalificacion = async ({ idCalificacion }) => {
+        if (deleteBusyRef.current) return { ignored: true };
+        deleteBusyRef.current = true;
+        setEliminando(true);
+        setErrorEliminar("");
+        try {
+            return await eliminarCalificacionService(idCalificacion);
+        } catch (requestError) {
+            setErrorEliminar(getEliminarCalificacionError(requestError));
+            throw requestError;
+        } finally {
+            deleteBusyRef.current = false;
+            setEliminando(false);
+        }
+    };
+
     return {
         crearCalificacion,
+        eliminarCalificacion,
         actualizarCalificacion,
         actualizarVisibilidad,
         enviando,
         error,
         actualizandoVisibilidad,
         errorVisibilidad,
+        eliminando,
+        errorEliminar,
+        limpiarErrorEliminar: () => setErrorEliminar(""),
         limpiarError: () => setError(""),
         limpiarErrorVisibilidad: () => setErrorVisibilidad(""),
     };

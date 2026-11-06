@@ -27,6 +27,19 @@ export const actualizarCalificacionService = async function (
     return response.data;
 };
 
+// ELIMINAR CALIFICACIÓN
+
+export const eliminarCalificacionService = async function (
+    id_calificacion
+) {
+
+    const response = await api.delete(
+        `/calificaciones/eliminar/${id_calificacion}/`
+    );
+
+    return response.data;
+};
+
 // LISTAR CALIFICACIONES DE UN MÉDICO
 
 export const listarCalificacionesMedicoService = async function (
