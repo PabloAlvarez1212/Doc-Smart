@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { Check, FileUp, X } from 'lucide-react'
+import { Check, FileUp, Pencil, X } from 'lucide-react'
+import EditorDocumento from './EditorDocumento'
 import styles from './DocumentoBuzon.module.css'
 
 // Carga en "buzón": cada imagen viaja a su casilla. Mientras el servidor lee el documento, un haz láser
@@ -18,6 +19,7 @@ function Casilla({ id, etiqueta, ayuda, archivo, onArchivo, estado, deshabilitad
     const [vista, setVista] = useState(null)
     const [rechazo, setRechazo] = useState('')
     const [vibracion, setVibracion] = useState(0)
+    const [editando, setEditando] = useState(false)
     const mensaje = rechazo || error
 
     useEffect(() => {
@@ -82,8 +84,15 @@ function Casilla({ id, etiqueta, ayuda, archivo, onArchivo, estado, deshabilitad
 
         <div className={styles.pie}>
             <span className={styles.nombre}>{etiqueta}{archivo ? ` · ${tamano(archivo.size)}` : ''}</span>
-            {archivo && !deshabilitado && <label htmlFor={id} className={styles.cambiar}>Cambiar</label>}
+            {archivo && !deshabilitado && <span className={styles.acciones}>
+                <button type="button" className={styles.editar} onClick={() => setEditando(true)} aria-label={`Editar ${etiqueta.toLowerCase()} del documento`}>
+                    <Pencil size={13} aria-hidden="true" /> Editar
+                </button>
+                <label htmlFor={id} className={styles.cambiar}>Cambiar</label>
+            </span>}
         </div>
+        {archivo && <EditorDocumento abierto={editando} archivo={archivo} etiqueta={etiqueta} onCerrar={() => setEditando(false)}
+            onAplicar={(editado) => { setRechazo(''); onArchivo(editado) }} />}
         {mensaje && <p id={`${id}-error`} className={styles.error} role="alert">{mensaje}</p>}
     </div>
 }
@@ -99,5 +108,8 @@ export default function DocumentoBuzon({ conReverso, frente, reverso, onFrente, 
         <p className={styles.estado} role="status" aria-live="polite">
             {estado === 'validando' ? 'Leyendo tu documento…' : estado === 'verificado' ? 'Documento verificado' : ''}
         </p>
+        {estado !== 'verificado' && (frente || reverso) && <p className={styles.consejo}>
+            ¿Salió torcida, oscura o con espacio de sobra? Usa «Editar» para enderezarla, recortarla o aclararla sin volver a elegir el archivo.
+        </p>}
     </div>
 }

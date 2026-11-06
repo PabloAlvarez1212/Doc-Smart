@@ -229,6 +229,41 @@
     cursor: pointer;
 }
 
+.acciones {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 12px;
+}
+
+.editar {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-dark);
+    font: inherit;
+    font-weight: 650;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.editar:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+}
+
+.consejo {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    text-align: center;
+}
+
 .error {
     margin: 0;
     color: var(--ink-red);
