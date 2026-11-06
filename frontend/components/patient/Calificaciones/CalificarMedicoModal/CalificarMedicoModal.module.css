@@ -5,7 +5,7 @@
     place-items: center;
     border-radius: 12px;
     color: var(--accent);
-    background: #eaf1fb;
+    background: var(--tone-blue);
 }
 
 .headerIcon {
@@ -26,9 +26,9 @@
     align-items: center;
     gap: 13px;
     padding: 15px 16px;
-    border: 1px solid #dbe5f0;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #f7faff;
+    background: color-mix(in srgb, var(--tone-blue) 50%, var(--surface));
 }
 
 .professionalIcon {
@@ -98,7 +98,7 @@
     min-height: 118px;
     padding: 12px 14px;
     resize: vertical;
-    border: 1px solid var(--border);
+    border: 1px solid var(--control-border);
     border-radius: 12px;
     outline: none;
     background: var(--surface);
@@ -110,20 +110,20 @@
 }
 
 .commentField textarea::placeholder {
-    color: #7c899a;
+    color: var(--text-secondary);
 }
 
 .commentField textarea:hover:not(:disabled) {
-    border-color: #aebdcd;
+    border-color: color-mix(in srgb, var(--text-secondary) 55%, var(--border));
 }
 
 .commentField textarea:focus-visible {
     border-color: var(--action-primary-bg);
-    box-shadow: 0 0 0 3px rgb(36 86 166 / 14%);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent);
 }
 
 .commentField textarea[aria-invalid="true"] {
-    border-color: #bd3545;
+    border-color: var(--ink-red);
 }
 
 .commentField textarea:disabled {
@@ -149,7 +149,7 @@
 
 .fieldError {
     margin: 0;
-    color: #a52c3b;
+    color: var(--ink-red);
     font-size: .82rem;
     line-height: 1.4;
 }
@@ -159,10 +159,10 @@
     align-items: flex-start;
     gap: 9px;
     padding: 12px 13px;
-    border: 1px solid #efc7cb;
+    border: 1px solid color-mix(in srgb, var(--ink-red) 28%, var(--tone-red));
     border-radius: 11px;
-    background: #fff6f7;
-    color: #972b39;
+    background: var(--tone-red);
+    color: var(--ink-red);
     font-size: .84rem;
     line-height: 1.45;
 }
@@ -173,7 +173,8 @@
 }
 
 .primaryButton,
-.secondaryButton {
+.secondaryButton,
+.dangerButton {
     display: inline-flex;
     min-height: 42px;
     align-items: center;
@@ -195,13 +196,29 @@
 .primaryButton {
     border: 1px solid var(--action-primary-bg);
     background: var(--action-primary-bg);
-    color: #fff;
-    box-shadow: 0 3px 10px rgb(36 86 166 / 16%);
+    color: var(--action-on);
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--action-primary-bg) 16%, transparent);
 }
 
 .primaryButton:hover:not(:disabled) {
     border-color: var(--action-primary-hover);
     background: var(--action-primary-hover);
+}
+
+.dangerButton {
+    margin-right: auto;
+    border: 1px solid var(--ink-red);
+    background: var(--surface);
+    color: var(--ink-red);
+}
+
+.dangerButton:hover:not(:disabled) {
+    background: var(--tone-red);
+}
+
+.dangerButton:focus-visible {
+    outline: 3px solid var(--ink-red);
+    outline-offset: 2px;
 }
 
 .secondaryButton {
@@ -214,9 +231,13 @@
     background: var(--surface-muted);
 }
 
+.dangerButton:active:not(:disabled) {
+    transform: scale(.98);
+}
+
 .primaryButton:focus-visible,
 .secondaryButton:focus-visible {
-    outline: 3px solid rgb(36 86 166 / 20%);
+    outline: 3px solid var(--focus);
     outline-offset: 2px;
 }
 
@@ -226,7 +247,8 @@
 }
 
 .primaryButton:disabled,
-.secondaryButton:disabled {
+.secondaryButton:disabled,
+.dangerButton:disabled {
     cursor: not-allowed;
     opacity: .58;
 }
@@ -274,8 +296,8 @@
     margin: 0;
     padding: 11px 13px;
     border-radius: 10px;
-    background: #f2f5f8;
-    color: #56677d;
+    background: var(--surface-muted);
+    color: var(--text-secondary);
     font-size: .82rem;
     line-height: 1.45;
 }
@@ -285,9 +307,9 @@
     grid-template-columns: 38px minmax(0, 1fr);
     gap: 12px;
     padding: 15px;
-    border: 1px solid #dbe5f0;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #f7faff;
+    background: color-mix(in srgb, var(--tone-blue) 50%, var(--surface));
 }
 
 .visibilityIcon {
@@ -296,7 +318,7 @@
     height: 38px;
     place-items: center;
     border-radius: 10px;
-    background: #e7effb;
+    background: var(--tone-blue);
     color: var(--accent);
 }
 
@@ -347,9 +369,9 @@
     position: relative;
     width: 36px;
     height: 22px;
-    border: 1px solid #aebdcd;
+    border: 1px solid var(--control-border);
     border-radius: 999px;
-    background: #fff;
+    background: var(--surface);
     transition: background-color 160ms ease-out, border-color 160ms ease-out;
 }
 
@@ -360,7 +382,7 @@
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: #7a899b;
+    background: var(--text-secondary);
     content: "";
     transition: transform 180ms cubic-bezier(.23, 1, .32, 1), background-color 160ms ease-out;
 }
@@ -371,12 +393,12 @@
 }
 
 .visibilityChoice input:checked + span::after {
-    background: #fff;
+    background: var(--action-on);
     transform: translateX(14px);
 }
 
 .visibilityChoice input:focus-visible + span {
-    outline: 3px solid rgb(36 86 166 / 20%);
+    outline: 3px solid var(--focus);
     outline-offset: 2px;
 }
 
@@ -393,10 +415,10 @@
     justify-content: center;
     gap: 7px;
     padding: 7px 12px;
-    border: 1px solid #b9cae2;
+    border: 1px solid var(--control-border);
     border-radius: 9px;
-    background: #fff;
-    color: #1f4d91;
+    background: var(--surface);
+    color: var(--accent);
     font: inherit;
     font-size: .79rem;
     font-weight: 700;
@@ -405,12 +427,12 @@
 }
 
 .visibilityButton:hover:not(:disabled) {
-    border-color: #8aa9d2;
-    background: #edf4fd;
+    border-color: var(--accent);
+    background: var(--tone-blue);
 }
 
 .visibilityButton:focus-visible {
-    outline: 3px solid rgb(36 86 166 / 20%);
+    outline: 3px solid var(--focus);
     outline-offset: 2px;
 }
 
@@ -428,9 +450,9 @@
     font-weight: 650;
 }
 
-.visibilityCopy > .visibilitySuccess { color: #257047; }
-.visibilityCopy > .visibilityError { color: #972b39; }
-.visibilityCopy > .visibilityPending { color: #73520b; }
+.visibilityCopy > .visibilitySuccess { color: var(--ink-green); }
+.visibilityCopy > .visibilityError { color: var(--ink-red); }
+.visibilityCopy > .visibilityPending { color: var(--ink-orange); }
 .visibilitySuccess svg,
 .visibilityError svg { flex: 0 0 auto; margin-top: 1px; }
 

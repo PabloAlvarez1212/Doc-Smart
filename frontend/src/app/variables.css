@@ -11,3 +11,7 @@
 
 /* Botones principales con el mismo cuerpo en reposo que al pasar el cursor, también en oscuro */
 :root[data-theme="dark"]{--brand-solid:#3a6ce0;--action-primary-bg:#3a6ce0;--action-primary-hover:#5a87ee;--action-success-bg:#258a66;--action-success-hover:#2fa077;--action-on:#fff}
+
+/* Estrellas de calificación: relleno activo, contorno inactivo (≥ 3:1 sobre la superficie), fondo y tinta de hover/selección */
+:root{--star-active:#c97a00;--star-inactive:#7c899a;--star-hover-bg:#fff4ce;--star-ink:#a95f00}
+:root[data-theme="dark"]{--star-active:#f0a830;--star-inactive:#8f98a8;--star-hover-bg:#3a2e14;--star-ink:#f5b942}
